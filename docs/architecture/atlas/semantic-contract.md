@@ -494,8 +494,9 @@ constituent does not (name which). `ABSENT` requires closed-search evidence
 `PASS` · `FAIL` · `INSUFFICIENT` · `UNKNOWN`
 
 Relative to the claim's boundary (§9.3) and to a named evidence set. `PASS` at
-`B0` is not `PASS` at `B4`. `INSUFFICIENT` means evidence exists but is below the
-boundary; it is a first-class result.
+`B0` is not `PASS` at `B4`. `INSUFFICIENT` means evidence exists but its
+`boundary_coverage` does not include the claimed boundary; it is a first-class
+result.
 
 ### 8.4 `activation_support`
 
@@ -545,7 +546,7 @@ as "the product refuses it".
 
 Whether the bound snapshot still describes live state. Separate from
 `resolution` (§8.6) and from external-tool freshness
-([`provenance-v0.1.md`](provenance-v0.1.md) §5). A ref may be perfectly
+([`provenance-v0.1.md`](provenance-v0.1.md) §7.2). A ref may be perfectly
 `RESOLVED` at an old revision and therefore `STALE` as a description of live state.
 
 ### 8.6 `resolution`
@@ -929,7 +930,7 @@ named owner for the follow-up. No winner chosen. Rejected. ✔
 | Situation | Wrong output | Model output |
 | --- | --- | --- |
 | Implementation evidence missing for a capability | `implementation = ABSENT` | `implementation = UNKNOWN` + the open question, unless a closed search establishes absence (`ATLAS-SEM-023`) |
-| No test covers a boundary | `verification = FAIL` | `verification = INSUFFICIENT` (evidence exists but is below the boundary) or `UNKNOWN` — `FAIL` requires counter-evidence, not absent evidence |
+| No test covers a boundary | `verification = FAIL` | `verification = INSUFFICIENT` (evidence exists but its `boundary_coverage` does not include the claimed boundary) or `UNKNOWN` — `FAIL` requires counter-evidence, not absent evidence |
 | Work item closed with no established reason | `CLOSED_IMPLEMENTED` | `CLOSED_UNKNOWN` (`ATLAS-SEM-052`) |
 | Historical locator no longer resolves | "the fact was never true" | `resolution = MISSING_REF` + `freshness = STALE`; truth is a separate claim |
 | Gate declared, no owner found for the lift | "planned" | `GATED` + `open_governance_item.kind = OWNER_UNRESOLVED` (`ATLAS-SEM-054`) |

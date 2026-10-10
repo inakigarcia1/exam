@@ -75,7 +75,7 @@ identifiers, not a severity order; adequacy is `boundary_coverage` membership
 | A-08 | `facet:content.rich.visual-source-sync` | Full bidirectional expert-source ↔ visual-field synchronization was **not delivered**; a KaTeX preview was | `RESIDUAL_OR_EXCLUSION` | `B5` | design `ACCEPTED` (preview), implementation `PARTIAL` (preview present, sync absent), activation_support `DEFERRED` | `work:jnhu76/exam#756` (owner decision issue) | **DEFERRED**, `open_governance_item.kind = WORK_ITEM` |
 | A-09 | `facet:content.rich.char-count` | Character count is **not shipped**, deliberately: no ContentDocument-independent counting semantic exists and no product limit depends on one | `RESIDUAL_OR_EXCLUSION` | `B5` | design `REJECTED` for now (recorded as optional scoped follow-up), implementation `ABSENT`, activation_support `NOT_SUPPORTED` | `docs/design/candidate-rich-editor-ux.md` (design authority for candidate interaction) | **NOT_SUPPORTED** (follow-up scoped) |
 | A-10 | `facet:content.rich.attachments` | Image/attachment nodes do not exist; an Asset authority is a prerequisite (the schema comment names `ContentDocumentV2`) | `RESIDUAL_OR_EXCLUSION` | `B5` | design `DEFERRED`, implementation `ABSENT`, activation_support `NOT_SUPPORTED` | `authority:rich-contract` + `authority:adr-019` | **NOT_SUPPORTED** (prerequisite absent) |
-| A-11 | `capability:content.rich-subjective` (roll-up) | The capability's support state is **`MIXED`**: a supported delivered core coexists with not-supported/deferred facets | `CAPABILITY_SUPPORT` (derived roll-up, `ATLAS-IR-032`/`-033`) | — | `support_summary = MIXED`, `support_boundary = B4`, `mapping_state = MAPPED` (every facet this slice examined is instantiated as a part) | derived | **MIXED** |
+| A-11 | `capability:content.rich-subjective` (roll-up) | The capability's support state is **`MIXED`**: a supported delivered core coexists with not-supported/deferred facets | `CAPABILITY_SUPPORT` (derived roll-up, `ATLAS-IR-032`/`-033`) | — | `support_summary = MIXED`, `support_boundary = B4`, `mapping_state = MAPPED` with the enumeration criterion of `ATLAS-IR-032` met by a **named basis**: the rich contract's feature inventory and V2-extension notes (delivered core; attachments), OPEN `#756`'s residual list (typed shortcuts, visual/source sync), and the candidate-editor design doc's recorded rejections (char count), all at `cbe33db1`; whether sources *beyond that basis* discuss further facets is A-U1's separate `UNKNOWN` and does not lower coverage (`ATLAS-SEM-102`) | derived | **MIXED** |
 
 `ATLAS-IR-033` is the rule that makes A-01 and A-07…A-10 coexist without
 contradiction: the roll-up is `MIXED`, not a boolean.
@@ -273,9 +273,10 @@ RESIDUAL = 4 owned + 1 unowned-by-issue
 - **A-05/A-06 (`SUPPORTED` at `B3`, `INSUFFICIENT` at `B4`)** — the authoring
   surface, save path and render path are reachable and are proven by contract,
   component and API evidence; the browser mechanism for *table/code editing* is
-  not proven, and `ATLAS-SEM-001` forbids asserting a boundary above the evidence.
-  The claim is therefore made at the boundary the evidence covers (`B3`) with the
-  `B4` shortfall named (A-C6), instead of a `B4` claim with a caveat.
+  not proven, and `ATLAS-SEM-001` forbids asserting a boundary the evidence does
+  not cover. The claim is therefore made at the boundary the evidence covers
+  (`B3`) with the `B4` shortfall named (A-C6), instead of a `B4` claim with a
+  caveat.
 - **A-07…A-10 (not supported / deferred)** — adequacy is not the issue: these are
   **exclusion** claims, supported by the owner's own record plus the absence of
   grammar/implementation, and they cannot be upgraded by any test passing.

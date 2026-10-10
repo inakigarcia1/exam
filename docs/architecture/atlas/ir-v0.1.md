@@ -358,7 +358,17 @@ Binding rules:
 - `mapping_state` records coverage, never support — an `UNMAPPED` capability is
   not an unsupported capability (`ATLAS-SEM-102`). Its role in this function is
   the clause-0 coverage gate: an incomplete mapping must not yield `SUPPORTED`
-  *or* `NOT_SUPPORTED`.
+  *or* `NOT_SUPPORTED`. Its values are defined by an **enumeration criterion**:
+  `MAPPED` requires that the part set is instantiated from a **named enumeration
+  basis** (the owning contract's feature inventory, the owning OPEN work item's
+  residual list, or an extraction pass with its scope stated) **and** that every
+  part has ≥1 sanctioned mapping (`ATLAS-IR-080`); `PARTIAL` — ≥1 known part
+  lacks a sanctioned mapping, or the pass that produced the part set was itself
+  incomplete; `UNMAPPED` — no part has a sanctioned mapping; `UNKNOWN` — not
+  evaluated. Whether sources *beyond the named basis* discuss additional facets
+  is a separate recorded claim and never lowers `mapping_state`
+  (`ATLAS-SEM-102`) — but the inability to name any basis at all is exactly what
+  `UNKNOWN` records.
 
 ### 4.2 `Workflow`
 
@@ -510,7 +520,7 @@ rendered as one. Concretely:
 `ATLAS-IR-092` exists because a scope-kind field is the natural place for a
 reach claim to creep back in. Without the restriction, the
 "preset ≠ effective authorization" invariant would be editorial rather than
-structural. Whether a projection violates this is an R1/R2 conformance
+structural. Whether a projection violates this is an R2/R3 conformance
 obligation (a projection conformance surface does not exist in v0.1; see
 `r0-review.md` RV-9).
 

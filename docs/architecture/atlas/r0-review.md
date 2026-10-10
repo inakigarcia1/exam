@@ -12,8 +12,8 @@
 
 ```text
 R0_BASE                 = cbe33db1a7f241ba85aadbf21c4f6dea01133f03
-R0_HEAD                 = the commit that adds this file (the R0 freeze commit;
-                          see the PR body for the exact SHA)
+R0_HEAD                 = the commit adding the round-3 record — the final head of
+                          this PR (see the PR body for the exact SHA)
 BRANCH                  = design/atlas-r0-semantic-ir
 PR                      = jnhu76/exam#768
 IR_SCHEMA_VERSION       = v0.1
@@ -34,15 +34,28 @@ round; corrections landed in `a47e457a`. This document is added by the freeze
 commit, so it is the first commit at which every `r0-review.md` reference in the
 design area resolves.
 
+Round 3 was **targeted, not a full re-run**. The human review of the live PR (at
+`d53a772d`) found five semantic freeze gaps; they were fixed in `d8612297`
+(`CORRECTION_COMMIT_4`, adjudicated in §2.3), and three **new** independent
+reviewers were then dispatched against that head, each attacking named failure
+modes — FALSE_NOT_SUPPORTED / FALSE_CONFLICT, RESOLUTION_FRESHNESS_COLLAPSE /
+BOUNDARY_ORDERING, and PHASE_HANDOFF_LEAKAGE plus a record-honesty audit
+(§2.4). The four original directions were not re-run; their round-2 results
+stand.
+
 ```text
 REVIEW_ROUND_1_HEAD     = d4dcb54b
 REVIEW_ROUND_2_HEAD     = 476c0960
-FREEZE_HEAD             = the commit adding this file
+FREEZE_HEAD             = fdad66b2  (R0-D freeze)
 CORRECTION_COMMIT_1     = 476c0960  docs(atlas): address R0 adversarial review findings
 CORRECTION_COMMIT_2     = a47e457a  docs(atlas): close final-head adversarial review findings
 CORRECTION_COMMIT_3     = 0f96071e  docs(atlas): make two golden-slice locators resolvable
                                     (verification-only: no rule, boundary, axis or claim changed —
                                      an elided path and a deleted-file marker)
+CORRECTION_COMMIT_4     = d8612297  docs(atlas): close final R0 semantic freeze gaps
+                                    (input: the human review of the live PR at d53a772d —
+                                     five semantic gaps, adjudicated in §2.3)
+REVIEW_ROUND_3_HEAD     = d8612297  (targeted re-review: three reviewers, §2.4)
 ```
 
 `CORRECTION_COMMIT_3` came from the post-freeze verification pass rather than
@@ -60,6 +73,9 @@ reader to trip over. No semantic content changed in that commit.
 | 3 | RBAC / SCOPE | FALSE_RBAC_AUTHORITY = 1, MISSING_SCOPE_DIMENSION = 2, REGISTRY_RUNTIME_CONFLATION = 0 | all three verified fixed |
 | 4 | PROVENANCE / EVIDENCE / PRIVACY | 7 source-ref hazards, 4 unstable identities, 4 evidence overclaims, SENSITIVE_DATA_LEAK = 0 | all verified fixed |
 | — | Schema-overfit stress test (§4 below) | SCHEMA_OVERFIT = NO | unchanged |
+| 5 | **Round 3**: FALSE_NOT_SUPPORTED / FALSE_CONFLICT | at `d8612297`: FALSE_NOT_SUPPORTED = 0, FALSE_SUPPORT = 0, FALSE_CONFLICT = 0, UNJUSTIFIED_SUPPORTED = 0; 2 internal-consistency findings → RV-45, RV-51 | — |
+| 6 | **Round 3**: RESOLUTION_FRESHNESS_COLLAPSE / BOUNDARY_ORDERING | at `d8612297`: collapse = 0; ordering = 3 phrasing leftovers + 1 predicate-cell contradiction → RV-46, RV-47, RV-48 | — |
+| 7 | **Round 3**: PHASE_HANDOFF_LEAKAGE / record honesty | at `d8612297`: leakage = 1 (stale label → RV-49); record-gap RV-50; count convention RV-51; R1_IMPLEMENTATION_LEAKAGE = NO, SENSITIVE_DATA_LEAK = 0 | — |
 
 `SENSITIVE_DATA_LEAK = 0` was reported independently in both rounds: no
 credential, token, environment value, candidate personal data or database row
@@ -74,7 +90,7 @@ content appears anywhere in `docs/architecture/atlas/`.
 | **R0-A** — authority and claim semantics | **PASS** | `semantic-contract.md` §14.7 gate: all nine items YES. Fact/Evidence/Authority/Claim/WorkItem/Projection defined; six independent axes; explicit forbidden-inference table; UNKNOWN and CONFLICT propagation defined |
 | **R0-B** — minimal IR + provenance | **PASS** | `ir-v0.1.md` §3 (12 node types, each justified; 8 rejected), §5 (11 edges registered; 4 rejected), §6–§7; `provenance-v0.1.md` SREF-1 with six resolution states, two freshness dimensions, and privacy rules. `THREEJS_DEPENDENCY = NONE`, `GRAPH_DB_DEPENDENCY = NONE` |
 | **R0-C** — four golden slices | **PASS** | Four slices share one schema; `SLICE_SPECIFIC_SCHEMA_HACKS = 0`; `COMMON_SCHEMA = YES`; the required falsifications in all four are rejected (§2) |
-| **R0-D** — adversarial review + freeze | **PASS** | This document: 4 independent reviewers, 2 rounds, 38 adjudicated findings, 2 correction commits, schema-overfit stress test, final verdict |
+| **R0-D** — adversarial review + freeze | **PASS** | This document: 4 independent reviewers over 2 rounds (38 adjudicated findings, 2 correction commits) + the schema-overfit stress test + round 3 (human-review freeze-gap corrections and a targeted 3-reviewer re-review, RV-39..RV-51) + final verdict |
 
 ### 1.1 Golden-slice results (post-correction)
 
@@ -127,7 +143,8 @@ the model. Post-correction (and post-RV-32), the mechanisms that reject them:
 
 Format per finding: `ID / REVIEWER / CLAIM / EVIDENCE / VALID / SEVERITY /
 REQUIRED_ACTION / RESOLUTION`. "R1…R4" are the four review directions;
-"R2nd" marks a round-2 (re-verification) finding.
+"R2nd" marks a round-2 (re-verification) finding; "HUMAN" and "R5…R7" are the
+round-3 input and the three targeted round-3 reviewers (§2.3/§2.4).
 
 ### 2.1 Round 1
 
@@ -176,6 +193,53 @@ REQUIRED_ACTION / RESOLUTION`. "R1…R4" are the four review directions;
 | RV-36 | R2 (2nd) | §2.1's own marking rule was not applied: five non-index rows lacked the `*derived*` marker required by the section | `semantic-contract.md` §2.1 | YES | MEDIUM | apply the rule | all five rows marked `*derived*` and attributed to their indexed owner |
 | RV-37 | R1 (2nd) | A rule citation pointed at `ATLAS-IR-034` where the splitting rule is `ATLAS-IR-034b` | golden B §1 | YES | TRIVIAL | fix | corrected; the same scan found the reference to `ATLAS-IR-091`'s list (`additional_gates[]`) resolves |
 | RV-38 | R2 (2nd) | `r0-review.md` was referenced as a delivered artifact and as the record of open items, but did not exist at the reviewed head | `git ls-files` | YES | MEDIUM | add it or remove the references | resolved by this file, which is the first commit at which every reference resolves |
+
+### 2.3 Round 3 — human-review freeze-gap corrections (input: live PR review at `d53a772d`)
+
+| ID | Reviewer | Claim | Evidence cited | Valid | Severity | Action | Resolution |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| RV-39 | HUMAN (live PR review) | `ATLAS-IR-032` clause 4 could yield `NOT_SUPPORTED` vacuously: an `UNMAPPED` capability with `parts = []` / `claims = []` satisfied "no part is supporting and no part has an accepted design, an owning work item, or a named decision gate" vacuously — violating `ATLAS-SEM-102` and guaranteeing R1's inventory would mislabel unmapped capabilities | rule text at `d53a772d` | YES | HIGH | coverage gate + positive negative evidence | clause 0 now returns `UNKNOWN` for any `mapping_state ≠ MAPPED` (no aggregate verdict at all); clause 4 requires the positive negative evidence of new `ATLAS-SEM-084`; `F-17` and `ATLAS-IR-095` added; the `NOT_SUPPORTED` axis row aligned; golden A's roll-up now states `support_boundary` and a named enumeration basis |
+| RV-40 | HUMAN | `ATLAS-SREF-034`'s worst-of-both / `min()` rule re-merged the two axes the same document declares independent (`ATLAS-SREF-031`, semantic-contract §8.5/§8.6), leaving two mutually exclusive implementations for R1 | provenance §7 at `d53a772d` | YES | HIGH | keep the axes orthogonal | `ATLAS-SREF-033`/`-034` rewritten: independent axes, no ordinal combination; eligibility is a separate derived `current_support_usable` verdict that never overwrites either axis; `min()`-style combination declared non-conformant |
+| RV-41 | HUMAN | "Evidence grade must meet or exceed the boundary" plus the `B0`..`B6` numbering implies a total order; R1 could implement `evidence.level >= claim.level` | semantic-contract §9.3 at `d53a772d` | YES | HIGH | identifiers + explicit compatibility relation | `B0`..`B6` frozen as opaque identifiers ("no total order, no numeric or ≥ comparison"); `ATLAS-SEM-083` restated as `boundary_coverage` membership; `F-02`..`F-05`, §9.1 conjunct (4) and §8.3 reworded; ordering phrasing leftovers closed by RV-47 |
+| RV-42 | HUMAN | `DEFERRED_TO_R1` carried non-R1 work: the `pg_class` vocabulary (a `docs/standards/` testing-policy change), the Fact/Claim node-identity question (v0.1 renegotiation), and a bundled IR-091/IR-092 obligation | r0-review §5.4 at `d53a772d` | YES | MEDIUM | reclassify by real phase owner | §5.4 reduced to three extractor-owned items; new §5.5 carries the rest to the standards owner, R2/R3 and a v0.2 schema-evolution candidate; a stale "R1/R2" label the reassignment itself missed was caught in round 3 (RV-49) |
+| RV-43 | HUMAN | `D-K1` (OpenAPI breadth ↔ canonical validator refusal) was misfiled as `DECLARED_VS_RUNTIME_DIVERGENCE`, though the two statements answer different propositions — exactly the layering the negative control exists to demonstrate | golden D §9 at `d53a772d` | YES | MEDIUM | reclassify as a boundary distinction | `ATLAS-SEM-116` added, with an explicit same-proposition carve-out so C-K1/C-K2/C-K3, D-K2 and B-K2 remain conflicts; `D-K1` is now a worked non-example carrying a documentation/API-reference hazard; conflict counts recomputed (RV-51) |
+| RV-44 | HUMAN | PR artifact metadata (`+4034` lines) did not match the live diff | PR body | YES | TRIVIAL | refresh at final head | PR body diffstat taken from `git` at the final head rather than hand-maintained |
+
+### 2.4 Round 3 — targeted re-review at `d8612297`
+
+Three new independent reviewers, one per attack group; the five named failure
+modes were the target. All five attack keys came back **zero** — the reviewers'
+own words: the findings below "are internal-consistency defects, not exploitable
+false-verdict inputs".
+
+| ID | Reviewer | Claim | Evidence cited | Valid | Severity | Action | Resolution |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| RV-45 | R5 | Golden A's `mapping_state = MAPPED` was self-certified: the IR defined no `MAPPED` criterion, and the slice's own A-U1 keeps facet enumerability `UNKNOWN` | ir-v0.1 §4.1 vs rich-subjective A-11/A-U1 | YES | MEDIUM | define the criterion or downgrade | enumeration criterion added to `ATLAS-IR-032`'s binding rules (`MAPPED` = named enumeration basis + every part sanctioned-mapped; beyond-basis questions never lower coverage, `ATLAS-SEM-102`); A-11 now names its basis (rich contract inventory/V2 notes, `#756` residual list, design-doc rejections) — distinct from A-U1's beyond-basis `UNKNOWN` |
+| RV-46 | R6 | The corrected eligibility predicate admitted `HISTORICAL` into "usable as CURRENT evidence" — `HISTORICAL`+`CURRENT` is reachable (a re-checked closed issue; an `ARCHIVED_DOC` bound at the snapshot SHA) — contradicting `ATLAS-SREF-014` | provenance §7.3 predicate vs `ATLAS-SREF-014`/§3/§4 | YES | MEDIUM | restrict to `RESOLVED` or add a matrix row | "usable as CURRENT evidence" now requires `resolution = RESOLVED`; a `HISTORICAL` ref is never current evidence even when its re-check is `CURRENT`; the matrix `HISTORICAL` row widened to any freshness with the SREF-014 note |
+| RV-47 | R6 | Ordinal phrasing survived in three current-state spots: "below the boundary" (§8.3, §14.6) and "a boundary above the evidence" (golden A §11) | semantic-contract §8.3/:932, golden A §11 | YES | LOW | reword | all three now speak in `boundary_coverage` terms; `BOUNDARY_ORDERING = 0` remaining |
+| RV-48 | R6 | §8.5 pointed external-tool freshness at provenance §5 (extraction_method); the external-freshness section is §7.2 — pre-existing, not introduced by the correction | semantic-contract §8.5 | YES | TRIVIAL | fix pointer | corrected to §7.2 |
+| RV-49 | R7 | ir-v0.1 still labelled the `ATLAS-IR-092` projection obligation "an R1/R2 conformance obligation", contradicting §5.5's R2/R3 reassignment | ir-v0.1.md:513 at `d8612297` | YES | MEDIUM | relabel | corrected to R2/R3; `PHASE_HANDOFF_LEAKAGE = 0` |
+| RV-50 | R7 | The correction commit referenced a round-3 record that did not exist at that head | r0-review §5.4 at `d8612297` | YES | MEDIUM | land the record | resolved by this record commit — the same pattern accepted at the freeze (RV-38) |
+| RV-51 | R5, R7 | The conflict-count arithmetic depended on an unstated convention: "nine open" matched neither the 10 conflict rows nor the 8 `UNRESOLVED` | r0-review §5.2/§8 | YES | TRIVIAL | state exact counts | §5.2 and §8 now state the arithmetic explicitly (10 conflict records / 8 `UNRESOLVED` / 2 resolved / 2 non-conflicts) |
+
+```text
+ROUND_3_ATTACK_RESULTS (against d8612297, after CORRECTION_COMMIT_4)
+FALSE_NOT_SUPPORTED            = 0   (the vacuity input lands on UNKNOWN; three worked
+                                      clause traces returned by the reviewer)
+FALSE_SUPPORT                  = 0
+FALSE_CONFLICT                 = 0   (no layered pair is forced into divergence; C-K1,
+                                      C-K2, C-K3, D-K2, B-K2 remain conflicts)
+UNJUSTIFIED_SUPPORTED_CLAIMS   = 0   (golden D's control-flag NOT_SUPPORTED verified to
+                                      have current-authority non-support evidence at base)
+RESOLUTION_FRESHNESS_COLLAPSE  = 0
+BOUNDARY_ORDERING              = 3 found -> 0 remaining (RV-47)
+PHASE_HANDOFF_LEAKAGE          = 1 found -> 0 remaining (RV-49)
+R1_IMPLEMENTATION_LEAKAGE      = NO
+SENSITIVE_DATA_LEAK            = 0
+```
+
+All eight round-3 findings were adopted and fixed in this record commit; none was
+declined.
 
 ---
 
@@ -283,7 +347,10 @@ timed_sync      D-K1  (no conflict)            boundary distinction, not a diver
 declared-vs-runtime divergence, a documentation dissonance, a temporal conflict,
 or was settled by a dated owner statement. `SILENT_CONFLICT_RESOLUTION = 0`.
 `D-K1` and `D-K3` are **worked non-examples** (boundary distinction; dated
-self-scoping), not conflicts.
+self-scoping), not conflicts. Arithmetic (stated explicitly per RV-51): **10
+conflict records** — 8 `UNRESOLVED` (A-K1, A-K2, B-K1, B-K2, C-K1, C-K2, C-K3,
+D-K2), B-K3 `RESOLVED_BY_DERIVATION`, C-K4 `RESOLVED_BY_CORRECTION` — plus
+**two recorded non-conflicts** (D-K1, D-K3).
 
 ### 5.3 Items NOT fixed because they belong to an owner
 
@@ -364,9 +431,17 @@ local gates at the frozen head                    format:check PASS · lint PASS
                                                   .env.deploy in the author's worktree is seen by a filesystem
                                                   scan. CI Static checks PASS on the same head, which is the
                                                   control proving the failure is not caused by this diff
+local gates after round 3                        format:check PASS · lint:arch PASS (re-run at the final head;
+                                                  rounds 3-4 changed Markdown under docs/architecture/atlas/
+                                                  only — the commit hook re-ran prettier + check-architecture
+                                                  on every correction commit; CI Static re-proves the rest)
+round-3 targeted re-review                       3 reviewers at d8612297; all five attack keys = 0;
+                                                  8 findings (RV-45..RV-51) all adopted and fixed in the
+                                                  record commit
 exact-head CI                                     PASS at the reviewed head (Static checks, Build, API coverage,
                                                   Web coverage, Package coverage, E2E shard 1/2 and 2/2,
-                                                  Production transport regression)
+                                                  Production transport regression); re-checked at the final
+                                                  head (see the PR body)
 ```
 
 ## 7. Gate summary
@@ -393,6 +468,15 @@ SILENT_CONFLICT_RESOLUTION          = 0
 FORCED_UNKNOWN_TO_KNOWN             = 0
 CONFLICT_KINDS_OUTSIDE_CLOSED_SET   = 0   (RV-11, RV-35)
 
+ROUND_3 KEYS (targeted re-review, §2.4)
+FALSE_NOT_SUPPORTED                 = 0   (RV-39; vacuity closed by clause 0 + ATLAS-SEM-084)
+FALSE_SUPPORT                       = 0   (re-attacked at d8612297; 0)
+RESOLUTION_FRESHNESS_COLLAPSE       = 0   (RV-40; axes orthogonal, eligibility derived)
+BOUNDARY_ORDERING                   = 0   (RV-41/RV-47; identifiers + coverage membership)
+PHASE_HANDOFF_LEAKAGE               = 0   (RV-42/RV-49; §5.4/§5.5 split by phase owner)
+FALSE_CONFLICT                      = 0   (RV-43; ATLAS-SEM-116 with same-proposition carve-out)
+CONFLICT_COUNT_ARITHMETIC           = explicit (RV-51: 10 records / 8 UNRESOLVED / 2 non-conflicts)
+
 ACCEPTED_ADR_DECISION_TEXT_CHANGED  = NO
 PRODUCTION_BEHAVIOR_CHANGED         = NO
 R1_IMPLEMENTATION_LEAKAGE           = NO
@@ -415,10 +499,10 @@ the downstream phase tickets are not re-authorized by this document. The human
 gate reviews R0 before merge and before R1 is authorized.
 
 Honest scope of the verdict: R0 approves a **semantic contract and representation
-model**, not an implementation. Nineteen `UNKNOWN`s and nine open
-conflicts remain by design (plus two recorded non-conflicts), and three concrete
-items are deferred to R1 (§5.4), with three more carried to their real phase
-owners (§5.5). The claim this
+model**, not an implementation. Nineteen `UNKNOWN`s and ten recorded conflicts
+(eight still `UNRESOLVED`, plus two recorded non-conflicts) remain by design, and
+three concrete items are deferred to R1 (§5.4), with three more carried to their
+real phase owners (§5.5). The claim this
 document supports is narrow and specific: *the model can represent Exam reality
 without inventing support, authorization, evidence, completeness or authority,
 and where it cannot, it says so.*

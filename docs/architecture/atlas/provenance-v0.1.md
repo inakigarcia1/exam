@@ -248,7 +248,7 @@ combined scale. A derivation that does not apply it is non-conformant.
 | --- | --- | --- |
 | `RESOLVED` | `CURRENT` | Usable as **current** evidence for this source |
 | `RESOLVED` | `STALE` | Usable as evidence **about the bound revision**; may not satisfy a current-state conjunct (`ATLAS-SEM-081` condition 2/4) |
-| `HISTORICAL` | `STALE` | Historical evidence only (`ATLAS-SREF-014`) |
+| `HISTORICAL` | any | Historical evidence only (`ATLAS-SREF-014`); a `CURRENT` freshness means the external object is unchanged, not that the binding became current |
 | `STALE` (anchor drift) | any | Support is **suspect**: re-anchor before use (`ATLAS-SREF-012`) |
 | `MISSING` | any | **No evidence**; the claim loses this support and must degrade to `UNKNOWN`/`INSUFFICIENT` (`ATLAS-SREF-010`) |
 | `AMBIGUOUS` | any | **No evidence** until disambiguated (`ATLAS-SREF-011`) |
@@ -267,9 +267,12 @@ defined by §7.3's matrix:
 
 ```text
 a required ref is usable as CURRENT evidence
-    iff resolution ∈ {RESOLVED, HISTORICAL} AND freshness = CURRENT
-a required ref is usable as evidence ABOUT THE BOUND REVISION
+    iff resolution = RESOLVED AND freshness = CURRENT
+a required ref is usable as evidence ABOUT THE BOUND REVISION OR THE PAST
     iff resolution ∈ {RESOLVED, HISTORICAL}   (freshness may be STALE)
+a HISTORICAL ref is never current evidence, even when its re-check is
+    CURRENT (ATLAS-SREF-014): a CURRENT freshness says the external
+    object is unchanged, not that the binding became current
 anything else: not usable, and the ref is named as the cause
 ```
 
