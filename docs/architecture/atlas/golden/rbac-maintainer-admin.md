@@ -20,14 +20,14 @@ FORBIDDEN OUTPUT: "the registry says it is exhaustive, therefore it describes th
 
 | Identity | IR representation | Evidence that this is the right shape |
 | --- | --- | --- |
-| Admin | `role:Admin` (`preset_kind = APPLICATION_ROLE`) | `packages/authz/src/catalog.ts:232-241`; Admin compatibility superset asserted by `packages/authz/src/adminCompatibility.test.ts` / `apps/api/src/authz/adminSuperset.test.ts` |
+| Admin | `role:Admin` (`preset_kind = APPLICATION_ROLE`) | `packages/authz/src/catalog.ts:232-240` (`Role` values `:233-239`); Admin compatibility superset asserted by `packages/authz/src/adminCompatibility.test.ts` / `apps/api/src/authz/adminSuperset.test.ts` |
 | Teacher | `role:Teacher` | same closed set; `teacher_course_assignments` scope |
 | Proctor | `role:Proctor` | same closed set; `exam_proctor_assignments` scope |
 | Grader | `role:Grader` | same closed set; `grader_exam_assignments` scope |
 | Candidate | `role:Candidate` | same closed set; own-scope capabilities |
 | Maintainer | `role:Maintainer` (`preset_kind = APPLICATION_ROLE`, read-only) | same closed set; capability set frozen at five reads |
-| System | `role:System` (`preset_kind = SYNTHETIC_ACTOR`, `login_allowed = FALSE`, `assignable = FALSE`) | `packages/authz/src/catalog.ts:240`; `packages/authz/src/systemActor.ts:21`, `:43` |
-| **Host Operator** | **a `Scope` with `rbac_participation = OUTSIDE_APPLICATION_RBAC`** (`scope:host-infrastructure`) — **no `RolePreset`, no `Permission`** | ADR-017: host authority is "**NOT Exam RBAC** — granted by host/CLI access, independently of any Exam account" (`docs/adr/ADR-017-operational-authority-maintainer-boundary.md:119`; also `:123`, `:134`) |
+| System | `role:System` (`preset_kind = SYNTHETIC_ACTOR`, `login_allowed = FALSE`, `assignable = FALSE`) | `packages/authz/src/catalog.ts:239`; `packages/authz/src/systemActor.ts:21`, `:43` |
+| **Host Operator** | **a `Scope` with `rbac_participation = OUTSIDE_APPLICATION_RBAC` and a structured `outside_authority` block** (`scope:host-infrastructure`, `governed_by authority:adr-017`, `holder_identity = HOST_CLI_ACCESS`, `resource_domain = host infrastructure`, `excluded_from[] = {permission, role_preset, route}`) — **no `RolePreset`, no `Permission`**. Claims about the operator use `scope:host-infrastructure` as their **subject**, so "who is the host operator and what may they do" is answerable from the model rather than only from ADR-017 | ADR-017: host authority is "**NOT Exam RBAC** — granted by host/CLI access, independently of any Exam account" (`docs/adr/ADR-017-operational-authority-maintainer-boundary.md:119`; also `:123`, `:134`); the resource list is the R4-3 category-C row (`:134`) |
 
 `ATLAS-IR-030`/`ATLAS-IR-031` — the `role:` namespace equals the closed catalog
 set exactly, so a Host Operator preset would be a **detectable defect**, and the
@@ -41,14 +41,14 @@ it.
 
 | # | Claim | `claim_kind` | boundary | Axes | Authority owner | Verdict |
 | --- | --- | --- | --- | --- | --- | --- |
-| C-01 | Role presets declare capability sets only. They carry **no** resource-reach information | `AUTHORIZATION_EFFECT` | `B5` | design `ACCEPTED` | `docs/architecture/authorization.md:180-181` | asserted by authority |
+| C-01 | Role presets declare capability sets and a **scope kind** (`defaultScope`), not a resource reach: they name which *class* of resource the role's capabilities are evaluated against when no assignment narrows it, and they never name which resources. Reach requires the assignment and the resource instance | `AUTHORIZATION_EFFECT` | `B5` | design `ACCEPTED` | `docs/architecture/authorization.md:180-181` + `packages/authz/src/presets.ts:283` (Admin=organization), `:304` (Teacher=course), `:365` (Maintainer=system) | asserted by authority |
 | C-02 | Effective authority is `capability × assignment`; the scope row alone grants zero capabilities, and scopes resolve fresh from the database on every request | `AUTHORIZATION_EFFECT` | `B5` | design `ACCEPTED` | `docs/architecture/authorization.md:180-181` | asserted by authority |
 | C-03 | At runtime the capability set is derived from **active assignments** (a union over each active role's preset), not from the login `users.role` or JWT claims | `AUTHORIZATION_EFFECT` | `B3` | implementation `PRESENT`, verification `PASS` | `docs/architecture/authorization.md:71-73` + the resolver | **SUPPORTED** |
 | C-04 | A grader without an active Grader→Exam assignment to the attempt's exam is denied as **404** (anti-enumeration), and the check fails **closed** (503) on lookup failure or a mis-declared route | `AUTHORIZATION_EFFECT` | `B3` | implementation `PRESENT`, verification `PASS` | `docs/architecture/authorization.md` + the seam | **SUPPORTED** |
 | C-05 | Teacher scope is `teacher_course_assignments` (course-level); Proctor scope is `exam_proctor_assignments` (exam-level); Grader scope is `grader_exam_assignments` (exam-level). Collection reads filter in SQL **before** pagination and total count | `AUTHORIZATION_EFFECT` | `B3` | implementation `PRESENT`, verification `PASS` | `docs/architecture/authorization.md:175-181` | **SUPPORTED** |
 | C-06 | Admin∩Maintainer is forbidden at the active-assignment level, enforced transactionally at a single chokepoint used by both login and per-request authentication | `AUTHORIZATION_EFFECT` | `B3` | implementation `PRESENT`, verification `PASS` | ADR-017 D14 (`:192-195`) | **SUPPORTED** |
 | C-07 | **`RolePreset contains Permission ⇒ actor may operate every matching resource` is false** | `CAPABILITY_SUPPORT` (rejection) | — | `verification = INSUFFICIENT` for the proposition | — | **REJECTED** (F-09) |
-| C-08 | The product's own Admin-facing projection declares that it answers "which capabilities do the active roles grant", **never** "which resources can this user reach" | `AUTHORIZATION_EFFECT` | `B5` | design `ACCEPTED` | `apps/api/src/routes/permissionRegistry.ts:94-97` | asserted by authority |
+| C-08 | The product's own Admin-facing projection declares that it answers "which capabilities do the active roles grant", **never** "which resources can this user reach" | `AUTHORIZATION_EFFECT` | `B5` | design `ACCEPTED` | `docs/architecture/authorization.md` (capability × assignment) + EXSEM-001; `apps/api/src/routes/permissionRegistry.ts:94-103` is the **implementation seam** and its own statement, not the authority | asserted by authority |
 
 ---
 
@@ -67,15 +67,28 @@ it.
 role list: a projection-level role list would erase the Admin-only sub-block, and
 a single flat gate would overstate the Maintainer's reach.
 
+`ATLAS-IR-091` (added during R0-D) makes this an **obligation** rather than an
+observation: an in-handler capability branch is modelled as its own
+`Operation` (or recorded in `Interface.additional_gates[]`), and omitting it is a
+conformance defect. Without that rule, leaving the branch out of the IR would
+validate silently and C-14 would be advice instead of a constraint.
+
 ---
 
 ## 4. Claims — the System synthetic actor
 
 | # | Claim | `claim_kind` | boundary | Axes | Authority owner | Verdict |
 | --- | --- | --- | --- | --- | --- | --- |
-| C-15 | `System` is a synthetic non-human actor: non-login, non-assignable, and it is **not** resolved by the assignment kernel | `RUNTIME_OBSERVATION` | `B3` | implementation `PRESENT`, verification `PASS` | ADR-017 (`:120`); `packages/authz/src/catalog.ts:240`; `packages/authz/src/systemActor.ts` | **SUPPORTED** |
-| C-16 | Its contexts are constructed with a **closed set of actor ids** enforced at compile time and at runtime, and with an empty preset capability list, so a stray string cannot produce an untracked audit actor | `RUNTIME_OBSERVATION` | `B3` | implementation `PRESENT`, verification `PASS` | `packages/authz/src/systemActor.ts:19-35`, `:43-50` | **SUPPORTED** |
-| C-17 | `RolePreset(System)` is therefore **not** an authorization container in the way the other six are: its empty capability set is the point, and its operations are authorized by the internal seam, not by preset membership | `AUTHORIZATION_EFFECT` | `B3` | implementation `PRESENT`, verification `PASS` | derived from C-15/C-16 | **SUPPORTED** |
+| C-15 | `System` is a synthetic non-human actor: non-login, non-assignable, and it is **not** resolved by the assignment kernel | `RUNTIME_OBSERVATION` | `B3` | implementation `PRESENT`, verification `PASS` | ADR-017 (`:118`); `packages/authz/src/catalog.ts:239`; `packages/authz/src/systemActor.ts` | **SUPPORTED** |
+| C-16 | Its contexts are constructed with a **closed set of actor ids** enforced at compile time and at runtime, and with an **empty `RequestContext.permissions` slot**, so a stray string cannot produce an untracked audit actor | `RUNTIME_OBSERVATION` | `B3` | implementation `PRESENT`, verification `PASS` | `packages/authz/src/systemActor.ts:19-35`, `:43-50` | **SUPPORTED** |
+| C-17 | `RolePreset(System)` is an authorization container in the ordinary sense — it holds four system-operation capabilities (`system.auto_submit`, `system.heartbeat_scan`, `system.lifecycle_reconcile`, `system.incident_create`) — while the **runtime context** built for a scanner carries an empty permission slot; the actor's authorization therefore does not come from preset membership resolved at authentication | `AUTHORIZATION_EFFECT` | `B3` | implementation `PRESENT`, verification `PASS` | `packages/authz/src/presets.ts:265-270` (the four grants) + `packages/authz/src/systemActor.ts:43-60` (the context) + C-15's non-resolvability | **SUPPORTED** |
+
+`C-17` correction note: an earlier draft of this slice asserted that the System
+preset has an *empty* capability set. Verification against
+`packages/authz/src/presets.ts:265-270` showed four grants, and the empty set is
+the **context** slot only. The corrected claim is narrower and is the one the
+evidence supports. This is exactly the class of error the slices are supposed to
+catch, so it is recorded rather than silently edited.
 
 ---
 
@@ -84,9 +97,9 @@ a single flat gate would overstate the Maintainer's reach.
 | # | Claim | `claim_kind` | boundary | Axes | Authority owner | Verdict |
 | --- | --- | --- | --- | --- | --- | --- |
 | C-18 | Host/infrastructure authority (Docker/Compose, PostgreSQL, WAL, backup destination, secrets, restore/PITR, service lifecycle, filesystem) is **outside Exam RBAC**, granted by host/CLI access, and is not an RBAC assignment | `AUTHORIZATION_EFFECT` | `B5` | design `ACCEPTED` | ADR-017 `:119`, `:123`, `:134` | asserted by authority |
-| C-19 | No permission key grants host authority; no role preset contains one; there is no application route that performs host-level restore/secret/PGDATA operations | `AUTHORIZATION_EFFECT` | `B3` | `verification = PASS` via closed-set reasoning (catalog closed union + preset boundaries + absence of such routes) | ADR-017 D4 (`:185-187`) | **SUPPORTED** |
-| C-20 | The Maintainer **may view** relevant status/evidence for infrastructure configuration but does not hold it | `AUTHORIZATION_EFFECT` | `B3` | implementation `PRESENT` | ADR-017 R4-3 | **SUPPORTED** |
-| C-21 | The operator's real authority channel is the host: the runbook's backup/restore procedures are host-side commands, and application-side readiness documentation limits app-side visibility to Admin+Maintainer | `RUNTIME_OBSERVATION` | `B5` | `verification = PASS` | `docs/deployment/mvp-deployment-runbook.md` (host-side `pg_dump`/`pg_restore` wrappers) + `docs/operations/README.md:71-72` | **SUPPORTED** |
+| C-19 | No permission key grants host authority; no role preset contains one; no application route performs host-level restore/secret/PGDATA operations | `AUTHORIZATION_EFFECT` | `B3` | verification `PASS` with a **stated closed search**: catalog closed union (`packages/authz/src/catalog.ts:23-195`) × preset boundaries × the route surface as captured by the whole-app test, plus a handler scan over `apps/api/src/routes/**` for `pgdata|pg_restore|pg_dump|wal_|process.env.PG*|process.env.POSTGRES*|secret` (only matches: JWT-secret reads inside `auth.ts` and test helpers, and redaction comments — no host-level handler). The two exposed infrastructure surfaces are **read-only views** (`GET /system/backups` `apps/api/src/routes/system.ts:411`; `GET /system/restore-readiness` `:537`) | ADR-017 D4 (`:188-189`) | **SUPPORTED** |
+| C-20 | The Maintainer **may view** relevant status/evidence for infrastructure configuration but does not hold it | `AUTHORIZATION_EFFECT` | `B3` | implementation `PRESENT`, **verification `PASS`** | ADR-017 R4-3 (`:125-145`); runtime evidence: the five read capabilities at `packages/authz/src/presets.ts:240-248` plus `apps/api/src/authz/operationalBoundary.test.ts` / `adminMaintainerExclusion.test.ts` | **SUPPORTED** |
+| C-21 | The operator's real authority channel is the host: the runbook's backup/restore procedures are host-side commands, and application-side readiness documentation limits app-side visibility to Admin+Maintainer | `RUNTIME_OBSERVATION` | `B5` | verification `PASS` | `docs/deployment/mvp-deployment-runbook.md` (host-side `pg_dump`/`pg_restore` wrappers) + `docs/operations/README.md:71-72` | **SUPPORTED** |
 
 `ATLAS-SEM-114` note: R0 could **not** reproduce the claim that the deployment
 runbook states "host operator is outside RBAC" — that statement was found only in
@@ -156,7 +169,7 @@ Bound to `git_sha cbe33db1a7f241ba85aadbf21c4f6dea01133f03`.
 
 | Ref | `source_kind` | Anchor / verbatim |
 | --- | --- | --- |
-| `packages/authz/src/catalog.ts` | `REPO_FILE` | `Role` closed set `:232-241`; `Scope` closed set `:204-214`; grading/inert annotation `:94-105` |
+| `packages/authz/src/catalog.ts` | `REPO_FILE` | `Role` closed set `:232-240` (values `:233-239`); `Scope` closed set `:204-213` (values `:205-212`); grading/inert annotation `:94-105` |
 | `packages/authz/src/presets.ts` | `REPO_FILE` | `RolePreset` interface; `MAINTAINER_PERMISSIONS` `:240-248`; `GRADER_PERMISSIONS` `:218-224` |
 | `packages/authz/src/systemActor.ts` | `REPO_SYMBOL` | `SYSTEM_ACTOR_IDS` `:21`; `createSystemRequestContext` `:43` |
 | `apps/api/src/authz/assignmentAuthority.ts` | `REPO_SYMBOL` | `deriveAssignmentAuthority` `:164`; dual-role fail-closed `:231-233` |
@@ -167,7 +180,7 @@ Bound to `git_sha cbe33db1a7f241ba85aadbf21c4f6dea01133f03`.
 | `apps/api/src/routes/incidents.admin.ts` | `REPO_SYMBOL` | `/admin/recovery/incidents` `:1312-1322` |
 | `apps/api/src/routes/permissionRegistry.ts` | `REPO_SYMBOL` | `/admin/users/:id/effective-authority`; capability-not-resource statement `:94-97` |
 | `apps/api/src/authz/routeRegistry.ts` | `REPO_FILE` | header `:1-14` — verbatim: "Declarative `route → permission → scope → audit` mapping for every route gated by `requireCapability(...)` …" and "**TEST-ONLY METADATA: no production code reads this registry.** It is checked by `routeRegistryConformance*.test.ts` / `proctorAccessConformance.test.ts`, which compare the declared mapping against the live Fastify `onRoute` capture." |
-| `apps/api/src/authz/routeRegistryConformanceWholeApp.test.ts` | `TEST_CASE` | counts `:372-391` (127 / 21 / 148); imports at `:37-43` contain no registry import; `routeRegistry` appears only in comments `:10`, `:35`, `:78` |
+| `apps/api/src/authz/routeRegistryConformanceWholeApp.test.ts` | `TEST_CASE` | counts `:372-391` (127 / 21 / 148); imports at `:37-43` contain no `routeRegistry` import; the identifier appears only inside three comments (`:10`, `:35`, `:78`) and each of those names the **sibling test file** `routeRegistryConformance.test.ts` — the registry module is never imported and never mentioned |
 | `apps/api/src/authz/proctorAccessConformance.test.ts` | `TEST_CASE` | header: "The route registry is the enumeration source of truth — the test enumerates EVERY registry entry" |
 | `apps/api/src/authz/routeRegistryConformance.test.ts` | `TEST_CASE` | reads the registry and compares against the live capture (forward direction) |
 | `apps/web/src/pages/admin/PermissionRegistryPage.tsx` | `REPO_SYMBOL` | `:249` — checkmark rendered from `role.permissions.includes(entry.key)` (no scope dimension) |
@@ -175,8 +188,22 @@ Bound to `git_sha cbe33db1a7f241ba85aadbf21c4f6dea01133f03`.
 | `docs/adr/ADR-017-operational-authority-maintainer-boundary.md` | `REPO_SECTION` | identity table `:113-123`; host operator `:119`, `:123`, `:134`; five reads `:178-181`; D14 `:192-195` |
 | `docs/adr/ADR-010-scoped-rbac-architecture.md` | `REPO_SECTION` | Status `:9-19` (names `authorization.md` as the implemented model); historical sections: Shadow Permission Mode `:825` with `:827`, "Draft shape … Not implemented" `:638` |
 | `docs/operations/README.md` | `REPO_SECTION` | `:71-72` (app-side readiness visibility = Admin + Maintainer) |
-| `work:jnhu76/exam#762` | `GITHUB_ISSUE` (`external`) | O-07, O-08, O-09 input states; capture 2026-10-11 |
+| `work:jnhu76/exam#762` | `GITHUB_ISSUE` (`external`) | O-07, O-08, O-09 input states |
 | `work:jnhu76/exam#763`, `#757` | `GITHUB_ISSUE` (`external`) | this work's authority |
+
+External refs (SREF-1 `external_revision` triple; external freshness is a
+dimension separate from the repo SHA — `provenance-v0.1.md` §7.2):
+
+```text
+work:jnhu76/exam#762  external_revision { observed_state: OPEN,   observed_updated_at: 2026-10-10, observed_at: 2026-10-11 }  external_freshness: UNKNOWN
+work:jnhu76/exam#757  external_revision { observed_state: OPEN,   observed_updated_at: 2026-10-11, observed_at: 2026-10-11 }  external_freshness: UNKNOWN
+work:jnhu76/exam#763  external_revision { observed_state: OPEN,   observed_updated_at: 2026-10-11, observed_at: 2026-10-11 }  external_freshness: UNKNOWN
+```
+
+`observed_updated_at` is the issue's own last observed state change, not the
+observation time; every external freshness is `UNKNOWN` because no re-check was
+performed. The per-module O-07 breakdown is `DECLARED_ONLY` at this
+`external_revision` and must be re-derived by R1 rather than inherited.
 
 ### 7.1 A note on numbers
 
@@ -201,7 +228,7 @@ slice therefore:
 | `apps/api/src/authz/assignmentAuthority.test.ts` | `TEST_SEMANTIC` | `BEHAVIOURAL_PURE` | The resolver's fail-closed rules (subject/org anchor, dual-role, unknown role) | Database integration |
 | `apps/api/src/authz/assignmentAuthorityRuntime.test.ts` | `TEST_INTEGRATION` (real PostgreSQL) | `BEHAVIOURAL_COMPOSITION` | Active-assignment resolution against real rows, incl. revocation effective on the next request | Physical locking |
 | `apps/api/src/authz/teacherCourseMatrix.test.ts`, `graderExamMatrix.test.ts`, `apps/api/src/routes/proctorScope.test.ts` | `TEST_INTEGRATION` (real PostgreSQL / real HTTP) | `BEHAVIOURAL_COMPOSITION` | The capability×assignment matrices per scoped role, including the 404 anti-enumeration fold and SQL-side list filtering | Lock contention |
-| `apps/api/src/authz/operationalBoundary.test.ts`, `adminMaintainerExclusion.test.ts`, `opsPolicy.test.ts`, `backupEvidence.test.ts` | `TEST_INTEGRATION` (real HTTP / isolated DB) | `BEHAVIOURAL_COMPOSITION` | The Maintainer/Admin operational boundary as **enforced**, incl. the diagnostics split and the Admin-only integrity block | — |
+| `apps/api/src/authz/operationalBoundary.test.ts`, `adminMaintainerExclusion.test.ts`, `opsPolicy.test.ts`, `backupEvidence.test.ts` | `TEST_INTEGRATION` (real HTTP / isolated DB) | `BEHAVIOURAL_COMPOSITION` | The Maintainer/Admin operational boundary as **enforced**, incl. the diagnostics split and the Admin-only integrity block | Coverage of routes outside the ones each file exercises; physical lock behaviour; browser behaviour |
 | `apps/api/tests/security/rbac-matrix.test.ts`, `exam-protocol-security.test.ts` | `TEST_INTEGRATION` | `BEHAVIOURAL_COMPOSITION` | The security matrix over the API surface | Registry completeness |
 | `apps/api/src/authz/routeRegistryConformance.test.ts`, `proctorAccessConformance.test.ts` | `TEST_INTEGRATION` | `BEHAVIOURAL_COMPOSITION` | Registry→runtime **forward** agreement for the covered entries | Runtime→registry completeness (C-29) |
 | `apps/api/src/authz/routeRegistryConformanceWholeApp.test.ts` | `TEST_INTEGRATION` | `BEHAVIOURAL_COMPOSITION` | The whole-app route split and its structural classification (0 `requireRole` consumers, no route left unclassified) | Registry agreement — it never reads the registry |
@@ -222,7 +249,7 @@ rest on — stated explicitly rather than left implicit.
 | # | Challenge | Evidence | Consequence |
 | --- | --- | --- | --- |
 | C-C1 | **The registry claims exhaustiveness it does not have** (O-07) | Header declares a mapping "for every route gated by …" with **113** entries; the whole-app capture asserts **127** protected routes of **148** total; the whole-app test does not import the registry (C-22…C-29) | Forces the `Interface.declared_vs_runtime` model and forbids "the registry is the runtime truth". **Both** facts retained |
-| C-C2 | **A test named for whole-app conformance does not consume the registry** | Import list `:37-43` contains no registry import; the identifier appears only in comments | Forces C-27/C-29 and forbids reading a test's name as its guarantee (`ATLAS-SEM-033`) |
+| C-C2 | **A test named for whole-app conformance does not consume the registry** | Import list `:37-43` contains no `routeRegistry` import; the only three occurrences of the identifier are comments naming the sibling conformance test | Forces C-27/C-29 and forbids reading a test's name as its guarantee (`ATLAS-SEM-033`) |
 | C-C3 | **The Admin-facing permission matrix renders preset membership as checkmarks with no scope dimension** | `apps/web/src/pages/admin/PermissionRegistryPage.tsx:249` | An existing **projection-level false-support hazard**: a reader may infer resource reach. Recorded; the page's own limitation note is quoted in the source ref. This is `#762` O-08, an owner/product decision R0 does not take (`ATLAS-SEM-063`) |
 | C-C4 | **A permission can be granted and inert** | `grading.finalize`/`grading.identity.view` are granted to Admin and consumed by no route (`catalog.ts:99-103`) | Golden B's F-16 rejection; here it forces `Permission.inert` to be **derived** |
 | C-C5 | **The product's own effective-authority projection explicitly refuses to answer resource reach** | `apps/api/src/routes/permissionRegistry.ts:94-97` | Strong support for C-01/C-08 and a direct source of the "never render preset as reach" rule |
@@ -255,8 +282,8 @@ or added a modelled hazard.
 | --- | --- | --- | --- |
 | C-K1 | `DECLARED_VS_RUNTIME_DIVERGENCE` | registry (113 entries, declared exhaustive) ↔ whole-app runtime capture (127 protected) | **UNRESOLVED**; `open_governance_item = { kind: WORK_ITEM, ref: #762 O-07, lift_condition: "add the missing entries and a runtime→registry completeness assertion, or explicitly narrow the declared contract" }`. No winner chosen |
 | C-K2 | `DECLARED_VS_RUNTIME_DIVERGENCE` (projection layer) | `PermissionRegistryPage` renders preset membership as a checkmark matrix ↔ `permissionRegistry.ts:94-97` states the projection answers capabilities, never resource reach | **UNRESOLVED**; owner decision `#762` O-08 |
-| C-K3 | `TEMPORAL_CONFLICT` | ADR-010's "Shadow Permission Mode" and "Registry … Not implemented" sections ↔ the runtime's "no shadow-mode evaluation exists" and the registry's actual existence | **RESOLVED_BY_SCOPE**: the ADR's Status section declares `authorization.md` as the implemented model, and `#762` §9 A2 adjudicated this as a historical-section annotation rather than an authority conflict. Both statements retained with their scope |
-| C-K4 | `EVIDENCE_CONTRADICTION` (own-slice) | The `#762` input description attributes the host-operator statement to the runbook; the runbook does not contain it | **RESOLVED_BY_CORRECTION** (C-C6): attribution moved to ADR-017, no Atlas adjudication involved |
+| C-K3 | `TEMPORAL_CONFLICT` | ADR-010's "Shadow Permission Mode" (`:825`, constraint `:827`) and "Registry … Not implemented" (`:638`) sections ↔ the runtime's "no shadow-mode evaluation exists" and the registry's actual existence | **UNRESOLVED**; `open_governance_item = { kind: DECISION_GATED, ref: the ADR-010 owner, lift_condition: "a dated amendment note per #762 O-03/O-04" }`. The ADR's own Status section is a **party statement**, not a resolution (`ATLAS-SEM-114`), and `#762` still lists O-03/O-04 as pending owner decisions. Recorded rather than adjudicated. **Correction:** an earlier draft resolved this as `RESOLVED_BY_SCOPE`, which pre-empted those two owner decisions |
+| C-K4 | `EVIDENCE_CONTRADICTION` (own-slice) | The `#762` input description attributes the host-operator statement to the runbook; the runbook does not contain it | **RESOLVED_BY_CORRECTION** (C-C6): the Atlas artifact was corrected to attribute the statement to ADR-017; this is an Atlas-side provenance fix, not an adjudication of anyone's normative claim |
 
 ---
 
@@ -300,4 +327,8 @@ GOLDEN_RBAC = PASS
   MISSING_SCOPE_DIMENSION           = 0   (every operation with a resource gate carries scope_ref + assignment_required)
   SLICE_SPECIFIC_SCHEMA_HACK        = 0
   VAGUE_AUTHORITY_STATEMENTS        = 0   (each C-C6/C-C7 correction names the exact authority)
+  PRESET_REACH_FIELD_ON_ROLEPRESET  = 1   (default_scope names a scope KIND, not a resource instance;
+                                           C-01 reworded and ATLAS-IR-092 added — see r0-review.md RV-3)
+  CONFLICT_KINDS_OUTSIDE_CLOSED_SET = 0   (C-K3 reclassified to UNRESOLVED + DECISION_GATED)
+  SYSTEM_PRESET_CLAIM_CORRECTED     = YES (C-17; the preset has four grants, the context slot is empty)
 ```

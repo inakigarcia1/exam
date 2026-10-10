@@ -47,11 +47,13 @@ supported" while also needing them separately for the lift condition.
 
 | # | Claim | `claim_kind` | boundary | Axes | Authority owner | Verdict |
 | --- | --- | --- | --- | --- | --- | --- |
-| D-01 | `timed_sync` is representable, storable and read-compatible | `IMPLEMENTATION_STATUS` | `B1`/`B2` | implementation `PRESENT` (representability), verification `PASS` | enums + contracts + schema | **TRUE at `B1`/`B2`** |
+| D-01a | `timed_sync` is **representable** in the domain enum and the wire contract, and **read-compatible**: the resolution and response paths carry the value without a mode filter | `IMPLEMENTATION_STATUS` | `B1` | implementation `PRESENT`, verification `PASS` | enums + contracts + policy resolver + response mapper | **TRUE at `B1`** |
+| D-01b | `timed_sync` is **storable** in the schema-capacity sense (`ATLAS-IR-093`: a column exists that can hold it and no CHECK rejects it) | `IMPLEMENTATION_STATUS` | `B0` | implementation `PRESENT`, verification `PASS` | `exams.timing_mode` + the absence of a per-mode CHECK (per-mode legality is owned by the validator) | **TRUE at `B0` capacity only** |
+| D-01c | A production path can **durably write** a `timed_sync` exam (a full `B2` write) | `DURABLE_EFFECT` | `B2` | implementation `ABSENT` (no writer for the T0 column; authoring and publish refuse), **verification `INSUFFICIENT`** | — | **FALSE / INSUFFICIENT at `B2`** |
 | D-02 | Production activation of `timed_sync` is **refused** at two canonical seams, and no production writer ever establishes the operator T0 | `DURABLE_EFFECT` (negative) | `B2` | implementation `ABSENT` (writer), verification `PASS` | `EXSEM-019` + `RESERVED_VOCABULARY_POLICY` | **TRUE** |
-| D-03 | The `timed_sync` clock semantics are **frozen design**, dated and adopted in-tree, and the contract is a *dormant design authority*, explicitly not a current implementation authorization | `AUTHORITY_STATEMENT` | `B5` | design `ACCEPTED`, `authority_status = CURRENT` for design, freshness `CURRENT` | `docs/contracts/timed-sync-semantics.md:3`, `:23-27`; `docs/SPEC.md:287`, `:292` | asserted by authority |
+| D-03 | The `timed_sync` clock semantics are **frozen design**, dated and adopted in-tree, and the contract is a *dormant design authority*, explicitly not a current implementation authorization | `AUTHORITY_STATEMENT` | `B5` | design `ACCEPTED`; **`authority_status = AMENDED`**, not `CURRENT`: the document's own header (`:11-16`) records that §1 was corrected on 2026-09-25 and that `exam-policy-authority.md` §4 is now the current admission/timing **support** authority, while this record remains the current authority for **semantics** (`ATLAS-SEM-120` amended relation) | `docs/contracts/timed-sync-semantics.md:3`, `:11-16`, `:23-27`; `docs/SPEC.md:287`, `:292` | asserted by authority |
 | D-04 | The activation state is **`GATED`**: an activation decision is required, and the gate's lift condition is named | `CAPABILITY_SUPPORT` | `B4` | design `ACCEPTED`, implementation `PARTIAL`, verification `INSUFFICIENT`, activation_support **`GATED`**, freshness `CURRENT`, resolution `RESOLVED` | `docs/contracts/exam-policy-authority.md:135` ("**NOT ACTIVATED** (B2 product decision…)"), `:137` (LATENT definition) | **GATED — not SUPPORTED** |
-| D-05 | The gate is owned by **no currently-open work item**: the phase issue that carried the freeze is CLOSED, and no OPEN issue claims the activation slice | `WORK_STATUS` + `open_governance_item` | — | `open_governance_item = { kind: DECISION_GATED, work_item: NONE_OPEN }` | `work:jnhu76/exam#291` (CLOSED 2026-09-04) + an OPEN-issue scan | **DECISION_GATED; not "planned"** |
+| D-05 | The gate is owned by **no currently-open work item**: the phase issue that carried the freeze is CLOSED, and no OPEN issue claims the activation slice | `WORK_STATUS` + `open_governance_item` | — | `open_governance_item = { kind: DECISION_GATED, work_item: NONE_OPEN, lift_condition: "the explicit activation decision named by docs/SPEC.md:292" }` | `work:jnhu76/exam#291` (CLOSED 2026-09-04; `external_revision` below) + a **stated closed search**: `gh issue list --state open --limit 100` read in full on 2026-10-11 (33 open issues) — none mentions `timed_sync` activation; the only timing-related open item is the Controlled/Strict readiness umbrella, which does not claim it | **DECISION_GATED; not "planned"** |
 | D-06 | What is missing for activation is **nameable**: the contract's own B1 slice is implemented (durable T0 column, `computeSyncDeadline`, the `timed_sync` start branch, the auto-open exemption) while the **B2 slice (synchronized lifecycle activation — canonical operator start command, admin trigger surface, authoring/publish activation, candidate waiting UX)** is not | `IMPLEMENTATION_STATUS` | `B2` | `implementation = PARTIAL`, missing constituent named from the contract's own slice plan | derived from D-02/D-03; `docs/contracts/timed-sync-semantics.md:260-277` | **PARTIAL with a named missing constituent** |
 | D-07 | `Issue CLOSED ⇒ SUPPORTED` is false here: #291 is CLOSED and the capability is not supported | `CAPABILITY_SUPPORT` (rejection) | — | `verification = INSUFFICIENT` for the proposition | — | **REJECTED** (F-01) |
 | D-08 | `enum exists ⇒ SUPPORTED` / `schema accepts ⇒ SUPPORTED` / `DB column exists ⇒ SUPPORTED` are false here | `CAPABILITY_SUPPORT` (rejection) | — | all three are `B0`/`B1` facts | — | **REJECTED** (F-02, F-03, F-04) |
@@ -147,12 +149,26 @@ for *activation status*. Both are recorded with their distinct fact types.
 | `packages/exam-engine/src/examCommands.test.ts:439-449` | `TEST_SEMANTIC` | `BEHAVIOURAL_PURE` | Publish refuses a `timed_sync` draft (the second seam) | Reachability of publish for such a draft over HTTP (it cannot exist) |
 | `packages/exam-engine/src/timer.ts:94-110` + `deadlineKernel.sync.test.ts` | `TEST_SEMANTIC` | `BEHAVIOURAL_PURE` | The deadline equations (T0 anchor, duration bound, `closeAt` cap, fail-closed without duration) | Activation |
 | `packages/exam-engine/src/attemptCommands.timingModes.test.ts:196-241` | `TEST_SEMANTIC` | `BEHAVIOURAL_PURE` | The kernel behaves correctly **if** rows exist (shared deadline; pre-T0 start refused) — this is what makes "implementation = PARTIAL" precise rather than "absent" | That such rows are producible by the product |
-| `packages/exam-engine/src/examCommands.test.ts:981-998` | `TEST_SEMANTIC` | `BEHAVIOURAL_PURE` | The scanner does not auto-open a `timed_sync` exam (the operator trigger owns open) | — |
+| `packages/exam-engine/src/examCommands.test.ts:981-998` | `TEST_SEMANTIC` | `BEHAVIOURAL_PURE` | The scanner does not auto-open a `timed_sync` exam (the operator trigger owns open), and it still auto-closes an already-open one | That no other scanner path opens one; HTTP behaviour |
 | Closed symbol search over `packages/` + `apps/` (`*.ts`, `*.sql`; `dist/`, `node_modules` excluded) for `syncStartedAt` / `sync_started_at` / `sync_start` / `startSync` | `STATIC_SOURCE` (absence, closed scope stated) | `TOKEN_EXISTENCE` | **No production writer of the T0 column exists** within that scope | Manual/operational SQL outside the repo (excluded and declared) |
 | `apps/api/src/runtime/reserved-status-writers.structural.test.ts:91-127` | `TEST_SEMANTIC` (structural) | `TOKEN_EXISTENCE` | No `voidAttempt` symbol and no production assignment of the reserved attempt/enrollment statuses | `syncStartedAt` specifically (different mechanism — the closed search above covers it) |
 | `packages/exam-engine/src/examPolicy.ts:36-41`, `:197-205`; `examPolicy.test.ts`; `apps/api/src/routes/examPolicyValidation.test.ts` (control-flag cases) | `TEST_SEMANTIC` + `TEST_INTEGRATION` | `BEHAVIOURAL_COMPOSITION` | The control-flag class: rejected at authoring, no coercion, historical rows readable | Any runtime enforcement (there is none) |
 | `docs/SPEC.md:287`, `:292` | `CONTRACT` | `OWNER_JUDGEMENT` | The product's own statement that the value is reserved-and-unsupported, that the design contract is dormant, and that activation needs an explicit superseding decision | Implementation |
-| `docs/contracts/exam-policy-authority.md:135`, `:137`, `:300-305` | `CONTRACT` | `OWNER_JUDGEMENT` | The activation matrix, including `LATENT` and `UNSUPPORTED FOR ACTIVATION` | — |
+
+External refs (SREF-1 `external_revision` triple; external freshness is a
+dimension separate from the repo SHA — `provenance-v0.1.md` §7.2):
+
+```text
+work:jnhu76/exam#291  external_revision { observed_state: CLOSED, observed_updated_at: 2026-09-04, observed_at: 2026-10-11 }  external_freshness: UNKNOWN
+work:jnhu76/exam#292  external_revision { observed_state: CLOSED, observed_updated_at: 2026-09-14, observed_at: 2026-10-11 }  external_freshness: UNKNOWN
+work:jnhu76/exam#295  external_revision { observed_state: OPEN,   observed_updated_at: 2026-10-11, observed_at: 2026-10-11 }  external_freshness: UNKNOWN
+work:jnhu76/exam#293  external_revision { observed_state: OPEN,   observed_updated_at: 2026-10-11, observed_at: 2026-10-11 }  external_freshness: UNKNOWN
+```
+
+`observed_updated_at` is the issue's own last observed state change, not the
+observation time; every external freshness is `UNKNOWN` because no re-check was
+performed.
+| `docs/contracts/exam-policy-authority.md:135`, `:137`, `:300-305` | `CONTRACT` | `OWNER_JUDGEMENT` | The activation matrix, including `LATENT` and `UNSUPPORTED FOR ACTIVATION` | Implementation; the future direction of any reserved value |
 
 ---
 
@@ -193,7 +209,7 @@ control, and the control held in every case without a special case.
 
 | ID | Kind | Parties | Status |
 | --- | --- | --- | --- |
-| D-K1 | `DECLARED_VS_RUNTIME_DIVERGENCE` | OpenAPI request schema advertises `timed_sync` as an allowed value ↔ the canonical validator refuses it | **UNRESOLVED**; owner: the policy/contract authority (the wire shape is deliberately broader than the validator — asserted as intentional by `contracts.test.ts:261-266`). Atlas records both and promotes neither |
+| D-K1 | `DECLARED_VS_RUNTIME_DIVERGENCE` | OpenAPI request schema advertises `timed_sync` as an allowed value ↔ the canonical validator refuses it | **UNRESOLVED**; owner: the policy/contract authority. That the breadth is **intentional** comes from the wire contract's own text (`packages/contracts/src/exam.ts:24-29` states that the value "remains in the wire enum" while the canonical validator rejects it and "Zod stays shape-level"; `:193` repeats "no duplicated enum gate here") — **not** from a test title, which would be exactly the `TOKEN_EXISTENCE`-grade inference `ATLAS-SEM-033` discounts. `contracts.test.ts:261-266` is cited as behavioural evidence of the shape only |
 | D-K2 | `DECLARED_VS_RUNTIME_DIVERGENCE` | The T0 column's own comment/migration claim a "canonical sync-start command" ↔ no such command exists | **UNRESOLVED**; owner: the source owner (`#757` O-09 input state class). Recorded as a stale/misleading-comment hazard; no fix attempted in R0 |
 | D-K3 | *(avoided)* `authority conflict` between the design freeze and the support matrix | `timed-sync-semantics.md` §1 is a point-in-time baseline; its own header (`:11-16`) declares `exam-policy-authority.md` §4 the current support authority, and `docs/SPEC.md:292` says the same | **RESOLVED_BY_SCOPE** — different fact types (semantics vs activation status), no adjudication needed. Recorded to show that "two documents about `timed_sync`" is not automatically a conflict |
 
@@ -253,6 +269,8 @@ GOLDEN_NEGATIVE_CONTROL = PASS
   ISSUE_CLOSED_IMPLIES_SUPPORTED  = REJECTED (D-07, F-01)
   TEST_EXISTS_IMPLIES_SUPPORTED   = REJECTED (kernel tests prove the kernel, not the capability)
   SLICE_SPECIFIC_SCHEMA_HACK      = 0
+  BOUNDARY_ADEQUACY               = PASS  (D-01 split into representable / schema-capacity-storable / durably-writable; the B2 write claim is INSUFFICIENT, not asserted)
+  CONFLICT_KINDS_OUTSIDE_CLOSED_SET = 0
   SECOND_EXAMPLE_CLASS_DISTINCT   = YES   (§3: implementation ABSENT vs PARTIAL)
   VOLUME_PADDING                  = NONE  (§4 registers the remaining reserved values without fixtures)
   TRAPS_FOUND                     = 8     (§7, all survived)

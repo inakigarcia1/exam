@@ -26,9 +26,10 @@ capability:grading.manual
   → interface:http.POST./api/admin/attempts/:attemptId/grade-question   (exposes)
   → runtime guard chain (authz seam)
   → permission:grading.score.write            (requires_permission)
-  → scope:exam.assignment                     (scoped_by; assignment_required = TRUE)
-  → entity:grading.entry, entity:attempt.submitted-answers  (writes/reads)
-  → terminal projection: entity:attempt.terminal-score, entity:enrollment.final-projection
+  → scope:exam.assignment                     (scoped_by; assignment_required = TRUE
+                                               for non-Admin; resource anchor = attempt)
+  → entity:grading.entry, entity:answer.frozen-submission  (writes/reads)
+  → terminal projection: entity:attempt.terminal-score, entity:enrollment.final-score-projection
   → evidence (TEST_SEMANTIC / TEST_INTEGRATION / TEST_PHYSICAL where named)
 ```
 
@@ -40,9 +41,17 @@ capability:result.publication
   → operation:exam.publish-results
   → interface:http.POST./api/exams/:id/publish-results
   → permission:exam.result.publish
-  → scope:exam.assignment (teacherAccess: course_assignment_scoped)
-  → writes entity:exam.results-published-at
+  → scope:course.assignment                   (scoped_by; assignment_required = TRUE
+                                               for non-Admin; carrier = teacher_course_assignments;
+                                               resource anchor = exam)
+  → writes entity:exam.result-publication
 ```
+
+`authority_requirement` keeps the **resource anchor** and the **assignment
+carrier** as two fields (`ir-v0.1.md` §4.4 `ATLAS-IR-034`), because they are not
+the same thing here: the resolved resource is an *exam* while the assignment that
+must exist is a *course* assignment. Fusing them into one node would make the
+grader carrier look like the enforcement for result publication.
 
 `depends_on`: `capability:result.publication --depends_on--> capability:grading.manual`
 (product dependency: results cannot be published as visible until grading is
@@ -67,13 +76,13 @@ complete for manual attempts).
 | `permission:exam.result.publish` | Permission |
 | `permission:grading.finalize`, `permission:grading.identity.view` | Permission (inert — §5) |
 | `role:Grader`, `role:Admin`, `role:Teacher` | RolePreset |
-| `scope:exam.assignment` | Scope (`assignment_carrier` = `grader_exam_assignments`) |
-| `scope:course.assignment` | Scope (`assignment_carrier` = `teacher_course_assignments`) |
-| `entity:grading.entry` | DurableEntity (`attempt_grading_entries`) |
-| `entity:attempt.submitted-answers` | DurableEntity (`exam_attempts.submitted_answers`) |
-| `entity:attempt.terminal-score` | DurableEntity (`exam_attempts.score/passed/grading_result/graded_at/grading_status`) |
-| `entity:enrollment.final-projection` | DurableEntity (`enrollments.final_score/final_passed/final_attempt_id`) |
-| `entity:exam.results-published-at` | DurableEntity (`exams.results_published_at`) |
+| `scope:exam.assignment` | Scope (`assignment_carrier` = `grader_exam_assignments`; resource domain = exam) |
+| `scope:course.assignment` | Scope (`assignment_carrier` = `teacher_course_assignments`; resource domain = course) |
+| `entity:grading.entry` | DurableEntity (semantic: per-question grading entry; carrier: `attempt_grading_entries`) |
+| `entity:answer.frozen-submission` | DurableEntity (semantic: answers frozen once at submit; carrier: `exam_attempts.submitted_answers`) |
+| `entity:attempt.terminal-score` | DurableEntity (semantic: terminal attempt score; carrier: `exam_attempts.score/passed/grading_result/graded_at/grading_status`) |
+| `entity:enrollment.final-score-projection` | DurableEntity (semantic: enrollment final selection; carrier: `enrollments.final_score/final_passed/final_attempt_id`) |
+| `entity:exam.result-publication` | DurableEntity (semantic: results released for an exam; carrier: `exams.results_published_at`) |
 | `policy:gradingEntry.status/pending_manual`, `policy:gradingEntry.status/completed_manual` | PolicyValue (STATE) |
 | `policy:attempt.gradingStatus/pending_manual`, `policy:attempt.gradingStatus/auto_graded`, `policy:attempt.gradingStatus/fully_graded` | PolicyValue (STATE) |
 
@@ -87,7 +96,7 @@ complete for manual attempts).
 | --- | --- | --- | --- | --- | --- | --- |
 | B-01 | A grader can complete a manual grading entry for a `text_response` question of a submitted attempt, reaching a durable terminal score | `CAPABILITY_SUPPORT` | `B4` | design `ACCEPTED`, implementation `PRESENT`, verification `PASS`, activation_support `SUPPORTED` | EXSEM-006/008/009 (`authority:exsem`) + `docs/architecture/exam-runtime.md` + `docs/architecture/authorization.md` | **SUPPORTED** |
 | B-02 | The grading operation is reachable only through a resource-aware capability gate | `AUTHORIZATION_EFFECT` | `B3` | implementation `PRESENT`, verification `PASS` | `authority:exsem` (EXSEM-001) + `docs/architecture/authorization.md` | **SUPPORTED** |
-| B-03 | `grading.queue.view` / `grading.detail.view` / `grading.score.write` are the capability keys gating the three grading surfaces | `DECLARED_METADATA` + `RUNTIME_OBSERVATION` | `B3` | implementation `PRESENT`, verification `PASS` | `docs/architecture/authorization.md`; runtime capture | **SUPPORTED** (both blocks agree) |
+| B-03 | `grading.queue.view` / `grading.detail.view` / `grading.score.write` are the capability keys gating the three grading surfaces | `DECLARED_METADATA` + `RUNTIME_OBSERVATION` | `B3` | implementation `PRESENT`, verification `PASS` | `docs/architecture/authorization.md`; the route registrations themselves (`gradingQueue.ts`) | **SUPPORTED** (registration and declared metadata agree; no second declaration exists to diverge from) |
 
 ### 3.2 Under which authority, scope and state?
 
@@ -115,7 +124,7 @@ complete for manual attempts).
 | --- | --- | --- | --- | --- | --- | --- |
 | B-14 | Grading completion is **not** candidate result visibility. For `resultPublicationMode = manual`, results remain hidden until `exams.resultsPublishedAt != null`; and a `pending_manual` attempt is hidden regardless | `AUTHORITY_STATEMENT` + `RUNTIME_OBSERVATION` | `B5` + `B3` | implementation `PRESENT`, verification `PASS` | EXSEM-018 + the visibility authority (`packages/exam-engine/src/candidateResultVisibility.ts`) | **SUPPORTED** |
 | B-15 | Publishing results is a separate capability, operation and permission (`exam.result.publish`), idempotent with a single winner under a row lock, and it does **not** itself advance grading | `CAPABILITY_SUPPORT` | `B4` | implementation `PRESENT`, verification `PASS`, activation_support `SUPPORTED` | EXSEM-018 | **SUPPORTED** |
-| B-16 | Visibility is the **AND** of "publish done" (manual mode) and "result computable" (grading done) | `AUTHORITY_STATEMENT` | `B5` | — | `packages/exam-engine/src/candidateResultVisibility.ts:27-35` | asserted by authority |
+| B-16 | Visibility is the **AND** of "publish done" (manual mode) and "result computable" (grading done) | `AUTHORITY_STATEMENT` | `B5` | — | EXSEM-018 (`docs/architecture/exam-semantic-boundaries.md:85`); the module that implements it is evidence, not the authority (its own docblock cites this rule) | asserted by authority |
 | B-17 | An Admin-side view (`view === "all"`) bypasses the publication gate — a deliberate, documented branch, not a leak | `RUNTIME_OBSERVATION` | `B3` | implementation `PRESENT`, verification `PASS` | `docs/architecture/exam-runtime.md:734` (+ checklist `:1062`) and the visibility authority | **SUPPORTED** (documented bypass) |
 | B-18 | `depends_on`: result publication depends on grading completion for manual attempts | `CAPABILITY_SUPPORT` (dependency) | `B4` | implementation `PRESENT`, verification `PASS` | derived from B-14/B-15 | **SUPPORTED** |
 
@@ -138,18 +147,19 @@ complete for manual attempts).
 | `packages/domain/src/gradingEngine.ts:192-194` `requiresManualGrading`, `:213-217` `isManualGradedQuestion` — `type === "text_response"`, explicitly **not** `standardAnswer` | `STATIC_SOURCE` | `TOKEN_EXISTENCE` | The manual-mode discriminator is the question type in the frozen snapshot | That the frozen snapshot is consulted at submit |
 | `packages/exam-engine/src/manualGradingHold.test.ts`, `manualGradingCompletion.test.ts`, `gradingWorkset.test.ts`, `gradingAggregation.test.ts`, `gradingScoreIdentity.test.ts`, `gradingPoison.test.ts`, `grading.test.ts`, `gradingEngine.test.ts` | `TEST_SEMANTIC` | `BEHAVIOURAL_PURE` | Domain invariants: hold/refusal, one-way completion, workset materialization/consistency, aggregation, identity/poison handling — with in-memory owners | HTTP surface, real persistence, authorization, concurrency |
 | `apps/api/src/runtime/gradingArchitecture.structural.test.ts` | `TEST_SEMANTIC` (structural/source-scan) | `TOKEN_EXISTENCE` | The architectural placement rules the trace asserts (e.g. workset derived from frozen truth) | Behaviour of any kind |
-| `packages/db/src/repository/attemptGradingEntryRepo.ts:173-204` `completeManualEntry` — conditional UPDATE with `grading_mode='manual' AND status='pending_manual'`, returning `null` on no-match | `TEST_PHYSICAL`-class source + `TEST_INTEGRATION` proof in `gradingQueue.test.ts` | `BEHAVIOURAL_PHYSICAL` | The one-way transition is enforced **inside SQL** by a CAS-style predicate, not only by an in-memory guard | The lock schedule (that belongs to the concurrency test) |
+| `packages/db/src/repository/attemptGradingEntryRepo.ts:173-204` `completeManualEntry` — conditional UPDATE with `grading_mode='manual' AND status='pending_manual'`, returning `null` on no-match | `STATIC_SOURCE` | `TOKEN_EXISTENCE` | Where the one-way transition is enforced: a SQL CAS-style predicate, not only an in-memory guard | That the predicate is exercised, that it wins any race, and any lock schedule — those belong to `gradingQueue.test.ts` and `gradingConcurrency.test.ts` respectively |
 | `apps/api/src/routes/gradingQueue.test.ts` — queue behaviour; repeat/conflicting grade → 409 at `:1778` (retry), `:1812` (revise), `:1871`, `:1916` | `TEST_INTEGRATION` (real PostgreSQL) | `BEHAVIOURAL_COMPOSITION` | The HTTP+durable composition: duplicate/conflicting grading is refused at the wire and leaves no second effect | Physical lock contention (its own oracle) |
 | `apps/api/src/routes/attempts/gradingConcurrency.test.ts` — two physical sessions, Enrollment `FOR UPDATE` blocking, observer evidence, no `Promise.all` raciness | `TEST_PHYSICAL` (real PostgreSQL) | `BEHAVIOURAL_PHYSICAL` | The lock order Enrollment→Attempt and the contended-block oracle | Product capability (that comes from the composition evidence) |
 | `apps/api/src/routes/attempts/manualGradingClosure.test.ts` | `TEST_INTEGRATION` | `BEHAVIOURAL_COMPOSITION` | The closure writes the enrollment projection together with the terminal attempt score | Locking mechanism |
 | `apps/api/src/routes/crashAtomicity.test.ts` (incl. manual terminalization rollback) | `TEST_INTEGRATION` | `BEHAVIOURAL_COMPOSITION` | Atomicity/rollback of the multi-fact grading closure | Lock contention |
-| `apps/api/src/routes/resultPublishing.test.ts`, `candidateResultVisibility.test.ts`, `publishResults.concurrency.test.ts` | `TEST_INTEGRATION` (real PostgreSQL) | `BEHAVIOURAL_COMPOSITION` | The publication gate + visibility truth table + single-winner publish under a row lock | Grading itself |
+| `apps/api/src/routes/resultPublishing.test.ts`, `candidateResultVisibility.test.ts` | `TEST_INTEGRATION` (real PostgreSQL) | `BEHAVIOURAL_COMPOSITION` | The publication gate and the visibility truth table | Grading itself; the lock schedule |
+| `apps/api/src/routes/publishResults.concurrency.test.ts` | `TEST_INTEGRATION` (real PostgreSQL; two physical connections, distinct PIDs) | `BEHAVIOURAL_COMPOSITION` | The single-winner transition of `resultsPublishedAt`, the loser observing committed truth, and that the old code shape fails it | **Not** a deterministic row-lock blocking proof: the test's own header states the blocking overlap is "HIGHLY LIKELY … but not deterministically proven by this coordination alone" (`apps/api/src/routes/publishResults.concurrency.test.ts:20-25`). Classified `TEST_INTEGRATION`, not `TEST_PHYSICAL` |
 | `apps/api/src/authz/permissionMatrix.grading.test.ts`, `apps/api/src/authz/graderExamMatrix.test.ts` | `TEST_INTEGRATION` (real PostgreSQL) | `BEHAVIOURAL_COMPOSITION` | The capability×assignment matrix for grading: who is allowed where | Physical locking |
 | `apps/api/src/routes/graderAssignments.admin.test.ts`, `packages/db/.../graderExamAssignmentRepo.test.ts`, `migrations/0037-grader-exam-assignment.test.ts` | `TEST_INTEGRATION` / migration test | `BEHAVIOURAL_COMPOSITION` | The assignment carrier's durable semantics (active assignment, partial unique index) | Route-level enforcement |
 | `apps/web/src/pages/admin/GradingQueuePage.test.tsx`, `GradingDetailPage.test.tsx` | `TEST_SEMANTIC` (component/jsdom) | `BEHAVIOURAL_PURE` | Admin UI projection behaviour | Anything server-side |
 | `packages/exam-engine/src/candidateResultVisibility.ts:25-52` + `:70-101` | `CONTRACT`/`STATIC_SOURCE` | `OWNER_JUDGEMENT` | The authoritative separation of grading completion from result visibility, and the two-stage gate | That every candidate surface applies it (proven by the visibility tests) |
-| `packages/exam-engine/src/examCommands.ts:530-556`, `:557-590` `publishResults` | `STATIC_SOURCE` | `TOKEN_EXISTENCE` | Publishing is a separate command, idempotent, single-winner, and explicitly does not advance grading | Route gating |
-| `apps/api/src/authz/scopedCapability.ts:416-468` (grader gate), `apps/api/src/plugins/authz.ts:120-131` (gate wiring), `docs/architecture/authorization.md:180-181` | `STATIC_SOURCE` + `CONTRACT` | `TOKEN_EXISTENCE` | The assignment dimension is real, and its enforcement point is named | That the gate is applied on **every** grading surface — that is what the matrix tests prove |
+| `packages/exam-engine/src/examCommands.ts:530-556`, `:553-582` `publishResults` | `STATIC_SOURCE` | `TOKEN_EXISTENCE` | Publishing is a separate command, idempotent, single-winner, and explicitly does not advance grading | Route gating |
+| `apps/api/src/authz/scopedCapability.ts:416-468` (grader assignment gate), `apps/api/src/plugins/authz.ts:120-131` (gate definition) + `:169-171` (wiring into the scoped-gate options), `docs/architecture/authorization.md:180-181` | `STATIC_SOURCE` + `CONTRACT` | `TOKEN_EXISTENCE` | The assignment dimension is real, and its definition and wiring points are named | That the gate is applied on **every** grading surface — that is what the matrix tests prove |
 | `docs/architecture/exam-semantic-boundaries.md` EXSEM-006/008/009/010/018 (`:73-77`, `:85`) | `CONTRACT` | `OWNER_JUDGEMENT` | The frozen semantics of manual grading, freezing, one-way completion, terminal projection and the visibility door | Implementation |
 
 ### 4.1 Why these layers are not interchangeable
@@ -193,7 +203,7 @@ Bound to `git_sha cbe33db1a7f241ba85aadbf21c4f6dea01133f03`;
 | `packages/exam-engine/src/manualGrading.ts` | `REPO_SYMBOL` | `gradeQuestion` `:89`; guards `:114-126`, `:140-144`, `:150-157`, `:160-162` |
 | `packages/exam-engine/src/gradingWorkset.ts` | `REPO_SYMBOL` | `computeExpectedGradingEntries`, `materializeGradingWorkset`, `validateGradingWorksetConsistency`, `aggregateGradingEntries` |
 | `packages/exam-engine/src/grading.ts` | `REPO_SYMBOL` | `finalizeTerminalGrading` `:212`; attempt write `:265-283`; enrollment write `:325-337`; auto path refusal `:378-386` |
-| `packages/exam-engine/src/examCommands.ts` | `REPO_SYMBOL` | `publishResults` `:557-590`; non-advancement note `:548-551` |
+| `packages/exam-engine/src/examCommands.ts` | `REPO_SYMBOL` | `publishResults` declaration `:553`, body to EOF `:582`; non-advancement note `:548-551` |
 | `packages/exam-engine/src/candidateResultVisibility.ts` | `REPO_SYMBOL` | doc `:25-35`; gate `:70-101` |
 | `packages/exam-engine/src/attemptCommands.ts` | `REPO_SYMBOL` | submit freeze `:609-632`; workset materialization `:637` |
 | `packages/domain/src/gradingEngine.ts` | `REPO_SYMBOL` | `requiresManualGrading` `:192-194`; `isManualGradedQuestion` `:213-217` |
@@ -204,12 +214,32 @@ Bound to `git_sha cbe33db1a7f241ba85aadbf21c4f6dea01133f03`;
 | `packages/db/src/repository/attemptGradingEntryRepo.ts` | `REPO_SYMBOL` | `completeManualEntry` `:173-204` |
 | `packages/db/src/schema/pg.ts` | `SCHEMA_OBJECT` | `attempt_grading_entries` `:953`; `submitted_answers` `:588-589`; `grader_exam_assignments` `:2231`; enrollment status CHECK `:531-537` |
 | `packages/authz/src/catalog.ts` | `REPO_FILE` | grading permissions `:94-105` |
-| `packages/authz/src/presets.ts` | `REPO_FILE` | Grader preset |
+| `packages/authz/src/presets.ts` | `REPO_FILE` | `GRADER_PERMISSIONS` `:218-224` |
 | `docs/architecture/authorization.md` | `REPO_SECTION` | `:180-181` (authority = capability × assignment) |
 | `docs/architecture/exam-semantic-boundaries.md` | `REPO_SECTION` | EXSEM-006/008/009/010/018 `:73-77`, `:85` |
 | `docs/architecture/exam-runtime.md` | `REPO_SECTION` | grading protocol + result-visibility matrix |
-| `apps/e2e/e2e/manual-grading.spec.ts` (**deleted**) | `GIT_COMMIT` | `dba53ada` deletion (HISTORICAL) |
+| `apps/e2e/e2e/manual-grading.spec.ts` (**deleted**) | `GIT_COMMIT` | `dba53ada` deletion — `resolution_state = HISTORICAL`, `repo_freshness = STALE` (intentionally bound to that commit) |
 | `docs/research/product-semantics-audit-1-code-reality.md:149` | `REPO_FILE` (non-authoritative research) | stale evidence citation (see B-C2) |
+
+External refs (GitHub). Each carries the SREF-1 `external_revision` triple so that
+external freshness is a separate dimension from the repo SHA
+(`provenance-v0.1.md` §7.2):
+
+```text
+work:jnhu76/exam#296  external_revision { observed_state: CLOSED, observed_updated_at: 2026-08-28, observed_at: 2026-10-11 }  external_freshness: UNKNOWN
+work:jnhu76/exam#286  external_revision { observed_state: CLOSED, observed_updated_at: 2026-08-28, observed_at: 2026-10-11 }  external_freshness: UNKNOWN
+work:jnhu76/exam#324  external_revision { observed_state: CLOSED, observed_updated_at: 2026-08-25, observed_at: 2026-10-11 }  external_freshness: UNKNOWN
+work:jnhu76/exam#542  external_revision { observed_state: CLOSED, observed_updated_at: 2026-09-14, observed_at: 2026-10-11 }  external_freshness: UNKNOWN
+work:jnhu76/exam#613  external_revision { observed_state: CLOSED, observed_updated_at: 2026-09-25, observed_at: 2026-10-11 }  external_freshness: UNKNOWN
+work:jnhu76/exam#302  external_revision { observed_state: CLOSED (state_reason: not_planned), observed_updated_at: 2026-08-27, observed_at: 2026-10-11 }  external_freshness: UNKNOWN
+work:jnhu76/exam#718  external_revision { observed_state: CLOSED, observed_updated_at: 2026-10-06, observed_at: 2026-10-11 }  external_freshness: UNKNOWN
+work:jnhu76/exam#763  external_revision { observed_state: OPEN, observed_updated_at: 2026-10-11, observed_at: 2026-10-11 }  external_freshness: UNKNOWN
+```
+
+`observed_updated_at` above is the issue's close date (the last observed state
+change), not the observation time; `observed_at` is when R0 read it. Every
+external freshness is `UNKNOWN` because no re-check has been performed
+(`ATLAS-SREF-032`).
 
 ---
 

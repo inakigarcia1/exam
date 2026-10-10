@@ -238,6 +238,9 @@ claims to have delivered is a repo fact.
 
 ### 7.3 Combined-state matrix (what a claim may conclude)
 
+This matrix is the per-ref encoding of `ATLAS-SREF-033`/`-034`; a derivation that
+does not use it is non-conformant.
+
 | resolution | freshness (repo or external) | A claim may conclude |
 | --- | --- | --- |
 | `RESOLVED` | `CURRENT` | Usable as **current** evidence for this source |
@@ -248,11 +251,34 @@ claims to have delivered is a repo fact.
 | `AMBIGUOUS` | any | **No evidence** until disambiguated (`ATLAS-SREF-011`) |
 | `UNKNOWN` | `UNKNOWN` | Reported as `UNKNOWN`; never silently treated as usable |
 
-`ATLAS-SREF-033` — A claim's `resolution` is the **worst** state among its
-required source refs, and must name which ref caused it. "Worst" is ordered
-`RESOLVED` > `HISTORICAL` > `STALE` > `AMBIGUOUS` > `MISSING` > `UNKNOWN` for the
-purpose of *usability as support*; the ordering expresses support usability, not
-severity of the underlying defect.
+`ATLAS-SREF-033` — A claim's usability as support is the **worst** state over
+**both** dimensions of its *required* refs, and must name which ref caused it:
+
+```text
+RESOLUTION worst-order (usability as support):
+    RESOLVED > HISTORICAL > STALE > AMBIGUOUS > MISSING > UNKNOWN
+
+FRESHNESS worst-order (currency of the description):
+    CURRENT > STALE > UNKNOWN
+
+A required ref is "support-usable" only when its resolution is RESOLVED or
+HISTORICAL AND its freshness is CURRENT.
+```
+
+`ATLAS-SREF-034` — The two dimensions are combined by a **worst-of-both** rule,
+so a claim can never report `RESOLVED` while a required ref is
+`repo_freshness = STALE` (or vice versa). Concretely, a claim's usable-as-current
+state is `min(resolution_worst, freshness_worst)` under the orders above, which
+is exactly what §7.3's matrix encodes per-ref. Without this rule the matrix would
+be descriptive and any derivation could skip it.
+
+`ATLAS-SREF-035` — The **claim-level** `resolution` axis
+(`semantic-contract.md` §8.6: `RESOLVED`/`STALE_REF`/`MISSING_REF`/`AMBIGUOUS`/
+`CONFLICT`/`UNKNOWN`) is *derived* from the per-ref `resolution_state` values by
+the mapping fixed in that section. The two closed sets are deliberately different
+(ref-level includes `HISTORICAL`, which is a binding decision; claim-level
+includes `CONFLICT`, which is a multi-ref condition), and neither may be
+substituted for the other.
 
 ---
 

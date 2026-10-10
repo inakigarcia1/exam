@@ -60,29 +60,38 @@ A `NormativeAuthority` is **the source that owns a fact type** — the source th
 decides what is *required*, *permitted* or *true* for that fact type.
 
 Atlas does not invent authorities and does not use one global ranking. Authority
-is resolved **by fact type**. The fact-type → owner table is maintained by
-[`docs/README.md`](../../README.md#authority-by-fact-type); Atlas consumes it and
-must not duplicate or extend it.
+is resolved **by fact type**. The fact-type → owner table is owned by
+[`docs/README.md`](../../README.md#authority-by-fact-type); that table is the
+authority index and this document must not compete with it.
 
-Authorities relevant to R0 (consumed, not redefined):
+The list below is a **non-authoritative locator map** for the fact types R0
+actually touches. It exists so the golden slices can name a source without
+re-deriving the index. Where a row below is not a verbatim row of the
+`docs/README.md` table, the row is marked `*derived*` and states which indexed
+owner it belongs to — Atlas does not thereby gain that fact type.
 
-| Fact type | Authority (owner) |
+| Fact type (as used by the slices) | Owner |
 | --- | --- |
-| Cross-boundary Exam semantics | `docs/architecture/exam-semantic-boundaries.md` (EXSEM-001..020, adopted by ADR-021) |
-| Data authority, freeze/transfer points | EXSEM §2/§4 + the mechanism ADRs they name |
+| Cross-boundary Exam semantics — fact ownership, freeze/transfer points, candidate boundary, **supported-capability rule** | `docs/architecture/exam-semantic-boundaries.md` (EXSEM-001..020, adopted by [ADR-021](../../adr/ADR-021-exam-semantic-authority-adoption.md)) |
 | A specific architectural decision | the Accepted ADR for that decision |
-| External behaviour / data format / frozen semantic support | `docs/contracts/`, generated OpenAPI, contract tests |
-| Product invariants, domain model | `docs/SPEC.md` |
+| External behaviour, data format, frozen semantics | `docs/contracts/`, generated OpenAPI, contract tests |
+| Product invariants and domain model | `docs/SPEC.md` |
 | Current implemented architecture | `docs/architecture/` + production code |
-| Authorization facts (capability, preset, scope, assignment, enforcement) | `docs/architecture/authorization.md` + `packages/authz` + the runtime enforcement seam |
-| Runtime route truth | the **actual Fastify registration/capture**, not a declaration about it |
+| Runtime route truth | *derived*: the **actual Fastify registration/capture**; this is the implementation evidence for the indexed "current implemented architecture" owner, not a separate fact type |
+| Authorization facts (capability, preset, scope, assignment, enforcement) | `docs/architecture/authorization.md` + the enforcement seam it names; the catalog/preset modules are implementation |
 | Exam policy support/activation semantics | `docs/contracts/exam-policy-authority.md` (P7-M1) |
-| Per-value reservation/activation status | EXSEM-019 / EXSEM §5 + the canonical validator + the policy support matrix |
-| Engineering/test-evidence policy | `docs/standards/testing.md`, `docs/standards/code-quality.md` |
-| Test proof-strength classification | the taxonomy frozen by [#718](https://github.com/jnhu76/exam/issues/718) (see §4.4) |
+| Per-value reservation/activation status | *derived*: EXSEM-019 / EXSEM §5 plus the policy support matrix above |
+| Engineering and verification policy, including browser-E2E retention and test-evidence classification | `docs/standards/testing.md`, `docs/standards/code-quality.md` |
+| Test proof-strength classification for real-PostgreSQL tests (`pg_class`) | *derived*: consumed from [#718](https://github.com/jnhu76/exam/issues/718) as **historical evidence**; the in-tree owner is `docs/standards/testing.md`/`code-quality.md`, and the taxonomy is **not yet adopted in-tree**. R0 records this gap rather than treating a closed issue as an owner (`ATLAS-SEM-015`) |
 | Phase boundaries | `docs/roadmap/phase-roadmap.md` |
 | Work history, closure reason, decisions taken in review | the Git/Issue/PR record |
 | Task scope / acceptance | the authorized OPEN Issue |
+
+`ATLAS-SEM-015` — A **closed** work item may be cited as historical evidence for
+a classification, but it may not be recorded as the *owner* of a policy or
+standard. Where R0 needed a policy that exists only in a closed issue, the
+dependency is recorded as an open item (`r0-review.md`) instead of silently
+promoting the issue.
 
 `ATLAS-SEM-010` — Evidence is **not** authority. An `Evidence` record (§4) never
 becomes the owner of a fact type; it only supports or challenges a claim about it.
@@ -236,18 +245,24 @@ boundary-relative per §9.3):
 `ATLAS-SEM-033` — A test whose name or comment claims a stronger mechanism than
 its schedule establishes is **not evidence of that mechanism**; it is evidence of
 whatever the schedule actually establishes, and the divergence is itself a
-findable defect (issue + locator), not a resolved claim. `FALSE_PG_AUTHORITY = 0`
-is the corresponding #718 invariant and remains an open standing check.
+findable defect (issue + locator), not a resolved claim. The corresponding
+standing check (`FALSE_PG_AUTHORITY = 0`) originates in #718 as historical
+evidence; giving it an in-tree policy owner is an open item (`r0-review.md`), not
+something this contract may declare.
 
 `ATLAS-SEM-034` — `TOKEN_EXISTENCE` evidence may support existence-boundary
 claims (§9.3 `B0`) and **never** a capability-boundary claim (`B4`).
 
-### 4.5 Test-evidence classification (consumes #718, does not redefine it)
+### 4.5 Test-evidence classification (consumes an existing vocabulary)
 
-For evidence that touches real PostgreSQL, `pg_class` uses the taxonomy frozen by
-[#718](https://github.com/jnhu76/exam/issues/718) §5:
-`REAL_PG_PHYSICAL_OWNER`, `REAL_PG_COMPOSITION_OWNER`, `REAL_PG_INCIDENTAL`,
-`PSEUDO_CONCURRENCY`, `PSEUDO_ATOMICITY`, `DUPLICATE_PHYSICAL_PROOF`. A retained
+For evidence that touches real PostgreSQL, `pg_class` uses the `pg_class`
+vocabulary introduced by [#718](https://github.com/jnhu76/exam/issues/718) §5
+(`REAL_PG_PHYSICAL_OWNER`, `REAL_PG_COMPOSITION_OWNER`, `REAL_PG_INCIDENTAL`,
+`PSEUDO_CONCURRENCY`, `PSEUDO_ATOMICITY`, `DUPLICATE_PHYSICAL_PROOF`). #718 is a
+**closed work item**, so it is consumed as historical evidence: the vocabulary is
+not restated here as a new standard, and its in-tree adoption by
+`docs/standards/testing.md` is recorded as an open item in
+[`r0-review.md`](r0-review.md) rather than assumed (`ATLAS-SEM-015`). A retained
 real-PG evidence record must carry `why_real_pg_required` with a specific
 mechanism; the four invalid answers named by #718 ("integration test",
 "production uses PostgreSQL", "it talks to the database", "real is safer") are
@@ -376,7 +391,10 @@ related_claims[]
 work item can support `WORK_STATUS` claims (`DESIGN_STATUS`,
 `RESIDUAL_OR_EXCLUSION`) and can supply `HISTORICAL_WORK_ITEM` evidence about
 *scope* and *intent*. It is never `evidence_kind`-sufficient for
-`CAPABILITY_SUPPORT` at `B3`/`B4`.
+`CAPABILITY_SUPPORT` at **any** boundary — `B0`…`B6` — and it never contributes to
+any of the four conjuncts of §9.1. Work-item closure can at most place a gap in
+`GATED`/`DEFERRED` **scope ownership** (`open_governance_item`), which says who
+may lift a gate, not whether anything works.
 
 `ATLAS-SEM-051` — A work item's body is a **request**, not a specification of
 delivered scope. `CLOSED_IMPLEMENTED` requires the closure record to name what
@@ -513,11 +531,36 @@ Whether the bound snapshot still describes live state. Separate from
 
 ### 8.6 `resolution`
 
+Claim-level axis (the six values the claim carries):
+
 `RESOLVED` · `STALE_REF` · `MISSING_REF` · `AMBIGUOUS` · `CONFLICT` · `UNKNOWN`
 
-Whether the *locator* can be resolved, and unambiguously. Defined in
-[`provenance-v0.1.md`](provenance-v0.1.md) §4. `resolution` is about locating the
-evidence; it says nothing about whether the evidence supports the claim.
+Whether the claim's **required** locators resolve, and unambiguously.
+`resolution` is about *locating the evidence*; it says nothing about whether the
+evidence supports the claim.
+
+This axis is **derived from** the per-ref `resolution_state` of
+`provenance-v0.1.md` §4, which is a different closed set with a different job
+(it includes `HISTORICAL`, which is a deliberate binding rather than a claim
+property). The derivation is fixed here so the two lists cannot drift:
+
+| claim `resolution` | Derived when (over the claim's *required* refs) |
+| --- | --- |
+| `RESOLVED` | every required ref is `RESOLVED` or intentionally `HISTORICAL` |
+| `STALE_REF` | ≥1 required ref is `STALE` (anchor drift) |
+| `MISSING_REF` | ≥1 required ref is `MISSING` |
+| `AMBIGUOUS` | ≥1 required ref is `AMBIGUOUS` |
+| `CONFLICT` | the required refs cannot be resolved to a consistent target set for the same proposition — a **locator** conflict, i.e. `LOCATOR_CONFLICT` in §12 |
+| `UNKNOWN` | any required ref is `UNKNOWN`, or the ref set itself could not be established |
+
+`ATLAS-SEM-075` — Precedence when several conditions hold:
+`CONFLICT` > `MISSING_REF` > `AMBIGUOUS` > `STALE_REF` > `UNKNOWN` > `RESOLVED`.
+The claim's `resolution` must also **name the ref(s)** that caused the value.
+
+`ATLAS-SEM-076` — `CONFLICT` here is a *locator* condition only. A substantive
+disagreement between two adequately-located pieces of evidence is
+`EVIDENCE_CONTRADICTION` (§12), which is a `CONFLICT` record and not a
+re-definition of this axis.
 
 `ATLAS-SEM-074` — The axes are **not** inter-derivable. `design = ACCEPTED` does
 not raise `implementation`; `implementation = PRESENT` does not raise
@@ -526,7 +569,24 @@ another; `freshness = CURRENT` does not raise anything else.
 
 ---
 
-## 9. Support inference rule
+## 9. Support rule — Atlas mapping of the existing capability rule
+
+**Owner.** The rule that decides whether a capability counts as supported is
+owned by
+[`docs/architecture/exam-semantic-boundaries.md` §5](../../architecture/exam-semantic-boundaries.md),
+`SUPPORTED_SEMANTIC_TEST = 已采纳的当前契约 + 可达且受守卫的授权生产路径 + 必需的守卫、效果与回归证据`,
+adopted by ADR-021, with EXSEM-019 (`REPRESENTABILITY_VS_SUPPORT_RULE`) governing
+reserved vocabulary. Atlas **does not restate that rule as a new normative
+requirement.** This section defines only the Atlas-side *mapping*: how a claim's
+`activation_support` value, its declared boundary (§9.2/§9.3) and its evidence
+grades (§4.4) relate to that rule.
+
+`ATLAS-SEM-079` — Equivalence statement. A `CAPABILITY_SUPPORT` claim may carry
+`activation_support = SUPPORTED` only when the EXSEM §5 test holds as stated
+there, and this document's four conjuncts (§9.1) are a **decomposition of that
+same test** for representation purposes — not a second, independently satisfiable
+requirement set. If the two ever diverge, EXSEM §5 is the owner and this document
+is wrong.
 
 ### 9.1 The four conjuncts
 
@@ -656,22 +716,34 @@ exact unresolved question is the required output.
 
 ## 12. CONFLICT propagation
 
-`ATLAS-SEM-110` — Conflict is a **first-class outcome**. Five distinguishable
-conflict kinds (v0.1); they must not be merged:
+`ATLAS-SEM-110` — Conflict is a **first-class outcome**. Six distinguishable
+conflict kinds (v0.1, closed set); they must not be merged:
 
 | Kind | Situation |
 | --- | --- |
 | `AUTHORITY_CONFLICT` | Two `CURRENT` authorities own the same fact type over overlapping scope and disagree |
 | `DECLARED_VS_RUNTIME_DIVERGENCE` | A declaration about the system disagrees with the observed runtime (e.g. a registry's coverage claim vs the captured route surface) — neither is discarded |
 | `EVIDENCE_CONTRADICTION` | Two evidence records, both adequate for their own boundaries, disagree about the same proposition |
-| `LOCATOR_CONFLICT` | A locator resolves to more than one candidate, or its anchor is ambiguous (`resolution = AMBIGUOUS`) |
+| `LOCATOR_CONFLICT` | A locator resolves to more than one candidate, or its anchor is ambiguous (`resolution_state = AMBIGUOUS`) |
 | `TEMPORAL_CONFLICT` | A statement was true at revision `R` and is false at revision `R'`; both are accurately bound and neither may be dropped, but only one describes live state |
+| `DOCUMENTATION_DISSONANCE` | An **authority's own text** disagrees with as-built behaviour (the authority is the requirement, the code is the observation, and they do not match). Distinct from `AUTHORITY_CONFLICT` because only one side is a normative statement; distinct from `TEMPORAL_CONFLICT` because the authority has not been superseded or amended — it is simply out of date and needs its owner to correct or re-scope it |
+
+Resolution statuses are also a **closed set** (`ATLAS-SEM-115`):
+
+| Status | Meaning | Who may set it |
+| --- | --- | --- |
+| `UNRESOLVED` | No resolution recorded | default |
+| `RESOLVED_BY_SCOPE` | The parties were shown to govern different fact types or disjoint scope, so there is no conflict to resolve | **requires a named, dated source statement** (`ATLAS-SEM-013`); an authority's own Status section is a *party statement*, not a resolution |
+| `RESOLVED_BY_SUPERSESSION` | A named source replaced one party; recorded as §2.2 supersession | the authority owner |
+| `RESOLVED_BY_CORRECTION` | A source was corrected by its owner | the source owner |
+| `RESOLVED_BY_DERIVATION` | Atlas computed a derived value that legitimately subsumes the disagreement (e.g. `Permission.inert`) | Atlas, **only** for a `LOCATOR_CONFLICT` or a `DECLARED_VS_RUNTIME_DIVERGENCE` whose answer is a derived field — never for an `AUTHORITY_CONFLICT` or `DOCUMENTATION_DISSONANCE` |
 
 `ATLAS-SEM-111` — For every conflict, Atlas records: both parties with their
 source refs, the exact proposition in dispute, an `open_governance_item` naming
-who may resolve it, and the resolution state (`UNRESOLVED` until an owner
-resolves it). The resolution, when it comes, is recorded as an authority
-supersession (§2.2) — Atlas does not become the resolver.
+who may resolve it, and the resolution status. The status remains `UNRESOLVED`
+until an action permitted by the table in `ATLAS-SEM-115` is recorded — Atlas does
+not become the resolver of a normative question, and a closed work item is not a
+resolution.
 
 `ATLAS-SEM-112` — `DECLARED_VS_RUNTIME_DIVERGENCE` is **not** a bug in the
 declaration by definition. A declaration may be intentionally narrower or
@@ -681,11 +753,17 @@ intent, and never promotes the declaration to runtime truth or vice versa.
 `ATLAS-SEM-113` — A conflict must not be resolved by rendering: choosing one side
 for a summary, a matrix cell or a graph edge is a §7 violation.
 
-`ATLAS-SEM-114` — Conflicting *scopes* of the same authority are not a conflict
-(an ADR's own Status section naming the implementation model is a scope
-statement). Distinguishing a genuine authority conflict from an in-source scope
-statement is a curation duty; when it cannot be established, report
-`AUTHORITY_CONFLICT` with `OWNER_UNRESOLVED` rather than deciding.
+`ATLAS-SEM-114` — Conflicting *scopes* of the same authority are not automatically
+a conflict: a source may legitimately declare the boundary of what it owns, and an
+authority's Status section naming an implementation model is a **party statement
+about its own scope**. It is **not** by itself a resolution of the disagreement
+another party raised: treating it as one would let Atlas decide a question that
+the source owners have recorded as pending (`#762` O-01…O-05 are exactly such
+pending owner decisions). Distinguishing a genuine authority conflict from an
+in-source scope statement — and resolving either — is an owner duty; when it
+cannot be established, report the conflict with `resolution = UNRESOLVED` and
+`open_governance_item.kind = DECISION_GATED` naming the owner, rather than
+deciding it.
 
 ---
 

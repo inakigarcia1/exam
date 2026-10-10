@@ -262,10 +262,14 @@ label                    # human-readable name (non-identifying)
 source_refs[]            # ArchitectureSourceRef[] (SREF-1)
 authority_refs[]         # NormativeAuthority refs governing this node
 freshness                # §semantic-contract 8.5
-resolution               # §semantic-contract 8.6 (worst of the source_refs)
+resolution               # §semantic-contract 8.6 (derived; names the causing refs)
 review_state             # §semantic-contract 5.4
 claim_refs[]             # claims whose subject is this node
 open_governance_item     # §semantic-contract 6.4
+renamed_from[]           # retired IDs this node previously carried (ATLAS-IR-023)
+renamed_to?              # successor ID if this node was renamed away
+retired_at?              # revision at which the rename was recorded
+rename_reason?           # why the identity changed
 ```
 
 Type-specific fields below. Fields marked `DERIVED` are computed; every other
@@ -279,20 +283,39 @@ mapping_state            # MAPPED | PARTIAL | UNMAPPED | UNKNOWN
 external_identity?        # e.g. the OPEN Issue that authorizes work on it
 ```
 
-`support_summary` (DERIVED, `ATLAS-IR-032`) rolls up **only** the capability's
-own claims and its facets':
+`support_summary` (DERIVED, `ATLAS-IR-032`) is a **total function** over the
+capability's own claims and its facets'. It is evaluated in this precedence order
+and the first matching clause wins:
 
 ```text
-if any facet or the capability itself has activation_support = GATED|DEFERRED|NOT_SUPPORTED
-   and at least one is SUPPORTED            → MIXED   (must be rendered, not flattened)
-if all supported parts are SUPPORTED        → SUPPORTED
-if none are supported but the design is accepted/tracked → DEFERRED|GATED (from the strongest owning claim)
-if evidence is inadequate for every part    → UNKNOWN
+0. if any part's activation_support = UNKNOWN  (or its evidence is inadequate
+   for its declared boundary)                 → UNKNOWN      (unresolved precedence over everything)
+1. if ≥1 part is SUPPORTED and ≥1 part is GATED|DEFERRED|NOT_SUPPORTED|UNKNOWN-eligible-but-known
+                                              → MIXED        (must be rendered, not flattened)
+2. if every mapped part is SUPPORTED
+   AND mapping_state = MAPPED
+   AND a closed-search statement records that no known
+       non-supported part is unmapped          → SUPPORTED
+3. if no part is SUPPORTED and ≥1 part is GATED|DEFERRED
+                                              → GATED/DEFERRED (from the strongest owning claim,
+                                                              naming which part)
+4. if no part is SUPPORTED and none is tracked → NOT_SUPPORTED
+5. otherwise                                  → UNKNOWN
 ```
 
-`MIXED` exists so that "delivered core + residual facet" cannot be rendered as a
-single boolean (`ATLAS-IR-033`). `mapping_state` records coverage, never support
-— an `UNMAPPED` capability is not an unsupported capability (`ATLAS-SEM-102`).
+`ATLAS-IR-032` binding rules:
+
+- Clause **0** implements `ATLAS-SEM-101`: an unknown part blocks a `SUPPORTED`
+  roll-up rather than being silently treated as absent.
+- Clause **2** is the only path to `SUPPORTED`, and it requires **all three**
+  conjuncts: every mapped part supported, `mapping_state = MAPPED`, and an
+  explicit closed-search statement about unmapped parts. This closes the
+  omission hole where never instantiating an inconvenient facet would otherwise
+  yield `SUPPORTED`.
+- `MIXED` exists so that "delivered core + residual facet" cannot be rendered as
+  a single boolean (`ATLAS-IR-033`).
+- `mapping_state` records coverage, never support — an `UNMAPPED` capability is
+  not an unsupported capability (`ATLAS-SEM-102`).
 
 ### 4.2 `Workflow`
 
@@ -324,9 +347,13 @@ capability-level dependencies (§5.10) so that the two are never conflated.
 The composite that makes `RolePreset ≠ effective authorization` representable:
 
 ```text
-capability_ref           # Permission ref; NONE for AUTH_ONLY/PUBLIC
-scope_ref?               # Scope ref; omitted when the scope requirement is NONE
+capability_ref           # Permission ref; NONE for AUTH_ONLY/PUBLIC/INTERNAL_SYNTHETIC
+scope_ref?               # Scope ref carrying the ASSIGNMENT CARRIER (see note below)
+resource_anchor_ref?     # Scope ref naming the resource KIND the resolver resolves
+                         #   (may differ from scope_ref: e.g. anchor = exam, carrier = course)
 assignment_required      # TRUE | FALSE | UNKNOWN      (the assignment dimension)
+assignment_applies_to    # [actor_class_or_role_key]  — who is subject to the assignment gate;
+                         #   e.g. ["!Admin"] meaning "all actors except Admin", or [] for none
 enforcement_seam         # the code seam that applies it (locator)
 enforcement_evidence     # evidence that the seam is applied on every surface of the operation
 resource_resolution      # how the resource is resolved (e.g. attemptId → examId)
@@ -336,6 +363,20 @@ deny_mapping             # canonical deny shape (e.g. 404 anti-enumeration, 403,
 `ATLAS-IR-034` — `assignment_required = TRUE` requires `enforcement_seam` and
 `enforcement_evidence`. `enforcement_evidence` must be evidence **of the seam**,
 not of the permission's existence (`ATLAS-SEM-035`).
+
+`ATLAS-IR-034a` — **`assignment_required` is not a property of every actor.**
+Where the runtime exempts an actor class (the current case: Admin short-circuits
+the assignment gate on every scoped seam), the exemption is recorded in
+`assignment_applies_to`. Stating only `assignment_required = TRUE` would let a
+consumer infer that Admin is assignment-checked, which is false; stating only
+"non-Admin" in prose would make the exemption unverifiable. If the exemption
+cannot be established, `assignment_applies_to = UNKNOWN`.
+
+`ATLAS-IR-034b` — **The resource anchor and the assignment carrier are separate
+fields.** A scope requirement resolves a resource of one kind while requiring an
+assignment over a resource of another kind (result publication resolves an *exam*
+while requiring a *course* assignment). A single `scope_ref` cannot carry both, and
+fusing them makes one carrier look like the enforcement for an unrelated operation.
 
 `ATLAS-IR-035` — The IR represents the **requirement** and its enforcement
 evidence. It must not compute or store a grantee set ("the actors who can do
@@ -362,6 +403,22 @@ promoted (`ATLAS-SEM-112`).
 "a protected runtime route missing from the declared registry", and
 `DECLARED_ONLY` is the shape of an orphan declaration. Neither is an error state
 in the IR; both are renderable findings.
+
+```text
+additional_gates[]       # in-handler authorization branches that narrow this
+                         # interface beyond its pre-handler gate:
+                         # { capability_ref, effect: NARROW | EXPAND,
+                         #   evidence, applies_to_responses[] }
+```
+
+`ATLAS-IR-091` — An in-handler capability branch is an **obligation**, not an
+observation. When a handler consults a capability that its pre-handler gate does
+not require (the current case: the Admin-only business-integrity block inside a
+route open to Admin *and* Maintainer), the branch must appear either as its own
+`Operation` or in `Interface.additional_gates[]`. Omitting it is a conformance
+defect, because omission would otherwise **validate silently** and the model would
+understate an interface's effective gating. Without this rule, a two-truth route
+would be expressible as one truth.
 
 ### 4.6 `Permission`
 
@@ -392,11 +449,27 @@ permissions[]            # Permission refs
 sensitive_permissions[]
 ```
 
-`ATLAS-IR-039` — A `RolePreset` has no field expressing resource reach. Resource
-reach exists only as `Operation.authority_requirement.scope_ref` plus
-`assignment_required`. A projection that renders preset membership as resource
-reach is a semantic-contract §7 violation, and the absence of such a field is
-what makes that violation detectable rather than a matter of taste.
+`ATLAS-IR-039` — A `RolePreset` has no field expressing **resource reach**.
+Resource reach exists only as `Operation.authority_requirement` (`scope_ref`,
+`resource_anchor_ref`, `assignment_required`, `assignment_applies_to`).
+
+`ATLAS-IR-092` — The one scope-shaped field a preset may carry is
+`default_scope`, and its semantics are restricted: it names the **scope kind** at
+which the role's capabilities are evaluated when no assignment narrows them (e.g.
+"course", "exam", "organization"). It is **not** a resource claim and may not be
+rendered as one. Concretely:
+
+- a projection may say "Teacher capabilities are evaluated at course scope";
+- a projection **may not** say or imply "Teacher → course X" from `default_scope`,
+  nor derive any resource list from it;
+- `default_scope` may never be used to satisfy `assignment_required`.
+
+`ATLAS-IR-092` exists because a scope-kind field is the natural place for a
+reach claim to creep back in. Without the restriction, the
+"preset ≠ effective authorization" invariant would be editorial rather than
+structural. Whether a projection violates this is an R1/R2 conformance
+obligation (a projection conformance surface does not exist in v0.1; see
+`r0-review.md` RV-9).
 
 ### 4.8 `Scope`
 
@@ -404,9 +477,19 @@ what makes that violation detectable rather than a matter of taste.
 value                    # the scope dimension (mirrors the catalog), or a named
                          # non-application boundary
 rbac_participation       # APPLICATION_SCOPE | OUTSIDE_APPLICATION_RBAC
+resource_domain          # the kind of resource this scope governs (e.g. course, exam, host infrastructure)
 assignment_carrier       # { entity_ref, enforcement_seam, evidence } or NONE
 list_filtering           # whether collection reads are filtered before pagination (TRUE|FALSE|UNKNOWN)
+outside_authority?       # REQUIRED when rbac_participation = OUTSIDE_APPLICATION_RBAC:
+                         # { holder_identity, granted_by, governed_by, resources[], excluded_from[] }
 ```
+
+`ATLAS-IR-031a` — An `OUTSIDE_APPLICATION_RBAC` scope must carry
+`outside_authority`, and claims about that identity use the **scope node as their
+subject**. This is what makes the host operator answerable *from the model*
+("who is it, what may it do, what is it excluded from") instead of requiring a
+reader to leave the IR for an ADR — while still forbidding the identity from
+being represented as a role or a permission.
 
 ### 4.9 `PolicyValue`
 
@@ -414,19 +497,38 @@ list_filtering           # whether collection reads are filtered before paginati
 value                    # the vocabulary value, e.g. timed_sync
 vocabulary_class         # §3.9
 representable            # TRUE | FALSE   (declared in the wire contract / schema)
-storable                 # TRUE | FALSE | UNKNOWN
+storable                 # TRUE | FALSE | UNKNOWN   (SCHEMA CAPACITY: see ATLAS-IR-093)
+write_reachable          # TRUE | FALSE | UNKNOWN   (a production path can persist it: a DIFFERENT question)
 read_compatible          # TRUE | FALSE | UNKNOWN
-activation_status        # SUPPORTED | GATED | DEFERRED | NOT_SUPPORTED | UNKNOWN
+activation_status        # DERIVED — see ATLAS-IR-040
+activation_claim_ref     # the CAPABILITY_SUPPORT claim this value's status is derived from
 activation_gate?         # { locator, lift_condition } when GATED
 refusing_seams[]         # every place that refuses activation, with locators
 transition_refs[]        # PolicyValue refs this value may transition to (with direction)
 default_when_absent?     # canonical default resolved by the authority, or NONE
 ```
 
-`ATLAS-IR-040` — `representable`/`storable`/`read_compatible` are **separate**
-from `activation_status`. A value with all three true and
-`activation_status = GATED` is the negative-control shape; the four fields may
-never be collapsed into one "supported" flag.
+`ATLAS-IR-093` — `storable` means **schema capacity only**: a column or slot can
+hold the value and no constraint rejects it. Whether any production path can
+*persist* it is `write_reachable`, and whether the product *activates* it is
+`activation_status`. The three are different questions and may not be collapsed:
+a value can be `representable` + `storable` + `read_compatible` while
+`write_reachable = FALSE` and `activation_status = GATED` — which is the negative
+control's whole point.
+
+`ATLAS-IR-040` — `representable`/`storable`/`read_compatible`/`write_reachable`
+are **separate** from `activation_status`. A value with the first three true,
+`write_reachable = FALSE` and `activation_status = GATED` is the negative-control
+shape; the fields may never be collapsed into one "supported" flag.
+
+`ATLAS-IR-040a` — `activation_status` is **DERIVED** from the value's owning
+`CAPABILITY_SUPPORT` claim(s) (`activation_claim_ref`), not hand-set. It is
+`SUPPORTED` only when such a claim exists and carries all four conjuncts of
+`ATLAS-SEM-080` at the capability boundary; otherwise it takes the strongest
+applicable non-supported value from those claims. A `PolicyValue` marked
+`SUPPORTED` with no claim, no boundary and no supporting evidence is therefore
+**invalid by construction** — which is what makes the negative control
+non-bypassable at the node level and not merely at the slice level.
 
 `ATLAS-IR-041` — `refusing_seams` is a list, not a single value, because
 activation is refused at more than one seam by design (validator + publish gate +
@@ -654,31 +756,72 @@ CAN_BE_UNKNOWN       YES
 
 ### 6.1 Grammar
 
-```text
-<kind>:<local-name>
+`ATLAS-IR-026` — The grammar is **per namespaces**, not one character class. There
+are three sub-grammars, and each ID must satisfy exactly its own:
 
-kind        ∈ {capability, facet, workflow, operation, interface,
-               permission, role, scope, policy, entity, authority, work}
-local-name  dot-separated segments: [a-z0-9][a-z0-9_-]*
-              (authoritative mirrors keep their authoritative spelling; see 6.3)
+```text
+kind       ∈ {capability, facet, workflow, operation, interface,
+              permission, role, scope, policy, entity, authority, work}
+
+(curated)     capability | facet | workflow | operation | entity | scope
+              local-name = dot-separated segments, each [a-z0-9][a-z0-9_-]*
+              e.g. capability:grading.manual, entity:answer.frozen-submission
+
+(mirrored)    permission | role | policy | authority | work
+              local-name = the owning source's key, VERBATIM
+              e.g. role:Grader (catalog spelling), permission:grading.score.write,
+                   authority:adr-019
+              work additionally uses the external object form:
+                   work:<owner>/<repo>#<number>   e.g. work:jnhu76/exam#756
+
+(http)        interface, HTTP form
+              interface:http.<METHOD>.<normalized-path-template>
+              METHOD is upper case; the path is the wire path template
+              e.g. interface:http.POST./api/admin/attempts/:attemptId/grade-question
+
+(seam)        interface, non-HTTP form
+              interface:<seam-kind>.<curated-name>   e.g. interface:internal.deadline-scanner
 ```
+
+`ATLAS-IR-026` rationale: a single `[a-z0-9-]` class could not produce the
+mirrored or HTTP forms at all, so "closed namespace" would have been stated but
+unenforceable. Per-namespace grammar makes each ID validatable.
+
+`ATLAS-IR-027` — **Path-template normalization** (HTTP interfaces), so that two
+writers cannot emit different IDs for one endpoint:
+
+1. the method is upper-cased;
+2. the registered path is used **with its runtime prefix** (`/api/…`) and with
+   leading `/`;
+3. duplicate slashes are collapsed and a trailing slash is removed;
+4. parameter names are **kept verbatim** — `:attemptId` and `:id` are different
+   templates and produce different IDs, because the template is the externally
+   visible contract and a parameter rename is a real interface change;
+5. no query string, no fragment, no host;
+6. case is preserved in the path (paths are case-sensitive).
 
 Examples:
 
 ```text
 capability:grading.manual
-facet:rich.formula.typed-shortcuts
+facet:content.rich.typed-shortcuts
 workflow:grading.manual.review
 operation:grading.grade-question
-interface:http.POST./api/attempts/:attemptId/grade-question
+interface:http.POST./api/admin/attempts/:attemptId/grade-question
+interface:http.POST./api/attempts/:attemptId/answers/:questionId
 permission:grading.score.write
 role:Grader
 scope:exam.assignment
+scope:host-infrastructure
 policy:exam.timingMode/timed_sync
-entity:grading.entry
+entity:answer.frozen-submission
 authority:exsem
 work:jnhu76/exam#756
 ```
+
+Every ID above is checked against the sub-grammar that owns it
+(`ATLAS-IR-026`); the two HTTP IDs are registered paths with their runtime prefix
+and verbatim parameter names (`ATLAS-IR-027`), not illustrative strings.
 
 ### 6.2 Rules
 
@@ -695,9 +838,11 @@ a new ID; the old ID is recorded as retired with the reason. Reusing a retired I
 for a different concept is a defect (it silently rewrites history for every
 snapshot diff and every external reference).
 
-`ATLAS-IR-023` — **Renames are explicit.** A rename records `renamed_from`,
-`renamed_to`, the revision, and the reason. Aliases resolve old→new for
-traversal; aliases are never emitted as identities.
+`ATLAS-IR-023` — **Renames are explicit.** The node header (§4) carries
+`renamed_from[]`, `renamed_to?`, `retired_at?` and `rename_reason?`, so an
+identity change is representable rather than implied. Aliases resolve old→new for
+traversal; aliases are never emitted as identities, and a `renamed_from` entry
+must reference an ID that is now retired (`ATLAS-IR-022`).
 
 ### 6.3 Two identity origins, never mixed
 
@@ -739,9 +884,12 @@ input, same IR schema version.
 
 1. `ATLAS-IR-061` — **Canonical record order.** Nodes sorted by `(kind, id)`;
    edges sorted by `(source_id, edge_kind, target_id, discriminator)` where
-   `discriminator` is the edge's qualifying attribute tuple (`step_index`,
-   transition direction). Sorting is by **Unicode code point**, never locale
-   collation.
+   `discriminator` is the edge's full qualifying-attribute tuple in schema field
+   order — for `performs`: `step_index`; for `transitions_to`: `direction` then
+   `guard_ref`; for `reads`/`writes`: `effect_kind` then `mutability`. Every edge
+   type with qualifying attributes must name its discriminator tuple so that
+   parallel edges (§7.1 `ATLAS-IR-066`) have a total order. Sorting is by
+   **Unicode code point**, never locale collation.
 2. `ATLAS-IR-062` — **Canonical key order.** Object keys serialized in the
    schema's declared field order (or sorted; whichever R1 chooses, it must be one
    rule, applied everywhere).
@@ -755,26 +903,39 @@ input, same IR schema version.
    The snapshot's *semantic* identity must not change because a rebuild happened
    later.
 5. `ATLAS-IR-065` — **No iteration-order or filesystem-order dependence.** Where
-   two records share `(kind, id)`, they **merge deterministically**: single-valued
-   fields must agree, and disagreement is a `CONFLICT` record — never
-   last-write-wins, never first-wins.
+   two records share `(kind, id)`, they **merge deterministically**:
+   - single-valued fields must agree; disagreement is a `CONFLICT` record —
+     never last-write-wins, never first-wins;
+   - set-valued fields are the union of the inputs;
+   - **order-bearing** fields (`performs.step_index`, `additional_gates[]`,
+     workflow steps) are ordered by their declared ordering key, and two records
+     claiming the same ordering key with different content are a `CONFLICT` —
+     they are not concatenated.
 6. `ATLAS-IR-066` — **Parallel edges remain distinct** where their semantics or
    qualifiers differ; exactly identical edges collapse to one.
 7. `ATLAS-IR-067` — **Source-ref ordering** is `(repo, source_kind, path_or_uri,
    symbol, section, line_start)`; duplicate refs collapse.
-8. `ATLAS-IR-068` — **UNKNOWN serialization.** `UNKNOWN` is an explicit sentinel
-   value, distinct from an absent field:
+8. `ATLAS-IR-068` — **Sentinel serialization.** Three sentinels are defined and
+   distinct from an absent field:
    ```text
    field absent      → not applicable / not present in this schema version
    field = UNKNOWN   → required by the schema, not establishable (may carry a reason)
+   field = NONE      → the concept does not apply (e.g. capability_ref = NONE for a
+                       PUBLIC operation; assignment_carrier = NONE for a scope with
+                       no assignment dimension)
    field = null      → not used in v0.1
    ```
    A field whose value is genuinely unknown must be serialized as `UNKNOWN`, not
-   omitted, whenever the schema requires it.
-9. `ATLAS-IR-069` — **Optional vs absent.** Every optional field carries a schema
-   default; "omitted" and "explicitly default" must normalize to the same
-   representation, otherwise a rebuild could differ from an incremental update
-   for no semantic reason.
+   omitted, whenever the schema requires it. `NONE` and `UNKNOWN` must never be
+   interchanged: `NONE` is a knowledge claim ("there is no such thing here"),
+   `UNKNOWN` is its absence.
+9. `ATLAS-IR-069` — **Optional vs absent, enforced by an explicit default table.**
+   Every optional field must appear in a single **default table** (one row per
+   field: `field → default sentinel/value`), and the writer must materialize the
+   default value for any omitted optional field. "Omitted" and "explicitly
+   default" therefore normalize to the same bytes. A field that is optional but
+   absent from the default table makes this rule unenforceable and is a schema
+   defect, not a writer choice.
 10. `ATLAS-IR-070` — **No floating-point fields** in semantic positions.
     Numeric facts are integers or exact strings.
 11. `ATLAS-IR-071` — **No free-text escape hatch.** There is no `notes`,
@@ -809,3 +970,8 @@ machine-readable fixture is added in R0.
 | `ATLAS-IR-088` | No stored grantee set exists anywhere (§4.4 `ATLAS-IR-035`). |
 | `ATLAS-IR-089` | The snapshot contains no secret, credential, token, or candidate personal data; source refs are locators, and any excerpt is bounded and non-sensitive (§provenance 6). |
 | `ATLAS-IR-090` | The IR has no dependency on a renderer, layout, Three.js, or a graph database. |
+| `ATLAS-IR-091` | Every in-handler authorization branch is modelled as its own `Operation` or recorded in `Interface.additional_gates[]`; omission is a conformance defect. |
+| `ATLAS-IR-092` | `RolePreset.default_scope` names a scope **kind** only; no projection may derive a resource list from it or use it to satisfy `assignment_required`. |
+| `ATLAS-IR-093` | `PolicyValue.storable` is schema capacity, `write_reachable` is production writability, `activation_status` is product activation; the three are never collapsed. |
+| `ATLAS-IR-094` | Every non-HTTP `interface:` ID and every HTTP `interface:` ID satisfies its own sub-grammar, and every HTTP ID satisfies the path-template normalization (`ATLAS-IR-026`/`-027`). |
+| `ATLAS-IR-095` | `Capability.support_summary = SUPPORTED` requires clause 2 of `ATLAS-IR-032` in full: all mapped parts supported, `mapping_state = MAPPED`, and a closed-search statement about unmapped parts. |

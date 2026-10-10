@@ -53,7 +53,7 @@
 
 | # | Subject | Claim | `claim_kind` | boundary | Axes | Authority owner | Verdict |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| A-01 | `capability:content.rich-subjective` | Candidate rich `text_response` answering is a supported product capability: authoring surface, save path with canonical closure, render path and re-edit path exist and are reachable | `CAPABILITY_SUPPORT` | `B4` | design `ACCEPTED`, implementation `PRESENT`, verification `PASS`, activation_support `SUPPORTED`, freshness `CURRENT`, resolution `RESOLVED` | `authority:rich-contract` + `authority:adr-019` | **SUPPORTED** |
+| A-01 | `capability:content.rich-subjective` | Candidate rich `text_response` answering is a supported product capability: an authoring surface, a save path with canonical closure, a render path and a re-edit path exist and are reachable, with the browser composition proven for the editor/formula/reload path (per-facet gaps are separate claims A-05/A-06) | `CAPABILITY_SUPPORT` | `B4` | design `ACCEPTED`, implementation `PRESENT`, verification `PASS`, activation_support `SUPPORTED`, freshness `CURRENT`, resolution `RESOLVED` | `authority:rich-contract` + `authority:adr-019` | **SUPPORTED** |
 | A-02 | `capability:content.rich-subjective` | The document grammar is a **closed** vocabulary; unknown nodes/marks/attributes fail validation rather than being silently dropped | `AUTHORITY_STATEMENT` | `B5` | design `ACCEPTED`, verification `PASS` | `authority:rich-contract` | asserted by authority |
 | A-03 | `capability:content.rich-subjective` | Documents are canonicalized before durable acceptance, and a non-canonical document is rejected with the existing `INVALID_ANSWER` category | `DURABLE_EFFECT` | `B2` | implementation `PRESENT`, verification `PASS` | `authority:rich-contract` | **SUPPORTED at B2** |
 
@@ -62,8 +62,8 @@
 | # | Subject | Claim | `claim_kind` | boundary | Axes | Authority owner | Verdict |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | A-04 | `facet:content.rich.formula` | Inline and block formulas are authored (visual LaTeX entry), saved, rendered and re-edited | `CAPABILITY_SUPPORT` | `B4` | implementation `PRESENT`, verification `PASS`, activation_support `SUPPORTED` | `authority:rich-contract` | **SUPPORTED** |
-| A-05 | `facet:content.rich.table` | Tables (cells = paragraphs only) are authored, saved and rendered | `CAPABILITY_SUPPORT` | `B4` | implementation `PRESENT`, verification `PASS`, activation_support `SUPPORTED` | `authority:rich-contract` | **SUPPORTED** |
-| A-06 | `facet:content.rich.code` | Code blocks are authored, saved and rendered | `CAPABILITY_SUPPORT` | `B4` | implementation `PRESENT`, verification `PASS`, activation_support `SUPPORTED` | `authority:rich-contract` | **SUPPORTED** |
+| A-05 | `facet:content.rich.table` | Tables (cells = paragraphs only) are authored, saved and rendered; the authoring surface, the save path and the render path are reachable | `CAPABILITY_SUPPORT` | **`B3`** (see A-C6) | implementation `PRESENT`, **verification `PASS` at `B3` / `INSUFFICIENT` at `B4`**, activation_support `SUPPORTED` **at `B3` only** | `authority:rich-contract` | **SUPPORTED at B3; B4 INSUFFICIENT** |
+| A-06 | `facet:content.rich.code` | Code blocks are authored, saved and rendered; the authoring surface, the save path and the render path are reachable | `CAPABILITY_SUPPORT` | **`B3`** (see A-C6) | implementation `PRESENT`, **verification `PASS` at `B3` / `INSUFFICIENT` at `B4`**, activation_support `SUPPORTED` **at `B3` only** | `authority:rich-contract` | **SUPPORTED at B3; B4 INSUFFICIENT** |
 
 ### 2.3 Facet boundary — residuals (the falsification core)
 
@@ -113,16 +113,16 @@ supplying only intent and residual scope (`ATLAS-SEM-050`).
 | --- | --- | --- | --- | --- |
 | `packages/domain/src/content/contentDocument.ts:134` `ContentDocumentV1` + closed block/inline/mark unions (`:30-31`, `:65-68`, `:124-130`) | `STATIC_SOURCE` | `TOKEN_EXISTENCE` | The grammar is closed and enumerable | That any surface uses it |
 | `packages/contracts/src/contentDocument.ts:248` `ContentDocumentV1Schema` with `.strict()` (`:32-35`) | `CONTRACT` | `TOKEN_EXISTENCE` | Wire-level strictness is required | Runtime rejection behaviour |
-| `packages/contracts/src/contentDocument.ts:34-35` — image/attachment nodes absent pending an Asset authority | `CONTRACT` | `TOKEN_EXISTENCE` | Attachments are grammatically impossible today | — |
+| `packages/contracts/src/contentDocument.ts:34-35` — image/attachment nodes absent pending an Asset authority | `CONTRACT` | `TOKEN_EXISTENCE` | Attachments are grammatically impossible in V1 | That no other surface advertises attachments (a UI-inventory question this slice does not answer) |
 | `packages/contracts/src/contentDocument.ts:268` `canonicalizeContentDocument` | `STATIC_SOURCE` | `TOKEN_EXISTENCE` | A canonicalization seam exists | That it is applied at every durable boundary |
 | `apps/api/src/lib/validateAnswerForQuestion.ts:118-159`, closure rejection at `:151-157` | `STATIC_SOURCE` | `TOKEN_EXISTENCE` | The save path re-validates the canonical value before durable acceptance | That the rejection is reachable over the wire |
-| `apps/api/src/routes/attempts.candidate.ts:944-945` — `POST /attempts/:attemptId/answers/:questionId` | `RUNTIME_ROUTE_CAPTURE`-class registration + `STATIC_SOURCE` | `TOKEN_EXISTENCE` | The answer-save interface is registered on the candidate surface | Its scope/idempotency behaviour or its durable effect |
+| `apps/api/src/routes/attempts.candidate.ts:944-945` — `POST /attempts/:attemptId/answers/:questionId` (registered under the `/api` prefix) | `STATIC_SOURCE` (registration site). The `RUNTIME_ROUTE_CAPTURE` evidence for the composed surface is the whole-app capture test (`apps/api/src/authz/routeRegistryConformanceWholeApp.test.ts`), whose capture identity is that test case; no separate capture artefact exists at R0 | `TOKEN_EXISTENCE` | The answer-save interface is registered on the candidate surface | That the composed app exposes it (the capture test asserts the route-count split, not this route's metadata); its scope/idempotency behaviour or its durable effect |
 | `apps/api/src/routes/answerRichClosure.test.ts:192-199` — merge-class seed rejected at the wire with `accepted: false`, `reason: "INVALID_ANSWER"` | `TEST_INTEGRATION` | `BEHAVIOURAL_COMPOSITION` | The closure rejection is reachable through the HTTP composition and no durable write is accepted | Browser behaviour; the *set* of all non-canonical classes |
 | `apps/api/src/lib/validateAnswerForQuestion.test.ts:234` — validation rejects the merge-class seed | `TEST_SEMANTIC` | `BEHAVIOURAL_PURE` | The pure validation decision for that class | HTTP surface, persistence |
 | `apps/e2e/e2e/rich-content.spec.ts` — block/inline formula insert → save → reload → submit; paste/drag; typed-math rules | `TEST_INTEGRATION` (browser E2E, `BEHAVIOURAL_BROWSER`) | `BEHAVIOURAL_BROWSER` | The browser composition: contenteditable → adapter → save → reload → re-edit survives, which is a browser-only mechanism (`docs/standards/testing.md` §4.0) | Table/code node families; authoring by staff |
 | `apps/e2e/e2e/rich-editor-input-boundaries.spec.ts` — first-keystroke survival, list Tab containment, persisted-formula re-edit | `TEST_INTEGRATION` (browser E2E) | `BEHAVIOURAL_BROWSER` | Editor interaction boundaries in a real browser | Anything outside the exercised interactions |
-| `apps/web/src/components/shared/content/contentAdapter.test.ts`, `ContentRenderer.security.test.tsx`, `ContentRenderer.trust.test.tsx`, `MathRenderer.evidence.test.tsx`, `RichTextAnswerInput.readTrust.test.tsx` | `TEST_SEMANTIC` (component/jsdom) | `BEHAVIOURAL_PURE` | Read-classification and render-path decisions, incl. the math trust boundary | Real layout, real KaTeX rendering fidelity, browser selection behaviour |
-| `docs/design/candidate-rich-editor-ux.md:215-221` — char count not shipped, reason recorded | `CONTRACT` (design authority) | `OWNER_JUDGEMENT` | The char-count exclusion and its rationale | — |
+| `apps/web/src/components/shared/content/contentAdapter.test.ts`, `ContentRenderer.security.test.tsx`, `ContentRenderer.trust.test.tsx`, `MathRenderer.evidence.test.tsx`; `apps/web/src/components/exam/RichTextAnswerInput.readTrust.test.tsx` | `TEST_SEMANTIC` (component/jsdom) | `BEHAVIOURAL_PURE` | Read-classification and render-path decisions, incl. the math trust boundary | Real layout, real KaTeX rendering fidelity, browser selection behaviour |
+| `docs/design/candidate-rich-editor-ux.md:215-221` — char count not shipped, reason recorded | `CONTRACT` (design authority) | `OWNER_JUDGEMENT` | The char-count exclusion and its rationale | What any *other* surface displays; whether a future counting semantic will be adopted |
 | `docs/architecture/rich-content-semantic-contract.md` §2/§4 (grammar + the `B-F01` seam record) | `CONTRACT` | `OWNER_JUDGEMENT` | The frozen grammar and the seam's declared status | That the seam's declared status matches as-built (checked in §5) |
 | `work:jnhu76/exam#756` (OPEN) body — residual list | `HISTORICAL_WORK_ITEM` | `OWNER_JUDGEMENT` | What is explicitly still outstanding and un-adopted | Current implementation of those residuals (they are absent) |
 | `work:jnhu76/exam#679` header — "not adopted and are not claimed as implemented" | `HISTORICAL_WORK_ITEM` | `OWNER_JUDGEMENT` | The author's own exclusion of shortcuts/sync | Anything about delivered code |
@@ -152,8 +152,8 @@ No layer substitutes for another (`ATLAS-SEM-035`).
 | A-C2 | `#301` is CLOSED and its scope mentions "asset-ready" | `work:jnhu76/exam#301` body defers image/asset work pending an Asset authority; `packages/contracts/src/contentDocument.ts:34-35` states image/attachment nodes do not exist | Forces A-10 `NOT_SUPPORTED` (prerequisite absent) and A-12 `CLOSED_PARTIAL` |
 | A-C3 | The rich contract §4 still records the `B-F01` merge-class seam as **"NOT FIXED by this Phase-B authority pass"** (repair algorithm deferred to Phase-C/D) | `docs/architecture/rich-content-semantic-contract.md` §4; as-built the merge class is **rejected at the closure seam** (`validateAnswerForQuestion.ts:151-157`; wire proof `answerRichClosure.test.ts:192-199`) | A **DOCUMENTATION_GAP/DISSONANCE** between the authority's current text and as-built behaviour. Atlas reports the authority as `CURRENT` but records the divergence; it does **not** upgrade the contract text (out of R0 scope) and does **not** call the seam "fixed" on the strength of the code alone |
 | A-C4 | Status documents use broad acceptance language | `docs/status/implementation-status.md:129-130`, `:236-238` ("shipped … accepted/current" scoped to ADR-019); `docs/SPEC.md:748-750` ("Rich 题干/答案与公式编辑已由 ADR-019 / #301 交付") | Broad wording is **not** a false claim of the *whole* originally-discussed UX, but it is a careless-reader hazard: it would let a reader infer A-16. Recorded as a hazard with the exact scoping that limits it |
-| A-C5 | A test named for a guarantee may not provide it | Not applicable to this slice's claims (the Rich browser specs exist and were not pruned); retained as a general hazard (`ATLAS-SEM-033`, demonstrated in slice C) | — |
-| A-C6 | Per-layer evidence is uneven across this capability | Table/code facets have component-level tests but **no browser E2E** exercising table authoring through the real editor; the browser specs cover formulas and input boundaries | A-05/A-06 are asserted at `B4` on contract + component + API evidence, **without** browser proof for table/code authoring. Recorded as a named evidence gap, not silently upgraded |
+| A-C5 | A test named for a guarantee may not provide it | Not applicable to this slice's claims (the Rich browser specs exist and were not pruned); retained as a general hazard demonstrated in slice C | No consequence for this slice's verdicts |
+| A-C6 | Per-layer evidence is uneven across this capability | Table/code facets have component-level tests but **no browser E2E** exercising table authoring through the real editor; the browser specs cover formulas and input boundaries | A-05/A-06 are therefore declared at **`B3`**, not `B4`: at `B4` their verification is `INSUFFICIENT` because the browser mechanism (contenteditable table editing) is the unproven conjunct. A-01's `B4` claim is scoped to the browser mechanism that *is* proven (editor/formula/reload path), so the two are consistent rather than contradictory |
 
 `ATLAS-SEM-041` satisfied: the falsification attempt produced A-C1…A-C6, and two
 of them (A-C3, A-C6) changed the recorded state.
@@ -176,13 +176,28 @@ with `repo_freshness = CURRENT` for the R0 snapshot base.
 | `apps/api/src/lib/validateAnswerForQuestion.test.ts` | `TEST_CASE` | merge-class rejection |
 | `apps/e2e/e2e/rich-content.spec.ts` | `TEST_CASE` | file (browser E2E) |
 | `apps/e2e/e2e/rich-editor-input-boundaries.spec.ts` | `TEST_CASE` | file (browser E2E) |
-| `apps/web/src/components/shared/content/*` | `TEST_CASE` | component tests (adapter, renderer security/trust, math evidence, read trust) |
+| `apps/web/src/components/shared/content/contentAdapter.test.ts`, `ContentRenderer.security.test.tsx`, `ContentRenderer.trust.test.tsx`, `MathRenderer.evidence.test.tsx`, `apps/web/src/components/exam/RichTextAnswerInput.readTrust.test.tsx` | `TEST_CASE` | each file is one resolvable target (no glob) |
 | `docs/architecture/rich-content-semantic-contract.md` | `REPO_SECTION` | §2 authority block; §4 `B-F01` record |
 | `docs/adr/ADR-019-content-document-model.md` | `REPO_SECTION` | Status |
 | `docs/design/candidate-rich-editor-ux.md` | `REPO_SECTION` | `:215-221`, `:298-301` |
 | `docs/architecture/exam-semantic-boundaries.md` | `REPO_SECTION` | `:86` (EXSEM-019) |
 | `docs/status/implementation-status.md`, `docs/SPEC.md` | `REPO_SECTION` | `:129-130`, `:236-240`; `:748-750` |
-| `work:jnhu76/exam#301`, `#669`, `#679`, `#756` | `GITHUB_ISSUE` (`external`) | `external_revision { observed_state, observed_updated_at = capture 2026-10-11 }` |
+| `work:jnhu76/exam#301`, `#669`, `#679`, `#756` | `GITHUB_ISSUE` (`external`) | see the external-revision block below |
+
+External refs (SREF-1 `external_revision` triple; external freshness is a
+dimension separate from the repo SHA — `provenance-v0.1.md` §7.2):
+
+```text
+work:jnhu76/exam#301  external_revision { observed_state: CLOSED, observed_updated_at: 2026-08-31, observed_at: 2026-10-11 }  external_freshness: UNKNOWN
+work:jnhu76/exam#669  external_revision { observed_state: CLOSED, observed_updated_at: 2026-10-05, observed_at: 2026-10-11 }  external_freshness: UNKNOWN
+work:jnhu76/exam#679  external_revision { observed_state: CLOSED, observed_updated_at: 2026-10-09, observed_at: 2026-10-11 }  external_freshness: UNKNOWN
+work:jnhu76/exam#756  external_revision { observed_state: OPEN,   observed_updated_at: 2026-10-11, observed_at: 2026-10-11 }  external_freshness: UNKNOWN
+work:jnhu76/exam#763  external_revision { observed_state: OPEN,   observed_updated_at: 2026-10-11, observed_at: 2026-10-11 }  external_freshness: UNKNOWN
+```
+
+`observed_updated_at` is the issue's own last observed state change (its close
+date where closed), not the observation time; `observed_at` is when R0 read it.
+All external freshness values are `UNKNOWN` because no re-check was performed.
 
 ---
 
@@ -250,11 +265,15 @@ RESIDUAL = 4 owned + 1 unowned-by-issue
   covers the boundary — the browser-only mechanisms (contenteditable, reload,
   re-edit) are covered by browser E2E, and the durable rejection semantics by an
   API integration test. Nothing in the chain is `TOKEN_EXISTENCE`-only.
-- **A-04…A-06 (`SUPPORTED`)** — sufficient for formula (browser E2E), and
-  **sufficient-but-narrower** for table/code (contract + component + API, no
-  browser proof). The gap is stated (A-C6) rather than hidden; the claims are
-  made at `B4` on the strength of the contract + reachable path + component
-  evidence, and the missing browser layer is recorded as a named gap.
+- **A-04 (`SUPPORTED` at `B4`)** — formula authoring has browser E2E covering
+  insert → save → reload → re-edit, which is the browser-only mechanism, plus
+  component and API evidence for the lower layers.
+- **A-05/A-06 (`SUPPORTED` at `B3`, `INSUFFICIENT` at `B4`)** — the authoring
+  surface, save path and render path are reachable and are proven by contract,
+  component and API evidence; the browser mechanism for *table/code editing* is
+  not proven, and `ATLAS-SEM-001` forbids asserting a boundary above the evidence.
+  The claim is therefore made at the boundary the evidence covers (`B3`) with the
+  `B4` shortfall named (A-C6), instead of a `B4` claim with a caveat.
 - **A-07…A-10 (not supported / deferred)** — adequacy is not the issue: these are
   **exclusion** claims, supported by the owner's own record plus the absence of
   grammar/implementation, and they cannot be upgraded by any test passing.
@@ -281,9 +300,10 @@ GOLDEN_RICH = PASS
   SOURCE_REFS                    = bound to cbe33db1; GitHub refs marked external (§6)
   WORK_ITEMS                     = closure semantics per item (§7)
   UNKNOWN                        = 4, none converted (§8)
-  CONFLICT                       = 2, both retained, no winner (§9)
+  CONFLICT                       = 2, both retained, no winner; kinds/statuses from the closed sets (§9)
   RESIDUAL                       = 6, all verified against live sources (§10)
   WHY_EVIDENCE_IS_SUFFICIENT     = per claim (§11)
+  BOUNDARY_ADEQUACY              = PASS (A-05/A-06 declared at B3, the boundary their evidence covers; the B4 shortfall is named in A-C6 rather than caveated)
 FALSE_DELIVERY_CLAIM               = 0
   (#679/#301 CLOSED ⇒ all facets delivered is rejected; A-16)
 DELIVERED_CORE_AND_RESIDUAL_COEXIST = YES (A-01 + A-11 MIXED, A-07..A-10)
