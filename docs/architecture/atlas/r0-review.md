@@ -40,7 +40,18 @@ REVIEW_ROUND_2_HEAD     = 476c0960
 FREEZE_HEAD             = the commit adding this file
 CORRECTION_COMMIT_1     = 476c0960  docs(atlas): address R0 adversarial review findings
 CORRECTION_COMMIT_2     = a47e457a  docs(atlas): close final-head adversarial review findings
+CORRECTION_COMMIT_3     = 0f96071e  docs(atlas): make two golden-slice locators resolvable
+                                    (verification-only: no rule, boundary, axis or claim changed —
+                                     an elided path and a deleted-file marker)
 ```
+
+`CORRECTION_COMMIT_3` came from the post-freeze verification pass rather than
+from a reviewer: resolving every repository path referenced by the design area
+programmatically found one elided locator (`packages/db/.../…`) that cannot be
+opened as written, and one deleted-spec reference that was correct in substance
+but not marked as intentionally unresolvable. Both are locator defects under the
+directory's own rules, so they are fixed and recorded here rather than left for a
+reader to trip over. No semantic content changed in that commit.
 
 | Reviewer | Direction | Round-1 result | Round-2 result (after corrections) |
 | --- | --- | --- | --- |
@@ -323,8 +334,21 @@ rule-reference resolution                         every ATLAS-SEM / ATLAS-IR / A
                                                   ATLAS-IR-091/092/093/095 added or defined during review
 boundary adequacy                                 every SUPPORTED claim declares a boundary its evidence covers
                                                   (A-05/A-06 corrected; D-01 split)
-local gates                                       see §7
-exact-head CI                                     see §7
+link resolution                                   35/35 relative Markdown links resolve
+repository path references                        every referenced path resolves; the single
+                                                  intentionally-deleted spec is marked HISTORICAL, not MISSING
+                                                  (CORRECTION_COMMIT_3)
+local gates at the frozen head                    format:check PASS · lint PASS · lint:arch PASS ·
+                                                  lint:db-config PASS · lint:db-journal PASS ·
+                                                  lint:env-contract PASS · lint:eslint PASS ·
+                                                  typecheck PASS (17/17) · api:openapi:check PASS
+                                                  lint:env-surface FAIL locally only: a pre-existing untracked
+                                                  .env.deploy in the author's worktree is seen by a filesystem
+                                                  scan. CI Static checks PASS on the same head, which is the
+                                                  control proving the failure is not caused by this diff
+exact-head CI                                     PASS at the reviewed head (Static checks, Build, API coverage,
+                                                  Web coverage, Package coverage, E2E shard 1/2 and 2/2,
+                                                  Production transport regression)
 ```
 
 ## 7. Gate summary
