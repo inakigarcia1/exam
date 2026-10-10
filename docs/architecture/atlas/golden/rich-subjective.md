@@ -47,7 +47,9 @@
 
 ## 2. Claims
 
-`boundary` uses the IR/semantic-contract levels `B0`–`B6` (`ATLAS-SEM-083`).
+`boundary` uses the IR/semantic-contract identifiers `B0`–`B6` — opaque
+identifiers, not a severity order; adequacy is `boundary_coverage` membership
+(`ATLAS-SEM-083`).
 
 ### 2.1 Capability boundary — the delivered core
 
@@ -73,7 +75,7 @@
 | A-08 | `facet:content.rich.visual-source-sync` | Full bidirectional expert-source ↔ visual-field synchronization was **not delivered**; a KaTeX preview was | `RESIDUAL_OR_EXCLUSION` | `B5` | design `ACCEPTED` (preview), implementation `PARTIAL` (preview present, sync absent), activation_support `DEFERRED` | `work:jnhu76/exam#756` (owner decision issue) | **DEFERRED**, `open_governance_item.kind = WORK_ITEM` |
 | A-09 | `facet:content.rich.char-count` | Character count is **not shipped**, deliberately: no ContentDocument-independent counting semantic exists and no product limit depends on one | `RESIDUAL_OR_EXCLUSION` | `B5` | design `REJECTED` for now (recorded as optional scoped follow-up), implementation `ABSENT`, activation_support `NOT_SUPPORTED` | `docs/design/candidate-rich-editor-ux.md` (design authority for candidate interaction) | **NOT_SUPPORTED** (follow-up scoped) |
 | A-10 | `facet:content.rich.attachments` | Image/attachment nodes do not exist; an Asset authority is a prerequisite (the schema comment names `ContentDocumentV2`) | `RESIDUAL_OR_EXCLUSION` | `B5` | design `DEFERRED`, implementation `ABSENT`, activation_support `NOT_SUPPORTED` | `authority:rich-contract` + `authority:adr-019` | **NOT_SUPPORTED** (prerequisite absent) |
-| A-11 | `capability:content.rich-subjective` (roll-up) | The capability's support state is **`MIXED`**: a supported delivered core coexists with not-supported/deferred facets | `CAPABILITY_SUPPORT` (derived roll-up, `ATLAS-IR-032`/`-033`) | — | `support_summary = MIXED` | derived | **MIXED** |
+| A-11 | `capability:content.rich-subjective` (roll-up) | The capability's support state is **`MIXED`**: a supported delivered core coexists with not-supported/deferred facets | `CAPABILITY_SUPPORT` (derived roll-up, `ATLAS-IR-032`/`-033`) | — | `support_summary = MIXED`, `support_boundary = B4`, `mapping_state = MAPPED` (every facet this slice examined is instantiated as a part) | derived | **MIXED** |
 
 `ATLAS-IR-033` is the rule that makes A-01 and A-07…A-10 coexist without
 contradiction: the roll-up is `MIXED`, not a boolean.

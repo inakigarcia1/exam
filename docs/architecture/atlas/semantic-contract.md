@@ -210,7 +210,7 @@ source_ref                   # ArchitectureSourceRef — REQUIRED for everything
 proves                       # the BOUNDED proposition this evidence establishes
 does_not_prove               # explicit non-claims — REQUIRED, may not be empty
 strength                     # §4.4
-boundary_coverage            # §9.3 boundary levels this evidence is adequate for
+boundary_coverage            # §9.3 boundary identifiers this evidence is adequate for (set membership, not ordering)
 mechanism                    # for tests: the fault model actually exercised
 locator                      # for tests: file + test name; for captures: capture identity
 pg_class / e2e_class         # §4.5 when applicable
@@ -305,6 +305,9 @@ authority_owner               # NormativeAuthority ref | AUTHORITY_OWNER_UNKNOWN
 supporting_evidence[]         # Evidence refs
 challenging_evidence[]        # Evidence refs — may be empty, but §5.5 requires the attempt
 support_verdict               # DERIVED, §9 — never hand-set without its derivation
+current_support_usable        # DERIVED, provenance-v0.1.md §7.3 — eligibility verdict
+                              # (YES/NO + the non-usable refs named); never overwrites
+                              # resolution or freshness
 review_state                  # §5.4
 open_governance_item          # §6.4
 source_snapshot               # repo revision
@@ -503,7 +506,7 @@ boundary; it is a first-class result.
 | `SUPPORTED` | All conjuncts of §9.1 hold at the claimed boundary | Every conjunct has adequate evidence |
 | `GATED` | An activation path exists in principle but a **current, named gate** refuses it | The refusing gate is locatable and its lift condition is nameable (`ATLAS-SEM-071`) |
 | `DEFERRED` | Accepted (or owner-proposed) intent to deliver, with the activation path not built | `design ∈ {ACCEPTED, PROPOSED}` **and** a work item owns it |
-| `NOT_SUPPORTED` | No accepted requirement, or an explicit decision against; activation refused | No owning work item claims it as planned |
+| `NOT_SUPPORTED` | No accepted requirement, or an explicit decision against; activation refused | **Positive negative evidence** exists (`ATLAS-SEM-084`): an explicit current-authority rejection, a closed absence search with its scope stated, or a proven refusal — never the mere absence of supporting claims |
 | `UNKNOWN` | Cannot establish which of the above holds | — |
 
 `ATLAS-SEM-071` — `GATED` requires recording the gate's **locator and lift
@@ -519,6 +522,22 @@ and whether a work item owns the future. Collapsing them loses the answer to
 `ATLAS-SEM-073` — `GATED` with `open_governance_item.kind = OWNER_UNRESOLVED` is
 valid and must be reported as such: a declared gate that no one currently owns.
 It must not be rendered as "planned".
+
+`ATLAS-SEM-084` — **`NOT_SUPPORTED` requires positive negative evidence.** It is
+never inferred from the *absence* of support claims (`F-13`/`F-17`). A
+`NOT_SUPPORTED` claim must cite at least one of:
+
+```text
+(a) an explicit CURRENT-authority rejection or non-support statement
+    covering the capability at its boundary (authority_status = CURRENT);
+(b) a closed absence search with its scope stated (ATLAS-SEM-023);
+(c) a proven refusal — a verification = PASS claim asserting the refusal
+    itself (golden D D-02).
+```
+
+When none of (a)–(c) exists, the correct value is `UNKNOWN`, even when every
+searched path came back empty. "Nobody could find support" is not the same fact
+as "the product refuses it".
 
 ### 8.5 `freshness`
 
@@ -610,7 +629,8 @@ evidence at the claimed boundary:
       composition is proven
 
 (4) adequate evidence for that exact boundary
-      evidence whose strength covers the boundary being claimed (§9.3)
+      evidence whose boundary_coverage (§4.3) includes the exact boundary
+      identifier being claimed — set membership per §9.3, not a comparison
 ```
 
 `ATLAS-SEM-081` — Failure of any conjunct yields a **specific** non-SUPPORTED
@@ -629,9 +649,17 @@ that its `review_state` says who curated it.
 Every claim declares the boundary it asserts. Claiming `SUPPORTED` without a
 stated boundary is invalid (`ATLAS-SEM-001`).
 
-### 9.3 Boundary levels and minimum evidence
+### 9.3 Boundary identifiers and minimum adequate evidence
 
-| Level | Boundary | Minimum adequate evidence |
+The seven identifiers below are a **closed set of proposition kinds, not a
+severity ladder**. `B0`…`B6` are opaque identifiers: there is **no total order**
+over them, and **no numeric or "≥" comparison of `B`-values is meaningful or
+allowed**. `B6` is not "higher" than `B4`; each identifier names a different kind
+of proposition. The "Minimum adequate evidence" column **defines**
+`adequate_for(B0)` … `adequate_for(B6)`, and each evidence record's
+`boundary_coverage` (§4.3) lists exactly the identifiers it covers.
+
+| Boundary identifier | Proposition kind | Minimum adequate evidence |
 | --- | --- | --- |
 | `B0 TOKEN` | A declaration/symbol/column/enum member exists (or does not, within a stated closed search) | `STATIC_SOURCE` (+ the search scope for absence) |
 | `B1 READ` | An input carrying the value is syntactically accepted and read compatibly | `STATIC_SOURCE` + `CONTRACT` (+ `TEST_SEMANTIC` for the parse path) |
@@ -641,8 +669,13 @@ stated boundary is invalid (`ATLAS-SEM-001`).
 | `B5 CONTRACTUAL` | A normative source requires this behaviour | the authority's own current text; implementation status is a **separate** claim |
 | `B6 EVIDENCE_GRADE` | A named failure mode is proven by evidence of a named mechanism | the specific evidence record, with `proves`/`does_not_prove` and `mechanism` |
 
-`ATLAS-SEM-083` — **Evidence grade must meet or exceed the boundary.** Evidence
-adequate for `B0`/`B1` never supports `B3`/`B4`. This is the mechanism that makes
+`ATLAS-SEM-083` — **Boundary adequacy is a compatibility relation, not an
+ordering.** Evidence is adequate for the boundary a claim declares **only when
+its `boundary_coverage` includes that boundary identifier** per the table above.
+An implementation must never translate this into `evidence_b >= claim_boundary`
+or any arithmetic comparison of `B`-values: `B6` evidence does not automatically
+cover `B4`, and `B0`/`B1` evidence never covers `B3`/`B4` because those
+identifiers are simply not in its coverage set. This is the mechanism that makes
 "enum exists ⇒ supported" unrepresentable rather than merely discouraged.
 
 ---
@@ -656,10 +689,10 @@ carry the worked falsifications at the R0 base revision.
 | # | Forbidden implication | Why the model rejects it |
 | --- | --- | --- |
 | F-01 | `WorkItem CLOSED ⇒ SUPPORTED` | `WORK_STATUS` and `CAPABILITY_SUPPORT` are different `claim_kind`s with different authorities; closure semantics (`CLOSED_PARTIAL`/`CLOSED_UNKNOWN`) cannot raise `implementation` or `activation_support` (`ATLAS-SEM-050`, `-051`, `-052`) |
-| F-02 | `enum member exists ⇒ SUPPORTED` | existence is `B0`; support is `B4`; `ATLAS-SEM-083` blocks the grade jump |
-| F-03 | `schema accepts value ⇒ SUPPORTED` | acceptance is `B1`; `ATLAS-SEM-083`; and `EXSEM-019` makes representability explicitly non-supportive |
-| F-04 | `DB column exists ⇒ SUPPORTED` | existence is `B0`; no writer ⇒ no `B2`; `ATLAS-SEM-083` |
-| F-05 | `route exists ⇒ complete capability supported` | route presence is at most `B3` for one operation; `B4` additionally needs conjuncts (2)–(4) |
+| F-02 | `enum member exists ⇒ SUPPORTED` | existence is `B0`; support is `B4`; `B0` evidence has no `boundary_coverage` for `B4` (`ATLAS-SEM-083`) |
+| F-03 | `schema accepts value ⇒ SUPPORTED` | acceptance is `B1`; `ATLAS-SEM-083`'s coverage relation does not carry `B1` evidence to `B4`; and `EXSEM-019` makes representability explicitly non-supportive |
+| F-04 | `DB column exists ⇒ SUPPORTED` | existence is `B0`; no writer ⇒ no `B2`; `B0` coverage does not include `B4` (`ATLAS-SEM-083`) |
+| F-05 | `route exists ⇒ complete capability supported` | route presence establishes `B3` for one operation only and does not cover a `B4` claim; `B4` additionally needs conjuncts (2)–(4) |
 | F-06 | `UI control exists ⇒ capability supported` | UI is a Projection (§7); `ATLAS-SEM-060` forbids deriving facts from it |
 | F-07 | `test file exists ⇒ claim verified` | `ATLAS-SEM-031`, `-032`, `-035`: evidence must name mechanism and boundary; existence of a file is `TOKEN_EXISTENCE`-grade |
 | F-08 | `CI green ⇒ claim verified` | CI scope is a separate claim; green unrelated CI is not evidence for this boundary (`ATLAS-SEM-035`) |
@@ -671,6 +704,7 @@ carry the worked falsifications at the R0 base revision.
 | F-14 | `projection renders X ⇒ X is a fact` | `ATLAS-SEM-060`, `-061`, `-064` |
 | F-15 | `GATED ⇒ will work when opened` | `ATLAS-SEM-071` requires the missing constituent to be named and `implementation` to remain honest |
 | F-16 | `permission key exists ⇒ an operation is gated by it` | an inert grant is `B0` metadata; `B3` requires the route's own captured gate (golden B) |
+| F-17 | `no supporting evidence found ⇒ NOT_SUPPORTED` | absence is not negative evidence (`ATLAS-SEM-084`): `NOT_SUPPORTED` requires a current-authority rejection, a closed absence search, or a proven refusal; otherwise the result is `UNKNOWN` |
 
 `ATLAS-SEM-090` — **No slice-specific escape hatch.** A golden slice (or any
 later claim) may not represent its case with a private field, a free-text
@@ -765,6 +799,20 @@ cannot be established, report the conflict with `resolution = UNRESOLVED` and
 `open_governance_item.kind = DECISION_GATED` naming the owner, rather than
 deciding it.
 
+`ATLAS-SEM-116` — **Different propositions are not a conflict.** Two statements
+are a conflict only when they concern the **same proposition**. When one
+statement asserts representability or shape acceptance at one boundary and the
+other asserts activation legality at another — e.g. a request shape that
+intentionally admits a value the canonical validator refuses — they answer
+different questions, and the pair is a **boundary distinction**, not a
+`DECLARED_VS_RUNTIME_DIVERGENCE`. Layered shape-versus-activation validation is
+the design `EXSEM-019` expects; when one surface alone could mislead a reader,
+record a documentation/API-reference hazard, never drift. This rule does **not**
+weaken `ATLAS-SEM-040`/`-112`: a declaration that makes a claim **about the
+runtime** (e.g. a registry claiming exhaustive coverage of the route surface)
+and a runtime observation that contradicts it **do** concern the same
+proposition, and remain a `DECLARED_VS_RUNTIME_DIVERGENCE` (golden C C-K1).
+
 ---
 
 ## 13. Historical, superseded and amended relationships
@@ -823,7 +871,8 @@ Witnesses, all present at the base revision and all non-supportive:
   constant: `apps/api/src/routes/attempts.shared.ts:46-48`.
 
 Model result: each is a `B0`/`B1` fact with `implementation = ABSENT`/`PARTIAL`
-and no `B3`/`B4` evidence ⇒ `ATLAS-SEM-083` blocks the grade jump. Rejected. ✔
+and no evidence whose `boundary_coverage` includes `B3`/`B4` ⇒ `ATLAS-SEM-083`'s
+coverage relation does not carry the claim. Rejected. ✔
 
 ### 14.3 `RolePreset contains Permission ⇒ global effective authorization` (F-09)
 
@@ -894,7 +943,7 @@ R0_A_EVIDENCE_DEFINED          = YES  (§4)
 R0_A_AUTHORITY_DEFINED         = YES  (§2)
 R0_A_WORKITEM_DEFINED          = YES  (§6)
 R0_A_PROJECTION_DEFINED        = YES  (§7)
-FORBIDDEN_INFERENCES_EXPLICIT  = YES  (§10, F-01..F-16)
+FORBIDDEN_INFERENCES_EXPLICIT  = YES  (§10, F-01..F-17)
 UNKNOWN_PROPAGATION_DEFINED    = YES  (§11)
 CONFLICT_PROPAGATION_DEFINED   = YES  (§12)
 ```

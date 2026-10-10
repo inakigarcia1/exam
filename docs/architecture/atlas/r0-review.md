@@ -104,7 +104,7 @@ the model. Post-correction (and post-RV-32), the mechanisms that reject them:
 
 | Forbidden inference | Rejected by |
 | --- | --- |
-| `enum exists ⇒ SUPPORTED` | `ATLAS-SEM-020`, `-083` (grade jump), `ATLAS-IR-040`/`-093` (representable/storable/write_reachable/activation separated), clause 2 of `ATLAS-IR-032` |
+| `enum exists ⇒ SUPPORTED` | `ATLAS-SEM-020`, `-083` (`boundary_coverage` membership), `ATLAS-IR-040`/`-093` (representable/storable/write_reachable/activation separated), clause 0 coverage gate + clause 2 of `ATLAS-IR-032` |
 | `schema accepts ⇒ SUPPORTED` | same, plus the deliberate shape-vs-validator split recorded in golden D |
 | `DB column exists ⇒ SUPPORTED` | `ATLAS-IR-093` (`storable` = schema capacity only) |
 | `route exists ⇒ capability supported` | `ATLAS-SEM-080` conjuncts (2)–(4) |
@@ -114,10 +114,12 @@ the model. Post-correction (and post-RV-32), the mechanisms that reject them:
 | `Issue CLOSED ⇒ SUPPORTED` | `ATLAS-SEM-050` (now **any** boundary), `-051`, `-052`; worked in golden A and D |
 | `historical ADR proposed X ⇒ X current` | `ATLAS-SEM-011`, `-013`, `-122`, conjunct (2) |
 | `RolePreset contains P ⇒ resource access` | `ATLAS-IR-035` (no stored grantee set), `-039`/`-092`, `ATLAS-SEM-063` |
-| `two sources conflict ⇒ pick one` | `ATLAS-SEM-002`, `-110`…`-115`; worked in golden C C-K1 and golden D D-K1 |
+| `two sources conflict ⇒ pick one` | `ATLAS-SEM-002`, `-110`…`-116`; worked in golden C C-K1; golden D D-K1/D-K3 are worked boundary-distinctions (`ATLAS-SEM-116`), not conflicts |
 | `declared metadata ⇒ runtime truth` | `ATLAS-IR-036`/`-037`/`-082`, `ATLAS-SEM-040`/`-112` |
-| `omission ⇒ nothing to report` | clause 2 of `ATLAS-IR-032` (mapping completeness is a support conjunct), `ATLAS-SEM-023`, `ATLAS-IR-091` |
+| `omission ⇒ nothing to report` | clause 0 of `ATLAS-IR-032` (mapping coverage gate), `ATLAS-SEM-023`, `ATLAS-IR-091` |
 | `boundary laundering` (B3 evidence ⇒ B4 claim) | `ATLAS-IR-032` clause 2 "qualifying at `support_boundary`", `ATLAS-IR-095` |
+| `no support found ⇒ NOT_SUPPORTED` | `ATLAS-SEM-084` (positive negative evidence required), clause 4 of `ATLAS-IR-032` |
+| `higher B-number ⇒ stronger evidence` | `ATLAS-SEM-083` (`B0`…`B6` are identifiers; adequacy is `boundary_coverage` membership, never an arithmetic comparison) |
 
 ---
 
@@ -266,8 +268,11 @@ RBAC            C-K1  DECLARED_VS_RUNTIME_DIVERGENCE  113 declared vs 127 protec
                 C-K4  EVIDENCE_CONTRADICTION   the #762 input attributed the host-operator
                                                statement to the runbook (it is ADR-017)
                                                -> RESOLVED_BY_CORRECTION (Atlas-side)
-timed_sync      D-K1  DECLARED_VS_RUNTIME_DIVERGENCE  OpenAPI advertises the value while
-                                               the validator refuses it -> policy/contract owner
+timed_sync      D-K1  (no conflict)            boundary distinction, not a divergence: the wire
+                                               shape's breadth and the activation validator answer
+                                               different propositions about different fact types
+                                               (`ATLAS-SEM-116`). Recorded as a documentation /
+                                               API-reference hazard, not as drift
                 D-K2  DECLARED_VS_RUNTIME_DIVERGENCE  column/migration comments assert a
                                                command that does not exist -> source owner
                 D-K3  (no conflict)            RESOLVED_BY_SCOPE under all four conditions
@@ -277,6 +282,8 @@ timed_sync      D-K1  DECLARED_VS_RUNTIME_DIVERGENCE  OpenAPI advertises the val
 `AUTHORITY_CONFLICT = 0` across all four slices: every disagreement was either a
 declared-vs-runtime divergence, a documentation dissonance, a temporal conflict,
 or was settled by a dated owner statement. `SILENT_CONFLICT_RESOLUTION = 0`.
+`D-K1` and `D-K3` are **worked non-examples** (boundary distinction; dated
+self-scoping), not conflicts.
 
 ### 5.3 Items NOT fixed because they belong to an owner
 
@@ -294,25 +301,36 @@ or was settled by a dated owner statement. `SILENT_CONFLICT_RESOLUTION = 0`.
 
 R0 records these and fixes **none** of them, per its hard scope.
 
-### 5.4 DEFERRED_TO_R1 (implementation concerns only)
+### 5.4 DEFERRED_TO_R1 (implementation concerns owned by the R1 extractor phase)
 
 ```text
 1. Implement the deterministic writer and prove the R0-B normalization contract
    (double-rebuild byte identity), the broken-locator -> STALE/MISSING behaviour,
    the ambiguity detection, and the identity-stability test across a pure move/rename.
-2. Adopt the real-PostgreSQL `pg_class` vocabulary into docs/standards/ so the
-   standing check has an in-tree policy owner (currently consumed as historical
-   evidence from a closed issue).
-3. Re-derive the registry's declared/exposed divergence from the actual route
+2. Re-derive the registry's declared/exposed divergence from the actual route
    surface rather than inheriting #762's per-module breakdown.
-4. Implement a projection-conformance surface that can enforce ATLAS-IR-091 and
-   ATLAS-IR-092 mechanically (v0.1 states the rules; no conformance surface exists).
-5. Decide whether `Fact` and `Claim` remain records or ever need node identity —
-   deferred because no v0.1 query requires it (documented in ir-v0.1.md §3.13).
+3. Implement the handler-gate completeness portion of a projection-conformance
+   surface for ATLAS-IR-091 — every handler branch's additional gate is either
+   extracted or its omission is reported.
 ```
 
-No **semantic** defect was deferred: every round-1 and round-2 finding that
-affected a rule, a boundary, an identity or a claim was fixed in this PR.
+### 5.5 Carried to other owners / future schema evolution (NOT R1 work)
+
+```text
+- Adopt the real-PostgreSQL `pg_class` vocabulary into docs/standards/ -> the
+  testing/standards owner. This is a testing-policy change; an extractor PR must
+  not carry it (R0 consumes the vocabulary as historical evidence today).
+- Enforce ATLAS-IR-092 (a projection must not turn `default_scope` into apparent
+  resource reach) -> R2/R3, the projection/renderer phase. It is a projection
+  gate, not extractor work.
+- Whether `Fact` and `Claim` ever need node identity -> a v0.2 schema-evolution
+  candidate, not an R1 todo. R0 froze both as records (ir-v0.1.md §3.13); no v0.1
+  query needs node identity, and R1 implements v0.1 as frozen rather than
+  renegotiating it.
+```
+
+No **semantic** defect was deferred: every round-1, round-2 and round-3 finding
+that affected a rule, a boundary, an identity or a claim was fixed in this PR.
 
 ---
 
@@ -397,9 +415,10 @@ the downstream phase tickets are not re-authorized by this document. The human
 gate reviews R0 before merge and before R1 is authorized.
 
 Honest scope of the verdict: R0 approves a **semantic contract and representation
-model**, not an implementation. Nineteen `UNKNOWN`s and ten open
-conflicts remain by design (plus one recorded non-conflict), and five concrete
-items are deferred to R1 (§5.4). The claim this
+model**, not an implementation. Nineteen `UNKNOWN`s and nine open
+conflicts remain by design (plus two recorded non-conflicts), and three concrete
+items are deferred to R1 (§5.4), with three more carried to their real phase
+owners (§5.5). The claim this
 document supports is narrow and specific: *the model can represent Exam reality
 without inventing support, authorization, evidence, completeness or authority,
 and where it cannot, it says so.*

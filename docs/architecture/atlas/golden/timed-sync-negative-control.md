@@ -154,6 +154,7 @@ for *activation status*. Both are recorded with their distinct fact types.
 | `apps/api/src/runtime/reserved-status-writers.structural.test.ts:91-127` | `TEST_SEMANTIC` (structural) | `TOKEN_EXISTENCE` | No `voidAttempt` symbol and no production assignment of the reserved attempt/enrollment statuses | `syncStartedAt` specifically (different mechanism — the closed search above covers it) |
 | `packages/exam-engine/src/examPolicy.ts:36-41`, `:197-205`; `examPolicy.test.ts`; `apps/api/src/routes/examPolicyValidation.test.ts` (control-flag cases) | `TEST_SEMANTIC` + `TEST_INTEGRATION` | `BEHAVIOURAL_COMPOSITION` | The control-flag class: rejected at authoring, no coercion, historical rows readable | Any runtime enforcement (there is none) |
 | `docs/SPEC.md:287`, `:292` | `CONTRACT` | `OWNER_JUDGEMENT` | The product's own statement that the value is reserved-and-unsupported, that the design contract is dormant, and that activation needs an explicit superseding decision | Implementation |
+| `docs/contracts/exam-policy-authority.md:135`, `:137`, `:300-305` | `CONTRACT` | `OWNER_JUDGEMENT` | The activation matrix, including `LATENT` and `UNSUPPORTED FOR ACTIVATION` (the explicit current-authority non-support statement that `NOT_SUPPORTED` requires, `ATLAS-SEM-084`) | Implementation; the future direction of any reserved value |
 
 External refs (SREF-1 `external_revision` triple; external freshness is a
 dimension separate from the repo SHA — `provenance-v0.1.md` §7.2):
@@ -168,7 +169,6 @@ work:jnhu76/exam#293  external_revision { observed_state: OPEN,   observed_updat
 `observed_updated_at` is the issue's own last observed state change, not the
 observation time; every external freshness is `UNKNOWN` because no re-check was
 performed.
-| `docs/contracts/exam-policy-authority.md:135`, `:137`, `:300-305` | `CONTRACT` | `OWNER_JUDGEMENT` | The activation matrix, including `LATENT` and `UNSUPPORTED FOR ACTIVATION` | Implementation; the future direction of any reserved value |
 
 ---
 
@@ -209,7 +209,7 @@ control, and the control held in every case without a special case.
 
 | ID | Kind | Parties | Status |
 | --- | --- | --- | --- |
-| D-K1 | `DECLARED_VS_RUNTIME_DIVERGENCE` | OpenAPI request schema advertises `timed_sync` as an allowed value ↔ the canonical validator refuses it | **UNRESOLVED**; owner: the policy/contract authority. That the breadth is **intentional** comes from the wire contract's own text (`packages/contracts/src/exam.ts:24-29` states that the value "remains in the wire enum" while the canonical validator rejects it and "Zod stays shape-level"; `:193` repeats "no duplicated enum gate here") — **not** from a test title, which would be exactly the `TOKEN_EXISTENCE`-grade inference `ATLAS-SEM-033` discounts. `contracts.test.ts:261-266` is cited as behavioural evidence of the shape only |
+| D-K1 | *(no conflict — boundary distinction; not a `conflict_kind` value)* | OpenAPI/wire request shape admits `timed_sync` ↔ the canonical validator refuses activation | **NO CONFLICT.** The two statements answer **different propositions**: *representable in request shape* (`B1`, intentionally broad — the wire contract's own text says the value "remains in the wire enum" while "Zod stays shape-level", `packages/contracts/src/exam.ts:24-29`; `:193` "no duplicated enum gate here") versus *activatable as product behaviour* (refused by the canonical validator). Different boundaries and different fact types, exactly the `REPRESENTABILITY_VS_SUPPORT_RULE` (EXSEM-019) this slice exists to demonstrate (`ATLAS-SEM-116`). Recorded as a **documentation/API-reference hazard** for a consumer who reads the generated OpenAPI alone (`D-T1`); no `open_governance_item` is raised. The intention cited is the contract's own text, not a test title (`ATLAS-SEM-033`) |
 | D-K2 | `DECLARED_VS_RUNTIME_DIVERGENCE` | The T0 column's own comment/migration claim a "canonical sync-start command" ↔ no such command exists | **UNRESOLVED**; owner: the source owner (`#757` O-09 input state class). Recorded as a stale/misleading-comment hazard; no fix attempted in R0 |
 | D-K3 | *(no conflict found — worked non-example; not a `conflict_kind` value)* | between the design freeze and the support matrix | `timed-sync-semantics.md` §1 is a point-in-time baseline; its own header (`:11-16`) declares `exam-policy-authority.md` §4 the current support authority, and `docs/SPEC.md:292` says the same | **RESOLVED_BY_SCOPE** under all four conditions of `ATLAS-SEM-115`: (1)+(3) the statement is made by `timed-sync-semantics.md` itself about its own record, and it is specific to the *support-authority* fact type; (2) it is dated ("corrected 2026-09-25, #614"); (4) no source records the question as open, and `docs/SPEC.md:292` independently agrees. Recorded to show that "two documents about `timed_sync`" is not automatically a conflict — unlike C-K3 and A-K2, where a third party still lists the question as pending |
 
@@ -270,7 +270,10 @@ GOLDEN_NEGATIVE_CONTROL = PASS
   TEST_EXISTS_IMPLIES_SUPPORTED   = REJECTED (kernel tests prove the kernel, not the capability)
   SLICE_SPECIFIC_SCHEMA_HACK      = 0
   BOUNDARY_ADEQUACY               = PASS  (D-01 split into representable / schema-capacity-storable / durably-writable; the B2 write claim is INSUFFICIENT, not asserted)
+  BOUNDARY_ORDERING_ASSUMED       = NO    (B0..B6 are identifiers; every claim names what its evidence covers)
   CONFLICT_KINDS_OUTSIDE_CLOSED_SET = 0
+  FALSE_CONFLICT                  = 0     (D-K1 and D-K3 are worked non-examples: boundary/fact-type
+                                          distinctions recorded with a documentation hazard, not divergences)
   SECOND_EXAMPLE_CLASS_DISTINCT   = YES   (§3: implementation ABSENT vs PARTIAL)
   VOLUME_PADDING                  = NONE  (§4 registers the remaining reserved values without fixtures)
   TRAPS_FOUND                     = 8     (§7, all survived)

@@ -161,7 +161,7 @@ from "deleted".
 
 ## 6. The locator model
 
-### 6.1 Anchor preference (best → worst)
+### 6.1 Anchor preference (most stable first)
 
 ```text
 REPO_SECTION with a clause/section id   (e.g. EXSEM-019, ATLAS-SEM-080)
@@ -173,7 +173,9 @@ REPO_FILE + line_or_range               (hint only)
 
 `ATLAS-SREF-022` — Prefer the most **stable** anchor available. A clause id or a
 qualified symbol name survives reflow, reordering and line insertion; a line
-number does not.
+number does not. This is a **recording preference over anchor forms**, not an
+axis and not a severity scale: it never changes a ref's `resolution_state`,
+`freshness`, or a claim's eligibility.
 
 ### 6.2 Rules
 
@@ -238,8 +240,9 @@ claims to have delivered is a repo fact.
 
 ### 7.3 Combined-state matrix (what a claim may conclude)
 
-This matrix is the per-ref encoding of `ATLAS-SREF-033`/`-034`; a derivation that
-does not use it is non-conformant.
+This matrix defines per-ref **eligibility** and is normative for
+`ATLAS-SREF-033`/`-034`; it is a set of joint conditions, **not** an order over a
+combined scale. A derivation that does not apply it is non-conformant.
 
 | resolution | freshness (repo or external) | A claim may conclude |
 | --- | --- | --- |
@@ -251,26 +254,40 @@ does not use it is non-conformant.
 | `AMBIGUOUS` | any | **No evidence** until disambiguated (`ATLAS-SREF-011`) |
 | `UNKNOWN` | `UNKNOWN` | Reported as `UNKNOWN`; never silently treated as usable |
 
-`ATLAS-SREF-033` — A claim's usability as support is the **worst** state over
-**both** dimensions of its *required* refs, and must name which ref caused it:
+`ATLAS-SREF-033` — **Resolution and freshness are independent axes and are never
+combined into one ordinal.** A ref can be perfectly `RESOLVED` (the locator
+identifies exactly the intended artifact at exactly the bound revision) while its
+`freshness = STALE` (that artifact no longer describes live state), and a
+`CURRENT` description can rest on an `AMBIGUOUS` locator. Neither axis may be
+rewritten from the other, and neither closed set is a severity scale: there is no
+natural ordinal over `{MISSING, AMBIGUOUS, UNKNOWN, STALE}`.
+
+What *is* joint is **eligibility for use as evidence**, a per-ref predicate
+defined by §7.3's matrix:
 
 ```text
-RESOLUTION worst-order (usability as support):
-    RESOLVED > HISTORICAL > STALE > AMBIGUOUS > MISSING > UNKNOWN
-
-FRESHNESS worst-order (currency of the description):
-    CURRENT > STALE > UNKNOWN
-
-A required ref is "support-usable" only when its resolution is RESOLVED or
-HISTORICAL AND its freshness is CURRENT.
+a required ref is usable as CURRENT evidence
+    iff resolution ∈ {RESOLVED, HISTORICAL} AND freshness = CURRENT
+a required ref is usable as evidence ABOUT THE BOUND REVISION
+    iff resolution ∈ {RESOLVED, HISTORICAL}   (freshness may be STALE)
+anything else: not usable, and the ref is named as the cause
 ```
 
-`ATLAS-SREF-034` — The two dimensions are combined by a **worst-of-both** rule,
-so a claim can never report `RESOLVED` while a required ref is
-`repo_freshness = STALE` (or vice versa). Concretely, a claim's usable-as-current
-state is `min(resolution_worst, freshness_worst)` under the orders above, which
-is exactly what §7.3's matrix encodes per-ref. Without this rule the matrix would
-be descriptive and any derivation could skip it.
+`ATLAS-SREF-034` — A claim's derived eligibility verdict
+(`current_support_usable ∈ {YES, NO}`, with the non-usable refs named) is a
+**separate field**: it is computed from §7.3 and it **never overwrites** either
+axis. A claim whose only required ref is bound to an old revision legitimately
+reports
+
+```text
+resolution             = RESOLVED
+freshness              = STALE
+current_support_usable = NO
+```
+
+and may not report a worse `resolution` merely because freshness is `STALE`.
+`min(resolution_worst, freshness_worst)` — or any other total-order combination
+of the two dimensions — is non-conformant.
 
 `ATLAS-SREF-035` — The **claim-level** `resolution` axis
 (`semantic-contract.md` §8.6: `RESOLVED`/`STALE_REF`/`MISSING_REF`/`AMBIGUOUS`/
