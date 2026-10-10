@@ -279,43 +279,65 @@ field is curated or extracted.
 
 ```text
 support_summary          # DERIVED: activation_support roll-up, see below
+support_boundary         # REQUIRED: the boundary level (B0..B6) support_summary speaks about
 mapping_state            # MAPPED | PARTIAL | UNMAPPED | UNKNOWN
 external_identity?        # e.g. the OPEN Issue that authorizes work on it
 ```
 
-`support_summary` (DERIVED, `ATLAS-IR-032`) is a **total function** over the
-capability's own claims and its facets'. It is evaluated in this precedence order
-and the first matching clause wins:
+`ATLAS-IR-032` — `support_summary` is a **total function** over the capability's
+own `CAPABILITY_SUPPORT` claims and its facets'. It is evaluated in this
+precedence order and the first matching clause wins. Throughout, a part is
+**qualifying** at a given boundary when it has a `CAPABILITY_SUPPORT` claim whose
+`verification = PASS` **at that boundary** (§9.3); a part with no such claim is
+never counted as supported.
 
 ```text
-0. if any part's activation_support = UNKNOWN  (or its evidence is inadequate
-   for its declared boundary)                 → UNKNOWN      (unresolved precedence over everything)
-1. if ≥1 part is SUPPORTED and ≥1 part is GATED|DEFERRED|NOT_SUPPORTED|UNKNOWN-eligible-but-known
-                                              → MIXED        (must be rendered, not flattened)
-2. if every mapped part is SUPPORTED
-   AND mapping_state = MAPPED
+0. if any part's activation_support = UNKNOWN, or any part's evidence is
+   inadequate for its declared boundary                       → UNKNOWN
+   (unresolved precedence over every other clause)
+1. if ≥1 qualifying part and ≥1 non-qualifying part exists     → MIXED
+   (must be rendered, not flattened)
+2. if there is ≥1 part,
+   AND every part is qualifying at support_boundary,
+   AND mapping_state = MAPPED,
    AND a closed-search statement records that no known
-       non-supported part is unmapped          → SUPPORTED
-3. if no part is SUPPORTED and ≥1 part is GATED|DEFERRED
-                                              → GATED/DEFERRED (from the strongest owning claim,
-                                                              naming which part)
-4. if no part is SUPPORTED and none is tracked → NOT_SUPPORTED
-5. otherwise                                  → UNKNOWN
+       non-supported part is unmapped
+                                                              → SUPPORTED
+3. if no part is supporting and ≥1 part has an accepted design
+   with an owning work item or a named decision gate            → GATED | DEFERRED
+                                                                 (from the strongest such part,
+                                                                  naming it)
+4. if no part is supporting and no part has an accepted design,
+   an owning work item, or a named decision gate                → NOT_SUPPORTED
+5. otherwise                                                   → UNKNOWN
 ```
 
-`ATLAS-IR-032` binding rules:
+`ATLAS-IR-033` — **The roll-up must not be flattened.** `MIXED` exists precisely
+so that "delivered core" and "residual facet" can hold at the same time: a
+rendering that collapses `MIXED` into a boolean is a Projection violation
+(`ATLAS-SEM-060`/`-063`), not a display choice.
+
+Binding rules:
 
 - Clause **0** implements `ATLAS-SEM-101`: an unknown part blocks a `SUPPORTED`
   roll-up rather than being silently treated as absent.
-- Clause **2** is the only path to `SUPPORTED`, and it requires **all three**
-  conjuncts: every mapped part supported, `mapping_state = MAPPED`, and an
-  explicit closed-search statement about unmapped parts. This closes the
-  omission hole where never instantiating an inconvenient facet would otherwise
-  yield `SUPPORTED`.
-- `MIXED` exists so that "delivered core + residual facet" cannot be rendered as
-  a single boolean (`ATLAS-IR-033`).
+- Clause **2** is the only path to `SUPPORTED`, and it is deliberately hard to
+  satisfy. It requires **four** conjuncts: at least one part exists; every part
+  qualifies **at `support_boundary`**; `mapping_state = MAPPED`; and a
+  closed-search statement about unmapped parts. The "at least one part" and
+  "qualifying at this boundary" conjuncts close two constructible false-SUPPORTED
+  inputs found during the R0-D review: (a) a capability with zero claims rolling
+  up `SUPPORTED` vacuously, and (b) *boundary laundering*, where parts proven only
+  at `B3` would raise a `B4` roll-up.
+- `support_boundary` is mandatory and must be rendered with the summary. A
+  `support_summary` without a boundary is invalid (`ATLAS-SEM-001`).
+- Clause **3** is where `GATED` and `DEFERRED` differ (`ATLAS-SEM-072`): a part
+  whose gate names a lift condition is `GATED`; a part whose design is accepted
+  and whose work is owned by a work item is `DEFERRED`.
+- Clause **4** is `NOT_SUPPORTED`: nothing works and nobody owns it.
 - `mapping_state` records coverage, never support — an `UNMAPPED` capability is
-  not an unsupported capability (`ATLAS-SEM-102`).
+  not an unsupported capability (`ATLAS-SEM-102`). But `mapping_state` **is** a
+  clause-2 conjunct, because an incomplete mapping must not yield `SUPPORTED`.
 
 ### 4.2 `Workflow`
 
@@ -974,4 +996,4 @@ machine-readable fixture is added in R0.
 | `ATLAS-IR-092` | `RolePreset.default_scope` names a scope **kind** only; no projection may derive a resource list from it or use it to satisfy `assignment_required`. |
 | `ATLAS-IR-093` | `PolicyValue.storable` is schema capacity, `write_reachable` is production writability, `activation_status` is product activation; the three are never collapsed. |
 | `ATLAS-IR-094` | Every non-HTTP `interface:` ID and every HTTP `interface:` ID satisfies its own sub-grammar, and every HTTP ID satisfies the path-template normalization (`ATLAS-IR-026`/`-027`). |
-| `ATLAS-IR-095` | `Capability.support_summary = SUPPORTED` requires clause 2 of `ATLAS-IR-032` in full: all mapped parts supported, `mapping_state = MAPPED`, and a closed-search statement about unmapped parts. |
+| `ATLAS-IR-095` | `Capability.support_summary = SUPPORTED` requires clause 2 of `ATLAS-IR-032` in full: ≥1 part, every part qualifying **at `support_boundary`**, `mapping_state = MAPPED`, and a closed-search statement about unmapped parts. A `support_summary` without `support_boundary` is invalid. |

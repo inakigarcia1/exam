@@ -48,7 +48,7 @@ capability:result.publication
 ```
 
 `authority_requirement` keeps the **resource anchor** and the **assignment
-carrier** as two fields (`ir-v0.1.md` §4.4 `ATLAS-IR-034`), because they are not
+carrier** as two fields (`ir-v0.1.md` §4.4 `ATLAS-IR-034b`), because they are not
 the same thing here: the resolved resource is an *exam* while the assignment that
 must exist is a *course* assignment. Fusing them into one node would make the
 grader carrier look like the enforcement for result publication.
@@ -182,7 +182,7 @@ complete for manual attempts).
 | # | Challenge | Evidence | Consequence |
 | --- | --- | --- | --- |
 | B-C1 | The browser layer no longer proves grading at all | `apps/e2e/e2e/manual-grading.spec.ts` (169 lines) was deleted in `dba53ada` (2026-10-05); `manual-grading-partial-recovery.spec.ts` (175 lines) in `b0e7a7ff`; `result-publishing.spec.ts` (286 lines) in `dba53ada` (verified via `git show --stat`) | B-01's browser layer is **absent by design** (the retention bar moved assertions to the API/component layers). Recorded as an explicit coverage boundary, not as an assumed browser proof |
-| B-C2 | A current research document still cites the deleted E2E as evidence | `docs/research/product-semantics-audit-1-code-reality.md:149` still lists "E2E manual-grading*" for SC-12 | A **STALE** claim in a non-authoritative research document. Reported as a `TEMPORAL_CONFLICT`; Atlas does not treat the research doc as authority, and does not silently accept or delete its statement |
+| B-C2 | A current research document still cites the deleted E2E as evidence | `docs/research/product-semantics-audit-1-code-reality.md:149` still lists "E2E manual-grading*" for SC-12 | A **STALE** claim in a non-authoritative research document. Recorded once, as `B-K1` (`TEMPORAL_CONFLICT`); Atlas does not treat the research doc as authority, and does not silently accept or delete its statement |
 | B-C3 | The Grading Queue JSDoc claims a write mode the domain forbids | `apps/api/src/routes/gradingQueue.ts:270` JSDoc "saves (or overwrites)" vs `packages/exam-engine/src/manualGrading.ts:150-157` one-way + the repeat/revise 409 assertions in `gradingQueue.test.ts:1778`, `:1812`, `:1871`, `:1916` | A production-comment mismatch (`#762` O-09 territory). It is **not** runtime authority (`ATLAS-SEM-033`, and `#757`'s O-09 input state). B-07 keeps the code/authority reading; the comment is recorded as a stale-comment hazard |
 | B-C4 | Whether a manual grade can be *retried* idempotently | `manualGrading.ts:148-149`: the API carries no idempotency key, so payload equality is not accepted as a retry; the repeat returns a 409 state-transition error | B-07/B-06 hold; "idempotent retry" is **not** claimed. Recorded as a limitation with its own evidence rather than softened into "idempotent" |
 | B-C5 | Route-level finalize/finalize-authority separation does not exist | `catalog.ts:99-103` records the inert grants; no route gates on them | B-19…B-22. A reader must not conclude that finalization has its own authorization gate |
@@ -288,9 +288,9 @@ methodology, not grading ownership).
 
 | ID | Kind | Parties | Status |
 | --- | --- | --- | --- |
-| B-K1 | `EVIDENCE_CONTRADICTION` | `docs/research/product-semantics-audit-1-code-reality.md:149` cites deleted E2E as evidence ↔ the deletion commits and the current `apps/e2e/e2e/` contents | `UNRESOLVED` but *bounded*: the research doc is non-authoritative; recorded as a stale citation with its resolution owner (docs owner) |
+| B-K1 | `TEMPORAL_CONFLICT` | `docs/research/product-semantics-audit-1-code-reality.md:149` cites deleted E2E as evidence ↔ the deletion commits and the current `apps/e2e/e2e/` contents | `UNRESOLVED` but *bounded*: the research doc is non-authoritative; recorded as a stale citation with its resolution owner (docs owner) |
 | B-K2 | `DECLARED_VS_RUNTIME_DIVERGENCE` | `gradingQueue.ts` JSDoc "saves (or overwrites)" ↔ one-way domain rule + 409 assertions | `UNRESOLVED`; `open_governance_item.kind = WORK_ITEM` (`#762` O-09 follow-up). No winner chosen |
-| B-K3 | `DECLARED_METADATA` vs `RUNTIME_OBSERVATION` | `grading.finalize` / `grading.identity.view` / `grading.answer.view` exist and are granted ↔ no route consumes them | `RESOLVED_BY_DERIVATION`: `inert = GRANTED_BUT_UNCONSUMED` is **derived** from the data, which is a legitimate resolution *within* Atlas's own representation (not an authority adjudication) |
+| B-K3 | `DECLARED_VS_RUNTIME_DIVERGENCE` | `grading.finalize` / `grading.identity.view` / `grading.answer.view` exist and are granted ↔ no route consumes them | `RESOLVED_BY_DERIVATION`: `inert = GRANTED_BUT_UNCONSUMED` is **derived** from the data, which is a legitimate resolution *within* Atlas's own representation (not an authority adjudication) |
 
 ---
 

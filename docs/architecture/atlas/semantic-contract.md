@@ -78,14 +78,14 @@ owner it belongs to — Atlas does not thereby gain that fact type.
 | Product invariants and domain model | `docs/SPEC.md` |
 | Current implemented architecture | `docs/architecture/` + production code |
 | Runtime route truth | *derived*: the **actual Fastify registration/capture**; this is the implementation evidence for the indexed "current implemented architecture" owner, not a separate fact type |
-| Authorization facts (capability, preset, scope, assignment, enforcement) | `docs/architecture/authorization.md` + the enforcement seam it names; the catalog/preset modules are implementation |
-| Exam policy support/activation semantics | `docs/contracts/exam-policy-authority.md` (P7-M1) |
+| Authorization facts (capability, preset, scope, assignment, enforcement) | *derived*: `docs/architecture/authorization.md` (whose own division table leaves specific mechanisms to the mechanism ADRs) + the enforcement seam it names; the catalog/preset modules are implementation |
+| Exam policy support/activation semantics | *derived*: `docs/contracts/exam-policy-authority.md` (P7-M1), under the indexed contracts owner |
 | Per-value reservation/activation status | *derived*: EXSEM-019 / EXSEM §5 plus the policy support matrix above |
-| Engineering and verification policy, including browser-E2E retention and test-evidence classification | `docs/standards/testing.md`, `docs/standards/code-quality.md` |
+| Engineering and verification policy, including browser-E2E retention and test-evidence classification | *derived*: `docs/standards/testing.md`, `docs/standards/code-quality.md` — the indexed engineering-and-verification-policy owner |
 | Test proof-strength classification for real-PostgreSQL tests (`pg_class`) | *derived*: consumed from [#718](https://github.com/jnhu76/exam/issues/718) as **historical evidence**; the in-tree owner is `docs/standards/testing.md`/`code-quality.md`, and the taxonomy is **not yet adopted in-tree**. R0 records this gap rather than treating a closed issue as an owner (`ATLAS-SEM-015`) |
 | Phase boundaries | `docs/roadmap/phase-roadmap.md` |
-| Work history, closure reason, decisions taken in review | the Git/Issue/PR record |
-| Task scope / acceptance | the authorized OPEN Issue |
+| Work history, closure reason, decisions taken in review | *derived*: the Git/Issue/PR record — the indexed historical-evidence owner |
+| Task scope / acceptance | *derived*: the authorized OPEN Issue — the indexed current-task-scope owner |
 
 `ATLAS-SEM-015` — A **closed** work item may be cited as historical evidence for
 a classification, but it may not be recorded as the *owner* of a policy or
@@ -733,7 +733,7 @@ Resolution statuses are also a **closed set** (`ATLAS-SEM-115`):
 | Status | Meaning | Who may set it |
 | --- | --- | --- |
 | `UNRESOLVED` | No resolution recorded | default |
-| `RESOLVED_BY_SCOPE` | The parties were shown to govern different fact types or disjoint scope, so there is no conflict to resolve | **requires a named, dated source statement** (`ATLAS-SEM-013`); an authority's own Status section is a *party statement*, not a resolution |
+| `RESOLVED_BY_SCOPE` | The parties were shown to govern different fact types or disjoint scope, so there is no conflict to resolve | **four conditions, all required:** (1) a named source statement; (2) **dated** (`ATLAS-SEM-013`); (3) made by the source that owns the disputed fact type and **specific to that fact type**; (4) **no other source records the question as open.** A generic Status-section self-scoping fails (3); if any authority or work item still lists the question as pending, (4) fails and the status is `UNRESOLVED` |
 | `RESOLVED_BY_SUPERSESSION` | A named source replaced one party; recorded as §2.2 supersession | the authority owner |
 | `RESOLVED_BY_CORRECTION` | A source was corrected by its owner | the source owner |
 | `RESOLVED_BY_DERIVATION` | Atlas computed a derived value that legitimately subsumes the disagreement (e.g. `Permission.inert`) | Atlas, **only** for a `LOCATOR_CONFLICT` or a `DECLARED_VS_RUNTIME_DIVERGENCE` whose answer is a derived field — never for an `AUTHORITY_CONFLICT` or `DOCUMENTATION_DISSONANCE` |
