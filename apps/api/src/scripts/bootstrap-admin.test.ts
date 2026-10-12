@@ -90,7 +90,11 @@ async function provisionIsolatedSchemaDb(
       db,
       dispose: async () => {
         try {
-          await sql.end();
+          // postgres.js end() never rejects and without a timeout can hang
+          // forever on a stuck in-flight query; the bounded destroy (timeout
+          // is in SECONDS — 10_000 would mean 2.78h, not 10s) guarantees
+          // the DROP below is still attempted within the hook budget.
+          await sql.end({ timeout: 10 });
         } finally {
           // DROP failure stays WARN-only inside setupIsolatedTestDb cleanup
           // (registered residual risk; observable via post-run residue check).
@@ -101,7 +105,7 @@ async function provisionIsolatedSchemaDb(
   } catch (err) {
     // OWNERSHIP: until the caller receives the db, this helper owns every
     // resource it opened — close the pool, drop the schema, re-throw.
-    await conn?.sql.end().catch(() => {});
+    await conn?.sql.end({ timeout: 10 }).catch(() => {});
     await iso.cleanup();
     throw err;
   }
