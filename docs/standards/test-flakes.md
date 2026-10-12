@@ -192,7 +192,9 @@ NEXT_DIAGNOSTIC_ACTION =
 4. **因果证明标准**：`CAUSALLY_PROVEN` 只授予满足以下之一的证据——受控调度/barrier 暴露
    出边界；trace 指明 wait-for/所有权依赖；直接观测到进程/资源身份错配；受控变量操纵
    改变失败行为；变异/还原证明被修复机制；失败/成功执行 DAG 暴露首个因果分歧。
-   `workers=4 更容易失败` 这类相关性有用，但**不是**因果证明。
+   `workers=4 更容易失败` 这类相关性有用，但**不是**因果证明。要归因**历史**失败，
+   受控操纵必须改变该次失败的行为（或由失败时间窗内的归属证据链闭合）；仅证明某机制
+   **能**制造同类症状（能力演示）不满足本条（REC-2026-10-12-004）。
 5. **BUG-FLAKE-001 不是通用桶**：它的两个已修复根因（共享 schema 状态泄漏；槽位身份
    错绑 + DDL 队列放大）是**特定机制**。"coverage + PG + 超时 + 重跑过"的后来 occurrence
    不得仅凭签名相似就归入 BUG-FLAKE-001；必须有机制证据，否则保持独立 occurrence 或
@@ -238,7 +240,7 @@ CLASSIFICATION (non-flake):  NOT_A_FLAKE | MISCLASSIFIED_AS_FLAKE
 
 | Case | State | Failure signature | Nondeterministic | Root-cause confidence | Current-change causality | Aggregation confidence | Last reviewed | Next action |
 |---|---|---|---|---|---|---|---|---|
-| BUG-FLAKE-005 | INVESTIGATING | `bootstrap-admin.test.ts` 1–3 用例 5s 超时，仅在 `pnpm verify` 全量 4-worker coverage lane；无断言失败；单文件复跑 20/20（受害用例 ≈13% 预算）；**受害身份 = 该文件在 `it` 体内 provision 隔离 schema 的 4 个用例** | YES | HYPOTHESIS（宿主负载/调度包络；或用例预算与共享 DDL/锁成本的所有权不匹配） | PLAUSIBLY_UNRELATED | PROVISIONAL（签名级） | 2026-10-12 | 复发 run 开 `TEST_INFRA_TRACE=1` 采集受害时间窗取锁 wait/hold + 同 run 全文件耗时分布，再判别机制；见案例 Next action |
+| BUG-FLAKE-005 | INVESTIGATING | `bootstrap-admin.test.ts` 1–3 用例 5s 超时，仅在 `pnpm verify` 全量 4-worker coverage lane；无断言失败；单文件复跑 20/20（受害用例 ≈13% 预算）；**受害身份 = 该文件在 `it` 体内 provision 隔离 schema 的 4 个用例** | YES | HYPOTHESIS（宿主负载/调度包络；或用例预算与共享 DDL/锁成本的所有权不匹配） | PLAUSIBLY_UNRELATED | PROVISIONAL（签名级） | 2026-10-12 | 有界取证（需 PG 环境）：一次完整 4-worker coverage lane 内关联 victim 测试起止 / schema 创建销毁 / 锁请求-获得-释放（`TEST_INFRA_TRACE=1` 单独不足，见 REC-2026-10-12-004）；判别后才谈反事实（能力演示不得升级 CAUSALLY_PROVEN）；修复未授权 |
 | BUG-FLAKE-006 | SUPERSEDED | 历史（2026-07-25 / 09-19 / 10-03）：`ea-lock-order.test.ts:292` 的 `repaired contention schedule is stable across 100 consecutive runs` 用例 5s 超时；**该用例形态在当前源码中已不存在**（2026-10-07 `e60a7edd` / PR #721 以真实双会话重叠 + PG 锁观测的证明替换整个文件） | YES（历史） | HYPOTHESIS（负载下累积延迟）——原失败机制既未证明也未修复 | PLAUSIBLY_UNRELATED（逐次记录；三次均未建立判别证据） | PROVISIONAL（同测试同错误行 3 次） | 2026-10-12（REC-002 对照 current source 后置为 SUPERSEDED） | 无（历史测试身份已消失；若当前 EA 锁序用例出现新签名，另立 occurrence） |
 | BUG-FLAKE-001 | REPAIRED | 历史：deadline/heartbeat scanner 等漂移性 5s 超时（共享 schema 泄漏 + 槽位身份错绑两机制） | YES（历史） | CAUSALLY_PROVEN（两机制，变异+自然失败闭环） | 历史条目各自记录 | CAUSALLY_PROVEN（机制级） | 2026-10-12 | 无（禁止把新 occurrence 自动归入） |
 | CASE-2026-09-01-CI-BOOTSTRAP | REPAIRED | CI API coverage 4-worker 下 DB 生命周期钩子漂移超时（beforeAll/afterAll 10s） | YES（历史） | CAUSALLY_PROVEN（per-file bootstrap 重复取锁风暴，变异+前后对比） | PLAUSIBLY_UNRELATED（REC-002 降级：原依据为文件级论证；且该 PR 在同一 lane 内改动了 DB-touching 测试文件） | SUPPORTED | 2026-10-12 | 无 |
@@ -266,8 +268,9 @@ CLASSIFICATION (non-flake):  NOT_A_FLAKE | MISCLASSIFIED_AS_FLAKE
 ```text
 CASE_STATE = INVESTIGATING
 CASE_CREATED_AT = 2026-10-08（同签名第 3 次复发时升级）
-CASE_LAST_REVIEWED_AT = 2026-10-12T10:43:23+08:00（REC-2026-10-12-003 有界因果调查）
-CASE_LAST_MODIFIED_AT = 2026-10-12T10:43:23+08:00
+CASE_LAST_REVIEWED_AT = 2026-10-12T11:41:15+08:00（REC-2026-10-12-004 复核裁决：
+  因果模型字段精度更正 + 下一轮取证协议修正）
+CASE_LAST_MODIFIED_AT = 2026-10-12T11:41:15+08:00
 
 NONDETERMINISTIC = YES
 ROOT_CAUSE_CONFIDENCE = HYPOTHESIS
@@ -380,16 +383,28 @@ FALSIFICATION_TEST = 复发 run 开 TEST_INFRA_TRACE=1，比较受害用例两�
   in-vitro 耗时被等比放大而 wait≈0，则 H3 被削弱、H1 占优
 ```
 
+> **观测仪器限额（REC-2026-10-12-004）**：H1/H2/H3 当前的 falsification test 都以
+> `TEST_INFRA_TRACE=1` 为主要仪器，而该仪器**单独不足以判别**——`acquired wait=` 只在
+> 成功获得锁之后才打印（等待期间被 5s 预算中止的取锁不留下可归属的 wait 记录），
+> `pid` 是 Node 进程 PID（非 PostgreSQL backend PID），`caller` 为首个外部栈帧文本、
+> 不保证区分同文件内的 4 个用例。判别前须按修正后的 Next action 协议，把
+> **test ID / 生命周期阶段 / 锁请求起点-获得-释放** 在同一 execution 内关联起来。
+
 #### Causal model
 
 ```text
-G_REQUIRED = 在 5000ms testTimeout 内完成：setupIsolatedTestDb（CREATE SCHEMA + 全局
-  lifecycle advisory lock）→ createDatabase → migratePostgres（45 个迁移文件）→ 断言
-  → iso.cleanup（DROP SCHEMA CASCADE + 同一把锁）
-G_CLAIMED = 纯进程内单元测试级成本（由未声明 timeout 的 it() 隐式声明为 vitest 默认 5s）
-G_PASS = 全部通过执行（同 head 单文件 coverage 20/20、同 head serial pnpm test）
-G_FAIL = 三次 occurrence 的失败执行（5s testTimeout，无断言失败）；**无 lane 内耗时 /
-  取锁等待证据，故本次复核无法构造 FAIL 图**
+G_REQUIRED = UNKNOWN（并发正确性所需的 happens-before / 所有权 DAG 未重建）。仅确立
+  **budget 约束**（BUDGET_CONSTRAINT）：这 4 个用例的完整基础设施生命周期
+  （setupIsolatedTestDb → CREATE SCHEMA（全局 lifecycle advisory lock，阻塞式）→
+  createDatabase → migratePostgres 45 个迁移 → 断言 → iso.cleanup → DROP SCHEMA
+  CASCADE（同一把锁））被要求落在 vitest 默认 5000ms it 预算内——这是当前测试的预算
+  约束，不是并发正确性要求
+G_CLAIMED = UNKNOWN（仅有的声明侧事实是"未声明 timeout 的 it() 隐式声明 vitest 默认
+  5s"；执行侧声明的阶段切片未测量）
+G_PASS = PARTIAL（仅 run 结果 + 局部时间观测：同 head 单文件 coverage 20/20、serial
+  pnpm test 通过、受害用例定向实测 630–700ms；execution graph 未重建）
+G_FAIL = PARTIAL（三次 occurrence 的 run 结果与失败类已知（5s testTimeout，无断言
+  失败）；无 lane 内耗时 / 取锁等待 / 阶段切片证据，FAIL 图未重建）
 FIRST_CAUSAL_DIVERGENCE = UNKNOWN
   （候选：受害用例在 it 体内的 lifecycle 锁获取上被慢持有者排队，把 630–700ms 的
   未争用成本推过 5000ms；未能与"最贵用例在统一放大下超时"判别）
@@ -471,20 +486,100 @@ REPAIR_PROPOSAL = 见 Next action；**未授权、未实施**
 TEMPORARY_INSTRUMENTATION_ADDED = NONE（本次未添加任何临时插桩，无需回滚）
 ```
 
-#### Next action（REC-2026-10-12-003 后更新）
+#### REC-2026-10-12-004 — 人类复核裁决、因果模型字段精度更正与下一轮取证协议修正
 
-- 在有 PG 的环境上按顺序取数（一次即足以判别）：① 复发 run 或定向重放时开
-  `TEST_INFRA_TRACE=1`（仓库既有开关，实现在 `packages/db/src/testInfraLock.ts`，
-  输出 `[infra-lock] ... acquired wait=<ms>` / `released hold=<ms>`），取得受害时间窗内
-  两次取锁的 wait/hold；② 同 run 记录该文件全部用例的耗时，比较 provisioning 与非
-  provisioning 用例的放大倍数。
-- 判别：若受害用例 wait 与 5s 缺口同量级、且非 provisioning 用例未成比例放大 → H2/H3
-  占优；若受害用例 in-vitro 被等比放大而 wait≈0 → H1 占优。
-- 修复提案（**需人工授权**，且不得作为"消灭签名"的手段）：把该 4 个 call site 的成本
-  所有权改到与仓库先例一致的位置——优先把 provisioning 移入 `beforeAll`（沿用既有 30s
-  钩子预算），或改用一次临界区内完成 create+connect+migrate 的既有 helper，或在
-  call-site 显式声明预算（沿用 `0028-rollback.test.ts` / rollback CLI 的先例）。任何预算
-  调整必须附上第①步实测的 wait 分布作为依据，否则不满足本文件与 v1 禁止项的要求。
+```text
+REVIEWED_AT = 2026-10-12（人类复核 REC-2026-10-12-003 调查报告与 PR #770 讨论）
+CORRECTED_AT = 2026-10-12T11:41:15+08:00
+SOURCE_REVISION = 7e7027b866a6d780f6d5b41717f3780ebe80937b（复核对象：本 case 详情
+  在 REC-003 后的形态）
+SOURCE_BLOB_SHA = e83c6c14fd9a9dd97870e3e84e2d0f6c9255f12f
+SOURCE_BYTES = 184249
+SOURCE_LINES = 3045
+
+OPERATION = REVIEW_RESPONSE_CORRECTION（更正记录形状与下一轮协议；不改变分类轴值）
+
+REVIEW_VERDICT = PHASE_B = PARTIAL（接受）；V2_RECONCILIATION = SELF_VERIFIED；
+  BUG-FLAKE-006 = SUPERSEDED；
+  BUG-FLAKE-005：STRUCTURAL_EXPOSURE = ESTABLISHED；ROOT_CAUSE = HYPOTHESIS；
+  FIRST_CAUSAL_DIVERGENCE = UNKNOWN；REPAIR = NOT AUTHORIZED（人工门禁，另行决定）
+NEXT = CAPTURE_BOUND_LIFECYCLE_EVIDENCE →（判别后才考虑）CONTROLLED_COUNTERFACTUAL
+
+CORRECTION_1 = 结构暴露复核成立，保留：4 个 victim 用例各自在 it() 体内创建 / 迁移 /
+  销毁独立隔离 schema，完整基础设施生命周期被计入默认 5000ms 预算（已并入
+  Failure signature 的 VICTIM_SET_STRUCTURE）。
+CORRECTION_2 = `TEST_INFRA_TRACE=1` 单独不足以判别根因（源码证据，
+  `packages/db/src/testInfraLock.ts` 本 revision）：
+  - :270–274 `acquired wait=` 只在 acquireAdvisoryLock 成功返回后打印——在等待期间
+    被 5s 预算中止的取锁不会留下可归属的完整 wait 记录；
+  - :272 / :285 `pid=${process.pid}` 是 Node 进程 PID，不是 PostgreSQL backend PID；
+  - :263 `caller = firstExternalFrame()` 是首个外部栈帧文本，不保证区分同文件内的
+    4 个测试用例。
+  CONSEQUENCE = REC-003「Next action」原第①步（仅开 trace 取 wait/hold）不充分；
+  下一轮必须在同一 execution 内关联 具体 test ID / 生命周期阶段（create vs drop）/
+  锁请求起点 / 获得锁 / 释放锁，必要时才增加临时插桩（记录并回滚，工件不入库）。
+CORRECTION_3 = 反事实的证明力上限：受控操纵「人工持有同一 advisory lock 使测试超时」
+  至多证明该机制**能**制造同类症状（能力演示），不能把历史 occurrence 归因于该机制；
+  升级 `CAUSALLY_PROVEN` 需要失败时间窗内的归属证据（Epistemic rule 4 本轮补句）。
+
+REPAIR_SPACE_CONSTRAINTS（复核裁定，供未来授权后使用）:
+- 禁止把 4 个用例合并为共享 `beforeAll` / 统一前置：原子回滚用例要求无残留 org/user，
+  organizationDisplayName 用例刻意另建新 schema；合并会改变测试隔离语义，可能让错误
+  实现通过。
+- 正确候选（仅在取证证明问题确为生命周期成本归属后）：每个用例保留独立 schema，
+  把 provisioning 放在该用例专属的 setup/hook 边界。
+- 禁止未经证明把 CREATE+migrate+DROP 整体纳入更大的 advisory-lock 临界区：扩大单次
+  持锁时间会放大其他 worker 的等待。
+
+FIELD_PRECISION_CORRECTION（记录形状更正，非 reclassification）:
+- G_REQUIRED：UNKNOWN（原先把「当前测试的 5000ms 预算约束」写成并发正确性所需的
+  happens-before DAG；该预算约束单独记入 G_REQUIRED 的 BUDGET_CONSTRAINT 说明）
+- G_CLAIMED：UNKNOWN（原先只有声明侧隐式声明这一事实）
+- G_PASS / G_FAIL：PARTIAL（仅有 run 结果与局部时间观测，未重建 execution graph）
+- FIRST_CAUSAL_DIVERGENCE：UNKNOWN（不变）
+- 分类轴值 ROOT_CAUSE_CONFIDENCE / CURRENT_CHANGE_CAUSALITY / AGGREGATION_CONFIDENCE
+  未变更：0 提升、0 降级。
+
+RULE_AMENDED = 1（Epistemic rule 4：能力演示 ≠ 历史归因证明）
+BUDGET_CONSUMED = 0（复核同时重验：本机无可用 PostgreSQL——docker 为 Windows shim 且
+  未接入该 WSL2 distro、无 psql/postgres 二进制、5432 未监听）
+
+VALIDATION:
+- classification values unchanged: PASS（HYPOTHESIS / PLAUSIBLY_UNRELATED / PROVISIONAL）
+- history preserved: PASS（REC-003 原文、三 hypothesis 的 FALSIFICATION_TEST 原句逐字保留）
+- registry/detail consistency: PASS（注册表 BUG-FLAKE-005 行的 Next action 已同步）
+- trace limitation cited to source: PASS（testInfraLock.ts:263 / 270–274 / 283–287）
+- no repair claim / no authorization: PASS（REPAIR = NOT AUTHORIZED 未变）
+- Markdown/code-fence integrity: PASS（写后回读校验）
+- single-file write boundary: PASS（git diff --name-only 仅本文档）
+
+WRITE_APPLIED = YES
+POST_WRITE_VERIFIED = YES
+MODIFICATION_SUCCESS = YES
+```
+
+#### Next action（REC-2026-10-12-004 后更新）
+
+- **前置**：在具备仓库标准 PostgreSQL 测试环境的机器上继续，固定 #770 head；不改变
+  并行度（4 worker）、testTimeout、worker 隔离模型。本机环境仍不可用（阻断证据见
+  REC-003 / REC-004）。
+- **一次有界取证（CAPTURE_BOUND_LIFECYCLE_EVIDENCE）**：一次完整 4-worker coverage
+  lane；`TEST_INFRA_TRACE=1` 可开但**不作为唯一仪器**（限额见 REC-2026-10-12-004
+  CORRECTION_2）。同一 execution 内记录：受害用例测试开始/结束、schema 创建/销毁、
+  **锁请求起点 / 获得 / 释放**、以及必要的 PG backend 等待状态（`pg_locks` /
+  `pg_stat_activity`，粒度须能关联到具体测试会话）；仅在既有 trace 不足时增加临时
+  插桩（记录并回滚，工件不入库）。
+- **判别**：>5s 的消耗落在 lifecycle 锁等待、迁移链、测试体计算还是其他阶段；对照同
+  run 内非 provisioning 用例的放大情况。受害用例 wait 与预算缺口同量级且非
+  provisioning 用例未成比例放大 → H2/H3 占优；受害用例 in-vitro 等比放大而 wait≈0
+  → H1 占优。只有形成可判别假设后才进行受控反事实；反事实即使复现同症状，也至多证明
+  机制具备制造同类症状的能力，不得据此升级 `CAUSALLY_PROVEN`（CORRECTION_3）。
+- **修复提案（需人工授权；候选空间已按 REC-2026-10-12-004 收窄）**：若取证证明问题
+  确为生命周期成本归属——为 4 个用例**各自保留独立 schema**（禁止合并为共享
+  `beforeAll`），把 provisioning 放到该用例专属的 setup/hook 边界；或在 call-site
+  显式声明预算（沿用 `0028-rollback.test.ts` / rollback CLI 的 30s/45s/90s/120s
+  先例），且必须附「一次有界取证」实测的 wait 分布作为依据。禁止把 CREATE+migrate+DROP 整体
+  塞进更大的 advisory-lock 临界区。
 
 ---
 
