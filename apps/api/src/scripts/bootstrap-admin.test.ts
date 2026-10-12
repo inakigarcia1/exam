@@ -63,6 +63,50 @@ async function installBootstrapAuditFailure(
   };
 }
 
+interface ProvisionedSchemaDb {
+  db: Database;
+  dispose: () => Promise<void>;
+}
+
+/**
+ * Provision one migrated isolated schema with a single ownership boundary:
+ * CREATE SCHEMA (lifecycle lock) → schema-pinned max:1 connection → migrate
+ * (outside the lock). The caller receives the db only after everything
+ * succeeded; any partial failure is recovered here.
+ */
+async function provisionIsolatedSchemaDb(
+  namespace: string,
+): Promise<ProvisionedSchemaDb> {
+  const iso = await setupIsolatedTestDb({
+    namespace,
+    databaseUrl: resolveTestDbUrl(),
+  });
+  let conn: Awaited<ReturnType<typeof createDatabase>> | undefined;
+  try {
+    conn = await createDatabase(resolveTestDbUrl(), iso.schemaName);
+    await migratePostgres(conn.db, { migrationsSchema: iso.schemaName });
+    const { sql, db } = conn;
+    return {
+      db,
+      dispose: async () => {
+        try {
+          await sql.end();
+        } finally {
+          // DROP failure stays WARN-only inside setupIsolatedTestDb cleanup
+          // (registered residual risk; observable via post-run residue check).
+          await iso.cleanup();
+        }
+      },
+    };
+  } catch (err) {
+    // OWNERSHIP: until the caller receives the db, this helper owns every
+    // resource it opened — close the pool, drop the schema, re-throw.
+    await conn?.sql.end().catch(() => {});
+    await iso.cleanup();
+    throw err;
+  }
+}
+
 describe("bootstrapAdmin service", () => {
   let db: Database;
   let conn: Awaited<ReturnType<typeof createDatabase>>;
@@ -372,24 +416,30 @@ describe("bootstrapAdminOnFreshDb (production bootstrap path)", () => {
     ).rejects.toThrow(/active.*[Aa]dmin.*exists/);
   });
 
-  it("rolls back org + user + assignment when the audit insert fails (atomic)", async () => {
-    // P6-008: org, Admin, assignment, and audit must commit atomically in ONE
-    // transaction. Inject an audit failure on a fresh schema and prove that
-    // NONE of org/user/assignment land (no orphan org, no orphan user).
-    const iso = await setupIsolatedTestDb({
-      namespace: "script-bootstrap-atomic",
-      databaseUrl: resolveTestDbUrl(),
-    });
-    try {
-      const conn = await createDatabase(resolveTestDbUrl(), iso.schemaName);
-      const atomicDb = conn.db;
-      await migratePostgres(atomicDb, {
-        migrationsSchema: iso.schemaName,
-      });
-      const removeFailure = await installBootstrapAuditFailure(atomicDb);
+  // 1 suite = 1 schema = 1 test: provisioning lives in the hook budget
+  // (30_000ms), not the it() budget (default 5_000ms) — BUG-FLAKE-005.
+  describe("atomic rollback — isolated schema", () => {
+    let db: Database;
+    let dispose: (() => Promise<void>) | undefined;
+
+    beforeAll(async () => {
+      ({ db, dispose } = await provisionIsolatedSchemaDb(
+        "script-bootstrap-atomic",
+      ));
+    }, 30_000);
+
+    afterAll(async () => {
+      await dispose?.();
+    }, 30_000);
+
+    it("rolls back org + user + assignment when the audit insert fails (atomic)", async () => {
+      // P6-008: org, Admin, assignment, and audit must commit atomically in ONE
+      // transaction. Inject an audit failure on a fresh schema and prove that
+      // NONE of org/user/assignment land (no orphan org, no orphan user).
+      const removeFailure = await installBootstrapAuditFailure(db);
       try {
         await expect(
-          bootstrapAdminOnFreshDb(atomicDb, {
+          bootstrapAdminOnFreshDb(db, {
             username: `atomic-${Date.now()}`,
             password: "StrongPass123!",
             name: "Atomic Admin",
@@ -397,29 +447,26 @@ describe("bootstrapAdminOnFreshDb (production bootstrap path)", () => {
         ).rejects.toThrow();
 
         // The org must NOT have been committed (no "default" org row).
-        const orgs = await atomicDb
+        const orgs = await db
           .select({ id: schema.organizations.id })
           .from(schema.organizations)
           .where(eq(schema.organizations.slug, DEFAULT_ORG_SLUG));
         expect(orgs).toHaveLength(0);
 
         // No user, no assignment, no audit either.
-        const users = await atomicDb
+        const users = await db
           .select({ id: schema.users.id })
           .from(schema.users);
         expect(users).toHaveLength(0);
-        const audits = await atomicDb
+        const audits = await db
           .select({ id: schema.auditLogs.id })
           .from(schema.auditLogs)
           .where(eq(schema.auditLogs.action, "admin.bootstrap"));
         expect(audits).toHaveLength(0);
       } finally {
         await removeFailure();
-        await conn.sql.end();
       }
-    } finally {
-      await iso.cleanup();
-    }
+    });
   });
 
   it("allows --force to create an additional Admin", async () => {
@@ -446,129 +493,131 @@ describe("bootstrapAdminOnFreshDb (production bootstrap path)", () => {
     expect(candidates).toHaveLength(0);
   });
 
-  it("records the adapter source in the admin.bootstrap audit metadata", async () => {
-    // The canonical mutation accepts an explicit source so the audit
-    // reflects the real entry point (CLI = local_script, HTTP launchpad =
-    // launchpad) instead of a single hardcoded value.
-    const iso = await setupIsolatedTestDb({
-      namespace: "script-bootstrap-source",
-      databaseUrl: resolveTestDbUrl(),
+  // 1 suite = 1 schema = 1 test (BUG-FLAKE-005): provisioning in the hook
+  // budget, assertions in the default it() budget.
+  describe("audit adapter source — isolated schema", () => {
+    let db: Database;
+    let dispose: (() => Promise<void>) | undefined;
+
+    beforeAll(async () => {
+      ({ db, dispose } = await provisionIsolatedSchemaDb(
+        "script-bootstrap-source",
+      ));
+    }, 30_000);
+
+    afterAll(async () => {
+      await dispose?.();
+    }, 30_000);
+
+    it("records the adapter source in the admin.bootstrap audit metadata", async () => {
+      // The canonical mutation accepts an explicit source so the audit
+      // reflects the real entry point (CLI = local_script, HTTP launchpad =
+      // launchpad) instead of a single hardcoded value.
+      const username = `source-${Date.now()}`;
+      await bootstrapAdminOnFreshDb(
+        db,
+        {
+          username,
+          password: "StrongPass123!",
+          name: "Source Admin",
+        },
+        { organizationName: "Source Org" },
+        "launchpad",
+      );
+      const audits = await db
+        .select()
+        .from(schema.auditLogs)
+        .where(eq(schema.auditLogs.action, "admin.bootstrap"));
+      expect(audits).toHaveLength(1);
+      const metadata = audits[0]!.metadata as Record<string, unknown>;
+      expect(metadata.source).toBe("launchpad");
     });
-    try {
-      const conn = await createDatabase(resolveTestDbUrl(), iso.schemaName);
-      const sourceDb = conn.db;
-      await migratePostgres(sourceDb, { migrationsSchema: iso.schemaName });
-      try {
-        const username = `source-${Date.now()}`;
-        await bootstrapAdminOnFreshDb(
-          sourceDb,
-          {
-            username,
-            password: "StrongPass123!",
-            name: "Source Admin",
-          },
-          { organizationName: "Source Org" },
-          "launchpad",
-        );
-        const audits = await sourceDb
-          .select()
-          .from(schema.auditLogs)
-          .where(eq(schema.auditLogs.action, "admin.bootstrap"));
-        expect(audits).toHaveLength(1);
-        const metadata = audits[0]!.metadata as Record<string, unknown>;
-        expect(metadata.source).toBe("launchpad");
-      } finally {
-        await conn.sql.end();
-      }
-    } finally {
-      await iso.cleanup();
-    }
   });
 
-  // Both attempts share the same max:1 schema-pinned connection, so they run
-  // in dispatch order: the winner commits; the loser re-reads the committed
-  // Admin authority and refuses with the typed AdminAlreadyExistsError —
-  // never a silent second Admin. (True-overlap advisory-lock serialization
-  // of the same seam class is proven in authorityInvariants.concurrency.test.ts.)
-  it("duplicate first-install attempts: exactly one winner, one Admin, one audit", async () => {
-    const iso = await setupIsolatedTestDb({
-      namespace: "script-bootstrap-race",
-      databaseUrl: resolveTestDbUrl(),
-    });
-    try {
-      const conn = await createDatabase(resolveTestDbUrl(), iso.schemaName);
-      const raceDb = conn.db;
-      await migratePostgres(raceDb, { migrationsSchema: iso.schemaName });
-      try {
-        const ts = Date.now();
-        const [a, b] = await Promise.allSettled([
-          bootstrapAdminOnFreshDb(
-            raceDb,
-            {
-              username: `race-a-${ts}`,
-              password: "StrongPass123!",
-              name: "Race Admin A",
-            },
-            { organizationName: "Race Org" },
-            "local_script",
-          ),
-          bootstrapAdminOnFreshDb(
-            raceDb,
-            {
-              username: `race-b-${ts}`,
-              password: "StrongPass123!",
-              name: "Race Admin B",
-            },
-            { organizationName: "Race Org" },
-            "launchpad",
-          ),
-        ]);
+  // 1 suite = 1 schema = 1 test (BUG-FLAKE-005): provisioning in the hook
+  // budget, assertions in the default it() budget.
+  describe("duplicate first-install race — isolated schema", () => {
+    let db: Database;
+    let dispose: (() => Promise<void>) | undefined;
 
-        const winner = a.status === "fulfilled" ? a : b;
-        const loser = a.status === "rejected" ? a : b;
-        expect(winner.status).toBe("fulfilled");
-        if (loser.status === "rejected") {
-          expect(loser.reason).toBeInstanceOf(AdminAlreadyExistsError);
-        } else {
-          expect.unreachable("the race loser must reject");
-        }
+    beforeAll(async () => {
+      ({ db, dispose } = await provisionIsolatedSchemaDb(
+        "script-bootstrap-race",
+      ));
+    }, 30_000);
 
-        // Exactly one Admin authority.
-        const admins = await raceDb
-          .select()
-          .from(schema.users)
-          .where(eq(schema.users.role, "Admin"));
-        expect(admins).toHaveLength(1);
+    afterAll(async () => {
+      await dispose?.();
+    }, 30_000);
 
-        // Exactly one primary Admin assignment.
-        const assignments = await raceDb
-          .select()
-          .from(schema.userRoleAssignments);
-        const primaryAdmins = assignments.filter(
-          (x) => x.role === "Admin" && x.isPrimary && x.isActive,
-        );
-        expect(primaryAdmins).toHaveLength(1);
+    // Both attempts share the same max:1 schema-pinned connection, so they run
+    // in dispatch order: the winner commits; the loser re-reads the committed
+    // Admin authority and refuses with the typed AdminAlreadyExistsError —
+    // never a silent second Admin. (True-overlap advisory-lock serialization
+    // of the same seam class is proven in authorityInvariants.concurrency.test.ts.)
+    it("duplicate first-install attempts: exactly one winner, one Admin, one audit", async () => {
+      const ts = Date.now();
+      const [a, b] = await Promise.allSettled([
+        bootstrapAdminOnFreshDb(
+          db,
+          {
+            username: `race-a-${ts}`,
+            password: "StrongPass123!",
+            name: "Race Admin A",
+          },
+          { organizationName: "Race Org" },
+          "local_script",
+        ),
+        bootstrapAdminOnFreshDb(
+          db,
+          {
+            username: `race-b-${ts}`,
+            password: "StrongPass123!",
+            name: "Race Admin B",
+          },
+          { organizationName: "Race Org" },
+          "launchpad",
+        ),
+      ]);
 
-        // Exactly one first-bootstrap audit, sourced from the winner's
-        // adapter (the loser's transaction rolled back).
-        const audits = await raceDb
-          .select()
-          .from(schema.auditLogs)
-          .where(eq(schema.auditLogs.action, "admin.bootstrap"));
-        expect(audits).toHaveLength(1);
-        const metadata = audits[0]!.metadata as Record<string, unknown>;
-        const winnerSource =
-          winner.status === "fulfilled" &&
-          winner.value.user.username === `race-a-${ts}`
-            ? "local_script"
-            : "launchpad";
-        expect(metadata.source).toBe(winnerSource);
-      } finally {
-        await conn.sql.end();
+      const winner = a.status === "fulfilled" ? a : b;
+      const loser = a.status === "rejected" ? a : b;
+      expect(winner.status).toBe("fulfilled");
+      if (loser.status === "rejected") {
+        expect(loser.reason).toBeInstanceOf(AdminAlreadyExistsError);
+      } else {
+        expect.unreachable("the race loser must reject");
       }
-    } finally {
-      await iso.cleanup();
-    }
+
+      // Exactly one Admin authority.
+      const admins = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.role, "Admin"));
+      expect(admins).toHaveLength(1);
+
+      // Exactly one primary Admin assignment.
+      const assignments = await db.select().from(schema.userRoleAssignments);
+      const primaryAdmins = assignments.filter(
+        (x) => x.role === "Admin" && x.isPrimary && x.isActive,
+      );
+      expect(primaryAdmins).toHaveLength(1);
+
+      // Exactly one first-bootstrap audit, sourced from the winner's
+      // adapter (the loser's transaction rolled back).
+      const audits = await db
+        .select()
+        .from(schema.auditLogs)
+        .where(eq(schema.auditLogs.action, "admin.bootstrap"));
+      expect(audits).toHaveLength(1);
+      const metadata = audits[0]!.metadata as Record<string, unknown>;
+      const winnerSource =
+        winner.status === "fulfilled" &&
+        winner.value.user.username === `race-a-${ts}`
+          ? "local_script"
+          : "launchpad";
+      expect(metadata.source).toBe(winnerSource);
+    });
   });
 });
 
@@ -610,28 +659,31 @@ describe("resolveOrCreateDefaultOrganization", () => {
     expect(result.name).toBe("Default Organization"); // preserved
   });
 
-  it("uses organizationDisplayName when supplied", async () => {
-    // Use a different schema namespace so we can create a fresh org.
-    const iso = await setupIsolatedTestDb({
-      namespace: "script-bootstrap-org-display",
-      databaseUrl: resolveTestDbUrl(),
+  // 1 suite = 1 schema = 1 test (BUG-FLAKE-005): provisioning in the hook
+  // budget, assertions in the default it() budget.
+  describe("organization displayName — isolated schema", () => {
+    let db: Database;
+    let dispose: (() => Promise<void>) | undefined;
+
+    beforeAll(async () => {
+      ({ db, dispose } = await provisionIsolatedSchemaDb(
+        "script-bootstrap-org-display",
+      ));
+    }, 30_000);
+
+    afterAll(async () => {
+      await dispose?.();
+    }, 30_000);
+
+    it("uses organizationDisplayName when supplied", async () => {
+      // A dedicated schema namespace so this test creates a fresh org,
+      // unaffected by the sibling tests' organizations on the shared orgDb.
+      const result = await resolveOrCreateDefaultOrganization(db, {
+        organizationName: "Internal Name",
+        organizationDisplayName: "Display Name",
+      });
+      expect(result.name).toBe("Internal Name");
+      expect(result.displayName).toBe("Display Name");
     });
-    try {
-      const c = await createDatabase(resolveTestDbUrl(), iso.schemaName);
-      const d = c.db;
-      await migratePostgres(d, { migrationsSchema: iso.schemaName });
-      try {
-        const result = await resolveOrCreateDefaultOrganization(d, {
-          organizationName: "Internal Name",
-          organizationDisplayName: "Display Name",
-        });
-        expect(result.name).toBe("Internal Name");
-        expect(result.displayName).toBe("Display Name");
-      } finally {
-        await c.sql.end();
-      }
-    } finally {
-      await iso.cleanup();
-    }
   });
 });
