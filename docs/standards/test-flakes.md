@@ -240,7 +240,7 @@ CLASSIFICATION (non-flake):  NOT_A_FLAKE | MISCLASSIFIED_AS_FLAKE
 
 | Case | State | Failure signature | Nondeterministic | Root-cause confidence | Current-change causality | Aggregation confidence | Last reviewed | Next action |
 |---|---|---|---|---|---|---|---|---|
-| BUG-FLAKE-005 | INVESTIGATING | `bootstrap-admin.test.ts` 1–3 用例 5s 超时，仅在 `pnpm verify` 全量 4-worker coverage lane；无断言失败；单文件复跑 20/20（受害用例 ≈13% 预算）；**受害身份 = 该文件在 `it` 体内 provision 隔离 schema 的 4 个用例** | YES | HYPOTHESIS（宿主负载/调度包络；或用例预算与共享 DDL/锁成本的所有权不匹配） | PLAUSIBLY_UNRELATED | PROVISIONAL（签名级） | 2026-10-12 | 有界取证（需 PG 环境）：一次完整 4-worker coverage lane 内关联 victim 测试起止 / schema 创建销毁 / 锁请求-获得-释放（`TEST_INFRA_TRACE=1` 单独不足，见 REC-2026-10-12-004）；判别后才谈反事实（能力演示不得升级 CAUSALLY_PROVEN）；修复未授权 |
+| BUG-FLAKE-005 | INVESTIGATING | `bootstrap-admin.test.ts` 1–3 用例 5s 超时，仅在 `pnpm verify` 全量 4-worker coverage lane；无断言失败；单文件复跑 20/20（受害用例 ≈13% 预算）；**受害身份 = 该文件在 `it` 体内 provision 隔离 schema 的 4 个用例** | YES | HYPOTHESIS（宿主负载/调度包络；或用例预算与共享 DDL/锁成本的所有权不匹配） | PLAUSIBLY_UNRELATED | PROVISIONAL（签名级） | 2026-10-12 | REC-2026-10-12-005：有界取证已执行（A1 完整 4-worker coverage lane + B1/B2 聚焦诊断 + B3 受控反事实，声明预算用尽）；B3 建立"in-body 取锁等待 > (5000ms − 主体成本) → 选择性 5s 超时"的受控能力链（= 能力证明，历史归因仍 UNKNOWN，不得升级 CAUSALLY_PROVEN）；自然运行未观测到 ≥4.3s 等待（B2 观测最大值 1.05s，非上界）；加固/修复未授权 |
 | BUG-FLAKE-006 | SUPERSEDED | 历史（2026-07-25 / 09-19 / 10-03）：`ea-lock-order.test.ts:292` 的 `repaired contention schedule is stable across 100 consecutive runs` 用例 5s 超时；**该用例形态在当前源码中已不存在**（2026-10-07 `e60a7edd` / PR #721 以真实双会话重叠 + PG 锁观测的证明替换整个文件） | YES（历史） | HYPOTHESIS（负载下累积延迟）——原失败机制既未证明也未修复 | PLAUSIBLY_UNRELATED（逐次记录；三次均未建立判别证据） | PROVISIONAL（同测试同错误行 3 次） | 2026-10-12（REC-002 对照 current source 后置为 SUPERSEDED） | 无（历史测试身份已消失；若当前 EA 锁序用例出现新签名，另立 occurrence） |
 | BUG-FLAKE-001 | REPAIRED | 历史：deadline/heartbeat scanner 等漂移性 5s 超时（共享 schema 泄漏 + 槽位身份错绑两机制） | YES（历史） | CAUSALLY_PROVEN（两机制，变异+自然失败闭环） | 历史条目各自记录 | CAUSALLY_PROVEN（机制级） | 2026-10-12 | 无（禁止把新 occurrence 自动归入） |
 | CASE-2026-09-01-CI-BOOTSTRAP | REPAIRED | CI API coverage 4-worker 下 DB 生命周期钩子漂移超时（beforeAll/afterAll 10s） | YES（历史） | CAUSALLY_PROVEN（per-file bootstrap 重复取锁风暴，变异+前后对比） | PLAUSIBLY_UNRELATED（REC-002 降级：原依据为文件级论证；且该 PR 在同一 lane 内改动了 DB-touching 测试文件） | SUPPORTED | 2026-10-12 | 无 |
@@ -268,17 +268,19 @@ CLASSIFICATION (non-flake):  NOT_A_FLAKE | MISCLASSIFIED_AS_FLAKE
 ```text
 CASE_STATE = INVESTIGATING
 CASE_CREATED_AT = 2026-10-08（同签名第 3 次复发时升级）
-CASE_LAST_REVIEWED_AT = 2026-10-12T11:41:15+08:00（REC-2026-10-12-004 复核裁决：
-  因果模型字段精度更正 + 下一轮取证协议修正）
-CASE_LAST_MODIFIED_AT = 2026-10-12T11:41:15+08:00
+CASE_LAST_REVIEWED_AT = 2026-10-12T13:10:00+08:00（REC-2026-10-12-005：Phase C 有界
+  取证执行记录；字段精度修正；B3 受控能力证明及其限制）
+CASE_LAST_MODIFIED_AT = 2026-10-12T13:10:00+08:00
 
 NONDETERMINISTIC = YES
 ROOT_CAUSE_CONFIDENCE = HYPOTHESIS
 CURRENT_CHANGE_CAUSALITY = PLAUSIBLY_UNRELATED
 AGGREGATION_CONFIDENCE = PROVISIONAL
-NATURAL_FAILURE_CAPTURED = NO（REC-2026-10-12-003：本机无可用 PostgreSQL / Docker
-  engine，lane 无法执行；未消耗实验预算）
-COUNTERFACTUAL_EXECUTED = NO（同上）
+NATURAL_FAILURE_CAPTURED = NO（REC-2026-10-12-005：环境已可用并完成 A1 完整 4-worker
+  coverage lane 实跑；BF-005 签名未出现（全 lane 0 testTimeout），victim 文件 PASS
+  7856ms。A1 的 PG 采样未覆盖 victim 执行窗口，不能排除该窗口内的更长等待）
+COUNTERFACTUAL_EXECUTED = YES（REC-2026-10-12-005 / RUN B3：外部持锁受控反事实，
+  选择性复现同形失败 = 能力证明；HISTORICAL_FAILURE_ATTRIBUTION_PROVEN = NO）
 
 AGGREGATION_BASIS = 同文件 + 同 lane（TEST_DB_ISOLATION=worker-database
 API_TEST_MAX_WORKERS=4 + v8 coverage）+ 同失败类（5s testTimeout 超时，无断言失败、
@@ -307,6 +309,8 @@ VICTIM_SET_STRUCTURE = 上述全部 victim 身份恰好是该文件内**在 `it`
 - 3 次 occurrence（OBS-2026-10-06-001、OBS-2026-10-07-001、OBS-2026-10-08-001），全部
   `NONDETERMINISM_CONFIRMED = YES`：同 head 同 lane 单文件定向复跑 20/20 PASS。
 - 受害用例定向实测 630–700ms（≈5000ms 预算的 13–14%），远低于预算。
+  （REC-2026-10-12-005 以 canonical env 重测更新：0.66–0.85s，争用下 1.17–1.43s；
+  历史数值按原样保留于本行与相关 hypothesis 记录。）
 - 前两次 occurrence 所在 head 有同 hash 或同代码全量重跑 EXIT=0 的对照（10-07 条目①；
   10-06 条目③）。
 - 无断言失败；失败点均为 it 体。
@@ -558,28 +562,191 @@ POST_WRITE_VERIFIED = YES
 MODIFICATION_SUCCESS = YES
 ```
 
-#### Next action（REC-2026-10-12-004 后更新）
+#### REC-2026-10-12-005 — Phase C 有界取证执行记录（A1/B1/B2/B3）与 B3 受控能力证明及其限制
 
-- **前置**：在具备仓库标准 PostgreSQL 测试环境的机器上继续，固定 #770 head；不改变
-  并行度（4 worker）、testTimeout、worker 隔离模型。本机环境仍不可用（阻断证据见
-  REC-003 / REC-004）。
-- **一次有界取证（CAPTURE_BOUND_LIFECYCLE_EVIDENCE）**：一次完整 4-worker coverage
-  lane；`TEST_INFRA_TRACE=1` 可开但**不作为唯一仪器**（限额见 REC-2026-10-12-004
-  CORRECTION_2）。同一 execution 内记录：受害用例测试开始/结束、schema 创建/销毁、
-  **锁请求起点 / 获得 / 释放**、以及必要的 PG backend 等待状态（`pg_locks` /
-  `pg_stat_activity`，粒度须能关联到具体测试会话）；仅在既有 trace 不足时增加临时
-  插桩（记录并回滚，工件不入库）。
-- **判别**：>5s 的消耗落在 lifecycle 锁等待、迁移链、测试体计算还是其他阶段；对照同
-  run 内非 provisioning 用例的放大情况。受害用例 wait 与预算缺口同量级且非
-  provisioning 用例未成比例放大 → H2/H3 占优；受害用例 in-vitro 等比放大而 wait≈0
-  → H1 占优。只有形成可判别假设后才进行受控反事实；反事实即使复现同症状，也至多证明
-  机制具备制造同类症状的能力，不得据此升级 `CAUSALLY_PROVEN`（CORRECTION_3）。
-- **修复提案（需人工授权；候选空间已按 REC-2026-10-12-004 收窄）**：若取证证明问题
-  确为生命周期成本归属——为 4 个用例**各自保留独立 schema**（禁止合并为共享
-  `beforeAll`），把 provisioning 放到该用例专属的 setup/hook 边界；或在 call-site
-  显式声明预算（沿用 `0028-rollback.test.ts` / rollback CLI 的 30s/45s/90s/120s
-  先例），且必须附「一次有界取证」实测的 wait 分布作为依据。禁止把 CREATE+migrate+DROP 整体
-  塞进更大的 advisory-lock 临界区。
+> 本记录由人类复核授权写入（仅本文档）。它登记 Phase C 的**执行事实**、**字段精度
+> 修正**与**受控能力证明**；不改变任何分类轴值（`ROOT_CAUSE_CONFIDENCE = HYPOTHESIS`、
+> `CURRENT_CHANGE_CAUSALITY = PLAUSIBLY_UNRELATED`、`AGGREGATION_CONFIDENCE = PROVISIONAL`：
+> 0 提升、0 降级），不宣称历史根因已确定。本记录同时修正 Phase C PR 评论
+> （[issuecomment-6117841001](https://github.com/jnhu76/exam/pull/770#issuecomment-6117841001)）
+> 中 B2 的「上界」措辞与 `G_REQUIRED` / `G_CLAIMED` 的写法；历史评论保留、不追改。
+
+```text
+RECORDED_AT = 2026-10-12T13:10:00+08:00
+BASE_SHA = be97ba991a6c50c70b756aa913bff2ee4fef2715（执行期间固定；PR #770 OPEN / UNMERGED）
+REPOSITORY_FILES_MODIFIED = NONE（Phase C 全程；git status 仅既有未跟踪 .env.deploy）
+COMMITS_CREATED = 0（Phase C 未提交；本 REC 单独授权写入）
+
+ENVIRONMENT_UNBLOCK = 此前三轮 BLOCKED 的直接原因 = Docker Desktop 引擎未运行；本 WSL
+  distro（Ubuntu-26.04）本已在 Docker Desktop 的 IntegratedWslDistros 中。`docker desktop
+  start` 后 `pnpm db:up` EXIT=0，PostgreSQL 18.4（docker-compose.dev.yml，127.0.0.1:5432）
+  可用；未改动任何 WSL/Docker 配置，未安装任何组件。
+
+EXECUTION_BUDGET_DECLARED = 1 完整 coverage lane + 2 聚焦诊断 + 1 受控反事实
+BUDGET_CONSUMED = 4 次实际启动的 run（A1/B1/B2/B3）＝ 声明上限；0 次中断、0 次 preflight
+  失败、无额外运行。环境 preflight 命令与 `turbo --dry=json`（只输出任务图与缓存状态、
+  不执行测试）不计入预算。
+
+RUN A1 = 完整 4-worker coverage lane（权威运行）
+  EXACT_COMMAND = TEST_INFRA_TRACE=1 TEST_DB_ISOLATION=worker-database API_TEST_MAX_WORKERS=4 pnpm coverage
+  EXIT_CODE = 1；RUNTIME = turbo 3m20.69s；api lane Start 12:11:19 / Duration 199.46s
+  LOG_ID = 1288883 bytes；sha256 27b9fbab7286ecab8a4ac4f851cfef050ad67d22d6842ae45f657b591995aa98
+  CACHE_STATUS = 15 cached / 16 total；@exam/api#coverage = cache miss（实跑）；
+    @exam/db#coverage = cache hit（未执行）——与三次历史 occurrence 的"仅 api 实跑"形态一致
+  TEST_COUNTS = 226 文件（1 failed | 221 passed | 4 skipped）；2791 用例
+    （1 failed | 2779 passed | 11 skipped）
+  FAILURE = src/config/envSurfaceGuard.test.ts（确定性策略冲突；独立记录见下，不属本 case）
+  BF005_SIGNATURE = NOT_OBSERVED（全 lane 0 个 testTimeout、0 个 hook 超时）
+  VICTIM_FILE_RESULT = src/scripts/bootstrap-admin.test.ts（20 tests）PASS 7856ms
+  INFRA_LOCK_TRACE_LINES = 0（原因见 NEW_FINDING_2，不等于"未发生取锁"）
+  PG_SAMPLER_COVERAGE = 仅 lane 末尾 102.2s（171 次采样；12:12:57 → 约 12:14:39）。
+    **bootstrap-admin 的执行窗口不在该采样窗口内**（该文件 schema 活动位于日志字节
+    约 770K/1289K 处，采样自约 878K 处开始）。因此本采样**不能**用于排除该测试当时发生
+    过更长等待；可报告的只是"采样实际覆盖的时间范围内"的观测。
+  PG_SAMPLER_OBSERVED（仅覆盖范围内）= advisory-lock 等待最长观测运行 0.6s（采样间隔
+    约 0.55s；单点等待 6 次）；holder 观测 ≤1.1s；DDL 语句 age ≤0.14s
+
+RUN B1 = 聚焦诊断（victim 文件单跑；canonical env + trace + 逐用例耗时）
+  EXACT_COMMAND = TEST_INFRA_TRACE=1 TEST_DB_ISOLATION=worker-database API_TEST_MAX_WORKERS=4
+    pnpm --filter @exam/api exec vitest run --coverage src/scripts/bootstrap-admin.test.ts --reporter=verbose
+  NOTE = 经 pnpm exec 直接调用 vitest（绕过 turbo，否则 TEST_INFRA_TRACE 会被 turbo 严格
+    env 过滤丢弃，见 NEW_FINDING_2）；--reporter=verbose 仅改变输出详略，不改变执行拓扑
+    （并行度 / 隔离模型 / 预算均未改）。
+  EXIT_CODE = 1（仅 coverage threshold；测试 20/20 PASS）；Duration 8.05s（tests 6.14s）
+  LOG_ID = 47392 bytes；sha256 77f9d4d09b88c0abfa6fd483d3eb5a05c80112dd8eaad831c77e58f966e8b9fa
+  VICTIM_BODIES = atomic 802ms / adapter source 661ms / duplicate first-install 851ms /
+    displayName 725ms；其余 16 个 2–175ms（登记册原 630–700ms 实测更新为 661–851ms）
+  TRACE = 15 次取锁：wait 11–30ms；hold 18–114ms（create 18–32ms / drop 74–114ms）
+
+RUN B2 = 聚焦诊断（apps/api 内全部 22 个 provisioning 测试文件并发；env 同 B1）
+  EXIT_CODE = 1（仅 coverage threshold；22 文件 / 142 用例全 PASS）；Duration 33.93s
+  LOG_ID = 212981 bytes；sha256 3fed0dc4e86aeff98ce232a6984434533e92ce4f08cdbfe200662a7ace72f476
+  TRACE = 89 次取锁：wait min 13 / p50 24 / p90 327 / max 1050ms；hold max 980ms
+  VICTIM_BODIES（争用下）= 1174–1433ms（≈ B1 的 1.6–1.8×）
+  PRECISION = 1050ms 是**本次调度顺序下观测到的最大值，不是锁等待的理论上界**；
+    22 个文件共同调度**不能证明所有可能的并发顺序已被覆盖**，也不能排除其他顺序下
+    出现更大等待。
+  PG_SAMPLER = 54 次采样 / 32.5s；覆盖范围内最长等待运行 1.1s；DDL age ≤0.08s
+
+RUN B3 = 受控反事实（CONTROLLED_COUNTERFACTUAL；预测事先登记于私有工件）
+  MANIPULATION = 外部 psql 会话在 exam-dev-db-1 / postgres 库持有 test-infra lifecycle
+    advisory key 6746943423375374743（= getTestInfraLifecycleLockKey()，已对
+    packages/db/dist 核验），按 8s hold / 0.4s gap 循环 8 次；同时按 B1 的 env 运行 victim
+    文件。无任何仓库文件改动，无插桩入库。
+  EXIT_CODE = 1；RESULT = 4 failed | 16 passed (20)；Duration 49.83s
+  LOG_ID = 44638 bytes；sha256 6affcfd0107dcf0bd801c9fb16eb450449504ff3b1006980b8fb6b650ec11c0c
+  OUTCOME = 恰好 4 个 in-body provisioning 用例 "Test timed out in 5000ms"
+    （atomic 5003ms / adapter source 5001ms / duplicate first-install 5023ms /
+    displayName 5018ms）；16 个 beforeAll provisioning 用例全部通过（另有一次
+    ensureDatabaseExists wait=6231ms，由非 5s 预算的路径吸收）；0 断言失败
+  TRACE = 14 次取锁：wait 1.2–7.9s（max 7884ms，dropTestSchema）；hold 正常（约 80ms）
+  PG_SAMPLER = 130 次采样 / 68.0s；等待者运行最长 7.9s（14 个连续采样）；holder 会话
+    被观测在 pg_sleep(8) 内 —— 与 trace 独立互证
+  PRE_REGISTERED_PREDICTIONS = P1 至少一个 in-body 用例 5000ms 超时；P2 beforeAll
+    provisioning 用例仍通过；P3 无断言失败；P4 trace 出现多秒级等待 → 全部命中
+  EVIDENCE_IDENTITY = 4 份 run 日志 + 4 份 PG 采样器日志 + 预登记设计文件
+    （sha256 0ffbac2a5b87ebdf5ef05ae89c5914d4d28a64553c27333320cf75d4a480ad6a）
+    保存于仓库外私有目录（本机 /tmp/exam-bf005.st3gOU/ 与 $HOME 下证据副本）；日志不入库。
+
+G_REQUIRED = UNKNOWN（维持 REC-2026-10-12-004；本轮测量不改写该字段）
+G_CLAIMED = UNKNOWN（同上；仅有"未声明 timeout 的 it() 隐式使用 vitest 默认 5s"这一事实）
+BUDGET_CONSTRAINT（独立于 G_REQUIRED 记录，不构成并发正确性因果图）= 4 个 in-body 用例把
+  完整基础设施生命周期（CREATE SCHEMA（lifecycle 锁）→ createDatabase → migratePostgres
+  45 迁移 → 断言 → DROP SCHEMA（同一锁））计入 vitest 默认 5000ms it 预算；实测该生命
+  周期为 0.66–0.85s（未争用，B1）/ 1.17–1.43s（争用，B2）。
+G_PASS / G_FAIL = PARTIAL（维持 REC-004：无失败 run 的 execution graph）
+FIRST_CAUSAL_DIVERGENCE = UNKNOWN（历史 occurrence 仍无失败 run 级归属证据）
+CAPABILITY_CHAIN（受控，仅由 B3 建立）= in-body 取锁等待 > (5000ms − 主体成本) → 该用例
+  testTimeout；同一 stall 下仅 in-body provisioning 用例被击穿、hook 路径不受影响。
+  该链条来自**受控执行**，不是历史 G_fail，也不描述任一历史 occurrence。
+MECHANISM_CAN_CAUSE_SIMILAR_FAILURE = YES（受控；选择性 victim 集与历史签名同形）
+HISTORICAL_FAILURE_ATTRIBUTION_PROVEN = NO（能力演示不得升级 CAUSALLY_PROVEN；人工 8s
+  hold 远大于自然观测最大值（B2 1.05s），且三次历史 occurrence 未在任何本轮执行中复现）
+HYPOTHESIS_CHANGES = 0 提升、0 降级（H1 未获支持为唯一解释；H2 机制能力已受控复现、
+  历史归因仍 UNKNOWN；H3 的脆弱面已量化；H4 无新证据）
+REPAIR_AUTHORIZED = NO；REPAIR_IMPLEMENTED = NO
+
+VALIDATION（REC-005）:
+- classification values unchanged: PASS（HYPOTHESIS / PLAUSIBLY_UNRELATED / PROVISIONAL；
+  0 提升、0 降级）
+- history preserved: PASS（REC-003 / REC-004 原文、三条 occurrence、三 hypothesis 与
+  FALSIFICATION_TEST 原句未改；Phase C PR 评论未追改）
+- registry/detail consistency: PASS（注册表 BUG-FLAKE-005 行与 Status 块已同步至 REC-005）
+- field precision corrections recorded: PASS（G_REQUIRED / G_CLAIMED = UNKNOWN；B2 观测
+  最大值 ≠ 理论上界；A1 采样覆盖范围与未覆盖面；B3 = 受控能力链 ≠ 历史 G_fail）
+- no repair claim / no authorization: PASS（REPAIR = NOT AUTHORIZED 未变）
+- raw logs kept private: PASS（仓库内仅登记 SHA-256 / 字节数；原始日志不入库）
+- Markdown/code-fence integrity: PASS（写后回读校验）
+- single-file write boundary: PASS（git diff --name-only 仅本文档）
+
+WRITE_APPLIED = YES
+POST_WRITE_VERIFIED = YES
+MODIFICATION_SUCCESS = YES
+```
+
+**字段精度修正（对本轮报告与 Phase C 评论，历史文本不追改）**：
+
+1. `G_REQUIRED` / `G_CLAIMED` 继续保持 `UNKNOWN`。5000ms 是**当前测试的预算约束**
+   （`BUDGET_CONSTRAINT`），不是并发正确性所需的 happens-before DAG；本轮测得的
+   0.66–0.85s / 1.17–1.43s 只用于描述该预算约束的现状，不进入这两个字段。
+2. B2 的 1050ms 是**本次调度顺序下的观测最大值**，不是锁等待的理论上界；22 文件共同
+   调度不构成对所有可能并发顺序的覆盖证明。
+3. A1 的 PostgreSQL 采样**未覆盖** bootstrap-admin 的执行窗口；该采样不能用于排除该
+   测试当时发生过更长等待，只能报告采样实际覆盖的时间范围（lane 末尾 102.2s）。
+4. B3 建立的是**受控执行中的能力链**，不是历史 `G_fail`；`FIRST_CAUSAL_DIVERGENCE`
+   对历史 occurrence 仍为 `UNKNOWN`。
+
+**NEW_FINDING_2（结构性发现，与修复无关，供下一轮归因使用）** — lane 内经 turbo 执行时
+`TEST_INFRA_TRACE` 不会到达 worker：`turbo.json` 的 `coverage` / `@exam/api#coverage`
+任务 `env` 列表不含该变量，turbo 2.x 严格 env 模式会把它过滤掉。证据为两相对照：A1
+（经 turbo）0 条 trace，B1/B2/B3（`pnpm --filter @exam/api exec vitest …`，绕过 turbo）
+trace 正常。后果：任何"lane 级 trace 归因"要么把该变量加入 `turbo.json` 任务 env 列表
+（仓库改动，需授权；本次未做），要么绕过 turbo 直接调用 vitest（本次聚焦诊断采用）。
+这也意味着：即便当时的 lane 设置了该变量，历史 occurrence 也不会留下 trace。
+
+#### 独立记录：`envSurfaceGuard.test.ts` × 未跟踪 `.env.deploy`（确定性策略冲突，NOT_A_FLAKE，不并入本 case 聚合）
+
+A1 的唯一失败是**确定性**的，不是 flaky：仓库根存在既有未跟踪 `.env.deploy`，`#741`
+env 表面守卫判定该名字"无准入所有者、必须不存在"，因此
+`src/config/envSurfaceGuard.test.ts`（`passes the live repository tree`）必然断言失败。
+
+```text
+CLASSIFICATION = DETERMINISTIC_POLICY_CONFLICT（NOT_A_FLAKE；与 BUG-FLAKE-005 无因果）
+NONDETERMINISTIC = NO
+EVIDENCE = A1 原始日志（1288883 bytes；sha256 27b9fbab…aa98）FAIL 段逐字输出：
+  ".env.deploy: unsupported root env file — supported names are .env, .env.test.local,
+  .env.production, .env.example, .env.production.example; this variant has no admission
+  owner and must not exist (silent-drift guard, #741)."
+RESOLUTION_CONSTRAINT = 禁止通过删除 / 弱化 / 跳过 envSurfaceGuard 换取全绿；也不得把它
+  当作 flaky 重跑处理。处置属于 .env.deploy 的所有者（移除或改名），或经由有权路径变更
+  #741 表面策略。Phase C 未删除该文件，工作树保持原样。
+CONSEQUENCE = 该文件存在于工作树期间，本机 `pnpm verify` 必然 FAIL；该 FAIL 不得用于任何
+  与 flake 相关的判定。
+```
+
+#### Next action（REC-2026-10-12-005 后更新）
+
+- **环境前置已解除**：本机已可运行完整 lane（REC-005）；声明预算（1 完整 + 2 聚焦 +
+  1 受控反事实）已全部用尽。进一步执行需要新的授权。
+- **已确立（本轮）**：B1 的逐用例成本（in-body 0.66–0.85s vs 其余 2–175ms）；B2 的争用
+  观测最大值（1.05s，非上界；victim 1.17–1.43s）；A1 的自然运行（victim 文件 PASS，
+  采样未覆盖其窗口）；B3 的受控能力证明（选择性同形失败）。**仍未确立**：三次历史
+  occurrence 实际消耗 ≥4.3s 缺口的机制（无失败 run 级归属证据）。
+- **待人工决定（均未授权）**：
+  (a) 是否把「消除 4 个用例基础设施成本与 5s 预算的耦合」作为**独立加固目标**评审——
+      B3 为其提供可重复的失败见证；若实施，验收只能声称"消除了 B3 所见证的受控失败
+      机制"，不得声称修复三次历史事故，且 4 个用例必须各自保留独立 schema（禁止合并为
+      共享 `beforeAll`）。
+  (b) 是否授权 `turbo.json` 的 trace 接线（NEW_FINDING_2），以获得 lane 级归因能力。
+  (c) 是否把 `ENVSURFACE-DEPLOY-CONFLICT` 提升为注册表一级条目（按
+      `RUN-LEASE-OP-MODE` 的 NOT_A_FLAKE 行形式）。
+- **修复候选空间**（不变，REC-004 收窄）：每个用例保留独立 schema、provisioning 放到该
+  用例专属 setup/hook 边界；或 call-site 显式预算（须附实测依据）。禁止把
+  CREATE+migrate+DROP 整体塞进更大的 advisory-lock 临界区；禁止以扩大 timeout、skip、
+  retry 消灭签名。
+- **若授权加固，建议的机制回归见证**：B3 的外部持锁 × 单文件 lane 配方（本 REC 的
+  RUN B3 字段 + 私有预登记工件 `B3-counterfactual-design.txt`，
+  sha256 0ffbac2a5b87ebdf5ef05ae89c5914d4d28a64553c27333320cf75d4a480ad6a）。
 
 ---
 
