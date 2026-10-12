@@ -15,14 +15,17 @@
 ```text
 DOCUMENT_KIND = TEST_NONDETERMINISM_EVIDENCE_REGISTER
 FORMAT_VERSION = 2
-LAST_RECONCILED_AT = 2026-10-12T09:48:53+08:00
-RECONCILED_FROM_REVISION = 0044e2a0a859427aa6927d19a0ff939525a60130
-RECONCILED_FROM_BLOB = 0686986f4c4a5857e73e062385f6d9bed97aa874
+LAST_RECONCILED_AT = 2026-10-12T10:24:59+08:00
+RECONCILED_FROM_REVISION = da4823db6351e1a2628ad295103181b6fbec67c2
+RECONCILED_FROM_BLOB = 1db986885be0759e9e704ef013d0b91e0df3036c
 LAST_RECONCILIATION_RESULT = PASS
 POST_WRITE_VERIFIED = YES
 HISTORICAL_EVIDENCE_LOSS = 0
 UNMAPPED_SOURCE_RECORDS = 0
 UNSUPPORTED_CAUSAL_PROMOTIONS = 0
+SOURCE_REALITY_CHECKED_AGAINST = da4823db6351e1a2628ad295103181b6fbec67c2
+  （REC-2026-10-12-002 以该 revision 的仓库源码为准复核：BUG-FLAKE-006 的历史
+  测试形态在该 revision 已不存在）
 ```
 
 > 版本 1 的登记规则、模板与"已修复事故/已升级条目"分段已被本版取代并迁移；原文保留在
@@ -119,6 +122,21 @@ PROVEN_RELATED | PROVEN_UNRELATED | PLAUSIBLY_RELATED | PLAUSIBLY_UNRELATED | UN
 占用、模块初始化、全局 setup、DB 负载、后台异步、资源身份、teardown 时序、进程拓扑
 影响执行。证据弱时写 UNKNOWN。
 
+`PROVEN_UNRELATED` 的准入依据只有两类（REC-2026-10-12-002 明确化）：
+
+- `(a) VACUOUS` — 失败 run 中不存在候选改动（未改动的 revision / 干净工作树 / 纯诊断
+  run）。这是唯一"无需对照即成立"的排除形式，须写明该 run 的 revision 与工作树状态。
+- `(b) CONTROLLED_EXCLUSION` — 同一失败签名在受控条件下被重现或消除，且被操纵的变量
+  **与候选改动无关**（命令/进程拓扑、跨 run 残留、注入的 deferred、oracle 可见性窗口、
+  纯文档改动不可能触达的通道）；须写明操纵的变量与该签名如何被重现/消除。
+
+以下单项**不构成**准入（STEP 7 已声明，本次复核再次确认）：受害文件未被改动、无 import
+边、隔离/单文件复跑通过、缺陷早已存在、产品代码无缺陷、同一 run 中相关模块的测试通过。
+这些只支撑 `PLAUSIBLY_UNRELATED`；记录不得用"已排除""无因果"等措辞表述它们。
+
+镜像要求：`CURRENT_CHANGE_CAUSALITY = PROVEN_RELATED` 同样需要逐条证据（例如失败点本身
+随该改动进入仓库）。
+
 ### STEP 8 — 次数决定优先级，不决定真相
 
 `3+ 次相似 occurrence → 必须做聚合复审（MUST REVIEW AGGREGATION BASIS）`。
@@ -204,6 +222,9 @@ CLASSIFICATION (non-flake):  NOT_A_FLAKE | MISCLASSIFIED_AS_FLAKE
 - `CORRELATED`：机制与失败可复现地相关，但与有意义的备择解释的判别未完成。
 - `CAUSALLY_PROVEN`：证据把该机制与竞争解释区分开，且操纵/修复该机制会改变失败行为。
 - `FALSIFIED`：受控证据反驳了该假设。
+- `CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED`：候选改动被排除为失败的原因（准入依据
+  见 STEP 7：VACUOUS 或 CONTROLLED_EXCLUSION）。`PROVEN_RELATED` 表示改动确证在失败
+  路径上（例如失败点随该改动进入仓库），不表示产品代码有缺陷。
 - `AGGREGATION_CONFIDENCE`：PROVISIONAL（签名级临时聚合）/ SUPPORTED（有机制性支持）/
   CAUSALLY_PROVEN（聚合的各 occurrence 与机制的因果均已证明）。
 
@@ -218,17 +239,17 @@ CLASSIFICATION (non-flake):  NOT_A_FLAKE | MISCLASSIFIED_AS_FLAKE
 | Case | State | Failure signature | Nondeterministic | Root-cause confidence | Current-change causality | Aggregation confidence | Last reviewed | Next action |
 |---|---|---|---|---|---|---|---|---|
 | BUG-FLAKE-005 | INVESTIGATING | `bootstrap-admin.test.ts` 1–3 用例 5s 超时，仅在 `pnpm verify` 全量 4-worker coverage lane；无断言失败；单文件复跑 20/20（受害用例 ≈13% 预算） | YES | HYPOTHESIS（宿主负载/调度包络） | PLAUSIBLY_UNRELATED | PROVISIONAL（签名级） | 2026-10-12 | 复发时采集两种 lane 的耗时分布，再评估 |
-| BUG-FLAKE-006 | INVESTIGATING | `ea-lock-order.test.ts:292` 100 轮 contention 循环 5s 超时，仅在满负载/插桩 lane；standalone 1.2–1.8s | YES | HYPOTHESIS（负载下累积延迟） | PLAUSIBLY_UNRELATED（逐次记录） | PROVISIONAL（同测试同错误行 3 次） | 2026-10-12（本轮新建，履行 3+ 强制聚合复审） | 第 4 次复发前先取 lane 级 trace 证据 |
+| BUG-FLAKE-006 | SUPERSEDED | 历史（2026-07-25 / 09-19 / 10-03）：`ea-lock-order.test.ts:292` 的 `repaired contention schedule is stable across 100 consecutive runs` 用例 5s 超时；**该用例形态在当前源码中已不存在**（2026-10-07 `e60a7edd` / PR #721 以真实双会话重叠 + PG 锁观测的证明替换整个文件） | YES（历史） | HYPOTHESIS（负载下累积延迟）——原失败机制既未证明也未修复 | PLAUSIBLY_UNRELATED（逐次记录；三次均未建立判别证据） | PROVISIONAL（同测试同错误行 3 次） | 2026-10-12（REC-002 对照 current source 后置为 SUPERSEDED） | 无（历史测试身份已消失；若当前 EA 锁序用例出现新签名，另立 occurrence） |
 | BUG-FLAKE-001 | REPAIRED | 历史：deadline/heartbeat scanner 等漂移性 5s 超时（共享 schema 泄漏 + 槽位身份错绑两机制） | YES（历史） | CAUSALLY_PROVEN（两机制，变异+自然失败闭环） | 历史条目各自记录 | CAUSALLY_PROVEN（机制级） | 2026-10-12 | 无（禁止把新 occurrence 自动归入） |
-| CASE-2026-09-01-CI-BOOTSTRAP | REPAIRED | CI API coverage 4-worker 下 DB 生命周期钩子漂移超时（beforeAll/afterAll 10s） | YES（历史） | CAUSALLY_PROVEN（per-file bootstrap 重复取锁风暴，变异+前后对比） | PROVEN_UNRELATED（受害文件不导入改动模块 + 同 commit 本地全绿） | SUPPORTED | 2026-10-12 | 无 |
-| BUG-FLAKE-002 | REPAIRED | 跨 package/task 共享 `exam_test` seed/cleanup 互相覆盖（401/FK violation） | YES（历史） | CAUSALLY_PROVEN（复现链 + 隔离修复 stress 5/5） | PROVEN_UNRELATED（seed/cleanup/路由未改动） | CAUSALLY_PROVEN | 2026-10-12 | 无 |
-| BUG-FLAKE-003 | REPAIRED | deadline scanner 跨 run 残留 expired attempts → `submittedCount` 断言漂移 | YES（历史） | CAUSALLY_PROVEN（38-run 复现 + DB 普查 94 行 + fresh-DB 对照） | PROVEN_UNRELATED（scanner 逻辑正确跳过 voided） | CAUSALLY_PROVEN | 2026-10-12 | 无 |
-| BUG-FLAKE-004 | REPAIRED | 同 suite 跨文件状态泄漏（非法 fixture 毒化后续文件 list 查询 → 500） | YES（历史） | CAUSALLY_PROVEN（逐层隔离复现 + schema 隔离后消除） | PROVEN_UNRELATED（生产代码无 bug，DB 重置对照） | CAUSALLY_PROVEN | 2026-10-12 | 无 |
-| CASE-2026-07-21-AUDIT | REPAIRED | fire-and-forget audit 与破坏性清理生命周期竞态（FK violation / 跨测试晚行污染） | YES（历史） | CAUSALLY_PROVEN（deferred Promise + 真实 PG 确定性复现） | PROVEN_UNRELATED（缺 owner 的 Promise 是既有结构） | CAUSALLY_PROVEN | 2026-10-12 | 无 |
+| CASE-2026-09-01-CI-BOOTSTRAP | REPAIRED | CI API coverage 4-worker 下 DB 生命周期钩子漂移超时（beforeAll/afterAll 10s） | YES（历史） | CAUSALLY_PROVEN（per-file bootstrap 重复取锁风暴，变异+前后对比） | PLAUSIBLY_UNRELATED（REC-002 降级：原依据为文件级论证；且该 PR 在同一 lane 内改动了 DB-touching 测试文件） | SUPPORTED | 2026-10-12 | 无 |
+| BUG-FLAKE-002 | REPAIRED | 跨 package/task 共享 `exam_test` seed/cleanup 互相覆盖（401/FK violation） | YES（历史） | CAUSALLY_PROVEN（复现链 + 隔离修复 stress 5/5） | PROVEN_UNRELATED（CONTROLLED_EXCLUSION：并发拓扑受控复现同一竞争链；隔离域落地后该链消失） | CAUSALLY_PROVEN | 2026-10-12 | 无 |
+| BUG-FLAKE-003 | REPAIRED | deadline scanner 跨 run 残留 expired attempts → `submittedCount` 断言漂移 | YES（历史） | CAUSALLY_PROVEN（38-run 复现 + DB 普查 94 行 + fresh-DB 对照） | PROVEN_UNRELATED（CONTROLLED_EXCLUSION：38 连跑在改动无关的变量上重现同签名；fresh-DB 对照归零） | CAUSALLY_PROVEN | 2026-10-12 | 无 |
+| BUG-FLAKE-004 | REPAIRED | 同 suite 跨文件状态泄漏（非法 fixture 毒化后续文件 list 查询 → 500） | YES（历史） | CAUSALLY_PROVEN（逐层隔离复现 + schema 隔离后消除） | PROVEN_UNRELATED（CONTROLLED_EXCLUSION：逐层隔离受控复现 + schema 隔离后消除 + 3 连跑 stress 对照） | CAUSALLY_PROVEN | 2026-10-12 | 无 |
+| CASE-2026-07-21-AUDIT | REPAIRED | fire-and-forget audit 与破坏性清理生命周期竞态（FK violation / 跨测试晚行污染） | YES（历史） | CAUSALLY_PROVEN（deferred Promise + 真实 PG 确定性复现） | PROVEN_UNRELATED（CONTROLLED_EXCLUSION：操纵的变量是缺 owner 的 Promise，注入 deferred 即在真实 PG 确定性重现 23503 与晚行污染） | CAUSALLY_PROVEN | 2026-10-12 | 无 |
 | CASE-2026-08-01-LOCK-SCOPE | REPAIRED | PR #242 多文件偶发失败后重跑过（原失败未复现；修复 4 处源码级非确定性来源） | YES（历史） | 修复机制 CAUSALLY_PROVEN（源码证据+确定性回归）；原 occurrence 归因 UNKNOWN | UNKNOWN（原失败未复现） | PROVISIONAL（修复与原失败的链接未证明） | 2026-10-12 | 无 |
-| CASE-2026-07-30-RATELIMIT | REPAIRED | #231 auth route E2E bypass 用例 CI 偶发 5s 超时（12 次完整登录放大） | YES（历史） | CORRELATED（成本/预算算术 + 修复后无复发） | PROVEN_UNRELATED（测试所有权问题，非产品回归） | SUPPORTED | 2026-10-12 | 无 |
-| CASE-2026-09-28-PGSTAT | REPAIRED | `failurePath.test.ts` beforeAll `otherBackendCount` 瞬时读到 1（期望 0） | YES | CAUSALLY_PROVEN（~12% 单文件复现率 + 30 连跑归零 + 阴性对照变异） | PROVEN_UNRELATED（观测窗口属 PostgreSQL 语义） | CAUSALLY_PROVEN | 2026-10-12 | 无 |
-| CASE-2026-09-24-MOBILE-RACE | REPAIRED | `getByText(...).first()` 命中 CSS 隐藏 mobile 卡片（4 轮全量 2 过 2 败） | YES | CAUSALLY_PROVEN（双峰观察 + role 断言修复） | PROVEN_UNRELATED（断言依赖竞态窗口） | CAUSALLY_PROVEN | 2026-10-12 | 无 |
+| CASE-2026-07-30-RATELIMIT | REPAIRED | #231 auth route E2E bypass 用例 CI 偶发 5s 超时（12 次完整登录放大） | YES（历史） | CORRELATED（成本/预算算术 + 修复后无复发） | PLAUSIBLY_UNRELATED（REC-002 降级：原依据是"测试所有权问题，非产品回归"，属产品回归论证而非改动排除；当时候选改动未识别，也无受控复现） | SUPPORTED | 2026-10-12 | 无 |
+| CASE-2026-09-28-PGSTAT | REPAIRED | `failurePath.test.ts` beforeAll `otherBackendCount` 瞬时读到 1（期望 0） | YES | CAUSALLY_PROVEN（~12% 单文件复现率 + 30 连跑归零 + 阴性对照变异） | PROVEN_RELATED（REC-002 更正：失败点 `expect(await otherBackendCount()).toBe(0)` 随 #648 提交 `2e2bc4e2` 新增该文件进入仓库；触发机制是 PostgreSQL/postgres.js 既有退出可见性语义） | CAUSALLY_PROVEN | 2026-10-12 | 无 |
+| CASE-2026-09-24-MOBILE-RACE | REPAIRED | `getByText(...).first()` 命中 CSS 隐藏 mobile 卡片（4 轮全量 2 过 2 败） | YES | CAUSALLY_PROVEN（双峰观察 + role 断言修复） | PROVEN_UNRELATED（CONTROLLED_EXCLUSION：失败表达式为改动前既有代码，改动自身 diff 将其移除；机制在断言策略而非改动主题） | CAUSALLY_PROVEN | 2026-10-12 | 无 |
 | #98-examTransitions | CLOSED_NOT_REPRODUCED | `examTransitions.test.ts` file-schema 全套 8/14 失败（`waitForAuditCount` 1s 超时） | UNKNOWN（再未复现） | HYPOTHESIS（worker-database 实验期 `public.audit_logs` 瞬时污染） | UNKNOWN | NONE | 2026-10-12 | 无（复发再开） |
 | RUN-LEASE-OP-MODE | OPERATIONAL_CONSTRAINT（NOT_A_FLAKE） | 同 PG 并发两个 worker-database run：后启动方 run-lease 测试立即失败（错误即契约） | NO（给定操作模式必现） | CAUSALLY_PROVEN（契约设计 + 复现实验非对称签名） | 不适用 | 不适用 | 2026-10-12 | 无（串行执行即可） |
 
@@ -276,7 +297,8 @@ TYPICAL_VICTIMS = bootstrap-admin.test.ts 内漂移（:449 audit metadata 用例
 - 前两次 occurrence 所在 head 有同 hash 或同代码全量重跑 EXIT=0 的对照（10-07 条目①；
   10-06 条目③）。
 - 无断言失败；失败点均为 it 体。
-- **受害代码确定性回归被排除**：同 head serial `pnpm test` 与单文件 coverage 均稳定通过。
+- **受害代码的确定性回归未获支持**（不是"被排除"：该论证为文件/复跑级，按 STEP 7 只
+  支撑 PLAUSIBLY_UNRELATED）：同 head serial `pnpm test` 与单文件 coverage 均稳定通过。
 - 被验证 Phase 的 diff 均未触碰 `bootstrap-admin.test.ts` 及其被测脚本（10-08 R5 时
   workspace 无任何 `.env`，R5 移除的 dotenv side effect 本地为 no-op）。
 
@@ -372,30 +394,55 @@ CLASSIFICATION_CHANGE_REASON = 现有证据确立了非确定性与签名复发�
 
 ---
 
-### BUG-FLAKE-006 — `ea-lock-order.test.ts` 100 轮 contention 循环在满负载 lane 下 5s 超时
+### BUG-FLAKE-006 — `ea-lock-order.test.ts` `...stable across 100 consecutive runs` 用例在满负载 lane 下 5s 超时（历史测试形态已被替换）
 
-> 本 case 由本轮调解新建：同测试同错误行 3 次 occurrence 触发"3+ 相似 occurrence →
+> 本 case 由 v1 → v2 调解新建：同测试同错误行 3 次 occurrence 触发"3+ 相似 occurrence →
 > 必须聚合复审"。v1 把三次记录在同一条目的复发记录里但从未按其自身规则（≥3 升级）
 > 建案，属登记缺口。
+>
+> **REC-2026-10-12-002 复核 current source 后的更正**：本 case 的受害测试形态
+> （`repaired contention schedule is stable across 100 consecutive runs`，
+> `apps/api/tests/concurrency/ea-lock-order.test.ts:292`）**在当前源码中已不存在**。
+> 该文件于 2026-10-07 由 `e60a7edd`（"test(pg): deterministic EA lock-order owner +
+> tx-bound lifecycle proof"，经 PR #721 / `e62d317e` 合入）整体替换为真实双会话重叠、
+> 显式同步、`pg_locks` 观测与独立生命周期证明。三次 occurrence 因此**不再可能是当前
+> 复现器**（`REPRODUCER = NONE`）；其历史事实、错误文本与解释按原样保全。详情见
+> [REC-2026-10-12-002 再分类记录](#rec-2026-10-12-002-再分类记录case-modification-history)。
 
 #### Status
 
 ```text
-CASE_STATE = INVESTIGATING
+CASE_STATE = SUPERSEDED（历史测试身份被测试契约替换取代；原失败机制未被证明也未被修复）
 CASE_CREATED_AT = 2026-10-12（履行强制聚合复审）
-CASE_LAST_REVIEWED_AT = 2026-10-12T09:48:53+08:00
-CASE_LAST_MODIFIED_AT = 2026-10-12T09:48:53+08:00
+CASE_LAST_REVIEWED_AT = 2026-10-12T10:24:59+08:00
+CASE_LAST_MODIFIED_AT = 2026-10-12T10:24:59+08:00
 
-NONDETERMINISTIC = YES
-ROOT_CAUSE_CONFIDENCE = HYPOTHESIS
-CURRENT_CHANGE_CAUSALITY = PLAUSIBLY_UNRELATED（逐 occurrence 记录）
-AGGREGATION_CONFIDENCE = PROVISIONAL
+NONDETERMINISTIC = YES（历史）
+ROOT_CAUSE_CONFIDENCE = HYPOTHESIS（原失败机制）
+CURRENT_CHANGE_CAUSALITY = PLAUSIBLY_UNRELATED（逐 occurrence 记录；未建立判别证据）
+AGGREGATION_CONFIDENCE = PROVISIONAL（签名级；聚合依据的测试身份已消失）
+
+REPRODUCER = NONE（历史测试形态已从源码移除，无法再复现该签名）
+HISTORICAL_TEST_IDENTITY = apps/api/tests/concurrency/ea-lock-order.test.ts
+  @ blob 3dc187909db736542204b4d97b93b50d8a720d9f
+  （含 `it("repaired contention schedule is stable across 100 consecutive runs")`；
+  由 c56bae154a4a4310fdd3e1654ac489f3756517e3 于 2026-07-08 新增）
+HISTORICAL_TEST_IDENTITY_REPLACED_BY = e60a7eddcefa9d5999f7f5b7ab8e31a361a540b6
+  （PR #721；2026-10-07）
+REPLACEMENT_REASON = 旧文件的"屏障调度"从未真正运行（T1 在 T2 开始前就已完整提交，
+  零重叠；deferred/expectStillPending 是死 helper；100 轮循环以 expect(true).toBe(true)
+  结束），故其宣称的死锁环故障模型没有 owner；定向变异（反转 seam 锁序）可存活整个旧
+  文件
+REPAIR_OF_ORIGINAL_FAILURE_MECHANISM = NOT_ESTABLISHED（这是测试契约替换，不是对原
+  超时机制的修复证明）
 
 AGGREGATION_BASIS = 同一测试（repaired contention schedule is stable across 100
 consecutive runs）+ 同一错误签名（Test timed out in 5000ms @ ea-lock-order.test.ts:292）
 + 均仅在满负载 lane（插桩或宿主重负载）出现 + standalone 均 3/3 PASS；因果机制未证明。
 注意三次 occurrence 的负载形态并不相同（coverage+4worker / 纯 turbo+soak 余波 /
-coverage+4worker），这是 PROVISIONAL 而非 SUPPORTED 的原因之一。
+coverage+4worker），这是 PROVISIONAL 而非 SUPPORTED 的原因之一。**该聚合依据为签名级
+（同文件 + 同用例名 + 同行号），其载体现已不存在，故本 case 状态置为 SUPERSEDED 而非
+REPAIRED——它从未达到机制级聚合。**
 ```
 
 #### Failure signature
@@ -405,6 +452,7 @@ LANE = pnpm verify（coverage + API_TEST_MAX_WORKERS=4）/ pnpm test（turbo 全
 EXECUTION_TOPOLOGY = 见各 occurrence
 FAILURE_CLASS = testTimeout（5000ms）；无断言失败
 TYPICAL_VICTIMS = tests/concurrency/ea-lock-order.test.ts:292（固定，不漂移）
+CURRENT_REPRODUCER = NONE（对应源码位置现由不同用例占据，见 REC-002 更正）
 ```
 
 #### What is established
@@ -413,12 +461,18 @@ TYPICAL_VICTIMS = tests/concurrency/ea-lock-order.test.ts:292（固定，不漂�
   `NONDETERMINISM_CONFIRMED = YES`（standalone 复跑 3/3 PASS，100 轮循环实测 1.2–1.8s）。
 - 失败点固定在 `:292`，错误逐字一致（10-03 与 07-25 首登完全一致）。
 - 三次的宿主背景都有明确额外负载（coverage 插桩 / 95-min soak 后 turbo 15 包并行）。
+- **（REC-002 新增的已确立事实）** 受害测试形态的源码生命周期已核实：该用例由
+  `c56bae15` 引入，由 `e60a7edd`（PR #721，2026-10-07）随整个文件替换而移除；替换原因
+  见 Status 块。历史失败与替换之间没有"该超时机制已被修复"的证据。
 
 #### What is NOT established
 
 - "累积延迟击穿 5s"只是假设：没有 lane 内该用例的耗时采样，无法与其它机制
   （调度饥饿、锁等待、DB 争用）判别。
 - 三次是否同一机制未证明。
+- **（REC-002 追加）** 旧用例的超时是否与其"零重叠"的假故障模型有关（例如循环本身在
+  插桩下的成本）尚未建立；旧文件被替换不是对该问题的回答。替换后的用例是否继承或消除
+  了原超时机制**也未证明**——当前用例的签名从未在 lane 中出现过（既有 0 次记录）。
 
 #### Hypotheses
 
@@ -426,11 +480,12 @@ TYPICAL_VICTIMS = tests/concurrency/ea-lock-order.test.ts:292（固定，不漂�
 HYPOTHESIS_ID = BF006-H1
 STATEMENT = 100 轮真实 PG 事务 + advisory lock 争用循环在插桩/满负载下累积延迟击穿
   5s 默认 testTimeout
-STATUS = HYPOTHESIS
+STATUS = HYPOTHESIS（载体已移除；该假设在当前源码上不可再检验）
 SUPPORTING_EVIDENCE = standalone 无插桩时 100 轮仅 ~1.2s；三次均有明确宿主负载背景
-CHALLENGING_EVIDENCE = 无 lane 内耗时分布；无法排除单点调度停顿而非累积
-FALSIFICATION_TEST = 复发 run 记录该用例在 lane 内的耗时与 TEST_INFRA_TRACE 等待；
-  若耗时远小于 5s 仍超时，累积假设被削弱
+CHALLENGING_EVIDENCE = 无 lane 内耗时分布；无法排除单点调度停顿而非累积；旧文件的
+  100 轮循环实际不含跨会话重叠（其"争用"未按宣称发生）
+FALSIFICATION_TEST = N/A（历史测试形态已不存在；若要在当前文件上检验负载包络假设，
+  必须新建一条针对当前双会话用例的 occurrence 与独立假设，不得沿用本条的历史权重）
 ```
 
 #### Causal model
@@ -445,21 +500,52 @@ FIRST_CAUSAL_DIVERGENCE = UNKNOWN
 
 #### Occurrences
 
-- OBS-2026-07-25-001、OBS-2026-09-19-001、OBS-2026-10-03-001
+- OBS-2026-07-25-001、OBS-2026-09-19-001、OBS-2026-10-03-001（事实全部保全）
 
 #### Repair
 
 ```text
-REPAIR_STATUS = NONE
+REPAIR_STATUS = NONE（针对原失败机制）
 REPAIR_MECHANISM = 无（明确不采用单点 positional timeout；见 v1 禁止项，继续有效）
 REPAIR_EVIDENCE = 不适用
+TEST_CONTRACT_CHANGE = e60a7edd（PR #721）替换了受害测试契约本身——**不得**表述为
+  "已修复"
 ```
 
 #### Exit criterion
 
-- `CAUSALLY_PROVEN`：lane 级 trace/耗时证据判别累积 vs 单点停顿 vs 其它。
-- `REPAIRED`：机制修复 + stress 验证 0 复发。
-- 第 4 次复发前应先取得 lane 级诊断证据，而不是继续累积签名计数。
+- 本 case 不再有"达到 CAUSALLY_PROVEN"的路径：其历史测试身份已消失，无法在 current
+  source 上取得 lane 级证据。若当前的 EA 锁序证明用例出现 5s 超时，按 STEP 2/STEP 5
+  另立 occurrence 并按机制重新评估聚合，禁止把新签名直接挂回本 case。
+- `REPAIRED` 不再适用（原机制既未证明也未被修复）。
+
+#### REC-2026-10-12-002 再分类记录（CASE MODIFICATION HISTORY）
+
+```text
+CASE_LAST_MODIFICATION = CASE_STATE_RECLASSIFIED（INVESTIGATING → SUPERSEDED）
+CASE_LAST_MODIFICATION_RESULT = PASS
+PREVIOUS_CLASSIFICATION = CASE_STATE = INVESTIGATING；failure signature 表述为
+  "`ea-lock-order.test.ts:292` 100 轮 contention 循环 5s 超时，仅在满负载/插桩 lane"；
+  Next action = "第 4 次复发前先取 lane 级 trace 证据"——即把该用例当作现存的活跃
+  复现器
+CURRENT_CLASSIFICATION = CASE_STATE = SUPERSEDED；REPRODUCER = NONE；
+  HISTORICAL_TEST_IDENTITY_REPLACED_BY = e60a7edd（PR #721）；
+  REPAIR_OF_ORIGINAL_FAILURE_MECHANISM = NOT_ESTABLISHED
+EVIDENCE = ① `git log --follow apps/api/tests/concurrency/ea-lock-order.test.ts`：
+  现场只有 c56bae15（新增，2026-07-08）→ ece042db → f3ee18c2 → e60a7edd（替换）；
+  ② `git show e60a7edd^:<file> | grep "100 consecutive"` 命中 :292，而
+  `git show da4823db:<file>` 与工作树均无 `100 consecutive` / 该用例名；
+  ③ e60a7edd 提交说明给出替换理由（旧文件宣称的屏障调度从未运行、100 轮循环以
+  `expect(true).toBe(true)` 结束、定向变异可存活）
+CLASSIFICATION_CHANGE_REASON = 登记册 v2 写于 2026-10-12，但把 2026-10-07 已被整体
+  替换的测试形态描述为现存活跃复现器；这是"描述与 current source 不一致"的缺陷，按
+  第 4 节权威路由以源码为准收敛。替换是**测试契约替换**，不是对原超时机制的修复证明，
+  故不得标 REPAIRED，也不得保留 INVESTIGATING 的活跃复现器语义。
+PRESERVED = 三次 occurrence 的 OBSERVED_AT / GIT_SHA / COMMAND / EXECUTION_TOPOLOGY /
+  FAILED_FILE / FAILED_TEST / FAILURE_PHASE / FAILURE_CLASS / ERROR /
+  AUTHORITATIVE_RUN_RESULT / RERUN_EVIDENCE / DIFF_RELATION / INTERPRETATION_AT_RECORD_TIME
+  全部逐字保留；本记录只追加 `HISTORICAL_TEST_IDENTITY_STATUS` 字段
+```
 
 ---
 
@@ -863,8 +949,8 @@ CASE_LAST_MODIFIED_AT = 2026-10-12T09:48:53+08:00
 NONDETERMINISTIC = YES（历史）
 ROOT_CAUSE_CONFIDENCE = CAUSALLY_PROVEN（per-file bootstrap 重复取锁风暴 + 慢 DDL
   持有者队列放大；变异回归 + 修复前后量化对比 + 受控 5 连跑）
-CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（两次 occurrence 的受害文件均不导入
-  改动模块，且同一 CI run 中导入这些模块的测试全过；同 commit 本地全绿）
+CURRENT_CHANGE_CAUSALITY = PLAUSIBLY_UNRELATED（REC-2026-10-12-002 降级，原为
+  PROVEN_UNRELATED；准入依据见 STEP 7：原依据为文件级论证，不构成排除）
 AGGREGATION_CONFIDENCE = SUPPORTED（2026-09-01 occurrence 为签名级归因
   [CORRELATED]；2026-09-23 复发进入机制调查后被实证）
 ```
@@ -937,6 +1023,27 @@ CLASSIFICATION_CHANGE_REASON = 2026-09-24 调查把机制实证到取锁计数�
   对首 occurrence 的链接是签名级而非逐条因果证明
 ```
 
+```text
+CASE_LAST_MODIFICATION = CURRENT_CHANGE_CAUSALITY_RECLASSIFIED（REC-2026-10-12-002）
+CASE_LAST_MODIFICATION_RESULT = PASS
+PREVIOUS_CLASSIFICATION = CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（两次 occurrence
+  的受害文件均不导入改动模块，且同一 CI run 中导入这些模块的测试全过；同 commit 本地
+  全绿）
+CURRENT_CLASSIFICATION = CURRENT_CHANGE_CAUSALITY = PLAUSIBLY_UNRELATED
+EVIDENCE = ① 原依据属 STEP 7 明确排除的准入形式（受害文件未被改动 / 无 import 边 /
+  隔离复跑通过）；② 本次复核 `git diff --stat 9586f7c9^1 9586f7c9`（PR #362，
+  `chore/recovery-anti-decay-s1`）显示该 PR 在同一 API coverage lane 内改动了
+  DB-touching 测试文件：`packages/db/src/repository/recoveryRepo.test.ts`（+115）与
+  `apps/api/src/.../pendingForceSubmitAuthority.test.ts`（532 行改写），另有
+  `recoveryRepo.ts`、`incidents.admin.ts` 等生产文件；已证明机制（per-file bootstrap
+  重复取锁 → lane 队列深度放大）对 lane 内文件数/工作量敏感，故改动经队列压力影响失败
+  的通路未被排除
+CLASSIFICATION_CHANGE_REASON = 原分类把"改动后的产物被测通过"与"受害文件不在依赖图"
+  当作对改动的排除，但两者都不排除调度/队列级影响；在机制确定为队列放大的情况下，
+  同一 lane 内测试文件被改动是必须排除却未被排除的备择解释
+REVIEWED_AT = 2026-10-12T10:24:59+08:00
+```
+
 ---
 
 ### BUG-FLAKE-002 — 跨 package / 跨 task 共享 `exam_test` DB 导致 seed/cleanup 互相覆盖
@@ -950,7 +1057,8 @@ CASE_LAST_REVIEWED_AT = 2026-10-12T09:48:53+08:00
 
 NONDETERMINISTIC = YES（历史）
 ROOT_CAUSE_CONFIDENCE = CAUSALLY_PROVEN
-CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（seed/cleanup/路由未改动）
+CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（CONTROLLED_EXCLUSION：并发拓扑受控
+  复现同一竞争链；隔离域落地后该链消失）
 AGGREGATION_CONFIDENCE = CAUSALLY_PROVEN
 
 AGGREGATION_BASIS = 同一资源所有者缺陷：turbo 并发调度下多任务共享同一 default
@@ -1036,7 +1144,8 @@ CASE_LAST_REVIEWED_AT = 2026-10-12T09:48:53+08:00
 NONDETERMINISTIC = YES（历史；触发依赖累积状态，fresh DB 不触发）
 ROOT_CAUSE_CONFIDENCE = CAUSALLY_PROVEN（38-run 复现 + DB 普查 + fresh-DB 对照 +
   修复后 stress 5/5）
-CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（scanner 正确跳过 voided；业务代码无 bug）
+CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（CONTROLLED_EXCLUSION：38 连跑在改动
+  无关的变量上重现同签名；fresh-DB 对照归零；原 occurrence 本身即为受控复现 run）
 AGGREGATION_CONFIDENCE = CAUSALLY_PROVEN
 
 AGGREGATION_BASIS = 同一状态泄漏机制：cleanup() 只关连接不删数据，expired attempts
@@ -1196,7 +1305,8 @@ CASE_LAST_REVIEWED_AT = 2026-10-12T09:48:53+08:00
 
 NONDETERMINISTIC = YES（历史；同 run 内顺序依赖）
 ROOT_CAUSE_CONFIDENCE = CAUSALLY_PROVEN（逐层隔离复现；schema 隔离后源头消除）
-CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（生产代码无 bug）
+CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（CONTROLLED_EXCLUSION：逐层隔离受控
+  复现；schema 隔离后源头消除，3 连跑 stress 对照）
 AGGREGATION_CONFIDENCE = CAUSALLY_PROVEN
 
 AGGREGATION_BASIS = 同一状态泄漏机制：同 package 内跨文件单次 run 的共享 schema
@@ -1283,7 +1393,9 @@ CASE_LAST_REVIEWED_AT = 2026-10-12T09:48:53+08:00
 NONDETERMINISTIC = YES（历史）
 ROOT_CAUSE_CONFIDENCE = CAUSALLY_PROVEN（deferred Promise + 真实 PostgreSQL 确定性
   复现 23503 与跨测试晚行污染；trigger 注入覆盖多写入家族）
-CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（无 owner 的 Promise 是既有结构）
+CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（CONTROLLED_EXCLUSION：操纵的变量是缺
+  owner 的 Promise；注入 deferred 即在真实 PostgreSQL 上确定性重现 23503 与跨测试
+  晚行污染，该结构独立于当时改动）
 AGGREGATION_CONFIDENCE = CAUSALLY_PROVEN
 ```
 
@@ -1425,8 +1537,25 @@ CASE_LAST_REVIEWED_AT = 2026-10-12T09:48:53+08:00
 NONDETERMINISTIC = YES（历史——CI 下偶发 5000ms 超时）
 ROOT_CAUSE_CONFIDENCE = CORRELATED（成本/预算算术 + 所有权分析；修复后无复发记录；
   未做受控失败复现，故不标 CAUSALLY_PROVEN）
-CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（测试所有权/成本问题，非产品回归）
+CURRENT_CHANGE_CAUSALITY = PLAUSIBLY_UNRELATED（REC-2026-10-12-002 降级，原为
+  PROVEN_UNRELATED；原依据是"测试所有权/成本不匹配、非产品回归"，属产品回归论证而非
+  对当时改动的排除；记录中未识别当时候选改动，也无受控复现；根因置信保持 CORRELATED）
 AGGREGATION_CONFIDENCE = SUPPORTED
+```
+
+```text
+CASE_LAST_MODIFICATION = CURRENT_CHANGE_CAUSALITY_RECLASSIFIED（REC-2026-10-12-002）
+CASE_LAST_MODIFICATION_RESULT = PASS
+PREVIOUS_CLASSIFICATION = CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（测试所有权/成本
+  问题，非产品回归）
+CURRENT_CLASSIFICATION = CURRENT_CHANGE_CAUSALITY = PLAUSIBLY_UNRELATED
+EVIDENCE = ① 原依据回答的是"缺陷位于测试所有权而非产品代码"（ROOT_CAUSE 轴），不是
+  "与当时改动无关"（CURRENT_CHANGE_CAUSALITY 轴）；② 记录未识别失败当时的候选改动，
+  也没有把改动移除/重现的对照；③ 根因置信本身为 CORRELATED（未做受控失败复现）
+CLASSIFICATION_CHANGE_REASON = 该轴的原值把产品回归论证当成改动排除；两轴必须分开。
+  本 case 的 CORRELATED 根因与 SUPPORTED 聚合保持不变——修复机制（测试所有权迁移）仍然
+  成立，但"与当时改动无关"从未被证明
+REVIEWED_AT = 2026-10-12T10:24:59+08:00
 ```
 
 - **现象**：`apps/api/src/routes/auth.test.ts` 的 `APP_MODE=e2e does not rate-limit
@@ -1471,12 +1600,42 @@ CASE_LAST_REVIEWED_AT = 2026-10-12T09:48:53+08:00
 NONDETERMINISTIC = YES
 ROOT_CAUSE_CONFIDENCE = CAUSALLY_PROVEN（单文件 ~12% 复现率 + 修复后 30 连跑归零 +
   阴性对照变异在截止时刻失败）
-CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（退出可见性窗口属 PostgreSQL/postgres.js
-  语义，非 #648 改动引入）
+CURRENT_CHANGE_CAUSALITY = PROVEN_RELATED（REC-2026-10-12-002 更正，原为
+  PROVEN_UNRELATED：失败点 `expect(await otherBackendCount()).toBe(0)`
+  （`beforeAll`）随 #648 的提交 2e2bc4e2 新增该文件进入仓库——`--diff-filter=A` 与
+  该 revision 的文件内容均可核；触发机制（客户端 close 完成 ≠ 服务端 backend 行即时
+  消失）是 PostgreSQL/postgres.js 既有语义。限定：改动经其新增测试预言机成为该次失败
+  的必要条件，产品代码无缺陷）
 AGGREGATION_CONFIDENCE = CAUSALLY_PROVEN
 
 AGGREGATION_BASIS = 同一可复现生命周期竞态：客户端 close 完成 ≠ 服务端 backend 行即时
   消失；同日 3 次同签名（全套件 1 + 单文件 2/17）
+```
+
+#### 本轮再分类记录（REC-2026-10-12-002）
+
+```text
+CASE_LAST_MODIFICATION = CURRENT_CHANGE_CAUSALITY_RECLASSIFIED（PROVEN_UNRELATED →
+  PROVEN_RELATED）
+CASE_LAST_MODIFICATION_RESULT = PASS
+PREVIOUS_CLASSIFICATION = CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（"退出可见性窗口
+  属 PostgreSQL/postgres.js 语义，非 #648 改动引入"）
+CURRENT_CLASSIFICATION = CURRENT_CHANGE_CAUSALITY = PROVEN_RELATED（限定：改动经其
+  新增的测试预言机成为该次失败的必要条件；机制本身是 PostgreSQL/postgres.js 既有语义，
+  产品代码无缺陷）
+EVIDENCE = ① `git log --diff-filter=A -- packages/db/src/testDbWorkerScoped.failurePath.test.ts`
+  只有 2e2bc4e2（"test(db): release worker handle when the reset boundary throws (#648)"，
+  2026-09-28T15:24+08:00，178 行新增）与 4ebe50ae（"#650"，同日 23:30 修复）；
+  ② 该 revision 的文件内容中 `beforeAll` 直接断言 `expect(await otherBackendCount())
+  .toBe(0)`（该文件 :95 / :120），即失败点本身随 #648 进入仓库；
+  ③ 本 case 记录的失败点为 `beforeAll otherBackendCount 瞬时读到 1（期望 0）`，与该断言
+  逐字对应；④ 修复提交 4ebe50ae 把两处瞬时断言替换为 bounded polling
+  `waitForNoOtherBackends()`
+CLASSIFICATION_CHANGE_REASON = 原表述把"触发机制属 PostgreSQL 语义"错误地外推为
+  "该次失败与 #648 无关"。触发机制确实既存，但**失败点（过严的瞬时断言）是 #648 新增
+  测试代码的一部分**，改动是必要条件的证明是可核的源码事实。这属于两轴混淆的更正，
+  不改变本 case 的 ROOT_CAUSE_CONFIDENCE（CAUSALLY_PROVEN）与修复机制
+REVIEWED_AT = 2026-10-12T10:24:59+08:00
 ```
 
 #### 失败位置与错误（历史事实保全）
@@ -1578,7 +1737,9 @@ CASE_LAST_REVIEWED_AT = 2026-10-12T09:48:53+08:00
 NONDETERMINISTIC = YES（4 轮全量 2 过 2 败的双峰行为）
 ROOT_CAUSE_CONFIDENCE = CAUSALLY_PROVEN（机制由 DOM 结构 + 竞态窗口分析确立；
   断言修复后带永久回归）
-CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（断言写法依赖竞态窗口，非 #601 改动）
+CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（CONTROLLED_EXCLUSION：失败表达式
+  `getByText(...).first()` 是改动前的既有代码——改动自身 diff 把它作为 `-` 行替换为
+  role 断言；机制在断言策略（按 DOM 顺序命中 CSS 隐藏卡片）而非 #601 改动主题）
 AGGREGATION_CONFIDENCE = CAUSALLY_PROVEN
 ```
 
@@ -1692,6 +1853,10 @@ CURRENT_CHANGE_CAUSALITY = PLAUSIBLY_UNRELATED
 ROOT_CAUSE_CONFIDENCE = HYPOTHESIS
 FIRST_CAUSAL_DIVERGENCE = UNKNOWN
 CASE_ID = BUG-FLAKE-006
+HISTORICAL_TEST_IDENTITY_STATUS = SUPERSEDED（REC-2026-10-12-002）——`FAILED_TEST` 与
+  `ERROR` 所指的用例在 current source 中已不存在（`e60a7edd` / PR #721，2026-10-07
+  整体替换该文件）。本 occurrence 的失败事实、错误文本与原始解释不变；
+  `REPRODUCER = NONE`，本行以下字段不得被读作"当前可复现"。
 ```
 
 已知不是的原因（v1 记录）：P5-N1 改动引入；锁序逻辑回归（standalone 100 轮稳定）；
@@ -1725,8 +1890,9 @@ CURRENT_INTERPRETATION = 并发双套件这一负载形态与失败的关联有�
   即全过，n=1）；具体资源机制（CPU 调度 vs I/O vs DB）未判别 → HYPOTHESIS；
   不归入 BUG-FLAKE-001（其机制已修复，且本 occurrence 晚于修复）
 CURRENT_INTERPRETATION_UPDATED_AT = 2026-10-12T09:48:53+08:00
-CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（负载由操作方式引入，非 diff；
-  受控对照 + 受害面与改动零交集）
+CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（CONTROLLED_EXCLUSION：唯一变量是去掉
+  两套件并发（并发→5 处超时；串行→两次 EXIT=0 全过），操纵的变量是进程拓扑而非 diff；
+  n=1。受害面与 rich-content 改动零交集属附带观察，不作为准入依据）
 ROOT_CAUSE_CONFIDENCE = HYPOTHESIS
 FIRST_CAUSAL_DIVERGENCE = UNKNOWN
 CASE_ID = UNASSIGNED（AGGREGATION_BASIS = NONE；与其它宿主负载签名 occurrence 仅
@@ -1757,6 +1923,9 @@ CURRENT_CHANGE_CAUSALITY = PLAUSIBLY_UNRELATED
 ROOT_CAUSE_CONFIDENCE = HYPOTHESIS
 FIRST_CAUSAL_DIVERGENCE = UNKNOWN
 CASE_ID = BUG-FLAKE-006
+HISTORICAL_TEST_IDENTITY_STATUS = SUPERSEDED（REC-2026-10-12-002）——`FAILED_TEST`
+  （同 OBS-2026-07-25-001）所指用例在 current source 中已不存在（`e60a7edd` / PR #721）。
+  失败事实与原始解释不变；`REPRODUCER = NONE`。
 ```
 
 ### OBS-2026-09-24-001 — assignment-affordances Story C 单次 transport 失败（#601 Phase F E2E 全量）
@@ -1790,8 +1959,10 @@ INTERPRETATION_AT_RECORD_TIME = refreshAssignments() 读 GET /api/admin/users/:i
 CURRENT_INTERPRETATION = 同 v1（transport 层瞬时失败假设有 toast 分支证据支持）；根因
   （连接池/backlog/宿主网络）未判别
 CURRENT_INTERPRETATION_UPDATED_AT = 2026-10-12T09:48:53+08:00
-CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（路由存在性、同轮无 5xx、Phase F 无因果
-  路径均已核实）
+CURRENT_CHANGE_CAUSALITY = PLAUSIBLY_UNRELATED（REC-2026-10-12-002 降级，原为
+  PROVEN_UNRELATED：原依据"路由存在性、同轮无 5xx、Phase F 无因果路径"不构成排除——
+  该次失败是 transport 层瞬时失败（连接被拒/重置），无 5xx 与路由存在是该类失败的
+  预期表现，不能排除同一 run 内改动经调度/资源的影响；记录亦无受控复现）
 ROOT_CAUSE_CONFIDENCE = HYPOTHESIS
 FIRST_CAUSAL_DIVERGENCE = UNKNOWN
 CASE_ID = UNASSIGNED（AGGREGATION_BASIS = NONE）
@@ -1819,7 +1990,9 @@ INTERPRETATION_AT_RECORD_TIME = Chromium 网络栈对宿主网络接口变化的
   可达路径（WSL2 网络瞬时抖动）
 CURRENT_INTERPRETATION = 同 v1（HYPOTHESIS：WSL2 网络瞬时变化；无进一步判别证据）
 CURRENT_INTERPRETATION_UPDATED_AT = 2026-10-12T09:48:53+08:00
-CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（非应用代码可达路径）
+CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（CONTROLLED_EXCLUSION：`ERR_NETWORK_CHANGED`
+  是 Chromium 网络栈在宿主网络接口变化时产生的错误码，应用代码无法触达该路径——这是
+  错误类别的机制事实，不是"受害文件未被改动"一类的文件级论证）
 ROOT_CAUSE_CONFIDENCE = HYPOTHESIS
 FIRST_CAUSAL_DIVERGENCE = UNKNOWN
 CASE_ID = UNASSIGNED（AGGREGATION_BASIS = NONE）
@@ -1853,7 +2026,10 @@ CURRENT_INTERPRETATION = 机制为 HYPOTHESIS：宿主 I/O 争用与失败的关
   全过），但未与其它机制判别；不归入 BUG-FLAKE-001（本 occurrence 晚于其机制修复，
   且 DDL 慢持有者结构属 lane 已知事实而非本条因果证明）
 CURRENT_INTERPRETATION_UPDATED_AT = 2026-10-12T09:48:53+08:00
-CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（无 packages/** / apps/** 代码改动）
+CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（CONTROLLED_EXCLUSION：该分支为纯文档改动
+  （`cleanup/634-package-script-surface`，仅 `docs/**`），不改变测试数量、worker 占用、
+  模块初始化、全局 setup 或 DB 负载——即 STEP 7 列举的全部间接通道；不属于"受害文件
+  未被改动"式的文件级论证）
 ROOT_CAUSE_CONFIDENCE = HYPOTHESIS
 FIRST_CAUSAL_DIVERGENCE = UNKNOWN
 CASE_ID = UNASSIGNED（AGGREGATION_BASIS = NONE）
@@ -1884,8 +2060,10 @@ INTERPRETATION_AT_RECORD_TIME = 4 shard 负载下 /admin/settings 侧栏 aria-cu
 CURRENT_INTERPRETATION = 同 v1，HYPOTHESIS；未判别是数据加载依赖（收敛路径）还是
   等待预算问题
 CURRENT_INTERPRETATION_UPDATED_AT = 2026-10-12T09:48:53+08:00
-CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（仅 docs/** 改动；同类几何断言宿主与镜像
-  栈均通过）
+CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（CONTROLLED_EXCLUSION：该分支为纯文档改动
+  （仅 `docs/**`），不改变测试数量、worker 占用、模块初始化、全局 setup 或 DB 负载，
+  即不触达 STEP 7 列举的间接通道；"同类几何断言宿主与镜像栈均通过"属附带观察，不作为
+  准入依据）
 ROOT_CAUSE_CONFIDENCE = HYPOTHESIS
 FIRST_CAUSAL_DIVERGENCE = UNKNOWN
 CASE_ID = UNASSIGNED（AGGREGATION_BASIS = NONE）
@@ -1942,6 +2120,9 @@ CURRENT_CHANGE_CAUSALITY = PLAUSIBLY_UNRELATED
 ROOT_CAUSE_CONFIDENCE = HYPOTHESIS
 FIRST_CAUSAL_DIVERGENCE = UNKNOWN
 CASE_ID = BUG-FLAKE-006
+HISTORICAL_TEST_IDENTITY_STATUS = SUPERSEDED（REC-2026-10-12-002）——本 occurrence 是
+  该签名的最后一次；其后的 `e60a7edd`（PR #721，2026-10-07）已把整个文件替换。
+  失败事实与原始解释不变；`REPRODUCER = NONE`。
 ```
 
 ### OBS-2026-10-06-001 — `bootstrap-admin.test.ts` 单点 5s 超时（BUG-FLAKE-005 第 1 次；PR #717 / #716 验证期间）
@@ -2046,7 +2227,8 @@ CURRENT_INTERPRETATION = 机制 HYPOTHESIS：DROP DATABASE 慢持有 + 满负载
   预算的耦合有 lane 级结构性证据（慢持有者存在已被 2026-08-26/09-24 因果调查证明是
   lane 上的真实机制），但本条 occurrence 与该机制的逐条因果未取证；不归入 BUG-FLAKE-001
 CURRENT_INTERPRETATION_UPDATED_AT = 2026-10-12T09:48:53+08:00
-CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（基线 run，不存在候选改动）
+CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（VACUOUS：该 run 发生在任何候选改动之前
+  ——`GIT_SHA = 94dc798c` 为未改动的 master head 且工作树干净，不存在可比对的改动）
 ROOT_CAUSE_CONFIDENCE = HYPOTHESIS
 FIRST_CAUSAL_DIVERGENCE = UNKNOWN
 CASE_ID = UNASSIGNED（AGGREGATION_BASIS = NONE）
@@ -2666,6 +2848,99 @@ VALIDATION:
   复现命令、回归清单、撤回方案原文保全；v1 规则与模板原文保全于 Historical Evidence）
 - unsupported causal promotion check: PASS（0 提升；2 项显式降级/限定）
 - registry/detail consistency: PASS（注册表 14 行与各案例详情的 state/置信一致）
+- Markdown/code-fence integrity: PASS（写后回读校验）
+- post-write readback: PASS
+- single-file write boundary: PASS（git diff --name-only 仅本文档）
+
+WRITE_APPLIED = YES
+POST_WRITE_VERIFIED = YES
+MODIFICATION_SUCCESS = YES
+```
+
+### REC-2026-10-12-002 — current-source 现实核对与因果归因级别更正
+
+```text
+STARTED_AT = 2026-10-12T10:12:00+08:00
+COMPLETED_AT = 2026-10-12T10:24:59+08:00
+
+SOURCE_REVISION = da4823db6351e1a2628ad295103181b6fbec67c2
+SOURCE_BLOB_SHA = 1db986885be0759e9e704ef013d0b91e0df3036c
+SOURCE_BYTES = 153250
+SOURCE_LINES = 2676
+
+OPERATION = CURRENT_SOURCE_REALITY_RECONCILIATION
+  （REC-2026-10-12-001 建立 v2 认识论结构后，用 current master 源码与 Git 历史复核
+  登记册中的"现状型"断言与因果归因级别）
+SUPERSEDES = REC-2026-10-12-001 的迁移表第 30 行仅描述 REC-001 当时的动作
+  （"active case（PROVISIONAL）"）——该状态已由本轮置为 SUPERSEDED（见下）
+
+FILES_CHANGED = docs/standards/test-flakes.md
+
+CODE_CHANGED = NO
+TEST_CODE_CHANGED = NO
+PRODUCTION_BEHAVIOR_CHANGED = NO
+
+HISTORICAL_FACTS_DELETED = 0
+HISTORICAL_FACTS_SILENTLY_REWRITTEN = 0
+SOURCE_OCCURRENCES_LOST = 0（17 条 OBS-* 全部在位 + 1 条模板标题；新增内容一律为字段
+  追加）
+
+RECLASSIFICATIONS = 5（见下表）
+EVIDENCE_BASIS_STRENGTHENED = 10（分类值不变，仅把准入依据写明为
+  CONTROLLED_EXCLUSION / 不计入分类变更）
+WORDING_DOWNGRADED = 1（BUG-FLAKE-005："被排除" → "未获支持"，分类值不变）
+RULE_ADDED = 1（STEP 7 + Status vocabulary：PROVEN_UNRELATED 的准入依据）
+CAUSAL_PROMOTIONS_TO_CAUSALLY_PROVEN = 0
+```
+
+#### 分类变更表（每项均含依据、理由、复核时间与结果）
+
+| # | 记录 | 先前分类 | 现分类 | 依据（可核） | 复核时间 | 结果 |
+|---|---|---|---|---|---|---|
+| 1 | BUG-FLAKE-006（注册表行 + 案例体 + 3 条 occurrence） | `CASE_STATE = INVESTIGATING`；failure signature 描述为现存活跃的 100 轮 contention 用例 | `CASE_STATE = SUPERSEDED`；`REPRODUCER = NONE` | `c56bae15`（2026-07-08）新增该用例 → `e60a7edd`（PR #721，2026-10-07）整体替换该文件；`e60a7edd^` blob `3dc18790…` 含 `:292` 的 `100 consecutive runs`，`da4823db` 与工作树均无 | 2026-10-12T10:24:59+08:00 | PASS |
+| 2 | CASE-2026-09-01-CI-BOOTSTRAP | `CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED` | `PLAUSIBLY_UNRELATED` | 原依据为文件级（受害文件不导入改动模块 + 同 commit 本地全绿；STEP 7 排除的准入形式）；该 PR（`9586f7c9^1..9586f7c9`）在同一 API coverage lane 内改动 2 个 DB-touching 测试文件，而机制是 lane 队列深度放大 | 2026-10-12T10:24:59+08:00 | PASS |
+| 3 | CASE-2026-09-28-PGSTAT | `CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED` | `PROVEN_RELATED`（限定：改动经其新增测试预言机成为该次失败的必要条件；产品代码无缺陷） | `git log --diff-filter=A` 该测试文件只由 `2e2bc4e2`（#648，同日 15:24，178 行新增）与 `4ebe50ae`（#650 修复）触及；该 revision 的 `beforeAll` 即含失败断言 `expect(await otherBackendCount()).toBe(0)` | 2026-10-12T10:24:59+08:00 | PASS |
+| 4 | CASE-2026-07-30-RATELIMIT | `CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED` | `PLAUSIBLY_UNRELATED` | 原依据（"测试所有权/成本不匹配、非产品回归"）是 ROOT_CAUSE 轴论证，不是改动排除；记录未识别当时的候选改动，也无受控复现；根因置信保持 CORRELATED | 2026-10-12T10:24:59+08:00 | PASS |
+| 5 | OBS-2026-09-24-001 | `CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED` | `PLAUSIBLY_UNRELATED` | "路由存在性 + 同轮无 5xx"与 transport 层瞬时失败（连接被拒/重置）相容而非互斥，不构成排除；无受控复现 | 2026-10-12T10:24:59+08:00 | PASS |
+
+#### 保留 PROVEN_UNRELATED 的依据（逐条写明准入类型，避免机械降级）
+
+| 记录 | 准入类型 | 具体依据 |
+|---|---|---|
+| BUG-FLAKE-002 | CONTROLLED_EXCLUSION | 用 `turbo run test coverage --force` 受控制造并发拓扑即重现同一跨任务竞争链；隔离域落地后该链消失（stress 5/5） |
+| BUG-FLAKE-003 | CONTROLLED_EXCLUSION | 38 连跑在"跨 run 残留"这一改动无关变量上重现同签名；fresh-DB 对照归零；原 occurrence 本身即受控复现 run |
+| BUG-FLAKE-004 | CONTROLLED_EXCLUSION | 逐层隔离受控复现；schema 隔离后源头消除；3 连跑 stress 对照表 |
+| CASE-2026-07-21-AUDIT | CONTROLLED_EXCLUSION | 被操纵变量是"缺 owner 的 Promise"；注入 deferred 即在真实 PostgreSQL 上确定性重现 23503 与跨测试晚行污染 |
+| CASE-2026-09-24-MOBILE-RACE | CONTROLLED_EXCLUSION | 失败表达式是改动前的既有代码（出现在改动自身 diff 的 `-` 侧）；机制在断言策略而非改动主题 |
+| OBS-2026-08-31-001 | CONTROLLED_EXCLUSION | 唯一变量是去掉两套件并发（并发→5 处超时；串行→两次 EXIT=0）；n=1 |
+| OBS-2026-09-24-002 | CONTROLLED_EXCLUSION | `ERR_NETWORK_CHANGED` 是 Chromium 网络栈错误码，应用代码不可达（错误类别机制事实） |
+| OBS-2026-09-26-001 | CONTROLLED_EXCLUSION | 该分支为纯文档改动，不触达 STEP 7 列举的任何间接通道（测试数量/worker 占用/模块初始化/全局 setup/DB 负载） |
+| OBS-2026-09-26-002 | CONTROLLED_EXCLUSION | 同上（仅 `docs/**`） |
+| OBS-2026-10-07-002 | VACUOUS | run 发生在任何候选改动之前：`GIT_SHA = 94dc798c` 为未改动的 master head 且工作树干净 |
+
+#### 明确未做的分类动作（防止过度更正）
+
+- 未把任何记录的 `ROOT_CAUSE_CONFIDENCE` 提升到 `CAUSALLY_PROVEN`；本轮 0 提升。
+- 未把 `CORRELATED` 根因改写为其他级别（CASE-2026-07-30-RATELIMIT 保持 CORRELATED）。
+- 未把 `PROVISIONAL` 聚合提升（BUG-FLAKE-006 未升为 SUPPORTED，而是因为聚合载体的
+  测试身份消失置为 SUPERSEDED）。
+- 未把 `CAUSALLY_PROVEN` 的已修复案例降级（BUG-FLAKE-001/002/003/004、
+  CASE-2026-09-01、CASE-2026-07-21-AUDIT、CASE-2026-09-28、CASE-2026-09-24、
+  RUN-LEASE-OP-MODE 的机制证据未受本轮影响）。
+- 未把 BUG-FLAKE-006 的替换表述为"已修复"：`REPAIR_OF_ORIGINAL_FAILURE_MECHANISM =
+  NOT_ESTABLISHED`（测试契约替换 ≠ 原失败机制的修复证明）。
+
+```text
+VALIDATION:
+- occurrence preservation: PASS（17/17 OBS-* 记录在位，另 1 条为模板标题；三次
+  BUG-FLAKE-006 occurrence 的 OBSERVED_AT / GIT_SHA / COMMAND / ERROR / RERUN_EVIDENCE /
+  INTERPRETATION_AT_RECORD_TIME 逐字保留，仅追加 HISTORICAL_TEST_IDENTITY_STATUS）
+- registry/detail consistency: PASS（注册表 BUG-FLAKE-006 / CASE-2026-09-01 /
+  CASE-2026-09-28-PGSTAT / CASE-2026-07-30-RATELIMIT / CASE-2026-09-24-MOBILE-RACE
+  与各案例体的 state + CURRENT_CHANGE_CAUSALITY 一致）
+- unsupported causal promotion check: PASS（0 提升；5 项归因级别更正，其中 1 项为
+  UNRELATED → RELATED 的"取消无关断言"，附带源码可核证据）
+- no-unsupported-repair-claim check: PASS（无任何历史缺陷因测试被替换而标为已修复）
 - Markdown/code-fence integrity: PASS（写后回读校验）
 - post-write readback: PASS
 - single-file write boundary: PASS（git diff --name-only 仅本文档）
