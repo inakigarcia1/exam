@@ -238,7 +238,7 @@ CLASSIFICATION (non-flake):  NOT_A_FLAKE | MISCLASSIFIED_AS_FLAKE
 
 | Case | State | Failure signature | Nondeterministic | Root-cause confidence | Current-change causality | Aggregation confidence | Last reviewed | Next action |
 |---|---|---|---|---|---|---|---|---|
-| BUG-FLAKE-005 | INVESTIGATING | `bootstrap-admin.test.ts` 1–3 用例 5s 超时，仅在 `pnpm verify` 全量 4-worker coverage lane；无断言失败；单文件复跑 20/20（受害用例 ≈13% 预算） | YES | HYPOTHESIS（宿主负载/调度包络） | PLAUSIBLY_UNRELATED | PROVISIONAL（签名级） | 2026-10-12 | 复发时采集两种 lane 的耗时分布，再评估 |
+| BUG-FLAKE-005 | INVESTIGATING | `bootstrap-admin.test.ts` 1–3 用例 5s 超时，仅在 `pnpm verify` 全量 4-worker coverage lane；无断言失败；单文件复跑 20/20（受害用例 ≈13% 预算）；**受害身份 = 该文件在 `it` 体内 provision 隔离 schema 的 4 个用例** | YES | HYPOTHESIS（宿主负载/调度包络；或用例预算与共享 DDL/锁成本的所有权不匹配） | PLAUSIBLY_UNRELATED | PROVISIONAL（签名级） | 2026-10-12 | 复发 run 开 `TEST_INFRA_TRACE=1` 采集受害时间窗取锁 wait/hold + 同 run 全文件耗时分布，再判别机制；见案例 Next action |
 | BUG-FLAKE-006 | SUPERSEDED | 历史（2026-07-25 / 09-19 / 10-03）：`ea-lock-order.test.ts:292` 的 `repaired contention schedule is stable across 100 consecutive runs` 用例 5s 超时；**该用例形态在当前源码中已不存在**（2026-10-07 `e60a7edd` / PR #721 以真实双会话重叠 + PG 锁观测的证明替换整个文件） | YES（历史） | HYPOTHESIS（负载下累积延迟）——原失败机制既未证明也未修复 | PLAUSIBLY_UNRELATED（逐次记录；三次均未建立判别证据） | PROVISIONAL（同测试同错误行 3 次） | 2026-10-12（REC-002 对照 current source 后置为 SUPERSEDED） | 无（历史测试身份已消失；若当前 EA 锁序用例出现新签名，另立 occurrence） |
 | BUG-FLAKE-001 | REPAIRED | 历史：deadline/heartbeat scanner 等漂移性 5s 超时（共享 schema 泄漏 + 槽位身份错绑两机制） | YES（历史） | CAUSALLY_PROVEN（两机制，变异+自然失败闭环） | 历史条目各自记录 | CAUSALLY_PROVEN（机制级） | 2026-10-12 | 无（禁止把新 occurrence 自动归入） |
 | CASE-2026-09-01-CI-BOOTSTRAP | REPAIRED | CI API coverage 4-worker 下 DB 生命周期钩子漂移超时（beforeAll/afterAll 10s） | YES（历史） | CAUSALLY_PROVEN（per-file bootstrap 重复取锁风暴，变异+前后对比） | PLAUSIBLY_UNRELATED（REC-002 降级：原依据为文件级论证；且该 PR 在同一 lane 内改动了 DB-touching 测试文件） | SUPPORTED | 2026-10-12 | 无 |
@@ -266,13 +266,16 @@ CLASSIFICATION (non-flake):  NOT_A_FLAKE | MISCLASSIFIED_AS_FLAKE
 ```text
 CASE_STATE = INVESTIGATING
 CASE_CREATED_AT = 2026-10-08（同签名第 3 次复发时升级）
-CASE_LAST_REVIEWED_AT = 2026-10-12T09:48:53+08:00
-CASE_LAST_MODIFIED_AT = 2026-10-12T09:48:53+08:00
+CASE_LAST_REVIEWED_AT = 2026-10-12T10:43:23+08:00（REC-2026-10-12-003 有界因果调查）
+CASE_LAST_MODIFIED_AT = 2026-10-12T10:43:23+08:00
 
 NONDETERMINISTIC = YES
 ROOT_CAUSE_CONFIDENCE = HYPOTHESIS
 CURRENT_CHANGE_CAUSALITY = PLAUSIBLY_UNRELATED
 AGGREGATION_CONFIDENCE = PROVISIONAL
+NATURAL_FAILURE_CAPTURED = NO（REC-2026-10-12-003：本机无可用 PostgreSQL / Docker
+  engine，lane 无法执行；未消耗实验预算）
+COUNTERFACTUAL_EXECUTED = NO（同上）
 
 AGGREGATION_BASIS = 同文件 + 同 lane（TEST_DB_ISOLATION=worker-database
 API_TEST_MAX_WORKERS=4 + v8 coverage）+ 同失败类（5s testTimeout 超时，无断言失败、
@@ -287,6 +290,13 @@ EXECUTION_TOPOLOGY = 4 worker × 216–222 文件 × v8 coverage × 真实 PG（
 FAILURE_CLASS = testTimeout（vitest 默认 5000ms）；无 assertion 失败；无 hook 级联
 TYPICAL_VICTIMS = bootstrap-admin.test.ts 内漂移（:449 audit metadata 用例两次命中；
 :375 原子回滚、:493 首装竞态、resolveOrCreateDefaultOrganization 显示名用例各一次）
+VICTIM_SET_STRUCTURE = 上述全部 victim 身份恰好是该文件内**在 `it` 体内自行 provision
+  隔离 schema 的 4 个用例**（`apps/api/src/scripts/bootstrap-admin.test.ts` :379 / :453 /
+  :494 / :615）；同文件另外 18 个用例在 `beforeAll`（30s 预算）provision，从未成为 victim。
+  这 4 个用例的 it 体预算为 **vitest 默认 5000ms**（文件内唯一显式超时是 6 处钩子
+  `30_000`）。在 `apps/api` 全包内，本文件是**唯一**在 `it` 体内 provision 隔离 schema 的
+  测试文件（其余 17 个 provisioning 文件全部在 `beforeAll`/describe 预算内，且多数带
+  30s/45s/90s/120s 显式预算）。
 ```
 
 #### What is established（证据已确立）
@@ -342,14 +352,47 @@ FALSIFICATION_TEST = 复发 run 开 TEST_INFRA_TRACE=1，检查受害时间窗�
   等待分布与持有者身份
 ```
 
+```text
+HYPOTHESIS_ID = BF005-H3（REC-2026-10-12-003 新增）
+STATEMENT = 受害用例的 it 体在 5000ms 默认预算内承担了由**共享测试基础设施**拥有的
+  成本：`setupIsolatedTestDb()` → CREATE SCHEMA（需全局 test-infra lifecycle advisory
+  lock，阻塞式、无超时）→ `createDatabase` → `migratePostgres`（45 个迁移文件，未持锁）
+  → 断言 → `iso.cleanup()` → DROP SCHEMA CASCADE（同一把锁）。该成本与"普通进程内单元
+  测试"的成本所有权不匹配：同仓库对同类工作的既有约定是显式放大预算
+  （`testIsolation.test.ts` 30s/60s、`0028-rollback.test.ts` describe 90s、
+  `0023` / rollback CLI 的 provisioning 钩子 120s、`rollback-*-tables` it 45s），
+  并在 CASE-2026-08-01-LOCK-SCOPE 中记为"确定性队列的 hang protection，不作为排序机制"
+STATUS = HYPOTHESIS
+SUPPORTING_EVIDENCE = ① victim 身份集合恰好等于该文件在 it 体内 provision 的用例集合
+  （5/5 victim 实例落在 4 个身份上，`apps/api` 内本文件是唯一这样的文件）；
+  ② 该路径上确有**已测量**的多秒级成本项（同一把锁上实测慢持有者 4.3–5.7s、历史
+  23.4s DROP DATABASE），且 lane 的 107 次/run 获取中有 96 次属于这条 file-schema
+  路径（CASE-2026-09-01 的量化结论）；
+  ③ 受害用例单文件实测仅 630–700ms，5s 预算的缺口（≥4.3s）在该路径上只有锁排队这
+  一类已测量的来源
+CHALLENGING_EVIDENCE = 这 4 个用例同时是该文件**最昂贵**的用例（多一次 45 迁移链），
+  所以"最贵者先超时"的统一放大解释同样能预测同一 victim 集合；两者未被判别。
+  另外 `packages/db` 的 `0023-incident-fk-and-rollback.test.ts` 也有 it 体内
+  provisioning 且未见放大预算，却没有同签名记录（记录缺失 ≠ 未发生）
+FALSIFICATION_TEST = 复发 run 开 TEST_INFRA_TRACE=1，比较受害用例两次取锁的
+  `acquired wait=` 与文件内非 provisioning 用例的耗时分布：H3 预测受害时间窗内
+  出现与预算缺口同量级的 wait 且非 provisioning 用例未见成比例放大；若受害用例
+  in-vitro 耗时被等比放大而 wait≈0，则 H3 被削弱、H1 占优
+```
+
 #### Causal model
 
 ```text
-G_REQUIRED = UNKNOWN
-G_CLAIMED = UNKNOWN
-G_PASS = UNKNOWN
-G_FAIL = UNKNOWN
+G_REQUIRED = 在 5000ms testTimeout 内完成：setupIsolatedTestDb（CREATE SCHEMA + 全局
+  lifecycle advisory lock）→ createDatabase → migratePostgres（45 个迁移文件）→ 断言
+  → iso.cleanup（DROP SCHEMA CASCADE + 同一把锁）
+G_CLAIMED = 纯进程内单元测试级成本（由未声明 timeout 的 it() 隐式声明为 vitest 默认 5s）
+G_PASS = 全部通过执行（同 head 单文件 coverage 20/20、同 head serial pnpm test）
+G_FAIL = 三次 occurrence 的失败执行（5s testTimeout，无断言失败）；**无 lane 内耗时 /
+  取锁等待证据，故本次复核无法构造 FAIL 图**
 FIRST_CAUSAL_DIVERGENCE = UNKNOWN
+  （候选：受害用例在 it 体内的 lifecycle 锁获取上被慢持有者排队，把 630–700ms 的
+  未争用成本推过 5000ms；未能与"最贵用例在统一放大下超时"判别）
 ```
 
 #### Occurrences
@@ -391,6 +434,57 @@ CLASSIFICATION_CHANGE_REASON = 现有证据确立了非确定性与签名复发�
   因果；BUG-FLAKE-001 的两个已证明机制（状态泄漏、槽位身份错绑）在本三 occurrence
   之前已被修复，把新 occurrence 自动挂到该家族属于签名级归类而非机制级证明
 ```
+
+#### REC-2026-10-12-003 — 有界因果调查（B1–B4）与执行阻断记录
+
+```text
+INVESTIGATION_AT = 2026-10-12T10:43:23+08:00
+BASE_SHA = 008989514a74837a7cde70035cfcba8c25ca89c7（REC-002 提交；调查期间无源码改动）
+
+AUTHORITATIVE_HISTORICAL_FAILURES = 3（OBS-2026-10-06-001 / -10-07-001 / -10-08-001）
+NATURAL_FAILURE_CAPTURED = NO
+EXECUTION_BLOCKED_BY = 环境无可用 PostgreSQL：本机无 postgres 二进制、5432 未监听、
+  Docker Desktop Linux engine 未运行（`docker` 不在该 WSL2 distro 内）；
+  `pnpm db:up` 实测 EXIT=1（"The command 'docker' could not be found in this WSL 2
+  distro"）。仓库唯一的 DB 生命周期入口不可用，故任何 DB-touching lane 都无法执行。
+EXPERIMENT_BUDGET_DECLARED = 1 次 4-worker coverage 基线 + 最多 2 次聚焦诊断 + 1 次
+  受控反事实（按任务默认）；BUDGET_CONSUMED = 0（未执行任何 lane 命令）
+
+VICTIM_IDENTITY_RESULT = 全部 5 个 victim 实例（4 个身份：:449 ×2、:375、:493、
+  displayName 用例）都是该文件在 it 体内自行 provision 隔离 schema 的用例；
+  `apps/api` 全包内本文件是唯一这样的文件。这是源码可核事实，已并入 Failure signature。
+STATIC_FINDING = 该 4 个用例的 it 体预算为 vitest 默认 5000ms（文件内无 call-site
+  timeout），而同仓库同等工作在别处一律配显式放大预算（30s/45s/90s/120s）；
+  该路径包含两个阻塞式全局 advisory-lock 获取（CREATE SCHEMA / DROP SCHEMA CASCADE）
+  与一条 45 迁移链。
+NOT_DISCRIMINATED = 受害身份集合同时等于"该文件最昂贵的用例集合"（统一放大解释同样
+  能预测它），因此本次静态证据**不能**在 BF005-H1 与 BF005-H2/H3 之间判别
+
+NEW_HYPOTHESIS = BF005-H3（it 体预算与共享测试基础设施成本的所有权不匹配）
+HYPOTHESES_SUPPORTED = 0（无任何机制达到 CAUSALLY_PROVEN 或 CORRELATED）
+HYPOTHESES_FALSIFIED = 0
+HYPOTHESES_UNRESOLVED = BF005-H1 / H2 / H3（H3 为新增）
+CONTROLLED_COUNTERFACTUAL = NOT_EXECUTED（受阻；设计已记录：用同一 lifecycle key 的
+  外部持有者在受控时长内占锁，判别是否只有 provisioning 用例击穿 5s）
+ROOT_CAUSE_CONFIDENCE = HYPOTHESIS（不变）
+REPAIR_PROPOSAL = 见 Next action；**未授权、未实施**
+TEMPORARY_INSTRUMENTATION_ADDED = NONE（本次未添加任何临时插桩，无需回滚）
+```
+
+#### Next action（REC-2026-10-12-003 后更新）
+
+- 在有 PG 的环境上按顺序取数（一次即足以判别）：① 复发 run 或定向重放时开
+  `TEST_INFRA_TRACE=1`（仓库既有开关，实现在 `packages/db/src/testInfraLock.ts`，
+  输出 `[infra-lock] ... acquired wait=<ms>` / `released hold=<ms>`），取得受害时间窗内
+  两次取锁的 wait/hold；② 同 run 记录该文件全部用例的耗时，比较 provisioning 与非
+  provisioning 用例的放大倍数。
+- 判别：若受害用例 wait 与 5s 缺口同量级、且非 provisioning 用例未成比例放大 → H2/H3
+  占优；若受害用例 in-vitro 被等比放大而 wait≈0 → H1 占优。
+- 修复提案（**需人工授权**，且不得作为"消灭签名"的手段）：把该 4 个 call site 的成本
+  所有权改到与仓库先例一致的位置——优先把 provisioning 移入 `beforeAll`（沿用既有 30s
+  钩子预算），或改用一次临界区内完成 create+connect+migrate 的既有 helper，或在
+  call-site 显式声明预算（沿用 `0028-rollback.test.ts` / rollback CLI 的先例）。任何预算
+  调整必须附上第①步实测的 wait 分布作为依据，否则不满足本文件与 v1 禁止项的要求。
 
 ---
 
