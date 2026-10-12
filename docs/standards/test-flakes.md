@@ -15,7 +15,7 @@
 ```text
 DOCUMENT_KIND = TEST_NONDETERMINISM_EVIDENCE_REGISTER
 FORMAT_VERSION = 2
-LAST_RECONCILED_AT = 2026-10-12T10:24:59+08:00
+LAST_RECONCILED_AT = 2026-10-12T19:55:00+08:00
 RECONCILED_FROM_REVISION = da4823db6351e1a2628ad295103181b6fbec67c2
 RECONCILED_FROM_BLOB = 1db986885be0759e9e704ef013d0b91e0df3036c
 LAST_RECONCILIATION_RESULT = PASS
@@ -240,7 +240,7 @@ CLASSIFICATION (non-flake):  NOT_A_FLAKE | MISCLASSIFIED_AS_FLAKE
 
 | Case | State | Failure signature | Nondeterministic | Root-cause confidence | Current-change causality | Aggregation confidence | Last reviewed | Next action |
 |---|---|---|---|---|---|---|---|---|
-| BUG-FLAKE-005 | INVESTIGATING | `bootstrap-admin.test.ts` 1–3 用例 5s 超时，仅在 `pnpm verify` 全量 4-worker coverage lane；无断言失败；单文件复跑 20/20（受害用例 ≈13% 预算）；**受害身份 = 该文件在 `it` 体内 provision 隔离 schema 的 4 个用例** | YES | HYPOTHESIS（宿主负载/调度包络；或用例预算与共享 DDL/锁成本的所有权不匹配） | PLAUSIBLY_UNRELATED | PROVISIONAL（签名级） | 2026-10-12 | REC-2026-10-12-005：有界取证已执行（A1 完整 4-worker coverage lane + B1/B2 聚焦诊断 + B3 受控反事实，声明预算用尽）；B3 建立"in-body 取锁等待 > (5000ms − 主体成本) → 选择性 5s 超时"的受控能力链（= 能力证明，历史归因仍 UNKNOWN，不得升级 CAUSALLY_PROVEN）；自然运行未观测到 ≥4.3s 等待（B2 观测最大值 1.05s，非上界）；加固/修复未授权 |
+| BUG-FLAKE-005 | INVESTIGATING | `bootstrap-admin.test.ts` 1–3 用例 5s 超时，仅在 `pnpm verify` 全量 4-worker coverage lane；无断言失败；单文件复跑 20/20（受害用例 ≈13% 预算）；**受害身份 = 该文件在 `it` 体内 provision 隔离 schema 的 4 个用例** | YES | HYPOTHESIS（宿主负载/调度包络；或用例预算与共享 DDL/锁成本的所有权不匹配） | PLAUSIBLY_UNRELATED | PROVISIONAL（签名级） | 2026-10-12 | REC-2026-10-12-006：W1-r1 插桩 witness lane 已执行（预算恰好 1 lane；IF_GREEN 白名单失败，全 lane 0 testTimeout，victim 20/20）；真实负载下自然观测 lifecycle-lock 排队 **5169/4704ms**（慢持有者 = `dropDatabaseIfExists` 体内 `DROP DATABASE` 被 checkpoint 门控 ≈4.4s；backend 身份链与 lock-request 事件顺序均核验，ELD max 741.9ms → H1 本轮无指示）；**NATURAL_BF005_FAILURE = NO、历史归因仍 UNKNOWN**（0 提升 0 降级）；下一步 = 评审独立 schema 测试生命周期所有权的窄范围结构加固设计（以 B3 为受控机制见证；未授权实施） |
 | BUG-FLAKE-006 | SUPERSEDED | 历史（2026-07-25 / 09-19 / 10-03）：`ea-lock-order.test.ts:292` 的 `repaired contention schedule is stable across 100 consecutive runs` 用例 5s 超时；**该用例形态在当前源码中已不存在**（2026-10-07 `e60a7edd` / PR #721 以真实双会话重叠 + PG 锁观测的证明替换整个文件） | YES（历史） | HYPOTHESIS（负载下累积延迟）——原失败机制既未证明也未修复 | PLAUSIBLY_UNRELATED（逐次记录；三次均未建立判别证据） | PROVISIONAL（同测试同错误行 3 次） | 2026-10-12（REC-002 对照 current source 后置为 SUPERSEDED） | 无（历史测试身份已消失；若当前 EA 锁序用例出现新签名，另立 occurrence） |
 | BUG-FLAKE-001 | REPAIRED | 历史：deadline/heartbeat scanner 等漂移性 5s 超时（共享 schema 泄漏 + 槽位身份错绑两机制） | YES（历史） | CAUSALLY_PROVEN（两机制，变异+自然失败闭环） | 历史条目各自记录 | CAUSALLY_PROVEN（机制级） | 2026-10-12 | 无（禁止把新 occurrence 自动归入） |
 | CASE-2026-09-01-CI-BOOTSTRAP | REPAIRED | CI API coverage 4-worker 下 DB 生命周期钩子漂移超时（beforeAll/afterAll 10s） | YES（历史） | CAUSALLY_PROVEN（per-file bootstrap 重复取锁风暴，变异+前后对比） | PLAUSIBLY_UNRELATED（REC-002 降级：原依据为文件级论证；且该 PR 在同一 lane 内改动了 DB-touching 测试文件） | SUPPORTED | 2026-10-12 | 无 |
@@ -268,17 +268,21 @@ CLASSIFICATION (non-flake):  NOT_A_FLAKE | MISCLASSIFIED_AS_FLAKE
 ```text
 CASE_STATE = INVESTIGATING
 CASE_CREATED_AT = 2026-10-08（同签名第 3 次复发时升级）
-CASE_LAST_REVIEWED_AT = 2026-10-12T13:10:00+08:00（REC-2026-10-12-005：Phase C 有界
-  取证执行记录；字段精度修正；B3 受控能力证明及其限制）
-CASE_LAST_MODIFIED_AT = 2026-10-12T13:10:00+08:00
+CASE_LAST_REVIEWED_AT = 2026-10-12T19:55:00+08:00（REC-2026-10-12-006：W1-r1 插桩
+  witness lane 执行记录；自然长锁排队观测；依赖链/事件顺序核验与精度修正）
+CASE_LAST_MODIFIED_AT = 2026-10-12T19:55:00+08:00
 
 NONDETERMINISTIC = YES
 ROOT_CAUSE_CONFIDENCE = HYPOTHESIS
 CURRENT_CHANGE_CAUSALITY = PLAUSIBLY_UNRELATED
 AGGREGATION_CONFIDENCE = PROVISIONAL
-NATURAL_FAILURE_CAPTURED = NO（REC-2026-10-12-005：环境已可用并完成 A1 完整 4-worker
-  coverage lane 实跑；BF-005 签名未出现（全 lane 0 testTimeout），victim 文件 PASS
-  7856ms。A1 的 PG 采样未覆盖 victim 执行窗口，不能排除该窗口内的更长等待）
+NATURAL_FAILURE_CAPTURED = NO（REC-2026-10-12-005 A1 与 REC-2026-10-12-006 W1-r1 两次
+  完整 4-worker coverage lane 实跑均 0 testTimeout；W1-r1 victim 文件 PASS 20/20
+  （15711ms，victim 用例 1341–1915ms），且该次 PG 采样全程覆盖 lane 窗口）
+NATURAL_LONG_LOCK_WAIT = YES（REC-2026-10-12-006 / W1-r1：真实 lane 负载下 lifecycle-lock
+  排队 5169ms / 4704ms 两次 >4.3s，发生在 @exam/db schema 清理路径，未落入任何 victim
+  窗口。**NATURAL_LONG_LOCK_WAIT = YES 与 NATURAL_BF005_FAILURE = NO 是两条不同层级的
+  声明，不得合并**）
 COUNTERFACTUAL_EXECUTED = YES（REC-2026-10-12-005 / RUN B3：外部持锁受控反事实，
   选择性复现同形失败 = 能力证明；HISTORICAL_FAILURE_ATTRIBUTION_PROVEN = NO）
 
@@ -724,29 +728,166 @@ CONSEQUENCE = 该文件存在于工作树期间，本机 `pnpm verify` 必然 FA
   与 flake 相关的判定。
 ```
 
-#### Next action（REC-2026-10-12-005 后更新）
+#### REC-2026-10-12-006 — W1-r1 自然观测 lifecycle-lock 长排队、已核验依赖链与历史归因边界
 
-- **环境前置已解除**：本机已可运行完整 lane（REC-005）；声明预算（1 完整 + 2 聚焦 +
-  1 受控反事实）已全部用尽。进一步执行需要新的授权。
-- **已确立（本轮）**：B1 的逐用例成本（in-body 0.66–0.85s vs 其余 2–175ms）；B2 的争用
-  观测最大值（1.05s，非上界；victim 1.17–1.43s）；A1 的自然运行（victim 文件 PASS，
-  采样未覆盖其窗口）；B3 的受控能力证明（选择性同形失败）。**仍未确立**：三次历史
-  occurrence 实际消耗 ≥4.3s 缺口的机制（无失败 run 级归属证据）。
-- **待人工决定（均未授权）**：
-  (a) 是否把「消除 4 个用例基础设施成本与 5s 预算的耦合」作为**独立加固目标**评审——
-      B3 为其提供可重复的失败见证；若实施，验收只能声称"消除了 B3 所见证的受控失败
-      机制"，不得声称修复三次历史事故，且 4 个用例必须各自保留独立 schema（禁止合并为
-      共享 `beforeAll`）。
-  (b) 是否授权 `turbo.json` 的 trace 接线（NEW_FINDING_2），以获得 lane 级归因能力。
-  (c) 是否把 `ENVSURFACE-DEPLOY-CONFLICT` 提升为注册表一级条目（按
-      `RUN-LEASE-OP-MODE` 的 NOT_A_FLAKE 行形式）。
-- **修复候选空间**（不变，REC-004 收窄）：每个用例保留独立 schema、provisioning 放到该
-  用例专属 setup/hook 边界；或 call-site 显式预算（须附实测依据）。禁止把
-  CREATE+migrate+DROP 整体塞进更大的 advisory-lock 临界区；禁止以扩大 timeout、skip、
-  retry 消灭签名。
-- **若授权加固，建议的机制回归见证**：B3 的外部持锁 × 单文件 lane 配方（本 REC 的
-  RUN B3 字段 + 私有预登记工件 `B3-counterfactual-design.txt`，
-  sha256 0ffbac2a5b87ebdf5ef05ae89c5914d4d28a64553c27333320cf75d4a480ad6a）。
+> 本记录由人类授权写入（docs-only 归档）。它登记 W1-r1 插桩 witness lane 的**执行事实**、
+> **自然长锁排队观测**、**依赖链与事件顺序核验**，以及三条对执行期报告草稿的精度修正；
+> 分类轴 0 提升、0 降级，历史 occurrence 归因维持 UNKNOWN。证据交付评论见
+> [issuecomment-6123709503](https://github.com/jnhu76/exam/issues/771#issuecomment-6123709503)。
+
+```text
+RECORDED_AT = 2026-10-12T19:55:00+08:00
+BASE_SHA = b408a69522900fbdbe0563c01c86647c6bb80867（执行与归档期间 master HEAD）
+REPOSITORY_FILES_MODIFIED = NONE（W1-r1 执行期间；插桩按 06-r1 全部临时并已回滚）
+
+RUN_ID = W1-r1
+RUN_KIND = INSTRUMENTED_AUTHENTIC_COVERAGE_LANE
+DESIGN_AUTHORITY = Issue #771 评论 06-r1 + 一次性执行 prompt（含 4 条补充约束）
+RUN_OUTCOME = IF_GREEN_WITH_WHITELISTED_FAILURE
+LANE_EXIT_CODE = 1（完全归属 envSurfaceGuard.test.ts 确定性策略冲突，见上方独立记录，
+  不属本 case；全 lane 0 testTimeout）
+LANE_RUNS = 1；EXTRA_FULL_LANE_RUNS = 0；AUTOMATIC_RETRY = NONE
+BUDGET_CONSUMED = 1 lane + 2 门禁探针（G-PROP db / API 定向）+ 1 次 3s sampler 自测
+  ＝ 声明上限
+
+REAL_COVERAGE_PACKAGES = 9（api auth authz contracts db domain exam-engine
+  import-export web）——06-r1 的「5 包」为设计文件过期计数，入口命令不受影响
+API_TEST_COUNTS = 2791 用例（2779 passed | 1 failed（白名单）| 11 skipped）；
+  226 文件（1 failed | 221 passed | 4 skipped）——失败面与 A1 完全一致，不属本 case
+VICTIM_FILE_RESULT = bootstrap-admin.test.ts 20/20 PASS（15711ms；4 个 in-body victim
+  用例 1341–1915ms ＝ 预算的 27–38%）
+BF005_NATURAL_FAILURE_CAPTURED = NO
+
+G_PROP = VERIFIED（db 探针 exit=0、4/4 任务 cache-MISS；API 定向探针内
+  `@exam/api:coverage: [w1-eld] … setup loaded trace=1 progress=1` 且 api 任务自身出现
+  `[infra-lock] requested … backend=` 行——两个 trace 变量均被证明到达 @exam/api#coverage
+  worker；探针 exit=1 仅为单文件 coverage 阈值工件 26.1% < 60%，非测试失败）
+G_CACHE = PASS（turbo --dry=json 预测 6 cached；实际 6 cached + 10 executed，
+  @exam/api#coverage = MISS → 插桩代码真实执行）
+
+LOCK_ACQUISITIONS = 357（api 任务 135 / db 任务 222）；RELEASES = 357（0 泄漏）
+LOCK_WAITS_GT_4300MS = 2（5169ms、4704ms，均在 @exam/db dropTestSchema）
+LOCK_WAITS_GT_5000MS = 1（5169ms）
+SLOW_HOLDER_HOLD = 4641ms（dropDatabaseIfExists 的锁会话 59228）
+API_TASK_MULTI_SECOND_WAITS = 4048ms（dropTestSchema）/ 3025ms（createTestSchema）
+  ——同样未落入任何 victim 窗口
+
+W1_LOCK_HOLDER_BACKEND = 59228（持锁会话；持有期间 idle/ClientRead）
+W1_DROP_DATABASE_EXECUTOR_BACKEND = 59230（dropDatabaseIfExists 体内 withAdminConnection
+  另开的会话；与 59228 不是同一 backend）
+DROP_DATABASE_GATE = IPC/CheckpointStart（08:28:07.570–11.573Z，17 拍）→
+  IPC/CheckpointDone（11.824Z）；语句实测 age 124→4381ms
+LOCK_REQUEST_EVENT_ORDER = VERIFIED（`requested` 使用独立 pre-lock
+  `SELECT pg_backend_pid()` 查询，先于阻塞式取锁语句发出；取锁/解锁语句的同语句身份选择
+  仅用于授权边界的交叉验证。5169ms 实例全链：L1838 requested(13ms) → L1840–1883 十拍
+  still-waiting(501–5007ms) → L1885 acquired(5169ms) → L1941 released(108ms)；与 sampler
+  query_start=08:28:06.905Z、连续 20 拍 granted=false、(11.824,12.075] 首拍 granted=true
+  三方互锁，论证存证据目录 11-lock-request-order-verification.md）
+W1_PG_BACKEND_IDENTITY = VERIFIED（357/357 requested==acquired==released，0 不匹配；
+  外部 sampler join 234 个 backend PID）
+
+DEPENDENCY_CHAIN（方向 = 阻塞/队首在前）：
+  59229（排队 5169ms）/ 59231（排队 4704ms，dropTestSchema 取锁会话）
+    →[PostgreSQL advisory-lock wait；证据 = pg_blocking_pids 采样边 59228→59229 ×20 拍、
+      59228→59231 ×18 拍 + granted 翻转拍]
+  59228（持锁会话，hold=4641ms）
+    →[应用层 Node await——不是 PG 锁边（59230 不出现在任何 blockers 边中）；依据 = 源码
+      结构 + 时间对齐：59230 的 DROP DATABASE query_start ≈08:28:07.44Z，紧随 59228 在
+      (07.317,07.570] 拍间获锁]
+  59230（DROP DATABASE IF EXISTS "exam_test_wphase6d_ensure_151383_uh…"，被 checkpointer
+    门控 ≈4.4s）
+  FIFO 链 59214→59218→59228→(59229,59231) 逐跳采样边：59214→59218 ×2、59218→59228 ×3、
+  59228→59229 ×20、59228→59231 ×18；另有队列序边 59218→59229 ×2、59229→59231 ×19。
+
+PRECISION_CORRECTIONS（对执行期报告草稿；原始工件已核验，历史文本不追改）：
+1. 执行 DROP DATABASE 的是 59230，不是持锁的 59228（同一 withTestInfraLifecycleLock
+   调用的锁会话与体内连接）。
+2. 报告引用的「active age 4851ms」属于另一次更晚的独立 DROP DATABASE（backend 60444，
+   08:30:37–42Z，exam_test_wsrmv4zs5peea0fe6）；59230 自身实测 age 区间 124–4381ms。
+3. ELD「p99 ≤ 56ms」不精确：89 条 exit 线中 22 条 p99 > 60ms（max 530.1ms，全部来自
+   19–57 样本的短命 worker，p99≈runMax 属构造效应）。承重事实不变：全局 runMax =
+   741.9ms，无任何样本接近 H1 所需的多秒级停顿——H1 在本 run 无指示。
+
+PHASE_COST_DISTRIBUTIONS_MS（n=357 取锁 / 113 迁移；p50/p90/p99/max）：
+  connect（opening→requested）20/42/90/123；总获取（opening→acquired）49/895/3025/5169；
+  派生纯排队 7/857/2993/5156；hold CREATE SCHEMA（n=90）36/55/129/129；
+  hold DROP SCHEMA（n=137）119/150/173/190；hold 其他（DATABASE 生命周期/迁移/env，
+  n=130）814/1199/4641/5136；migratePostgres 825/1108/1335/1500；
+  still-waiting 心跳（n=148）502/2501/4506/5007
+INSTRUMENTATION_OVERHEAD_CAVEAT = victim 文件 15711ms vs A1 7856ms、victim 用例
+  1.34–1.91s vs B2 争用 1.17–1.43s：方向与争用一致，但单次 green run 无法分离插桩自效应
+  与负载方差（记录，不作声明）；外部 sampler 1333 拍 0 错误，dur p50=4.4ms max=66.2ms
+CLEANUP_STATE = 0 残留 vitest/turbo/sampler 进程；PG 非 self 会话仅 8 个内部后台
+  worker；11 个既有 test_* schema 残留（嵌入 pid 在 lane 范围外）按契约未触碰
+ROLLBACK_VERIFIED = YES（git status 回到 `?? .env.deploy` only；diff 空；HEAD=b408a695）
+
+NATURAL_LONG_LOCK_WAIT = OBSERVED（两次 >4.3s 自然排队；机制量级已达历史预算缺口
+  ≥4.3s，但未落入受害窗口）
+MECHANISM_CAPABILITY = PREVIOUSLY_DEMONSTRATED_BY_B3（本 run 未重复、无需重复）
+HISTORICAL_FAILURE_ATTRIBUTION_PROVEN = NO（自然长排队 ≠ 自然受害失败 ≠ 历史归因：
+  四层声明——自然长排队（YES）/ 受控能力（YES，B3）/ 自然 BF005 失败（NO）/ 历史归因
+  （NO）——各自独立，不得合并或换用）
+G_REQUIRED = UNKNOWN（维持 REC-2026-10-12-004 / 005）
+G_CLAIMED = UNKNOWN（同上）
+G_PASS = PARTIAL；G_FAIL = PARTIAL（仍无失败 run 的 execution graph）
+FIRST_CAUSAL_DIVERGENCE = UNKNOWN
+BUDGET_CONSTRAINT = 5000ms（4 个 in-body 用例的 it 预算，现状不变）
+ROOT_CAUSE_CONFIDENCE = HYPOTHESIS（0 提升）；AGGREGATION_CONFIDENCE = PROVISIONAL
+HYPOTHESIS_CHANGES = 0 提升、0 降级。H2 机制获自然观测支持（受控能力 + 自然存在，
+  仍非历史归因）；H1 本 run 无指示（ELD max 741.9ms）；H3 脆弱面不变；H4 无新证据。
+REPAIR_AUTHORIZED = NO；REPAIR_IMPLEMENTED = NO
+
+EVIDENCE_PROVENANCE = 原始工件存研究主机私有目录 ~/.local/share/exam-bf005-w1r1-
+  run-20261012/（不入库、非公开可下载工件）；仓库内仅登记哈希（哈希与字节数由执行
+  wrapper 在任何分析之前写入 lane-integrity.txt，本 REC 写入前重算复核一致）：
+  lane-stdout-stderr.log 1681843B
+    sha256=5a29c69f2ea190eabc426ee417ce8a3c84c61f3f04a38f017c84352722beb481
+  pg-sampler.log 4717334B
+    sha256=d40280a916be58d40dfa07570d7c6f291976ebb830125372c25485bc86d86d65
+  api-coverage.json 2842242B
+    sha256=b6b2c5f5b0d989bc5a6f3b9f2d374b38c22901cc38f44c4d3a4a8dfd7ee9fe22
+  w1r1-instrumentation.patch 10987B
+    sha256=95322c028d99c5cc24f423619b79978be839c0f3f8cf5066c49a8edb22e968f2
+
+VALIDATION（REC-006）:
+- classification values unchanged: PASS（HYPOTHESIS / PLAUSIBLY_UNRELATED / PROVISIONAL；
+  0 提升、0 降级）
+- history preserved: PASS（REC-003 / REC-004 / REC-005 原文、三条 occurrence、hypothesis
+  与 FALSIFICATION_TEST 原句未改；A1–B3 与 envSurfaceGuard 独立记录未动）
+- registry/detail consistency: PASS（注册表 BUG-FLAKE-005 行与 Status 块同步至 REC-006）
+- four-claim boundary recorded: PASS（自然长排队 / B3 能力 / 自然 BF005 失败 / 历史归因
+  四层声明各自状态明确，无合并）
+- no repair claim / no authorization: PASS（REPAIR = NOT AUTHORIZED 未变）
+- raw logs kept private: PASS（仓库内仅哈希/字节数）
+- Markdown/code-fence integrity: PASS（写后回读校验）
+- single-file write boundary: PASS（git diff --name-only 仅本文档）
+
+WRITE_APPLIED = YES
+POST_WRITE_VERIFIED = YES
+```
+
+#### Next action（REC-2026-10-12-006 后更新）
+
+- **已确立（截至 REC-006）**：B3 受控能力链（REC-005）+ W1-r1 自然观测（真实 lane 负载
+  下 lifecycle-lock 排队 5169/4704ms，慢持有者为被 checkpoint 门控 ≈4.4s 的
+  `DROP DATABASE`；backend 身份链与 lock-request 事件顺序均核验；ELD max 741.9ms →
+  H1 本轮无指示）。**仍未确立**：三次历史 occurrence 实际消耗 ≥4.3s 缺口的机制（无失败
+  run 的 execution graph；两次完整 lane 实跑均 0 testTimeout）。
+- **下一步工程动作（未授权实施）**：评审一份**窄范围结构加固设计**——目标 = 消除 4 个
+  in-body 用例的基础设施生命周期成本与 5000ms it 预算的耦合（independent-schema test
+  lifecycle ownership：每用例保留独立 schema，把 provisioning 移到该用例专属 setup/hook
+  边界，或按 call-site 显式预算先例附实测依据）；**B3 配方作为受控机制回归见证**。验收
+  只能声称"消除了 B3 所见证的受控失败机制与 W1-r1 所观测的自然排队耦合面"，不得声称
+  修复三次历史事故。4 个用例必须各自保留独立 schema（禁止合并为共享 `beforeAll`）；
+  禁止把 CREATE+migrate+DROP 整体塞进更大的 advisory-lock 临界区；禁止以扩大 timeout、
+  skip、retry 消灭签名。
+- **NEW_FINDING_2 的 trace 接线已被 W1-r1 临时验证**（`turbo.json` `passThroughEnv` 方案
+  有效，G-PROP 双探针证明，含 API worker），但插桩已按协议回滚；**永久接线与插桩保留
+  仍需单独授权**。
+- **待人工决定（未变）**：是否把 `ENVSURFACE-DEPLOY-CONFLICT` 提升为注册表一级条目（按
+  `RUN-LEASE-OP-MODE` 的 NOT_A_FLAKE 行形式）。
+- **进一步实验（H1+H2 复合反事实、再次完整 lane、自然失败捕获窗口）**：均需新授权；
+  两个声明预算（REC-005 Phase C 与 REC-006 W1-r1）均已用尽。
 
 ---
 
