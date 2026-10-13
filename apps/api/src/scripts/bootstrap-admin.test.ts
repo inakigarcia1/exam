@@ -72,7 +72,10 @@ interface ProvisionedSchemaDb {
  * Provision one migrated isolated schema with a single ownership boundary:
  * CREATE SCHEMA (lifecycle lock) → schema-pinned max:1 connection → migrate
  * (outside the lock). The caller receives the db only after everything
- * succeeded; any partial failure is recovered here.
+ * succeeded.
+ * Recover owned resources on failure after schema creation.
+ * A connection created internally by createDatabase() but not returned
+ * on failure cannot be reclaimed here.
  */
 async function provisionIsolatedSchemaDb(
   namespace: string,
