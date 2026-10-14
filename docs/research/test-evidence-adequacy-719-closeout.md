@@ -45,21 +45,23 @@ correctness claim"。其工作定义（#719 §4）是一个**工程假设**，�
 
 ## 2. 文献证据图（D1）
 
-#719 列出的八篇代表性研究已于 2026-10-14 全部经一手来源核验
-（5 篇经 Semantic Scholar 元数据 API、1 篇经 Springer 出版方页面，
-2 篇经 arXiv 摘要页一手抓取）。题名、作者、年份、venue 与 DOI 与 #719 的
-引用一致。
+#719 列出的八篇代表性研究的**题录**已于 2026-10-14 全部核对：其中 5 篇经
+第三方学术元数据索引（Semantic Scholar Academic Graph API——聚合索引，
+非出版方原始记录）、1 篇经 Springer 出版方页面、2 篇经 arXiv 原始记录
+（含摘要）。题名、作者、年份、venue 与 DOI 与 #719 的引用一致；
+**多数全文本轮未核验**（FULL_TEXT_NOT_VERIFIED）。来源分级：出版方页面与
+arXiv 原始记录为一手来源；Semantic Scholar 为二手学术元数据索引。
 
 | # | 文献 | 证据类别 | 核验状态 |
 | --- | --- | --- | --- |
-| 1 | Barr, Harman, McMinn, Shahbaz, Yoo — *The Oracle Problem in Software Testing: A Survey*, IEEE TSE 41(5), 2015, DOI 10.1109/TSE.2014.2372785 | PEER_REVIEWED_EMPIRICAL_EVIDENCE（survey） | 元数据一手核验；FULL_TEXT_NOT_VERIFIED（本轮） |
-| 2 | Inozemtseva & Holmes — *Coverage Is Not Strongly Correlated with Test Suite Effectiveness*, ICSE 2014, DOI 10.1145/2568225.2568271 | PEER_REVIEWED_EMPIRICAL_EVIDENCE | 元数据一手核验；FULL_TEXT_NOT_VERIFIED |
-| 3 | Just, Jalali, Inozemtseva, Ernst, Holmes, Fraser — *Are Mutants a Valid Substitute for Real Faults in Software Testing?*, FSE 2014, DOI 10.1145/2635868.2635929 | PEER_REVIEWED_EMPIRICAL_EVIDENCE | 元数据一手核验；FULL_TEXT_NOT_VERIFIED |
-| 4 | Petrović, Ivanković, Fraser, Just — *Practical Mutation Testing at Scale: A View from Google*, arXiv:2102.11378 (2021) | INDUSTRIAL_EVIDENCE | arXiv 一手核验（含摘要）；#719 所记 IEEE TSE 期刊版本轮次本轮未一手核验 |
-| 5 | Paul & Holmes — *Beyond Coverage and Kill Scores: Empirically Measuring Test Suite Behavioural Gaps*, arXiv:2606.10417 (2026-06) | RECENT_PREPRINT | arXiv 一手核验（含摘要）；按 #719 non-goals 不作为正式标准 |
-| 6 | Rothermel, Harrold, von Ronne, Hong — *Empirical Studies of Test-Suite Reduction*, STVR 12(4), 2002, DOI 10.1002/stvr.256 | PEER_REVIEWED_EMPIRICAL_EVIDENCE | 元数据一手核验；FULL_TEXT_NOT_VERIFIED |
-| 7 | Panichella, Panichella, Fraser, Sawant, Hellendoorn — *Test Smells 20 Years Later: Detectability, Validity, and Reliability*, EMSE 27:170, 2022, DOI 10.1007/s10664-022-10207-5 | PEER_REVIEWED_EMPIRICAL_EVIDENCE | 一手核验（Springer 页面） |
-| 8 | Freedman — *Testability of Software Components*, IEEE TSE 17(6), 1991, DOI 10.1109/32.87281 | PEER_REVIEWED_EMPIRICAL_EVIDENCE | 元数据一手核验 |
+| 1 | Barr, Harman, McMinn, Shahbaz, Yoo — *The Oracle Problem in Software Testing: A Survey*, IEEE TSE 41(5), 2015, DOI 10.1109/TSE.2014.2372785 | PEER_REVIEWED_SURVEY_EVIDENCE（综述，非实证研究） | 题录经二手学术元数据索引核验；FULL_TEXT_NOT_VERIFIED（本轮） |
+| 2 | Inozemtseva & Holmes — *Coverage Is Not Strongly Correlated with Test Suite Effectiveness*, ICSE 2014, DOI 10.1145/2568225.2568271 | PEER_REVIEWED_EMPIRICAL_EVIDENCE | 题录经二手学术元数据索引核验；FULL_TEXT_NOT_VERIFIED |
+| 3 | Just, Jalali, Inozemtseva, Ernst, Holmes, Fraser — *Are Mutants a Valid Substitute for Real Faults in Software Testing?*, FSE 2014, DOI 10.1145/2635868.2635929 | PEER_REVIEWED_EMPIRICAL_EVIDENCE | 题录经二手学术元数据索引核验；FULL_TEXT_NOT_VERIFIED |
+| 4 | Petrović, Ivanković, Fraser, Just — *Practical Mutation Testing at Scale: A View from Google*, arXiv:2102.11378 (2021) | INDUSTRIAL_EVIDENCE | arXiv 原始记录核验（一手，含摘要）；#719 所记 IEEE TSE 期刊版本轮次本轮未一手核验 |
+| 5 | Paul & Holmes — *Beyond Coverage and Kill Scores: Empirically Measuring Test Suite Behavioural Gaps*, arXiv:2606.10417 (2026-06) | RECENT_PREPRINT | arXiv 原始记录核验（一手，含摘要）；按 #719 non-goals 不作为正式标准 |
+| 6 | Rothermel, Harrold, von Ronne, Hong — *Empirical Studies of Test-Suite Reduction*, STVR 12(4), 2002, DOI 10.1002/stvr.256 | PEER_REVIEWED_EMPIRICAL_EVIDENCE | 题录经二手学术元数据索引核验；FULL_TEXT_NOT_VERIFIED |
+| 7 | Panichella, Panichella, Fraser, Sawant, Hellendoorn — *Test Smells 20 Years Later: Detectability, Validity, and Reliability*, EMSE 27:170, 2022, DOI 10.1007/s10664-022-10207-5 | PEER_REVIEWED_EMPIRICAL_EVIDENCE | 出版方页面核验（一手，Springer） |
+| 8 | Freedman — *Testability of Software Components*, IEEE TSE 17(6), 1991, DOI 10.1109/32.87281 | PEER_REVIEWED_THEORY_METHOD_EVIDENCE（理论/方法框架，非实证研究） | 题录经二手学术元数据索引核验 |
 
 ### 逐篇结论边界
 
@@ -159,6 +161,13 @@ DELETE 同等重要），不是模型失效。
 `f8c7ae031eb4b2de3073bf6ca087c6f02d89aebf`。本收束对每个案例同时核验了
 历史版本（`git show`）与当前 master 的 as-built 状态。
 
+**反事实证据分级（适用于本节全部 COUNTERFACTUAL_RESULT）**：
+`KILLED（已执行）`= 该 mutant 有 #718 closeout（7 个 targeted mutations，
+逐次 sha256 验证恢复）或 #722 mutation ledger（M1–M4）中的执行与恢复记录；
+`PREDICTED_NOT_RUN` = 依 oracle 语义与源码核验推断该 mutant 应被杀死，
+但不存在执行记录。历史台账之外的移除型反事实一律记 PREDICTED_NOT_RUN，
+不因此提升 EVIDENCE_GRADE。
+
 ### C1 — False concurrency authority（`ea-lock-order.test.ts`）
 
 ```text
@@ -175,8 +184,9 @@ ORACLE_BEFORE = 无区分力：无重叠则 40P01 结构上不可能，锁序反
 ORACLE_AFTER = 真实重叠 owner：双独立 max:1 池（互异 backend pid）、
   观察连接 `FOR UPDATE NOWAIT` 被 55P03 拒绝证明 A 持锁未持 A-attempt、
   `pg_locks` ungranted-lock 探针证明 B 阻塞、锁序反转 mutant 被真实 40P01 杀死
-COUNTERFACTUAL_RESULT = 反转 mutant 历史套件 SURVIVED（证明 false authority）；
-  新 owner 下 KILLED（PR #721 mutant ledger）
+COUNTERFACTUAL_RESULT = KILLED（已执行，#718 closeout F1）：反转 mutant
+  历史套件 SURVIVED（证明 false authority）；新 owner 下被真实 40P01 杀死
+  （PR #721 mutant ledger）
 WHY_RESOURCE_REQUIRED = 两个独立物理会话必须争用同一行锁，阻塞本身是 oracle
 CLASSIFICATION = FALSE_AUTHORITY（历史）→ VALID_OWNER（当前）
 DISPOSITION = REPAIR_DETERMINISTIC_PROOF（已由 #721 完成）
@@ -195,8 +205,8 @@ ORACLE_BEFORE = `expect([attemptHighId, attemptLowId]).toContain(finalAttemptId)
   （L528）同时接受"拒绝"与"覆盖"两种结局——声称的 distinguishing oracle 不存在
 ORACLE_AFTER = H/L/E 确定性 schedule：T1 park 在 seam Enrollment 锁后，
   T2 的阻塞与重算可观察；等分 `>=` mutant 被 KILLED（#721）
-COUNTERFACTUAL_RESULT = Case 3 对 clobber mutant 必然放行（历史）；
-  修复后定向 mutant KILLED
+COUNTERFACTUAL_RESULT = KILLED（已执行，#718 closeout F2）：Case 3 对
+  clobber mutant 必然放行（历史）；修复后等分 `>=` mutant 被杀死
 WHY_RESOURCE_REQUIRED = 两个事务对同一 enrollment 行的真实锁争用与提交次序
 CLASSIFICATION = WEAK_ORACLE / claim 级 FALSE_AUTHORITY（历史）→ VALID_OWNER（当前）
 DISPOSITION = 修复 oracle（fix oracle，非删除）
@@ -214,12 +224,15 @@ ACTUAL_SCHEDULE = writer 的竞争状态先 COMMIT，scanner 操作后才运行�
   "移除锁下 recheck" mutant 的有效 owner）
 FAULT_MODEL = recheck 缺失时用过期的 discovery-time 谓词自动提交
 ORACLE_BEFORE/AFTER = recheck oracle 本身真实有效；只有命名与声称过度
-COUNTERFACTUAL_RESULT = "移除 recheck" mutant 会被杀死——owner 是真的
+COUNTERFACTUAL_RESULT = PREDICTED_NOT_RUN："移除 recheck" mutant 预期被
+  杀死（#718 first-pass 将其列为候选 mutant，未列入 closeout 7 个已执行
+  mutant 台账）；判据为 oracle 对缺失 recheck 的直接区分力——owner 是真的
 WHY_RESOURCE_REQUIRED = 重叠型 writer race 已由 barrier-backed
   candidate-deadline-authority / candidate-save-deadline-race 套件确定性拥有
 CLASSIFICATION = FALSE_AUTHORITY（仅 label 级）+ 有效 recheck owner
 DISPOSITION = RECLASSIFY（改名与注释，不新增更昂贵的并发测试）
-EVIDENCE_GRADE = A
+EVIDENCE_GRADE = A（SHA 锚定 as-built 核验；移除型反事实为
+  PREDICTED_NOT_RUN，非已执行 mutant，不构成 mutant 级证据）
 ```
 
 **C3 的方法论意义**：模型支持"降级声称而不是升级测试"的处置——当真实执行
@@ -238,7 +251,9 @@ ACTUAL_SCHEDULE = 双独立 max:1 池（互异 backend pid 断言）+ 第三观�
   T2 阻塞；≥2 次 primary 尝试且 txid 互异证明重试发生
 FAULT_MODEL = 真实重叠下双重生效 / 缺重试 / receipt+audit 不完整
 ORACLE = 终态 receipt 排序（applied/no_change）、audit 基数、actor 权威
-COUNTERFACTUAL_RESULT = 锁移除 → 阻塞探针超时红；重试移除 → 尝试数=1 红
+COUNTERFACTUAL_RESULT = PREDICTED_NOT_RUN：锁移除 → 阻塞探针预期超时红；
+  重试移除 → 尝试数预期=1 红（#721 已执行的同型 mutant 属
+  authorityInvariants owner，见 closeout D14；本套件自身无执行台账）
 WHY_RESOURCE_REQUIRED = 独立会话争用行锁 + SQLSTATE 仲裁是 oracle 本身
 CLASSIFICATION = VALID_OWNER（本收束试点中亦被独立复核，含两项归因精度
   残余：锁类型断言宽松、首尝试 SQLSTATE 未直接断言——不动摇 owner 地位）
@@ -258,7 +273,9 @@ ACTUAL_SCHEDULE = 真实 HTTP 路由 → 生产事务内 audit 写 → BEFORE IN
 FAULT_MODEL = 部分提交（attempt/冻结答案/grading workset/enrollment 投影/audit
   不一致）
 ORACLE = 回滚后各事实族持久状态 + 移除故障后同一操作重试成功
-COUNTERFACTUAL_RESULT = 移除事务边界 → 多事实族残留 → 红
+COUNTERFACTUAL_RESULT = PREDICTED_NOT_RUN：移除事务边界 → 预期多事实族
+  残留 → 红（#718 first-pass 将其列为候选 mutant、置信 HIGH、处置 KEEP；
+  未列入 closeout 7 个已执行 mutant 台账）
 WHY_RESOURCE_REQUIRED = 多持久事实族必须经真实事务一起回滚/提交
 CLASSIFICATION = VALID_OWNER（REAL_PG_COMPOSITION_OWNER）
 DISPOSITION = KEEP
@@ -276,8 +293,9 @@ ACTUAL_SCHEDULE (修复前) = 无 owner（注释即全部证据）
 FAULT_MODEL = 40P01 不再重试（瞬态死锁泄漏为 500）；23505 被误重试
 ORACLE = 真实 40P01 死锁 schedule（victim 按队列次序被 blaming）→ attempts 计数；
   23505 负对照 → 不重试
-COUNTERFACTUAL_RESULT = 4 定向 mutant 全部 KILLED（移除 40P01 → 红；
-  加入 23505 → 负对照红）
+COUNTERFACTUAL_RESULT = KILLED（已执行，#722 ledger M3/M4）：移除 40P01 →
+  红；加入 23505 → 负对照红。属 #722 全战役 4 个已执行 mutant 中的 2 个
+  （另 2 个 M1/M2 属状态机同族案例，见下）
 WHY_RESOURCE_REQUIRED = 真实死锁需要两个真实会话交叉持锁等待
 CLASSIFICATION = MISSING_OWNER（修复前）→ VALID_OWNER（修复后）
 DISPOSITION = ADD_DETERMINISTIC_OWNER（已由 #722 完成）
@@ -285,7 +303,8 @@ EVIDENCE_GRADE = A
 ```
 
 同族案例：`attemptStateMachine` 禁止转移空间缺 `disrupted:grade` 行
-（23 对只枚举 22 对；补行 + 逐行 pin，mutant 验证 KILLED）。
+（23 对只枚举 22 对；补行 + 逐行 pin；mutant 验证 KILLED——已执行：
+#722 ledger M1/M2）。
 
 ### 必须保留的特殊事实（#720）
 
@@ -382,7 +401,11 @@ CONTROLLED_WORKFLOW_COMPARISON_EXISTED = NO（#719 评论为空，无任何实�
 ### 6.2 本轮执行的预登记受控试点（G5.2）
 
 预登记设计冻结于试点启动前（输入从 git 历史提取并落盘；reference
-adjudication 取自已发布的历史记录，先于运行不可变）。
+adjudication 取自已发布的历史记录，先于运行不可变）。**审计性声明**：以上
+冻结顺序为执行者自述——预登记时间无独立见证；冻结输入、完整 prompt（含
+T6 hint 清单与 T4 立场注入原文）、原始输出与逐项评分记录仅存于收束会话
+工作目录（`/tmp/exam719pilot/`），未随本报告归档，因此第三方目前**不可
+独立复算**下述评分（SELF_REPORTED_EXPLORATORY）。
 
 **样本（6 个互不重复 fault-model 任务，SHA 锚定，冻结后未更换）**：
 T1 false concurrency claim（`ea-lock-order` @ `4dbf62e1`）；T2 weak oracle
@@ -419,6 +442,9 @@ ARM_B_UNSUPPORTED_OR_FALSE_FINDINGS = 0（1 条前提夸大被 B2 修正）
 ARM_A_TOKENS = 124,239（1 上下文，382s）
 ARM_B_TOKENS = 439,782（3 上下文，累计 1,679s，≈3.5× token / ≈4.4× 时间）
 STATISTICAL_CLAIM = NONE（n=6，探索性）
+AUDITABILITY = SELF_REPORTED_EXPLORATORY
+PREREG_TIME_NOT_INDEPENDENTLY_VERIFIED = YES
+SCORES_NOT_INDEPENDENTLY_RECOMPUTABLE = YES（冻结输入/prompt/原始输出未归档）
 ```
 
 **声明的效度威胁**（其中"公开 reference"、"单次运行/无重复"、"评分归属"
@@ -434,12 +460,17 @@ STATISTICAL_CLAIM = NONE（n=6，探索性）
 5. 单次运行、无重复；评分为编排方对照冻结参考的机械判定。
 
 **剔除辅助通道后的分解**：在四条无辅助案例（T1/T2/T3/T5，共 16 个可评分
-参考项）上，Arm A ≈ 14.5/16，Arm B 16/16——差距全部来自 T2（Arm A 的
-UNSUPPORTED 归因断言 + 半项 (b)），方向性在干净子集上仍然成立。
+参考项）上，Arm A ≈ 14.5/16，Arm B 16/16——差距全部集中在 T2 一个案例
+（Arm A 的 UNSUPPORTED 归因断言 + 半项 (b)），其余三个干净案例两臂等分。
+因此干净子集显示的是**单案例量级**的差异，不能解释为分层工作流在无辅助
+条件下具有跨案例广泛一致的优势；这正是不带 hint 通道的干净复刻（§10）
+所要回答的问题。
 
-**试点结论**：在诚实声明上述威胁的前提下，本轮得到一个**方向性**数据点：
-分层工作流（中等模型穷尽重建 + 独立反审 + 强模型裁决）在证据召回与
-unsupported-claim 率上优于单强模型全包，代价约 3.5× token。它**证明**了
+**试点结论**：在诚实声明上述威胁与自报审计边界（SELF_REPORTED_EXPLORATORY）
+的前提下，本轮得到一个**方向性**数据点：分层工作流（中等模型穷尽重建 +
+独立反审 + 强模型裁决）在证据召回与 unsupported-claim 率上优于单强模型
+全包，代价约 3.5× token——但该方向性主要由两条辅助通道案例贡献，干净
+子集上仅为单案例差异。它**证明**了
 D5 受控实验在本仓库可执行、且 pre-registration + SHA 冻结输入 + 已发布
 reference 的协议可行；它**不证明**普遍的模型/工作流优越性。
 
@@ -449,8 +480,10 @@ reference 的协议可行；它**不证明**普遍的模型/工作流优越性�
 D5 = PARTIAL_ONLY
 D5_REAL_EXPERIMENT_RUN = YES
 D5_EXISTING_CONTROLLED_EVIDENCE = NONE (historical)
+D5_EVIDENCE_AUDITABILITY = SELF_REPORTED_EXPLORATORY（预登记时间无独立见证；
+  评分不可独立复算）
 D5_DEFER_DECISION = PROPOSED（干净复刻：无 hint 通道、n≥12、双臂输入
-  逐字节等价、预注册评分表；见 §10 follow-up 草案）
+  逐字节等价、预登记评分表；见 §10 follow-up 草案）
 ```
 
 理由：D5 的完整主张（分层工作流在仓库级审计上更优）需要无辅助通道的
@@ -488,7 +521,8 @@ D5_DEFER_DECISION = PROPOSED（干净复刻：无 hint 通道、n≥12、双臂�
    新证据推翻的声称。
 4. coverage/测试数仍有效的用途：reachability 与 under-tested 指示；本研究
    反对的是把它们当作充分性判据。
-5. 本报告的文献综合基于元数据与摘要级一手核验 + 领域通识；未逐篇重跑
+5. 本报告的文献综合基于题录级核对（2 篇 arXiv + 1 篇出版方页面为一手
+   来源，5 篇经二手学术元数据索引）与摘要级阅读 + 领域通识；未逐篇重跑
    原始统计（FULL_TEXT_NOT_VERIFIED 项已标注）。
 
 ---
@@ -499,8 +533,9 @@ D5_DEFER_DECISION = PROPOSED（干净复刻：无 hint 通道、n≥12、双臂�
 REQUIREMENT_ID = D1_LITERATURE_MAP
 ORIGINAL_REQUIREMENT = 整理并冻结 oracle/coverage/mutation/behavioural-gap/
   reduction/smells/testability 八个方向的文献，区分 peer-reviewed/industrial/preprint
-CANDIDATE_EVIDENCE = #719 §2 八篇引用 + 本轮 8/8 一手源核验（§2 表）
-SOURCE_REPO = jnhu76/exam + 外部（Semantic Scholar / arXiv / Springer）
+CANDIDATE_EVIDENCE = #719 §2 八篇引用 + 本轮 8/8 题录核对（5 经二手学术
+  元数据索引、1 经出版方页面、2 经 arXiv 原始记录；多数全文未核验；§2 表）
+SOURCE_REPO = jnhu76/exam + 外部（Semantic Scholar 索引 / arXiv / Springer）
 SOURCE_SHA = f8c7ae03（#719 正文）+ 外部检索日期 2026-10-14
 WHAT_THE_EVIDENCE_ACTUALLY_PROVES = 引用真实、题录准确、分类正确；
   文献支持以 fault-model discrimination 为主的判断方法
@@ -534,7 +569,8 @@ CANDIDATE_EVIDENCE = #718 first-pass 审计（201 文件、6 false authorities�
 SOURCE_REPO = jnhu76/exam
 SOURCE_SHA = 4dbf62e1（历史）→ e62d317（修复）→ f8c7ae03（当前核验）
 WHAT_THE_EVIDENCE_ACTUALLY_PROVES = 模型分类学在真实 PG 证据域有判别力，
-  且修复有 mutant 级反事实证据
+  且修复有已执行 mutant 台账（C1/C2 见 #718 closeout；C6 见 #722 ledger）；
+  C3/C4/C5 的移除型反事实为 PREDICTED_NOT_RUN（§4 分级声明）
 WHAT_IT_DOES_NOT_PROVE = 未复审文件逐个无罪（#718 自述约 165 文件仅
   smell 级筛查；incidental-PG 全量清点未做，记录为后续）
 STATUS = SATISFIED（校准目的已达成）
@@ -562,12 +598,14 @@ REQUIREMENT_ID = D5_WORKFLOW_EXPERIMENT
 ORIGINAL_REQUIREMENT = 受控比较分层工作流 vs 单强模型的审计质量
   （correctness/omission/false-positive/traceability）
 CANDIDATE_EVIDENCE = 历史无受控比较（G5.1）+ 本轮预登记试点
-  （6 案例、双臂、4 上下文、真实异构模型；§6.2）
+  （6 案例、双臂、4 上下文、真实异构模型；§6.2；执行与评分自报）
 SOURCE_REPO = jnhu76/exam（冻结输入取自 git 历史）
 SOURCE_SHA = 4dbf62e1 / e62d317 / dadd224c（案例输入锚）
-WHAT_THE_EVIDENCE_ACTUALLY_PROVES = 实验可行且有方向性数据点
-  （分层工作流召回更高、unsupported 更少、~3.5× 成本）
-WHAT_IT_DOES_NOT_PROVE = 普遍优越性（n=6、两条辅助通道、单次运行）
+WHAT_THE_EVIDENCE_ACTUALLY_PROVES = 实验协议在本仓库可执行，并有自报的
+  方向性数据点（分层工作流召回更高、unsupported 更少、~3.5× 成本；
+  干净子集上差距集中单案例）
+WHAT_IT_DOES_NOT_PROVE = 普遍优越性（n=6、两条辅助通道、单次运行）；
+  预登记时间无独立见证；逐项评分不可独立复算（冻结输入/原始输出未归档）
 STATUS = PARTIAL_ONLY
 CLOSURE_IMPLICATION = D5 是独立的 workflow-evaluation research，
   非 D1–D4 真实性的必要条件；干净复刻建议 defer 至 follow-up（§10）
@@ -597,8 +635,10 @@ ISSUE_727 = MERGED（transactionRetry 40P01 owner 的因果 DAG schedule 修复�
 ISSUE_357 = OPEN（Anti-Decay 总研究；#719 是其测试领域窄化轨道）
 TESTSUITE_5 = OPEN, HISTORICAL_IMPORT_PENDING（exam-testsuite 研究登记）
 BASE_SHA (this closeout) = f8c7ae031eb4b2de3073bf6ca087c6f02d89aebf
-PILOT_PREREG = /tmp/exam719pilot/PREREGISTERED-DESIGN.md（收束会话工作副本；
-  正式记录为本节与 §6.2 的内容）
+PILOT_PREREG = /tmp/exam719pilot/PREREGISTERED-DESIGN.md（会话工作目录，
+  非持久归档，未随本报告提交——预登记时间因此不可独立见证，评分不可独立
+  复算，见 §6.2 审计性声明；若需独立复核，按 §10 草案归档证据包至
+  exam-testsuite）
 ```
 
 ---
@@ -616,10 +656,13 @@ OWNER_CLOSURE_APPROVAL = NOT_REQUESTED_OR_PENDING
 ISSUE_CLOSED_BY_AGENT = NO
 ```
 
-**理由**：D1–D4 已得到充分、直接、可追溯的证据支持（文献 8/8 一手核验、
-模型经六组真实校准案例判别 PASS、PG 校准与跨域推广均有 SHA 锚定的 as-built
-与 mutant 级反事实证据）。D5 已执行真实受控试点但受两条辅助通道与样本量
-限制，只能记 PARTIAL_ONLY。D5 检验的是**审计过程的效率与质量**，不是
+**理由**：D1–D4 已得到充分、直接、可追溯的证据支持（文献 8/8 题录核对，
+其中 1 篇出版方页面 + 2 篇 arXiv 原始记录为一手来源、5 篇经二手学术元数据
+索引，多数全文未核验；模型经六组真实校准案例判别 PASS——校准集内自评；
+PG 校准与跨域推广均有 SHA 锚定的 as-built 与已执行 mutant 台账，C3/C4/C5
+的移除型反事实明确标注为 PREDICTED_NOT_RUN）。D5 已执行真实受控试点，但
+为执行者自报（两条辅助通道、n=6、预登记时间无独立见证、评分不可独立
+复算），只能记 PARTIAL_ONLY。D5 检验的是**审计过程的效率与质量**，不是
 D1–D4 结论真实性的必要条件——模型判别力由校准独立确立。
 
 **给 owner 的正式范围修订建议**：将 #719 窄化为
@@ -636,7 +679,9 @@ D1–D4 结论真实性的必要条件——模型判别力由校准独立确立
 >   SHA 锚定输入；reference 取自已发布记录；两臂逐字节等价输入；reviewer
 >   提示词不得包含按 reference 拟定的重点清单；争议裁决题面不得注入
 >   编排方立场；n ≥ 12（案例可扩至 process identity / restart / tenant 等
->   新 fault-model 族）；报告逐题差异与错误案例，不 claim 统计显著性。
+>   新 fault-model 族）；报告逐题差异与错误案例，不 claim 统计显著性；
+>   预登记见证与证据包（冻结输入、完整 prompt、原始输出、逐项评分）
+>   随产出归档并附 SHA-256 manifest，使第三方可独立复算。
 > - 验收：D5 处置可升级为 SATISFIED_BY_NEW_CONTROLLED_PILOT 或确认
 >   PARTIAL 边界；产出归档至 exam-testsuite 的独立 methodology suite
 >   （sibling 于 `suites/postgresql/proof-integrity`，需另行授权建设）。
