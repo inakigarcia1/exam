@@ -339,7 +339,7 @@ PR #722（merge `34d94fd98a72419ed97f151275c3da6136d5d675`，FINAL_HEAD
 
 | DOMAIN | MATERIAL_FAULT_MODELS（摘要） | EXISTING_OWNER | ORACLE_TYPE | COUNTERFACTUAL_EVIDENCE | RESULT / NEXT_ACTION |
 | --- | --- | --- | --- | --- | --- |
-| D1 PostgreSQL/SQL | 锁序、约束仲裁、事务原子性 | #718/#721 已裁定 201 文件；本报告 §4 | SQLSTATE/约束/持久终态 | 7 定向 mutant（#721）全 KILLED | 回归检查 only；KEEP |
+| D1 PostgreSQL/SQL | 锁序、约束仲裁、事务原子性 | #718/#721 已裁定 201 文件；本报告 §4 | SQLSTATE/约束/持久终态 | 7 定向 mutant 已执行（#718 closeout；表列 6 项=5 KILLED+1 SURVIVED，SURVIVED 项即 attempt-concurrency false-authority 证据；第 7 项未逐项列名） | 回归检查 only；KEEP |
 | D2 Concurrency/Race/Time | overlap 声明、sleep 时序依赖 | 12 个并发声明文件 + 17 个 sleep 站点复审（计数为 #722 报告自报） | pid/txid/pg_locks/有界谓词 | 3 处修复（retitle、REPLAYS 收敛、有界等待） | 已达标；无遗留 |
 | D3 State Machine | 禁止转移空间（attempt/exam/enrollment 三表） | `attemptStateMachine.test.ts` 23 对全枚举 + 行 pin | 精确 reason 断言 | 2 mutant（加边/行）KILLED | 已闭合；无遗留 |
 | D4 AuthZ/Tenant | R2/R3/R4、E9/E10、tenant isolation | 既有套件在位 | 403/401 模式 + 隔离断言 | 复审无需修复 | 无修复；无遗留 |
@@ -564,7 +564,8 @@ REQUIREMENT_ID = D3_PG_CALIBRATION
 ORIGINAL_REQUIREMENT = 用 #718 真实样本校准 false authority / probabilistic /
   valid owner / redundant / missing owner
 CANDIDATE_EVIDENCE = #718 first-pass 审计（201 文件、6 false authorities、
-  3 missing-owner）+ PR #721（7 定向 mutant 全 KILLED、201 文件裁决、
+  3 missing-owner）+ PR #721（7 定向 mutant 已执行；表列 6 项=5 KILLED+
+  1 SURVIVED[false-authority 证据]，第 7 项未逐项列名；201 文件裁决、
   UNRESOLVED=NONE）+ 本轮 C1–C6 历史/当前双态核验
 SOURCE_REPO = jnhu76/exam
 SOURCE_SHA = 4dbf62e1（历史）→ e62d317（修复）→ f8c7ae03（当前核验）
