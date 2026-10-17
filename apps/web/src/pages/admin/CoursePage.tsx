@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api";
 import { getApiErrorMessage } from "@/lib/apiErrors";
@@ -11,6 +11,8 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { FieldGroup, Field } from "@/components/shared/FieldGroup";
 import { RowActions } from "@/components/shared/RowActions";
 import { DataTableShell } from "@/components/shared/DataTableShell";
+import { DataViewFooter } from "@/components/shared/DataViewFooter";
+import { DataTablePagination } from "@/components/shared/DataTablePagination";
 import { DataTableOverflowText } from "@/components/shared/DataTableContract";
 import {
   DesktopDataTable,
@@ -34,6 +36,9 @@ import {
 import { BookOpen, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { FieldError } from "@/components/shared/FieldError";
 import { PageContainer } from "@/components/shared/PageContainer";
+
+/** Course-list page size — real pagination reaches every course (#785). */
+const COURSES_PAGE_SIZE = 20;
 
 /** A course record with name, code, and description. */
 /** A single course record returned from the API. */
@@ -65,6 +70,8 @@ interface PaginatedResponse<T> {
 export function CoursePage() {
   const { t } = useTranslation();
   const [courses, setCourses] = useState<CourseRow[]>([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -74,25 +81,70 @@ export function CoursePage() {
   const [formDescription, setFormDescription] = useState("");
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [search, setSearch] = useState("");
+  // Search is split into two states (same contract as QuestionPage):
+  // searchInput is the live text in the field; committedSearch is the term
+  // actually sent to the server (debounced DataViewSearch commit). Typing
+  // never fires a request per keystroke.
+  const [searchInput, setSearchInput] = useState("");
+  const [committedSearch, setCommittedSearch] = useState("");
+  // Latest-request guard: rapid search/page flips fire overlapping course
+  // requests; a stale response resolving last must not overwrite the table.
+  const coursesGenRef = useRef(0);
 
-  /** Fetches the course list from the API, optionally showing a loading indicator. */
-  const loadCourses = useCallback(async (opts?: { showLoading?: boolean }) => {
-    if (opts?.showLoading !== false) setIsLoading(true);
-    setError(null);
-    try {
-      const data = await api.get<PaginatedResponse<CourseRow>>("/api/courses");
-      setCourses(data.items);
-    } catch {
-      setError(t("admin.courses.loadFailed"));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  /** Fetches the course page from the API, optionally showing a loading indicator. */
+  const loadCourses = useCallback(
+    async (opts?: { showLoading?: boolean }) => {
+      const generation = ++coursesGenRef.current;
+      const isStale = () => generation !== coursesGenRef.current;
+      if (opts?.showLoading !== false) setIsLoading(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams({
+          page: String(page),
+          pageSize: String(COURSES_PAGE_SIZE),
+        });
+        if (committedSearch.trim())
+          params.set("search", committedSearch.trim());
+        const data = await api.get<PaginatedResponse<CourseRow>>(
+          `/api/courses?${params.toString()}`,
+        );
+        if (isStale()) return;
+        setCourses(data.items);
+        setTotal(data.total);
+      } catch {
+        if (isStale()) return;
+        setError(t("admin.courses.loadFailed"));
+      } finally {
+        if (!isStale()) setIsLoading(false);
+      }
+    },
+    [page, committedSearch, t],
+  );
 
   useEffect(() => {
     loadCourses();
   }, [loadCourses]);
+
+  // Out-of-range page recovery: a response with rows elsewhere (total > 0)
+  // but an empty page means the page number is stale — step back and requery
+  // instead of rendering a fake empty state. Bounded at page 1.
+  useEffect(() => {
+    if (!isLoading && total > 0 && courses.length === 0 && page > 1) {
+      setPage(page - 1);
+    }
+  }, [isLoading, total, courses.length, page]);
+
+  /** A search commit is a new query: it resets to the first page (#785). */
+  function handleSearchCommit(term: string) {
+    setCommittedSearch(term);
+    setPage(1);
+  }
+
+  function clearSearch() {
+    setSearchInput("");
+    setCommittedSearch("");
+    setPage(1);
+  }
 
   /** Resets the form and opens the dialog for creating a new course. */
   function openCreate() {
@@ -168,18 +220,10 @@ export function CoursePage() {
     }
   }
 
-  if (isLoading) return <LoadingState />;
+  if (isLoading && courses.length === 0 && total === 0) return <LoadingState />;
   if (error) return <ErrorState message={error} onRetry={loadCourses} />;
 
-  const trimmed = search.trim().toLowerCase();
-  const filteredCourses = trimmed
-    ? courses.filter(
-        (c) =>
-          c.name.toLowerCase().includes(trimmed) ||
-          c.code.toLowerCase().includes(trimmed) ||
-          (c.description ?? "").toLowerCase().includes(trimmed),
-      )
-    : courses;
+  const hasSearch = committedSearch.trim() !== "";
 
   // Single-source column declarations (issue 457): desktop table and mobile
   // cards render from the same array.
@@ -264,64 +308,72 @@ export function CoursePage() {
         />
 
         <DataTableShell
-          // A lone count is a summary, not a toolbar control — the title band's
-          // `meta` slot is its owner (docs/standards/ui-system.md §Tables).
-          meta={
-            <span className="type-secondary">
-              {t("admin.courses.count", { count: filteredCourses.length })}
-            </span>
-          }
           toolbar={
             // Product rule (pinned by test): the search box only exists when
-            // there is something to search.
-            courses.length > 0 ? (
+            // there is something to search — an empty collection with no
+            // active search. A no-match result keeps the box so the term
+            // stays visible and clearable (#785: search is server-side).
+            total > 0 || hasSearch ? (
               <DataToolbar
                 search={
                   <DataViewSearch
                     aria-label={t("admin.courses.searchLabel")}
                     placeholder={t("admin.courses.searchPlaceholder")}
-                    value={search}
-                    onChange={setSearch}
-                    onSearch={setSearch}
+                    value={searchInput}
+                    onChange={setSearchInput}
+                    onSearch={handleSearchCommit}
                     clearLabel={t("admin.courses.clearSearchLabel")}
                   />
                 }
               />
             ) : undefined
           }
+          footer={
+            <DataViewFooter
+              range={{ page, pageSize: COURSES_PAGE_SIZE, total }}
+              navigation={
+                <DataTablePagination
+                  page={page}
+                  pageSize={COURSES_PAGE_SIZE}
+                  total={total}
+                  onPageChange={setPage}
+                />
+              }
+            />
+          }
           mobile={
             <MobileRecordList
               columns={columns}
-              rows={filteredCourses}
+              rows={courses}
               getRowId={(c) => c.id}
-              empty={filteredCourses.length === 0}
+              empty={courses.length === 0}
               emptyTitle={t(
-                courses.length === 0
-                  ? "admin.courses.empty"
-                  : "admin.courses.noMatch",
+                total === 0 ? "admin.courses.empty" : "admin.courses.noMatch",
               )}
               emptyDescription={t(
-                courses.length === 0
+                total === 0
                   ? "admin.courses.emptyDescription"
                   : "admin.courses.noMatchDescription",
-                { q: search },
+                { q: committedSearch },
               )}
             />
           }
         >
-          {courses.length === 0 ? (
+          {total === 0 && !hasSearch ? (
             <EmptyState
               icon={<AppIcon icon={BookOpen} size="state" />}
               title={t("admin.courses.empty")}
               description={t("admin.courses.emptyDescription")}
             />
-          ) : filteredCourses.length === 0 ? (
+          ) : total === 0 && hasSearch ? (
             <EmptyState
               icon={<AppIcon icon={Search} size="state" />}
               title={t("admin.courses.noMatch")}
-              description={t("admin.courses.noMatchDescription", { q: search })}
+              description={t("admin.courses.noMatchDescription", {
+                q: committedSearch,
+              })}
               action={
-                <Button variant="outline" onClick={() => setSearch("")}>
+                <Button variant="outline" onClick={clearSearch}>
                   {t("admin.common.clearSearch")}
                 </Button>
               }
@@ -329,7 +381,7 @@ export function CoursePage() {
           ) : (
             <DesktopDataTable
               columns={columns}
-              data={filteredCourses}
+              data={courses}
               getRowId={(c) => c.id}
             />
           )}

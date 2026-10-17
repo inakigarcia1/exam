@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useProductDateTime } from "@/contexts/DateTimeContext";
@@ -11,6 +11,9 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { AppIcon } from "@/components/shared/AppIcon";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { DataTableShell } from "@/components/shared/DataTableShell";
+import { DataViewFooter } from "@/components/shared/DataViewFooter";
+import { DataTablePagination } from "@/components/shared/DataTablePagination";
+import { DataToolbar, ToolbarFilter } from "@/components/shared/DataToolbar";
 import { MobileRecordList } from "@/components/shared/MobileRecordList";
 import {
   DesktopDataTable,
@@ -21,6 +24,13 @@ import {
   type RowActionDeclaration,
 } from "@/components/shared/RowActions";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { ClipboardList, Eye, Plus, Trash2 } from "lucide-react";
@@ -28,7 +38,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { canCreateExam, canDeleteExam } from "@/lib/capabilities";
 import { getApiErrorMessage } from "@/lib/apiErrors";
 import { deleteDisabledReasonKey } from "@/lib/examDisabledReasons";
+import { getStatusMeta } from "@/lib/statusMeta";
+import { statusLabelKey } from "@/lib/statusMetaUtils";
+import { ExamStatusEnum, type ExamStatus } from "@exam/contracts";
 import type { DeleteDisabledReasonCode } from "@exam/contracts";
+
+/** Exam-list page size — real pagination reaches every exam (#785). */
+const EXAMS_PAGE_SIZE = 20;
 
 /** Row shape returned by the exams list API. */
 interface ExamRow {
@@ -57,10 +73,14 @@ interface PaginatedResponse<T> {
   totalPages: number;
 }
 
+/** Select value for "no status filter" (the parameter-less default). */
+const STATUS_ALL = "all";
+
 /**
- * Admin page for listing, viewing, and deleting exams.
- * No separate count strip — the count lives in the toolbar summary. Admin
- * table with distinct header, clear boundaries.
+ * Admin page for listing, viewing, and deleting exams. Server-side
+ * pagination plus an optional status filter (#785): every authorized exam is
+ * reachable by paging, the total comes from the response, and a stale
+ * response can never overwrite a newer query's data.
  */
 export function ExamPage() {
   const { t } = useTranslation();
@@ -68,8 +88,17 @@ export function ExamPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [exams, setExams] = useState<ExamRow[]>([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<"all" | ExamStatus>(
+    STATUS_ALL,
+  );
+  // Latest-request guard: rapid filter/page flips fire overlapping exams
+  // requests; a stale response resolving last must not overwrite the table
+  // (same contract as UsersPage/QuestionPage).
+  const examsGenRef = useRef(0);
   const mayCreateExam = user ? canCreateExam(user) : false;
   const mayDeleteExam = user ? canDeleteExam(user) : false;
 
@@ -88,26 +117,56 @@ export function ExamPage() {
   }
 
   const loadExams = useCallback(async () => {
+    const generation = ++examsGenRef.current;
+    const isStale = () => generation !== examsGenRef.current;
     setIsLoading(true);
     setError(null);
     try {
-      const data = await api.get<PaginatedResponse<ExamRow>>("/api/exams");
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(EXAMS_PAGE_SIZE),
+      });
+      if (statusFilter !== STATUS_ALL) params.set("statuses", statusFilter);
+      const data = await api.get<PaginatedResponse<ExamRow>>(
+        `/api/exams?${params.toString()}`,
+      );
+      if (isStale()) return;
       setExams(data.items);
+      setTotal(data.total);
     } catch {
+      if (isStale()) return;
       setError(t("admin.exams.loadFailed"));
     } finally {
-      setIsLoading(false);
+      if (!isStale()) setIsLoading(false);
     }
-  }, []);
+  }, [page, statusFilter, t]);
 
   useEffect(() => {
-    loadExams();
+    void loadExams();
   }, [loadExams]);
+
+  // Out-of-range page recovery (#785 B07): a deletion (or concurrent change)
+  // can leave the current page beyond the last valid one. A response with
+  // rows elsewhere (total > 0) but an empty page means the page number is
+  // stale — step back and requery instead of rendering a fake empty state.
+  // Bounded: at page 1 an empty page with total > 0 stops the loop.
+  useEffect(() => {
+    if (!isLoading && total > 0 && exams.length === 0 && page > 1) {
+      setPage(page - 1);
+    }
+  }, [isLoading, total, exams.length, page]);
+
+  /** A filter change is a new query: it resets to the first page (B06). */
+  function handleStatusFilterChange(value: string) {
+    setStatusFilter(value === STATUS_ALL ? STATUS_ALL : (value as ExamStatus));
+    setPage(1);
+  }
 
   async function handleDelete(id: string) {
     try {
       await api.delete(`/api/exams/${id}`);
       toast.success(t("admin.exams.toast.deleted"));
+      // The out-of-range effect steps back when this page became empty.
       await loadExams();
     } catch (err) {
       toast.error(
@@ -116,7 +175,9 @@ export function ExamPage() {
     }
   }
 
-  if (isLoading) return <LoadingState />;
+  // Full-page loader only for the initial load: page flips keep the table
+  // (and its pagination controls) mounted while the next page is in flight.
+  if (isLoading && exams.length === 0 && total === 0) return <LoadingState />;
   if (error) return <ErrorState message={error} onRetry={loadExams} />;
 
   // Single-source column declarations (issue 457): desktop table and mobile
@@ -218,6 +279,8 @@ export function ExamPage() {
     },
   ];
 
+  const hasStatusFilter = statusFilter !== STATUS_ALL;
+
   return (
     <TooltipProvider>
       <PageContainer role="admin-dense" className="flex flex-col gap-6">
@@ -233,37 +296,83 @@ export function ExamPage() {
           }
         />
 
-        {exams.length === 0 ? (
+        {exams.length === 0 && !hasStatusFilter ? (
           <EmptyState
             icon={<AppIcon icon={ClipboardList} size="state" />}
             title={t("admin.exams.empty")}
             description={t("admin.exams.emptyDescription")}
           />
+        ) : exams.length === 0 && hasStatusFilter ? (
+          <EmptyState
+            icon={<AppIcon icon={ClipboardList} size="state" />}
+            title={t("admin.exams.noMatch")}
+            description={t("admin.exams.noMatchDescription")}
+            action={
+              <Button
+                variant="outline"
+                onClick={() => handleStatusFilterChange(STATUS_ALL)}
+              >
+                {t("admin.exams.clearFilterLabel")}
+              </Button>
+            }
+          />
         ) : (
-          <>
-            <DataTableShell
-              title={t("admin.exams.listTitle")}
-              description={t("admin.exams.listDescription")}
-              meta={
-                <span className="type-secondary">
-                  {t("admin.exams.summary", { count: exams.length })}
-                </span>
-              }
-              mobile={
-                <MobileRecordList
-                  columns={columns}
-                  rows={exams}
-                  getRowId={(e) => e.id}
-                />
-              }
-            >
-              <DesktopDataTable
+          <DataTableShell
+            title={t("admin.exams.listTitle")}
+            description={t("admin.exams.listDescription")}
+            toolbar={
+              <DataToolbar aria-label={t("admin.exams.toolbarLabel")}>
+                <ToolbarFilter size="narrow">
+                  <Select
+                    value={statusFilter}
+                    onValueChange={handleStatusFilterChange}
+                  >
+                    <SelectTrigger
+                      aria-label={t("admin.exams.statusFilterLabel")}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={STATUS_ALL}>
+                        {t("admin.exams.statusAll")}
+                      </SelectItem>
+                      {ExamStatusEnum.options.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {t(statusLabelKey(getStatusMeta(status).labelKey))}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </ToolbarFilter>
+              </DataToolbar>
+            }
+            footer={
+              <DataViewFooter
+                range={{ page, pageSize: EXAMS_PAGE_SIZE, total }}
+                navigation={
+                  <DataTablePagination
+                    page={page}
+                    pageSize={EXAMS_PAGE_SIZE}
+                    total={total}
+                    onPageChange={setPage}
+                  />
+                }
+              />
+            }
+            mobile={
+              <MobileRecordList
                 columns={columns}
-                data={exams}
+                rows={exams}
                 getRowId={(e) => e.id}
               />
-            </DataTableShell>
-          </>
+            }
+          >
+            <DesktopDataTable
+              columns={columns}
+              data={exams}
+              getRowId={(e) => e.id}
+            />
+          </DataTableShell>
         )}
       </PageContainer>
     </TooltipProvider>
