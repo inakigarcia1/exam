@@ -19,7 +19,11 @@ async function countCourses(
 
 /** Filter options for listing courses with DB-level filtering. */
 export interface CourseListFilters {
-  /** Case-insensitive substring search over course `name` or `code`. */
+  /**
+   * Case-insensitive substring search over course `name`, `code`, and
+   * `description` (B13: description keeps the pre-#785 client-side search
+   * semantics — a description-only match must stay reachable).
+   */
   search?: string;
   /**
    * Restrict the listing to these course ids (LIST scope filter).
@@ -60,7 +64,7 @@ export function createCourseRepo(db: Database) {
     },
     /**
      * Lists courses with optional DB-level filter and pagination.
-     * Supports case-insensitive search on `name` and `code`.
+     * Supports case-insensitive search on `name`, `code`, and `description`.
      */
     async listFiltered(
       ctx: TenantContext | RequestContext,
@@ -73,7 +77,7 @@ export function createCourseRepo(db: Database) {
       if (filters.search && filters.search.trim()) {
         const term = filters.search.trim();
         conditions.push(
-          sql`(position(lower(${term}) in lower(${courses.name})) > 0 or position(lower(${term}) in lower(${courses.code})) > 0)`,
+          sql`(position(lower(${term}) in lower(${courses.name})) > 0 or position(lower(${term}) in lower(${courses.code})) > 0 or position(lower(${term}) in lower(${courses.description})) > 0)`,
         );
       }
       if (filters.courseIds) {

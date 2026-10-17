@@ -101,6 +101,7 @@ describe("#785 admin list pagination / search / status contracts (B01–B10)", (
   async function insertCourse(opts: {
     name: string;
     code: string;
+    description?: string;
     createdAt?: Date;
     organizationId?: string;
   }): Promise<string> {
@@ -110,7 +111,7 @@ describe("#785 admin list pagination / search / status contracts (B01–B10)", (
       organizationId: opts.organizationId ?? ctx.org.id,
       name: opts.name,
       code: opts.code,
-      description: "",
+      description: opts.description ?? "",
       ...(opts.createdAt ? { createdAt: opts.createdAt } : {}),
     });
     return courseId;
@@ -586,6 +587,64 @@ describe("#785 admin list pagination / search / status contracts (B01–B10)", (
     // Clearing restores the full set.
     const cleared = await getAdmin("/api/courses");
     expect(cleared.json().total).toBe(40);
+  });
+
+  // ── B13 — 描述搜索覆盖服务端全集（保持 #785 前客户端搜索语义） ─────────
+
+  it("B13 courses: search matches description and spans pages across the full set", async () => {
+    await clearOrgData();
+    // 25 courses whose description — and only their description — carries
+    // the keyword. name/code intentionally never contain it, so a name/code
+    // predicate alone would return zero matches (the pre-fix regression).
+    for (let i = 0; i < 25; i++) {
+      await insertCourse({
+        name: `普通课程${String(i).padStart(2, "0")}`,
+        code: `ORD-${uniquePrefix()}-${String(i).padStart(3, "0")}`,
+        description: `课程简介 descword785 第${i}条`,
+        createdAt: new Date(BASE_TIME.getTime() + i * 60_000),
+      });
+    }
+    // Non-matching control: same shape, description without the keyword.
+    for (let i = 0; i < 10; i++) {
+      await insertCourse({
+        name: `对照课程${i}`,
+        code: `CTL-${uniquePrefix()}-${i}`,
+        description: "无关描述",
+        createdAt: new Date(BASE_TIME.getTime() + 100 * 60_000),
+      });
+    }
+
+    // The description-only matches span a page boundary: total=25, page 1
+    // carries 20 rows, page 2 the remaining 5, union = the full matched set.
+    const page1 = await getAdmin("/api/courses?search=descword785");
+    expect(page1.statusCode).toBe(200);
+    const p1 = page1.json();
+    expect(p1.total).toBe(25);
+    expect(p1.items).toHaveLength(20);
+
+    const page2 = await getAdmin("/api/courses?search=descword785&page=2");
+    expect(page2.statusCode).toBe(200);
+    const p2 = page2.json();
+    expect(p2.total).toBe(25);
+    expect(p2.items).toHaveLength(5);
+
+    const names = new Set<string>(
+      [...p1.items, ...p2.items].map((c: { name: string }) => c.name),
+    );
+    expect(names.size).toBe(25);
+    for (const item of [...p1.items, ...p2.items]) {
+      expect(item.description).toContain("descword785");
+    }
+
+    // Case-insensitive on the description predicate too.
+    const byUpper = await getAdmin("/api/courses?search=DESCWORD785");
+    expect(byUpper.json().total).toBe(25);
+
+    // A term that exists only in some descriptions counts exactly those.
+    const narrow = await getAdmin(
+      `/api/courses?search=${encodeURIComponent("第7条")}`,
+    );
+    expect(narrow.json().total).toBe(1);
   });
 
   // ── B04 — 状态筛选必须先于分页 ────────────────────────────────────────
