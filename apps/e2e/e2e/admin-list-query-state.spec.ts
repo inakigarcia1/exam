@@ -516,67 +516,72 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
       release = resolve;
     });
     let held = false;
+    let handlerDone: Promise<void> = Promise.resolve();
     const listRoute = /\/api\/questions\?/;
-    await page.route(listRoute, async (route) => {
-      if (!held) {
-        held = true;
-        await gate;
-      }
-      await route.continue();
+    await page.route(listRoute, (route) => {
+      const run = async () => {
+        if (!held) {
+          held = true;
+          await gate;
+        }
+        await route.continue();
+      };
+      handlerDone = run();
+      return handlerDone;
     });
 
-    try {
-      // Cross-identity change: clearing the search moves the identity.
-      const pendingRequest = page.waitForRequest(
-        (r) => r.method() === "GET" && listRoute.test(r.url()),
-      );
-      await page.getByRole("button", { name: "清除搜索" }).click();
-      await pendingRequest;
+    // Cross-identity change: clearing the search moves the identity.
+    const pendingRequest = page.waitForRequest(
+      (r) => r.method() === "GET" && listRoute.test(r.url()),
+    );
+    await page.getByRole("button", { name: "清除搜索" }).click();
+    await pendingRequest;
 
-      // The pending window must not show the old identity's rows and must not
-      // show an empty state — while the list region keeps its height.
-      await expect(
-        page
-          .getByRole("table")
-          .getByText(`${KEYWORD} 题目 01`, { exact: true }),
-      ).toHaveCount(0);
-      await expect(page.getByText("未找到匹配的题目")).toHaveCount(0);
-      await expect(page.getByText("暂无题目")).toHaveCount(0);
+    // The pending window must not show the old identity's rows and must not
+    // show an empty state — while the list region keeps its height.
+    await expect(
+      page.getByRole("table").getByText(`${KEYWORD} 题目 01`, { exact: true }),
+    ).toHaveCount(0);
+    await expect(page.getByText("未找到匹配的题目")).toHaveCount(0);
+    await expect(page.getByText("暂无题目")).toHaveCount(0);
 
-      const post = await page.evaluate(() => ({
-        scrollHeight: document.documentElement.scrollHeight,
-        innerHeight: window.innerHeight,
-      }));
+    const post = await page.evaluate(() => ({
+      scrollHeight: document.documentElement.scrollHeight,
+      innerHeight: window.innerHeight,
+    }));
 
-      const collapsedTo = pre.scrollHeight - pre.rowHeight;
-      await test.info().attach("A13-pending-geometry.txt", {
-        body: [
-          `preScrollHeight  = ${pre.scrollHeight}`,
-          `innerHeight      = ${pre.innerHeight}`,
-          `rowHeight        = ${pre.rowHeight}`,
-          `postScrollHeight = ${post.scrollHeight}`,
-          "",
-          "DISCRIMINATING criterion — the list region must not collapse:",
-          `  post >= pre - rowHeight : ${post.scrollHeight} >= ${collapsedTo}`,
-          "",
-          "Floor (recorded, NOT discriminating): `scrollHeight >= innerHeight`",
-          `  ${post.scrollHeight} >= ${pre.innerHeight}`,
-          "  the document element's scrollHeight is floored at the viewport and",
-          "  AdminLayout adds min-h-screen, so this can never fail; the collapse",
-          "  it is meant to catch shows up in the criterion above.",
-        ].join("\n"),
-        contentType: "text/plain",
-      });
-      await test.info().attach("A13-pending.png", {
-        body: await page.screenshot({ fullPage: true }),
-        contentType: "image/png",
-      });
+    const collapsedTo = pre.scrollHeight - pre.rowHeight;
+    await test.info().attach("A13-pending-geometry.txt", {
+      body: [
+        `preScrollHeight  = ${pre.scrollHeight}`,
+        `innerHeight      = ${pre.innerHeight}`,
+        `rowHeight        = ${pre.rowHeight}`,
+        `postScrollHeight = ${post.scrollHeight}`,
+        "",
+        "DISCRIMINATING criterion — the list region must not collapse:",
+        `  post >= pre - rowHeight : ${post.scrollHeight} >= ${collapsedTo}`,
+        "",
+        "Floor (recorded, NOT discriminating): `scrollHeight >= innerHeight`",
+        `  ${post.scrollHeight} >= ${pre.innerHeight}`,
+        "  the document element's scrollHeight is floored at the viewport and",
+        "  AdminLayout adds min-h-screen, so this can never fail; the collapse",
+        "  it is meant to catch shows up in the criterion above.",
+      ].join("\n"),
+      contentType: "text/plain",
+    });
+    await test.info().attach("A13-pending.png", {
+      body: await page.screenshot({ fullPage: true }),
+      contentType: "image/png",
+    });
 
-      expect(post.scrollHeight).toBeGreaterThanOrEqual(collapsedTo);
-    } finally {
-      release();
-      await page.unroute(listRoute);
-    }
+    expect(post.scrollHeight).toBeGreaterThanOrEqual(collapsedTo);
+
+    // Release the held request, then let its handler finish before the route is
+    // unregistered — unrouting a route whose handler is still awaiting would
+    // make `route.continue()` throw instead of letting the request through.
+    release();
+    await handlerDone;
+    await page.unroute(listRoute);
 
     // The pending window ends in the real result, not in a stuck loader.
     await expect(page.getByText(/共 \d+ 条/)).toBeVisible();

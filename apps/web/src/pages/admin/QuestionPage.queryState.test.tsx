@@ -453,6 +453,85 @@ describe("QuestionPage URL query state (#784 A3)", () => {
   });
 
   // ── A09b — the same-identity page-turn window stays bounded ──
+  it("A13 (wiring): a cross-identity pending body reserves the height the rows last occupied", async () => {
+    mockPaginated(61);
+    let resolvePending!: (v: QuestionListPayload) => void;
+    const pendingResponse = new Promise<QuestionListPayload>((resolve) => {
+      resolvePending = resolve;
+    });
+    const inner = apiGet.getMockImplementation()!;
+    apiGet.mockImplementation(async (url: string) =>
+      url.includes("difficulty=3") ? pendingResponse : inner(url),
+    );
+
+    renderPage("/admin/questions");
+    await waitFor(() =>
+      expect(within(desktopShell()).getByText("第1题")).toBeInTheDocument(),
+    );
+
+    // jsdom reports 0 for every layout box, so the measurement is stubbed — on
+    // THIS element only, because a prototype-wide stub also feeds the table's
+    // own column-allocation geometry. The real geometry is proved in the L3
+    // witness; this pins the wiring: without the reservation the pending body
+    // falls back to the table's single short placeholder row, which is the
+    // measured 1374px -> 170px collapse.
+    const measured = 1374;
+    const box = within(desktopShell())
+      .getByRole("table")
+      .closest("[data-slot='table-container']")!.parentElement as HTMLElement;
+    const originalOffsetHeight = Object.getOwnPropertyDescriptor(
+      HTMLDivElement.prototype,
+      "offsetHeight",
+    );
+    Object.defineProperty(HTMLDivElement.prototype, "offsetHeight", {
+      configurable: true,
+      get(this: HTMLElement) {
+        // Only the wrapper that holds the table answers with a height; every
+        // other box keeps jsdom's 0, so the table's own column-allocation
+        // geometry is untouched.
+        return this.querySelector(':scope > [data-slot="table-container"]')
+          ? measured
+          : 0;
+      },
+    });
+    expect(box.style.minHeight).toBe("");
+
+    const user = userEvent.setup();
+    // One settled turn so the effect re-measures through the stub.
+    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await waitFor(() =>
+      expect(within(desktopShell()).getByText("第21题")).toBeInTheDocument(),
+    );
+
+    // A cross-identity change: the old rows are gone from the body, so only the
+    // reservation can keep the region from collapsing.
+    await user.click(screen.getByRole("combobox", { name: "按难度筛选" }));
+    await user.click(await screen.findByRole("option", { name: "难度 3" }));
+
+    await waitFor(() => expect(box.style.minHeight).toBe(`${measured}px`));
+    expect(
+      within(desktopShell()).queryByText("第21题"),
+    ).not.toBeInTheDocument();
+
+    resolvePending(pagePayload(1, 0));
+    // Both representations render the copy (desktop table and mobile cards).
+    await waitFor(() =>
+      expect(
+        within(desktopShell()).getByText("未找到匹配的题目"),
+      ).toBeInTheDocument(),
+    );
+    // Settled again: the reservation follows the new body, so a later page does
+    // not inherit a stale height.
+    await waitFor(() => expect(box.style.minHeight).toBe(""));
+    if (originalOffsetHeight) {
+      Object.defineProperty(
+        HTMLDivElement.prototype,
+        "offsetHeight",
+        originalOffsetHeight,
+      );
+    }
+  });
+
   it("A09b: a page turn keeps the previous slice with an in-flight signal and never shows an empty state", async () => {
     let resolvePage2!: (v: QuestionListPayload) => void;
     const page2Response = new Promise<QuestionListPayload>((resolve) => {
@@ -934,6 +1013,59 @@ describe("QuestionPage URL query state (#784 A3)", () => {
       ),
     );
     expect(urlSearch()).toBe("");
+  });
+
+  it("C1: a stale probe result cannot rewrite a course filter the user has moved to", async () => {
+    let releaseProbeA!: () => void;
+    const probeAGate = new Promise<void>((resolve) => {
+      releaseProbeA = resolve;
+    });
+    const probes: string[] = [];
+    apiGet.mockImplementation(async (url: string) => {
+      if (/^\/api\/courses\/[^/?]+$/.test(url)) {
+        const id = url.slice("/api/courses/".length);
+        probes.push(id);
+        if (id === "course-a") {
+          // Held open until the test releases it — after the user has moved on.
+          await probeAGate;
+          throw new ApiError(404, "not found");
+        }
+        return { id: "course-b", name: "课程乙", code: "B" };
+      }
+      if (url.startsWith("/api/courses")) {
+        return { items: [], total: 0, page: 1, pageSize: 20, totalPages: 1 };
+      }
+      if (url.startsWith("/api/questions/tags")) return { tags: [] };
+      return pagePayload(1, 3);
+    });
+
+    renderPage([
+      "/admin/questions?courseId=course-b",
+      "/admin/questions?courseId=course-a",
+    ]);
+    await waitFor(() => expect(probes).toEqual(["course-a"]));
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "后退" }));
+    await waitFor(() => expect(courseTrigger()).toHaveTextContent("课程乙"));
+    expect(urlSearch()).toContain("courseId=course-b");
+
+    // The 404 belonged to course A's probe. Landing now, it must not delete the
+    // courseId the user is actually on — a probe result has to be subject to
+    // the navigation identity that is current when it settles.
+    //
+    // The negative fact has to be observable, so the assertions are taken after
+    // the stale continuation has had every chance to run: if it rewrote the URL
+    // the list would refetch for the bare query, which both adds a request and
+    // clears the filter.
+    const callsBefore = questionsCalls().length;
+    releaseProbeA();
+    await act(async () => {});
+    await act(async () => {});
+    expect(probes).toEqual(["course-a", "course-b"]);
+    expect(questionsCalls()).toHaveLength(callsBefore);
+    expect(urlSearch()).toContain("courseId=course-b");
+    expect(courseTrigger()).toHaveTextContent("课程乙");
   });
 
   // ── R1 — a refetch that outlives the render it started in ──
