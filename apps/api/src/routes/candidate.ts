@@ -12,6 +12,7 @@ import {
 import { PaginationParamsSchema } from "@exam/contracts";
 import { hashPassword } from "@exam/auth/src/password.js";
 import { createCandidateRepo } from "@exam/db/src/repository/candidateRepo.js";
+import type { CandidateListFilters } from "@exam/db/src/repository/candidateRepo.js";
 import { createUserRepo } from "@exam/db/src/repository/userRepo.js";
 import { createUserRoleAssignmentRepo } from "@exam/db/src/repository/userRoleAssignmentRepo.js";
 import { createCandidateFieldRepo } from "@exam/db/src/repository/candidateFieldRepo.js";
@@ -177,6 +178,18 @@ const candidateListResponseSchema = z.object({
   totalPages: z.number().int(),
 });
 
+/**
+ * Candidate list query: the shared pagination defaults plus the OPTIONAL
+ * `search` term (#785) — case-insensitive substring match over the candidate
+ * user's name/username, executed in SQL before pagination and count.
+ * The bound matches the longest searchable field (users.name, max 100 × 3
+ * utf8 bytes headroom); no trim() here to avoid changing the matched value —
+ * the repo trims internally.
+ */
+const CandidateListQuerySchema = PaginationParamsSchema.extend({
+  search: z.string().max(200).optional(),
+});
+
 /** Zod schema for route params containing a UUID `id`. */
 const idParamsSchema = z.object({ id: z.string().uuid() });
 
@@ -195,29 +208,37 @@ const candidateRoutes: FastifyPluginAsync = async (fastify) => {
         fastify.requireCapability(Permission.CandidateView),
       ],
       schema: {
-        querystring: PaginationParamsSchema,
+        querystring: CandidateListQuerySchema,
         security: cookieAuth,
         "x-role": ["Admin", "Teacher"],
         response: { 200: candidateListResponseSchema },
       },
     },
     /**
-     * GET /candidates — list candidates with pagination.
+     * GET /candidates — list candidates with pagination and an optional
+     * server-side search over the candidate user's name/username (#785).
      *
      * Returns paginated candidate records enriched with user-level
      * name, username, and isActive status. Requires CandidateView.
      * Teacher actors see only candidates enrolled in exams under their
-     * assigned courses (SQL-side EXISTS, before pagination — issue #286).
+     * assigned courses (SQL-side EXISTS, before pagination — issue #286);
+     * search composes into the same WHERE clause (#785).
      */
     async (request) => {
       const ctx = ensureTargetOrg(getRequestContext(request));
-      const { page, pageSize } = PaginationParamsSchema.parse(request.query);
+      const { page, pageSize, search } = CandidateListQuerySchema.parse(
+        request.query,
+      );
       const repo = createCandidateRepo(fastify.db);
       const userRepo = createUserRepo(fastify.db);
       const scope = await resolveTeacherCourseScope(fastify.db, ctx);
-      const { items, total } = scope
-        ? await repo.listByCourseScopePaginated(ctx, scope, page, pageSize)
-        : await repo.listPaginated(ctx, page, pageSize);
+      const filters: CandidateListFilters = {};
+      if (search) filters.search = search;
+      if (scope) filters.courseIds = scope;
+      const { items, total } = await repo.listFiltered(ctx, filters, {
+        page,
+        pageSize,
+      });
 
       const itemsWithUsers = await Promise.all(
         items.map(async (c) => {

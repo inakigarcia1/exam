@@ -12,10 +12,25 @@ import {
   resolveOrganizationId,
 } from "./baseRepo.js";
 import type { TenantContext } from "../types.js";
-import type { RequestContext } from "@exam/domain";
+import type { ExamStatus, RequestContext } from "@exam/domain";
 import { and, asc, count, eq, exists, inArray, sql } from "drizzle-orm";
 
 type ExamSelect = typeof exams.$inferSelect;
+
+/** Filter options for listing exams with DB-level filtering. */
+export interface ExamListFilters {
+  /**
+   * Status OR-filter applied in SQL BEFORE limit/offset and the total count.
+   * Absent → no status filter (legacy listing semantics).
+   */
+  statuses?: ExamStatus[];
+  /**
+   * Restrict the listing to these course ids (LIST scope filter).
+   * Applied in SQL BEFORE limit/offset and the total count. An EMPTY array
+   * yields `{ items: [], total: 0 }` by contract (never unfiltered).
+   */
+  courseIds?: string[];
+}
 
 /**
  * Creates the tenant-scoped repository for the `exams` table. Extends the
@@ -74,33 +89,38 @@ export function createExamRepo(db: Database) {
         .orderBy(asc(exams.openAt), asc(exams.id));
     },
     /**
-     * Exams restricted to the given course ids with pagination (LIST scope
-     * filter). Filtering happens in SQL BEFORE limit/offset and
-     * BEFORE the total count — never post-pagination. An EMPTY course-id set
-     * yields `{ items: [], total: 0 }` by contract (never unfiltered).
-     * Ordering matches the generic listPaginated (createdAt, id) so the two
-     * list paths interleave identically for Admin.
+     * Exams under the given filters with pagination. Filtering (status set,
+     * LIST course scope) happens in SQL BEFORE limit/offset and BEFORE the
+     * total count — never post-pagination; `items` and `total` share one
+     * WHERE. An EMPTY course-id set yields `{ items: [], total: 0 }` by
+     * contract (never unfiltered). Ordering matches the generic listPaginated
+     * (createdAt, id) so the two list paths interleave identically for Admin.
      */
-    async listByCourseIdsPaginated(
+    async listFiltered(
       ctx: TenantContext | RequestContext,
-      courseIds: string[],
-      page: number,
-      pageSize: number,
+      filters: ExamListFilters,
+      pagination: { page: number; pageSize: number },
     ): Promise<{ items: ExamSelect[]; total: number }> {
-      if (courseIds.length === 0) return { items: [], total: 0 };
+      if (filters.courseIds && filters.courseIds.length === 0) {
+        return { items: [], total: 0 };
+      }
       const orgId = resolveOrganizationId(ctx);
-      const where = and(
-        eq(exams.organizationId, orgId),
-        inArray(exams.courseId, courseIds),
-      )!;
-      const offset = (page - 1) * pageSize;
+      const conditions = [eq(exams.organizationId, orgId)];
+      if (filters.statuses && filters.statuses.length > 0) {
+        conditions.push(inArray(exams.status, filters.statuses));
+      }
+      if (filters.courseIds) {
+        conditions.push(inArray(exams.courseId, filters.courseIds));
+      }
+      const where = and(...conditions)!;
+      const offset = (pagination.page - 1) * pagination.pageSize;
       const [items, totalRows] = await Promise.all([
         db
           .select()
           .from(exams)
           .where(where)
           .orderBy(exams.createdAt, exams.id)
-          .limit(pageSize)
+          .limit(pagination.pageSize)
           .offset(offset),
         db.select({ value: count() }).from(exams).where(where),
       ]);
