@@ -1,4 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from "react";
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useProductDateTime } from "@/contexts/DateTimeContext";
@@ -90,7 +96,6 @@ export function ExamPage() {
   const [exams, setExams] = useState<ExamRow[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | ExamStatus>(
     STATUS_ALL,
@@ -99,6 +104,11 @@ export function ExamPage() {
   // requests; a stale response resolving last must not overwrite the table
   // (same contract as UsersPage/QuestionPage).
   const examsGenRef = useRef(0);
+  // B12: the query identity whose response is currently rendered. Until it
+  // equals the submitted query, the list body shows the pending state — old
+  // rows are never presented as the new query's result.
+  const loadedKeyRef = useRef<string | null>(null);
+  const queryKey = `${page}|${statusFilter}`;
   const mayCreateExam = user ? canCreateExam(user) : false;
   const mayDeleteExam = user ? canDeleteExam(user) : false;
 
@@ -119,7 +129,6 @@ export function ExamPage() {
   const loadExams = useCallback(async () => {
     const generation = ++examsGenRef.current;
     const isStale = () => generation !== examsGenRef.current;
-    setIsLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams({
@@ -131,30 +140,32 @@ export function ExamPage() {
         `/api/exams?${params.toString()}`,
       );
       if (isStale()) return;
+      // B11: an empty page while records exist elsewhere is an out-of-range
+      // page (e.g. after a deletion). Never commit it — it would render a
+      // fake "no exams" state. Jump straight to the last valid page in one
+      // step and stay pending until its rows land.
+      if (data.items.length === 0 && data.total > 0 && page > 1) {
+        const lastValidPage = Math.max(
+          1,
+          Math.ceil(data.total / EXAMS_PAGE_SIZE),
+        );
+        if (lastValidPage < page) {
+          setPage(lastValidPage);
+          return;
+        }
+      }
       setExams(data.items);
       setTotal(data.total);
+      loadedKeyRef.current = queryKey;
     } catch {
       if (isStale()) return;
       setError(t("admin.exams.loadFailed"));
-    } finally {
-      if (!isStale()) setIsLoading(false);
     }
-  }, [page, statusFilter, t]);
+  }, [page, statusFilter, queryKey, t]);
 
   useEffect(() => {
     void loadExams();
   }, [loadExams]);
-
-  // Out-of-range page recovery (#785 B07): a deletion (or concurrent change)
-  // can leave the current page beyond the last valid one. A response with
-  // rows elsewhere (total > 0) but an empty page means the page number is
-  // stale — step back and requery instead of rendering a fake empty state.
-  // Bounded: at page 1 an empty page with total > 0 stops the loop.
-  useEffect(() => {
-    if (!isLoading && total > 0 && exams.length === 0 && page > 1) {
-      setPage(page - 1);
-    }
-  }, [isLoading, total, exams.length, page]);
 
   /** A filter change is a new query: it resets to the first page (B06). */
   function handleStatusFilterChange(value: string) {
@@ -166,7 +177,8 @@ export function ExamPage() {
     try {
       await api.delete(`/api/exams/${id}`);
       toast.success(t("admin.exams.toast.deleted"));
-      // The out-of-range effect steps back when this page became empty.
+      // If this page became empty, loadExams jumps to the last valid page
+      // (B11) instead of committing the empty response.
       await loadExams();
     } catch (err) {
       toast.error(
@@ -175,10 +187,64 @@ export function ExamPage() {
     }
   }
 
-  // Full-page loader only for the initial load: page flips keep the table
-  // (and its pagination controls) mounted while the next page is in flight.
-  if (isLoading && exams.length === 0 && total === 0) return <LoadingState />;
   if (error) return <ErrorState message={error} onRetry={loadExams} />;
+
+  const toolbar = (
+    <DataToolbar aria-label={t("admin.exams.toolbarLabel")}>
+      <ToolbarFilter size="narrow">
+        <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
+          <SelectTrigger aria-label={t("admin.exams.statusFilterLabel")}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={STATUS_ALL}>
+              {t("admin.exams.statusAll")}
+            </SelectItem>
+            {ExamStatusEnum.options.map((status) => (
+              <SelectItem key={status} value={status}>
+                {t(statusLabelKey(getStatusMeta(status).labelKey))}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </ToolbarFilter>
+    </DataToolbar>
+  );
+
+  // Never-loaded: keep the bare initial loader. In-flight query change
+  // (B11/B12): the single shell keeps its toolbar/footer mounted, but the
+  // list body shows the pending state — stale rows and fake empty states
+  // are never rendered while a newer query has not landed.
+  if (loadedKeyRef.current === null) return <LoadingState />;
+  const pending = loadedKeyRef.current !== queryKey;
+
+  /** The one shell composition for this page: the footer authority is
+   * declared once; pending and loaded states only vary body and mobile. */
+  function renderShell(body: ReactNode, mobile?: ReactNode) {
+    return (
+      <DataTableShell
+        title={t("admin.exams.listTitle")}
+        description={t("admin.exams.listDescription")}
+        toolbar={toolbar}
+        footer={
+          <DataViewFooter
+            range={{ page, pageSize: EXAMS_PAGE_SIZE, total }}
+            navigation={
+              <DataTablePagination
+                page={page}
+                pageSize={EXAMS_PAGE_SIZE}
+                total={total}
+                onPageChange={setPage}
+              />
+            }
+          />
+        }
+        mobile={mobile}
+      >
+        {body}
+      </DataTableShell>
+    );
+  }
 
   // Single-source column declarations (issue 457): desktop table and mobile
   // cards render from the same array. The time window joins the meta line —
@@ -296,7 +362,9 @@ export function ExamPage() {
           }
         />
 
-        {exams.length === 0 && !hasStatusFilter ? (
+        {pending ? (
+          renderShell(<LoadingState />)
+        ) : exams.length === 0 && !hasStatusFilter ? (
           <EmptyState
             icon={<AppIcon icon={ClipboardList} size="state" />}
             title={t("admin.exams.empty")}
@@ -317,62 +385,18 @@ export function ExamPage() {
             }
           />
         ) : (
-          <DataTableShell
-            title={t("admin.exams.listTitle")}
-            description={t("admin.exams.listDescription")}
-            toolbar={
-              <DataToolbar aria-label={t("admin.exams.toolbarLabel")}>
-                <ToolbarFilter size="narrow">
-                  <Select
-                    value={statusFilter}
-                    onValueChange={handleStatusFilterChange}
-                  >
-                    <SelectTrigger
-                      aria-label={t("admin.exams.statusFilterLabel")}
-                    >
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={STATUS_ALL}>
-                        {t("admin.exams.statusAll")}
-                      </SelectItem>
-                      {ExamStatusEnum.options.map((status) => (
-                        <SelectItem key={status} value={status}>
-                          {t(statusLabelKey(getStatusMeta(status).labelKey))}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </ToolbarFilter>
-              </DataToolbar>
-            }
-            footer={
-              <DataViewFooter
-                range={{ page, pageSize: EXAMS_PAGE_SIZE, total }}
-                navigation={
-                  <DataTablePagination
-                    page={page}
-                    pageSize={EXAMS_PAGE_SIZE}
-                    total={total}
-                    onPageChange={setPage}
-                  />
-                }
-              />
-            }
-            mobile={
-              <MobileRecordList
-                columns={columns}
-                rows={exams}
-                getRowId={(e) => e.id}
-              />
-            }
-          >
+          renderShell(
             <DesktopDataTable
               columns={columns}
               data={exams}
               getRowId={(e) => e.id}
-            />
-          </DataTableShell>
+            />,
+            <MobileRecordList
+              columns={columns}
+              rows={exams}
+              getRowId={(e) => e.id}
+            />,
+          )
         )}
       </PageContainer>
     </TooltipProvider>

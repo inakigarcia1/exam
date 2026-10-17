@@ -856,4 +856,64 @@ describe("CandidatesPage #785 server-side search and pagination (BDD L2)", () =>
     ).toBeInTheDocument();
     expect(screen.getByText(/共 25 条/)).toBeInTheDocument();
   });
+
+  // ── B12 — 请求进行中，旧记录不得被呈现为新查询的结果 ──────────────────
+  it("B12: while a search query is in flight, old rows are never presented as its result (deferred)", async () => {
+    const user = userEvent.setup();
+    const all = [
+      candidateRow("c1", "普通考生甲", "putong1"),
+      candidateRow("c2", "普通考生乙", "putong2"),
+    ];
+    let resolveSearch!: (value: unknown) => void;
+    const searchResponse = new Promise((resolve) => {
+      resolveSearch = resolve;
+    });
+    apiGet.mockImplementation((url: string) => {
+      if (url === "/api/candidate-fields") {
+        return Promise.resolve([...mockFields]);
+      }
+      if (url.startsWith("/api/candidates")) {
+        const params = new URLSearchParams(url.split("?")[1] ?? "");
+        const page = Number(params.get("page") ?? "1");
+        if (params.get("search")) {
+          return searchResponse.then(() => ({
+            items: [candidateRow("k1", "关键词考生", "guanjianci")],
+            total: 1,
+            page,
+            pageSize: 20,
+            totalPages: 1,
+          }));
+        }
+        return Promise.resolve({
+          items: all,
+          total: 2,
+          page,
+          pageSize: 20,
+          totalPages: 1,
+        });
+      }
+      return Promise.reject(new Error(`unexpected GET ${url}`));
+    });
+
+    renderPage();
+    await within(await screen.findByRole("table")).findByText("普通考生甲");
+
+    await user.type(screen.getByLabelText("搜索考生"), "关键词");
+    await waitFor(() => {
+      expect(
+        new URLSearchParams(lastCandidatesUrl().split("?")[1]).get("search"),
+      ).toBe("关键词");
+    });
+    // The search response is still pending: the unfiltered rows must not
+    // masquerade as the search result, and no fake empty state may appear.
+    expect(screen.queryByText("普通考生甲")).not.toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.queryByText("未找到匹配的考生")).not.toBeInTheDocument();
+
+    resolveSearch(undefined);
+    expect(
+      await within(await screen.findByRole("table")).findByText("关键词考生"),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/共 1 条/)).toBeInTheDocument();
+  });
 });

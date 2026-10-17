@@ -1,4 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api";
 import { getApiErrorMessage } from "@/lib/apiErrors";
@@ -72,7 +78,6 @@ export function CoursePage() {
   const [courses, setCourses] = useState<CourseRow[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<CourseRow | null>(null);
@@ -90,49 +95,52 @@ export function CoursePage() {
   // Latest-request guard: rapid search/page flips fire overlapping course
   // requests; a stale response resolving last must not overwrite the table.
   const coursesGenRef = useRef(0);
+  // B12: the query identity whose response is currently rendered. Until it
+  // equals the submitted query, the list body shows the pending state — old
+  // rows are never presented as the new query's result.
+  const loadedKeyRef = useRef<string | null>(null);
+  const queryKey = `${page}|${committedSearch}`;
 
-  /** Fetches the course page from the API, optionally showing a loading indicator. */
-  const loadCourses = useCallback(
-    async (opts?: { showLoading?: boolean }) => {
-      const generation = ++coursesGenRef.current;
-      const isStale = () => generation !== coursesGenRef.current;
-      if (opts?.showLoading !== false) setIsLoading(true);
-      setError(null);
-      try {
-        const params = new URLSearchParams({
-          page: String(page),
-          pageSize: String(COURSES_PAGE_SIZE),
-        });
-        if (committedSearch.trim())
-          params.set("search", committedSearch.trim());
-        const data = await api.get<PaginatedResponse<CourseRow>>(
-          `/api/courses?${params.toString()}`,
+  const loadCourses = useCallback(async () => {
+    const generation = ++coursesGenRef.current;
+    const isStale = () => generation !== coursesGenRef.current;
+    setError(null);
+    try {
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(COURSES_PAGE_SIZE),
+      });
+      if (committedSearch.trim()) params.set("search", committedSearch.trim());
+      const data = await api.get<PaginatedResponse<CourseRow>>(
+        `/api/courses?${params.toString()}`,
+      );
+      if (isStale()) return;
+      // B11: an empty page while records exist elsewhere is an out-of-range
+      // page (e.g. after a deletion). Never commit it — it would render a
+      // fake empty state. Jump straight to the last valid page in one step
+      // and stay pending until its rows land.
+      if (data.items.length === 0 && data.total > 0 && page > 1) {
+        const lastValidPage = Math.max(
+          1,
+          Math.ceil(data.total / COURSES_PAGE_SIZE),
         );
-        if (isStale()) return;
-        setCourses(data.items);
-        setTotal(data.total);
-      } catch {
-        if (isStale()) return;
-        setError(t("admin.courses.loadFailed"));
-      } finally {
-        if (!isStale()) setIsLoading(false);
+        if (lastValidPage < page) {
+          setPage(lastValidPage);
+          return;
+        }
       }
-    },
-    [page, committedSearch, t],
-  );
+      setCourses(data.items);
+      setTotal(data.total);
+      loadedKeyRef.current = queryKey;
+    } catch {
+      if (isStale()) return;
+      setError(t("admin.courses.loadFailed"));
+    }
+  }, [page, committedSearch, queryKey, t]);
 
   useEffect(() => {
     loadCourses();
   }, [loadCourses]);
-
-  // Out-of-range page recovery: a response with rows elsewhere (total > 0)
-  // but an empty page means the page number is stale — step back and requery
-  // instead of rendering a fake empty state. Bounded at page 1.
-  useEffect(() => {
-    if (!isLoading && total > 0 && courses.length === 0 && page > 1) {
-      setPage(page - 1);
-    }
-  }, [isLoading, total, courses.length, page]);
 
   /** A search commit is a new query: it resets to the first page (#785). */
   function handleSearchCommit(term: string) {
@@ -201,7 +209,7 @@ export function CoursePage() {
           ? t("admin.courses.toast.updated")
           : t("admin.courses.toast.created"),
       );
-      await loadCourses({ showLoading: false });
+      await loadCourses();
     } catch (err) {
       toast.error(getApiErrorMessage(err, t, t("admin.common.saveFailed")));
     } finally {
@@ -214,16 +222,69 @@ export function CoursePage() {
     try {
       await api.delete(`/api/courses/${id}`);
       toast.success(t("admin.courses.toast.deleted"));
-      await loadCourses({ showLoading: false });
+      // If this page became empty, loadCourses jumps to the last valid page
+      // (B11) instead of committing the empty response.
+      await loadCourses();
     } catch (err) {
       toast.error(getApiErrorMessage(err, t, t("admin.common.deleteFailed")));
     }
   }
 
-  if (isLoading && courses.length === 0 && total === 0) return <LoadingState />;
+  const hasSearch = committedSearch.trim() !== "";
+
+  const toolbar =
+    // Product rule (pinned by test): the search box only exists when
+    // there is something to search — an empty collection with no
+    // active search. A no-match result keeps the box so the term
+    // stays visible and clearable (#785: search is server-side).
+    total > 0 || hasSearch ? (
+      <DataToolbar
+        search={
+          <DataViewSearch
+            aria-label={t("admin.courses.searchLabel")}
+            placeholder={t("admin.courses.searchPlaceholder")}
+            value={searchInput}
+            onChange={setSearchInput}
+            onSearch={handleSearchCommit}
+            clearLabel={t("admin.courses.clearSearchLabel")}
+          />
+        }
+      />
+    ) : undefined;
+
   if (error) return <ErrorState message={error} onRetry={loadCourses} />;
 
-  const hasSearch = committedSearch.trim() !== "";
+  // Never-loaded: bare initial loader. In-flight query change (B11/B12):
+  // the single shell keeps its toolbar/footer mounted, list body shows the
+  // pending state — stale rows and fake empty states are never rendered.
+  if (loadedKeyRef.current === null) return <LoadingState />;
+  const pending = loadedKeyRef.current !== queryKey;
+
+  /** The one shell composition for this page: the footer authority is
+   * declared once; pending and loaded states only vary body and mobile. */
+  function renderShell(body: ReactNode, mobile?: ReactNode) {
+    return (
+      <DataTableShell
+        toolbar={toolbar}
+        footer={
+          <DataViewFooter
+            range={{ page, pageSize: COURSES_PAGE_SIZE, total }}
+            navigation={
+              <DataTablePagination
+                page={page}
+                pageSize={COURSES_PAGE_SIZE}
+                total={total}
+                onPageChange={setPage}
+              />
+            }
+          />
+        }
+        mobile={mobile}
+      >
+        {body}
+      </DataTableShell>
+    );
+  }
 
   // Single-source column declarations (issue 457): desktop table and mobile
   // cards render from the same array.
@@ -307,59 +368,10 @@ export function CoursePage() {
           }
         />
 
-        <DataTableShell
-          toolbar={
-            // Product rule (pinned by test): the search box only exists when
-            // there is something to search — an empty collection with no
-            // active search. A no-match result keeps the box so the term
-            // stays visible and clearable (#785: search is server-side).
-            total > 0 || hasSearch ? (
-              <DataToolbar
-                search={
-                  <DataViewSearch
-                    aria-label={t("admin.courses.searchLabel")}
-                    placeholder={t("admin.courses.searchPlaceholder")}
-                    value={searchInput}
-                    onChange={setSearchInput}
-                    onSearch={handleSearchCommit}
-                    clearLabel={t("admin.courses.clearSearchLabel")}
-                  />
-                }
-              />
-            ) : undefined
-          }
-          footer={
-            <DataViewFooter
-              range={{ page, pageSize: COURSES_PAGE_SIZE, total }}
-              navigation={
-                <DataTablePagination
-                  page={page}
-                  pageSize={COURSES_PAGE_SIZE}
-                  total={total}
-                  onPageChange={setPage}
-                />
-              }
-            />
-          }
-          mobile={
-            <MobileRecordList
-              columns={columns}
-              rows={courses}
-              getRowId={(c) => c.id}
-              empty={courses.length === 0}
-              emptyTitle={t(
-                total === 0 ? "admin.courses.empty" : "admin.courses.noMatch",
-              )}
-              emptyDescription={t(
-                total === 0
-                  ? "admin.courses.emptyDescription"
-                  : "admin.courses.noMatchDescription",
-                { q: committedSearch },
-              )}
-            />
-          }
-        >
-          {total === 0 && !hasSearch ? (
+        {renderShell(
+          pending ? (
+            <LoadingState />
+          ) : total === 0 && !hasSearch ? (
             <EmptyState
               icon={<AppIcon icon={BookOpen} size="state" />}
               title={t("admin.courses.empty")}
@@ -384,8 +396,25 @@ export function CoursePage() {
               data={courses}
               getRowId={(c) => c.id}
             />
-          )}
-        </DataTableShell>
+          ),
+          pending ? undefined : (
+            <MobileRecordList
+              columns={columns}
+              rows={courses}
+              getRowId={(c) => c.id}
+              empty={courses.length === 0}
+              emptyTitle={t(
+                total === 0 ? "admin.courses.empty" : "admin.courses.noMatch",
+              )}
+              emptyDescription={t(
+                total === 0
+                  ? "admin.courses.emptyDescription"
+                  : "admin.courses.noMatchDescription",
+                { q: committedSearch },
+              )}
+            />
+          ),
+        )}
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent aria-describedby={undefined}>

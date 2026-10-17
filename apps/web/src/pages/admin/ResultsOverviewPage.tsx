@@ -1,4 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from "react";
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useProductDateTime } from "@/contexts/DateTimeContext";
@@ -75,17 +81,20 @@ export function ResultsOverviewPage() {
   const [exams, setExams] = useState<ExamRow[]>([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // Latest-request guard: rapid page flips fire overlapping exams requests;
   // a stale response resolving last must not overwrite the table.
   const examsGenRef = useRef(0);
+  // B12: the query identity whose response is currently rendered. Until it
+  // equals the submitted query, the list body shows the pending state — old
+  // rows are never presented as the new query's result.
+  const loadedKeyRef = useRef<string | null>(null);
+  const queryKey = `page:${page}`;
 
   /** Fetches the current page of the server-filtered overview set. */
   const loadExams = useCallback(async () => {
     const generation = ++examsGenRef.current;
     const isStale = () => generation !== examsGenRef.current;
-    setIsLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams({
@@ -97,32 +106,64 @@ export function ResultsOverviewPage() {
         `/api/exams?${params.toString()}`,
       );
       if (isStale()) return;
+      // B11: an empty page while records exist elsewhere is an out-of-range
+      // page (e.g. after a deletion elsewhere). Never commit it — jump
+      // straight to the last valid page and stay pending until it lands.
+      if (data.items.length === 0 && data.total > 0 && page > 1) {
+        const lastValidPage = Math.max(
+          1,
+          Math.ceil(data.total / RESULTS_PAGE_SIZE),
+        );
+        if (lastValidPage < page) {
+          setPage(lastValidPage);
+          return;
+        }
+      }
       setExams(data.items);
       setTotal(data.total);
+      loadedKeyRef.current = queryKey;
     } catch {
       if (isStale()) return;
       setError(t("admin.resultsOverview.errors.loadFailed"));
-    } finally {
-      if (!isStale()) setIsLoading(false);
     }
-  }, [page, t]);
+  }, [page, queryKey, t]);
 
   useEffect(() => {
     void loadExams();
   }, [loadExams]);
 
-  // Out-of-range page recovery: rows exist elsewhere but this page is empty —
-  // step back instead of rendering a fake empty state. Bounded at page 1.
-  useEffect(() => {
-    if (!isLoading && total > 0 && exams.length === 0 && page > 1) {
-      setPage(page - 1);
-    }
-  }, [isLoading, total, exams.length, page]);
-
-  // Full-page loader only for the initial load: page flips keep the table
-  // (and its pagination controls) mounted while the next page is in flight.
-  if (isLoading && exams.length === 0 && total === 0) return <LoadingState />;
   if (error) return <ErrorState message={error} onRetry={loadExams} />;
+
+  // Never-loaded: bare initial loader. In-flight query change (B11/B12):
+  // the single shell keeps its footer mounted, list body shows the pending
+  // state — stale rows and fake empty states are never rendered.
+  if (loadedKeyRef.current === null) return <LoadingState />;
+  const pending = loadedKeyRef.current !== queryKey;
+
+  /** The one shell composition for this page: the footer authority is
+   * declared once; pending and loaded states only vary body and mobile. */
+  function renderShell(body: ReactNode, mobile?: ReactNode) {
+    return (
+      <DataTableShell
+        footer={
+          <DataViewFooter
+            range={{ page, pageSize: RESULTS_PAGE_SIZE, total }}
+            navigation={
+              <DataTablePagination
+                page={page}
+                pageSize={RESULTS_PAGE_SIZE}
+                total={total}
+                onPageChange={setPage}
+              />
+            }
+          />
+        }
+        mobile={mobile}
+      >
+        {body}
+      </DataTableShell>
+    );
+  }
 
   /** Returns whether the admin can view scores for the given exam. */
   function gradable(exam: ExamRow) {
@@ -202,41 +243,27 @@ export function ResultsOverviewPage() {
       <PageContainer role="admin-standard" className="flex flex-col gap-6">
         <PageHeader title={t("admin.resultsOverview.title")} />
 
-        {total === 0 ? (
+        {pending ? (
+          renderShell(<LoadingState />)
+        ) : total === 0 ? (
           <EmptyState
             icon={<AppIcon icon={Gauge} size="hero" />}
             title={t("admin.resultsOverview.empty.title")}
             description={t("admin.resultsOverview.empty.description")}
           />
         ) : (
-          <DataTableShell
-            footer={
-              <DataViewFooter
-                range={{ page, pageSize: RESULTS_PAGE_SIZE, total }}
-                navigation={
-                  <DataTablePagination
-                    page={page}
-                    pageSize={RESULTS_PAGE_SIZE}
-                    total={total}
-                    onPageChange={setPage}
-                  />
-                }
-              />
-            }
-            mobile={
-              <MobileRecordList
-                columns={columns}
-                rows={exams}
-                getRowId={(e) => e.id}
-              />
-            }
-          >
+          renderShell(
             <DesktopDataTable
               columns={columns}
               data={exams}
               getRowId={(e) => e.id}
-            />
-          </DataTableShell>
+            />,
+            <MobileRecordList
+              columns={columns}
+              rows={exams}
+              getRowId={(e) => e.id}
+            />,
+          )
         )}
       </PageContainer>
     </TooltipProvider>

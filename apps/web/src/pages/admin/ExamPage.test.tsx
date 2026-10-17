@@ -426,4 +426,144 @@ describe("ExamPage #785 pagination and status filter (BDD L2)", () => {
     });
     expect(screen.getAllByText("第三页数据").length).toBeGreaterThan(0);
   });
+
+  // ── B11 — 越界恢复期间不得出现虚假空态 ─────────────────────────────────
+  it("B11: recovering from an emptied page never renders a fake empty state (deferred)", async () => {
+    const user = userEvent.setup();
+    const page1 = Array.from({ length: 20 }, (_, i) =>
+      examRow(`e${i + 1}`, `旧考试 ${i + 1}`),
+    );
+    const page2 = [examRow("e21", "待删除考试")];
+    let deleted = false;
+    let resolveRecovered!: (value: unknown) => void;
+    const recovered = new Promise((resolve) => {
+      resolveRecovered = resolve;
+    });
+    const recoveryPage1Calls: string[] = [];
+    apiGet.mockImplementation(async (url: string) => {
+      if (!url.startsWith("/api/exams")) {
+        throw new Error(`unexpected GET ${url}`);
+      }
+      const params = new URLSearchParams(url.split("?")[1] ?? "");
+      const requestedPage = Number(params.get("page") ?? "1");
+      if (!deleted) {
+        return {
+          items: requestedPage === 1 ? page1 : page2,
+          total: 21,
+          page: requestedPage,
+          pageSize: 20,
+          totalPages: 2,
+        };
+      }
+      // Post-delete: page 2 is empty (total dropped to 20); the recovery
+      // fetch for page 1 is held in flight so the recovery window can be
+      // observed deterministically.
+      if (requestedPage === 2) {
+        return { items: [], total: 20, page: 2, pageSize: 20, totalPages: 1 };
+      }
+      recoveryPage1Calls.push(url);
+      await recovered;
+      return { items: page1, total: 20, page: 1, pageSize: 20, totalPages: 1 };
+    });
+    apiDelete.mockImplementation(async () => {
+      deleted = true;
+    });
+
+    renderPage();
+    await screen.findByRole("table");
+    await user.click(screen.getByRole("button", { name: "下一页" }));
+    expect(
+      await within(await screen.findByRole("table")).findByText("待删除考试"),
+    ).toBeInTheDocument();
+
+    await user.click(
+      within(await screen.findByRole("table")).getByRole("button", {
+        name: "删除考试",
+      }),
+    );
+    await user.click(await screen.findByRole("button", { name: "确认" }));
+    await waitFor(() => {
+      expect(apiDelete).toHaveBeenCalledWith("/api/exams/e21");
+    });
+    // Single-jump recovery: exactly ONE page-1 refetch, no step-back walk.
+    await waitFor(() => {
+      expect(recoveryPage1Calls).toHaveLength(1);
+    });
+
+    // While the recovery is in flight: no fake empty state, no stale
+    // deleted row, and no old rows presented as fresh data.
+    expect(screen.queryByText("暂无考试")).not.toBeInTheDocument();
+    expect(screen.queryByText("待删除考试")).not.toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+
+    resolveRecovered(undefined);
+    expect(
+      await within(await screen.findByRole("table")).findByText("旧考试 1"),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/共 20 条/)).toBeInTheDocument();
+  });
+
+  // ── B12 — 请求进行中，旧记录不得被呈现为新查询的结果 ──────────────────
+  it("B12: while a filter query is in flight, old rows are never presented as its result (deferred)", async () => {
+    const user = userEvent.setup();
+    const drafts = Array.from({ length: 20 }, (_, i) =>
+      examRow(`d${i + 1}`, `草稿考试 ${i + 1}`),
+    );
+    let resolvePublished!: (value: unknown) => void;
+    const publishedResponse = new Promise((resolve) => {
+      resolvePublished = resolve;
+    });
+    apiGet.mockImplementation((url: string) => {
+      if (!url.startsWith("/api/exams")) {
+        return Promise.reject(new Error(`unexpected GET ${url}`));
+      }
+      const params = new URLSearchParams(url.split("?")[1] ?? "");
+      const requestedPage = Number(params.get("page") ?? "1");
+      if (params.get("statuses") === "published") {
+        return publishedResponse.then(() => ({
+          items: [
+            examRow("p1", "已发布考试", {
+              status: "published",
+              canDelete: false,
+            }),
+          ],
+          total: 1,
+          page: requestedPage,
+          pageSize: 20,
+          totalPages: 1,
+        }));
+      }
+      return Promise.resolve({
+        items: drafts,
+        total: 20,
+        page: requestedPage,
+        pageSize: 20,
+        totalPages: 1,
+      });
+    });
+
+    renderPage();
+    await within(await screen.findByRole("table")).findByText("草稿考试 1");
+
+    await user.click(screen.getByRole("combobox", { name: "按状态筛选" }));
+    await user.click(await screen.findByRole("option", { name: "已发布" }));
+
+    // The published query is in flight: the draft rows must not stay on
+    // screen as if they were the published query's result, and no fake
+    // empty state may appear while loading.
+    await waitFor(() => {
+      expect(apiGet).toHaveBeenCalledWith(
+        "/api/exams?page=1&pageSize=20&statuses=published",
+      );
+    });
+    expect(screen.queryByText("草稿考试 1")).not.toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.queryByText("暂无考试")).not.toBeInTheDocument();
+
+    resolvePublished(undefined);
+    expect(
+      await within(await screen.findByRole("table")).findByText("已发布考试"),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/共 1 条/)).toBeInTheDocument();
+  });
 });
