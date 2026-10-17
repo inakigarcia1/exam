@@ -645,7 +645,6 @@ export function CandidatesPage() {
                     setCsv("");
                   }}
                 >
-                  <AppIcon icon={Upload} size="inline" />
                   {t("admin.candidates.importBtn")}
                 </Button>
               </div>
