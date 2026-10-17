@@ -159,10 +159,15 @@ export function ExamPage() {
   // requests; a stale response resolving last must not overwrite the table
   // (same contract as UsersPage/QuestionPage).
   const examsGenRef = useRef(0);
-  // B12: the query identity whose response is currently rendered. Until it
-  // equals the submitted query, the list body shows the pending state — old
-  // rows are never presented as the new query's result.
-  const loadedKeyRef = useRef<string | null>(null);
+  // B12: the query whose response is currently rendered. Until it equals the
+  // submitted query, the list body shows the pending state — old rows are never
+  // presented as the new query's result. Stored as its parts, not as a joined
+  // string: the status filter and the page are compared separately, and neither
+  // may be recovered by parsing a key.
+  const loadedQueryRef = useRef<{
+    page: number;
+    status: "all" | ExamStatus;
+  } | null>(null);
   // The latest OBSERVED parameter set: every write this page makes updates it
   // in the same synchronous block, so writes can never be based on a stale
   // render-time snapshot. Seeded with the mount URL.
@@ -254,7 +259,7 @@ export function ExamPage() {
       setExams(data.items);
       setTotal(data.total);
       setLoadFailure(null);
-      loadedKeyRef.current = requestedKey;
+      loadedQueryRef.current = { page, status: statusFilter };
     } catch {
       if (isStale()) return;
       setLoadFailure({
@@ -266,6 +271,13 @@ export function ExamPage() {
 
   useEffect(() => {
     void loadExams();
+  }, [loadExams]);
+
+  // The current loader, for refetches that outlive the render they started in
+  // (a delete's confirmation lands after the user may have moved on).
+  const loadExamsRef = useRef(loadExams);
+  useEffect(() => {
+    loadExamsRef.current = loadExams;
   }, [loadExams]);
 
   /** A filter change is a new query: it resets to the first page (B06). */
@@ -291,7 +303,12 @@ export function ExamPage() {
       toast.success(t("admin.exams.toast.deleted"));
       // If this page became empty, loadExams jumps to the last valid page
       // (B11) instead of committing the empty response.
-      await loadExams();
+      //
+      // The refetch goes through the ref: the delete resolves into the query the
+      // user is on NOW, not the one that was rendered when they clicked. The
+      // render-time closure would issue a request for an obsolete key, and the
+      // generation guard would then discard the current query's own response.
+      await loadExamsRef.current();
     } catch (err) {
       toast.error(
         getApiErrorMessage(err, t, t("admin.exams.toast.deleteFailed")),
@@ -333,15 +350,15 @@ export function ExamPage() {
   // (B11/B12): the single shell keeps its toolbar/footer mounted, but the
   // list body shows the pending state — stale rows and fake empty states
   // are never rendered while a newer query has not landed.
-  if (loadedKeyRef.current === null) return <LoadingState />;
-  const pending = loadedKeyRef.current !== queryKey;
+  if (loadedQueryRef.current === null) return <LoadingState />;
+  const loadedQuery = loadedQueryRef.current;
+  const pending =
+    loadedQuery.page !== page || loadedQuery.status !== statusFilter;
   // The query IDENTITY of the rendered result — everything but the page. A
   // page turn keeps the previous page's count meaningful (the footer belongs
   // to the page being requested); a status change does not, because the old
   // count describes a different result set entirely.
-  const identityPending =
-    loadedKeyRef.current.slice(loadedKeyRef.current.indexOf("|") + 1) !==
-    statusFilter;
+  const identityPending = loadedQuery.status !== statusFilter;
 
   /** The one shell composition for this page: the footer authority is
    * declared once; pending and loaded states only vary body and mobile. */

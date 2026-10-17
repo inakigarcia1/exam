@@ -198,11 +198,16 @@ export function QuestionPage() {
   // contain. Kept separate from `courses` so a list refresh cannot drop the
   // display of the filter the user is looking at.
   const [resolvedCourses, setResolvedCourses] = useState<CourseRow[]>([]);
-  // A courseId whose displayability could NOT be established because the probe
-  // failed transiently (network/5xx). The user's filter is preserved and the
-  // page offers retry — a transient failure must never be presented as
+  // The courseId whose displayability could NOT be established because the
+  // probe failed transiently (network/5xx). The user's filter is preserved and
+  // the page offers retry — a transient failure must never be presented as
   // "no such course" and never silently drop the parameter.
-  const [courseProbeFailed, setCourseProbeFailed] = useState(false);
+  //
+  // Keyed by the id, not a bare flag: the outcome belongs to one identity, so
+  // navigating to a URL that no longer carries it must not keep reporting it.
+  const [courseProbeFailedId, setCourseProbeFailedId] = useState<string | null>(
+    null,
+  );
   const [courseProbeAttempt, setCourseProbeAttempt] = useState(0);
   // The latest-request guard (unchanged contract): multi-select tag changes and
   // rapid page/filter flips fire overlapping requests; a response whose
@@ -223,6 +228,15 @@ export function QuestionPage() {
   // The page turn window keeps the previous slice visible; a recovery refetch
   // must not, because its rows belong to a page the URL no longer names.
   const [clamping, setClamping] = useState(false);
+  // The height the settled rows last occupied, so a pending body can reserve
+  // it. A pending body may render neither the previous identity's rows nor an
+  // empty state, which leaves the table's single short placeholder row — a
+  // collapse from ~1374px to ~170px that makes the page scrollbar flicker on
+  // every filter change.
+  const listBoxRef = useRef<HTMLDivElement | null>(null);
+  const [reservedListHeight, setReservedListHeight] = useState<number | null>(
+    null,
+  );
   // Search is split into two states to prevent stale/overlapping responses:
   //   - searchInput: the live text in the field (updated every keystroke)
   //   - the URL `search` parameter: the term actually queried, written only by
@@ -274,6 +288,10 @@ export function QuestionPage() {
   const { page, type: filterType, difficulty: filterDifficulty } = queryState;
   const search = queryState.search;
   const tags = queryState.tags;
+  /** The canonical tag parameter. Deps and requests key on this string, not on
+   * the freshly built array, so a raw-only URL change (a canonicalization)
+   * cannot fire a second identical request. */
+  const tagsKey = tags.join(",");
 
   /** The filter IDENTITY: everything except the page. */
   const filterKey = useMemo(
@@ -301,7 +319,11 @@ export function QuestionPage() {
   );
   const courseKnown =
     queryState.courseId === "" ||
-    courseOptions.some((c) => c.id === queryState.courseId);
+    courseOptions.some(
+      (c) => c.id.toLowerCase() === queryState.courseId.toLowerCase(),
+    );
+  const courseProbeFailed =
+    courseProbeFailedId !== null && courseProbeFailedId === queryState.courseId;
   const courseResolving =
     queryState.courseId !== "" && !courseKnown && !courseProbeFailed;
 
@@ -354,6 +376,32 @@ export function QuestionPage() {
     }
     latestParams.current = observed;
   }, [searchParams]);
+
+  /**
+   * Folds the URL onto the server's spelling of a course id.
+   *
+   * uuid comparison is case-insensitive on both zod and Postgres, so an
+   * uppercase link is legitimate input the server honours — but the Select's
+   * option values come from the server, so an unfolded id would leave an
+   * APPLIED filter rendering as the placeholder. Canonicalizing (replace) keeps
+   * one authority and makes the applied value displayable and undoable.
+   */
+  useEffect(() => {
+    if (isInitialLoading || queryState.courseId === "") return;
+    const match = courseOptions.find(
+      (c) => c.id.toLowerCase() === queryState.courseId.toLowerCase(),
+    );
+    if (match === undefined || match.id === queryState.courseId) return;
+    const next = baseParams();
+    next.set("courseId", match.id);
+    writeParams(next);
+  }, [
+    baseParams,
+    courseOptions,
+    isInitialLoading,
+    queryState.courseId,
+    writeParams,
+  ]);
 
   // Canonicalization is a visible correction, so it REPLACES the entry: an
   // illegal value must not become a page the user can navigate back to.
@@ -425,7 +473,7 @@ export function QuestionPage() {
           next.delete("courseId");
           writeParams(next);
         } else {
-          setCourseProbeFailed(true);
+          setCourseProbeFailedId(id);
         }
       }
     })();
@@ -455,7 +503,7 @@ export function QuestionPage() {
         params.set("courseId", queryState.courseId);
       if (filterType !== "") params.set("type", filterType);
       if (filterDifficulty !== "") params.set("difficulty", filterDifficulty);
-      if (tags.length > 0) params.set("tags", tags.join(","));
+      if (tagsKey !== "") params.set("tags", tagsKey);
       if (search !== "") params.set("search", search);
       const qData = await api.get<PaginatedResponse<QuestionRow>>(
         `/api/questions?${params.toString()}`,
@@ -502,7 +550,7 @@ export function QuestionPage() {
     queryState.courseId,
     requestKey,
     search,
-    tags,
+    tagsKey,
     writeParams,
   ]);
 
@@ -529,12 +577,25 @@ export function QuestionPage() {
     void loadQuestions();
   }, [loadQuestions, isInitialLoading, courseResolving, courseProbeFailed]);
 
+  // The current loader, for refetches that outlive the render they started in
+  // (a delete's confirmation lands after the user may have moved on).
+  const loadQuestionsRef = useRef(loadQuestions);
+  useEffect(() => {
+    loadQuestionsRef.current = loadQuestions;
+  }, [loadQuestions]);
+
   async function handleDelete(id: string) {
     try {
       await api.delete(`/api/questions/${id}`);
       // A deleted question may have been the last user of a tag — refresh
       // the vocabulary so the filter never offers stale options.
-      await Promise.all([loadQuestions(), loadTagVocabulary()]);
+      //
+      // The list refetch goes through the ref: the delete resolves into the
+      // query the user is on NOW, not the one that was rendered when they
+      // clicked. The render-time closure would issue a request for an obsolete
+      // key, and the generation guard would then discard the current query's
+      // own response — leaving the URL on one query and the body on another.
+      await Promise.all([loadQuestionsRef.current(), loadTagVocabulary()]);
     } catch {
       toast.error(t("admin.questions.toast.deleteFailed"));
     }
@@ -629,19 +690,43 @@ export function QuestionPage() {
     !failed && (loadState.reqKey !== requestKey || courseResolving);
   const isEmpty = !isTableLoading && questions.length === 0;
 
+  // Re-measure after every settled render. While pending the rows are gone, so
+  // the last measurement is the one to reserve — that is what keeps the region
+  // from collapsing for the duration of the request.
+  useEffect(() => {
+    if (pending) return;
+    const box = listBoxRef.current;
+    if (box) setReservedListHeight(box.offsetHeight);
+  }, [pending, questions, total]);
+
   if (isInitialLoading) return <LoadingState />;
   if (courseProbeFailed)
     return (
       <ErrorState
         message={t("admin.questions.courseResolveFailed")}
         onRetry={() => {
-          setCourseProbeFailed(false);
+          setCourseProbeFailedId(null);
           setCourseProbeAttempt((attempt) => attempt + 1);
         }}
       />
     );
   if (loadFailedMessage && !sameIdentityFailure)
-    return <ErrorState message={loadFailedMessage} onRetry={loadQuestions} />;
+    return (
+      <ErrorState
+        message={loadFailedMessage}
+        onRetry={() => {
+          // Retry is a new attempt, not a re-render of the failure: releasing
+          // the failed key puts the page back into its in-flight state so the
+          // user sees the request they just asked for.
+          setLoadState((prev) => ({
+            idKey: prev.idKey,
+            reqKey: null,
+            status: "loaded",
+          }));
+          void loadQuestionsRef.current();
+        }}
+      />
+    );
 
   const columns: DataViewColumnDef<QuestionRow>[] = [
     {
@@ -965,30 +1050,40 @@ export function QuestionPage() {
           )
         }
         desktopTable={
-          <DesktopDataTable
-            columns={columns}
-            // While a new identity is pending, the previous identity's rows are
-            // not this query's result. The placeholder body keeps the shell's
-            // footprint (the measured 1374px -> 170px collapse).
-            data={pending ? [] : questions}
-            rowCount={total}
-            page={page}
-            pageSize={PAGE_SIZE}
-            getRowId={(q) => q.id}
-            loading={isTableLoading}
-            empty={isEmpty}
-            error={sameIdentityFailure ? loadFailedMessage : null}
-            emptyTitle={
-              hasActiveFilter
-                ? t("admin.questions.noMatch" as never)
-                : t("admin.questions.empty" as never)
+          <div
+            ref={listBoxRef}
+            // Reserve the settled height while pending: the body shows the
+            // table's short placeholder (the previous identity's rows are not
+            // this query's result), and without the reservation the list region
+            // collapses for the whole request.
+            style={
+              pending && reservedListHeight !== null
+                ? { minHeight: reservedListHeight }
+                : undefined
             }
-            emptyDescription={
-              hasActiveFilter
-                ? t("admin.questions.noMatchDescription" as never)
-                : t("admin.questions.emptyDescription" as never)
-            }
-          />
+          >
+            <DesktopDataTable
+              columns={columns}
+              data={pending ? [] : questions}
+              rowCount={total}
+              page={page}
+              pageSize={PAGE_SIZE}
+              getRowId={(q) => q.id}
+              loading={isTableLoading}
+              empty={isEmpty}
+              error={sameIdentityFailure ? loadFailedMessage : null}
+              emptyTitle={
+                hasActiveFilter
+                  ? t("admin.questions.noMatch" as never)
+                  : t("admin.questions.empty" as never)
+              }
+              emptyDescription={
+                hasActiveFilter
+                  ? t("admin.questions.noMatchDescription" as never)
+                  : t("admin.questions.emptyDescription" as never)
+              }
+            />
+          </div>
         }
         mobileList={
           pending ? (

@@ -7,7 +7,7 @@ import {
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   MemoryRouter,
   Route,
@@ -48,7 +48,10 @@ type QuestionListPayload = {
   totalPages: number;
 };
 
-const { apiGet } = vi.hoisted(() => ({ apiGet: vi.fn() }));
+const { apiGet, apiDelete } = vi.hoisted(() => ({
+  apiGet: vi.fn(),
+  apiDelete: vi.fn(),
+}));
 
 vi.mock("@/lib/api", () => ({
   ApiError: class ApiError extends Error {
@@ -61,7 +64,7 @@ vi.mock("@/lib/api", () => ({
   },
   api: {
     get: (...args: unknown[]) => apiGet(...args),
-    delete: vi.fn().mockResolvedValue(undefined),
+    delete: (...args: unknown[]) => apiDelete(...args),
   },
   setNavigate: () => {},
 }));
@@ -106,8 +109,11 @@ function mockPaginated(total: number, prefix = "第") {
     }
     if (/^\/api\/courses\/[^/?]+$/.test(url)) {
       // A listed course must never be probed, but a deep-linked one is; answer
-      // both so the fixture cannot mask the request under test.
-      const id = url.slice("/api/courses/".length);
+      // both so the fixture cannot mask the request under test. The answer
+      // carries the SERVER's canonical spelling (a uuid's lowercase form), not
+      // the requested one — echoing the request would hide the case-folding
+      // rule the page has to implement.
+      const id = url.slice("/api/courses/".length).toLowerCase();
       return { id, name: `课程${id}`, code: id.toUpperCase() };
     }
     if (url.startsWith("/api/courses")) {
@@ -156,12 +162,16 @@ function HistoryNav() {
   );
 }
 
-function renderPage(initialEntry: string | string[] = "/admin/questions") {
+function renderPage(
+  initialEntry: string | string[] = "/admin/questions",
+  options?: { initialIndex?: number },
+) {
   return render(
     <MemoryRouter
       initialEntries={
         Array.isArray(initialEntry) ? initialEntry : [initialEntry]
       }
+      initialIndex={options?.initialIndex}
     >
       <AuthProvider
         initialUser={{
@@ -210,6 +220,11 @@ function courseTrigger(): HTMLElement {
 }
 
 describe("QuestionPage URL query state (#784 A3)", () => {
+  beforeEach(() => {
+    apiDelete.mockReset();
+    apiDelete.mockResolvedValue(undefined);
+  });
+
   // ── A01 — a deep link restores the filters AND the controls display them ──
   it("A01: a deep link restores filter, page, controls and rows together", async () => {
     mockPaginated(61);
@@ -651,23 +666,42 @@ describe("QuestionPage URL query state (#784 A3)", () => {
 
   it("A12(d): a page-authored write does NOT cancel the draft the user typed", async () => {
     mockPaginated(61);
-    const user = userEvent.setup();
-    renderPage("/admin/questions?search=abc");
-    await waitFor(() =>
-      expect(within(desktopShell()).getByText("第1题")).toBeInTheDocument(),
-    );
+    // Fake timers make the ORDER of the two writes explicit. Leaving it to a
+    // real-timer race made the assertion depend on machine load: the commit
+    // resets the page, so if the debounce happens to land first the final URL
+    // legitimately carries only `search` — the test would then flake on the
+    // ordering rather than on the contract it is meant to pin.
+    vi.useFakeTimers({ shouldAdvanceTime: false });
+    try {
+      renderPage("/admin/questions?search=abc");
+      await act(async () => {});
+      await act(async () => {});
 
-    fireEvent.change(screen.getByLabelText("搜索题目"), {
-      target: { value: "abcd" },
-    });
-    // An immediate write this page makes (a page turn) must not be mistaken
-    // for an external navigation: the draft has to survive and land.
-    await user.click(screen.getByRole("button", { name: "下一页" }));
-    await waitFor(() => expect(urlSearch()).toContain("page=2"));
-    expect(screen.getByLabelText("搜索题目")).toHaveValue("abcd");
-    await waitFor(() =>
-      expect(questionsCalls().at(-1) ?? "").toContain("search=abcd"),
-    );
+      fireEvent.change(screen.getByLabelText("搜索题目"), {
+        target: { value: "abcd" },
+      });
+      // An immediate write this page makes (a page turn) must not be mistaken
+      // for an external navigation. A page-authored write that reset the field
+      // to the committed term would also cancel the pending commit, so the term
+      // the user typed would never land.
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "下一页" }));
+      });
+      expect(screen.getByLabelText("搜索题目")).toHaveValue("abcd");
+      expect(urlSearch()).toContain("page=2");
+      expect(urlSearch()).toContain("search=abc");
+
+      // Past the debounce deadline the draft lands. Asserted synchronously:
+      // `waitFor` schedules its polling on timers, which are fake here.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(300);
+      });
+      expect(screen.getByLabelText("搜索题目")).toHaveValue("abcd");
+      expect(urlSearch()).toContain("search=abcd");
+      expect(questionsCalls().at(-1) ?? "").toContain("search=abcd");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   // ── A14 + C1 — an applied course filter must be displayable or dropped ──
@@ -823,6 +857,132 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     expect(probes[0]).not.toContain("/api/questions/tags");
   });
 
+  it("C1: an uppercase deep link folds onto the server's spelling and stays displayable", async () => {
+    const canonical = "0a1b2c3d-0000-4000-8000-000000000001";
+    const probes: string[] = [];
+    apiGet.mockImplementation((url: string) => {
+      if (/^\/api\/courses\/[^/?]+$/.test(url)) {
+        probes.push(url);
+        // uuid comparison is case-insensitive on zod and Postgres, so the
+        // server honours the uppercase request and answers with its OWN
+        // spelling — which is what the Select's option values are built from.
+        return Promise.resolve({
+          id: canonical,
+          name: "大写课程",
+          code: "U1",
+        });
+      }
+      if (url.startsWith("/api/courses")) {
+        return Promise.resolve({
+          items: [{ id: "course-1", name: "课程一", code: "C1" }],
+          total: 1,
+          page: 1,
+          pageSize: 20,
+          totalPages: 1,
+        });
+      }
+      if (url.startsWith("/api/questions/tags"))
+        return Promise.resolve({ tags: [] });
+      return Promise.resolve(pagePayload(1, 3));
+    });
+
+    renderPage(`/admin/questions?courseId=${canonical.toUpperCase()}`);
+
+    // The applied filter is DISPLAYED. An exact-match implementation would
+    // leave the Select on its placeholder — an applied filter the user can
+    // neither see nor undo — and would keep the page resolving forever.
+    await waitFor(() => expect(courseTrigger()).toHaveTextContent("大写课程"));
+    // URL, control and request name the same course.
+    await waitFor(() => expect(urlSearch()).toContain(`courseId=${canonical}`));
+    expect(urlSearch()).not.toContain(canonical.toUpperCase());
+    expect(questionsCalls().at(-1) ?? "").toContain(`courseId=${canonical}`);
+    expect(probes).toHaveLength(1);
+  });
+
+  it("C1: a transient probe failure stops being reported once the URL no longer carries that course", async () => {
+    apiGet.mockImplementation((url: string) => {
+      if (/^\/api\/courses\/[^/?]+$/.test(url))
+        return Promise.reject(new Error("network down"));
+      if (url.startsWith("/api/courses")) {
+        return Promise.resolve({
+          items: [{ id: "course-1", name: "课程一", code: "C1" }],
+          total: 1,
+          page: 1,
+          pageSize: 20,
+          totalPages: 1,
+        });
+      }
+      if (url.startsWith("/api/questions/tags"))
+        return Promise.resolve({ tags: [] });
+      return Promise.resolve(pagePayload(1, 3));
+    });
+
+    renderPage(["/admin/questions", "/admin/questions?courseId=course-9"]);
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "后退" }));
+
+    // The failure belonged to one identity. Once the URL stops carrying it, the
+    // error must not keep replacing a query that is not about that course.
+    await waitFor(() =>
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument(),
+    );
+    await waitFor(() =>
+      expect(questionsCalls().at(-1) ?? "").toBe(
+        "/api/questions?page=1&pageSize=20",
+      ),
+    );
+    expect(urlSearch()).toBe("");
+  });
+
+  // ── R1 — a refetch that outlives the render it started in ──
+  it("a delete confirmed after the user moved on does not strand the new query", async () => {
+    mockPaginated(61);
+    let releaseDelete!: () => void;
+    const deleteGate = new Promise<void>((resolve) => {
+      releaseDelete = resolve;
+    });
+    apiDelete.mockImplementation(() => deleteGate);
+
+    renderPage("/admin/questions");
+    await waitFor(() =>
+      expect(within(desktopShell()).getByText("第1题")).toBeInTheDocument(),
+    );
+
+    const user = userEvent.setup();
+    // Start the delete, then move to page 2 while its confirmation is still in
+    // flight.
+    await user.click(
+      within(desktopShell()).getAllByRole("button", { name: "删除题目" })[0]!,
+    );
+    await user.click(
+      within(await screen.findByRole("alertdialog")).getByRole("button", {
+        name: "确认",
+      }),
+    );
+    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await waitFor(() => expect(urlSearch()).toContain("page=2"));
+    await waitFor(() =>
+      expect(within(desktopShell()).getByText("第21题")).toBeInTheDocument(),
+    );
+
+    releaseDelete();
+
+    // The refetch must target the query the user is on NOW. A render-time
+    // closure would issue a page-1 request, which the generation guard would
+    // then treat as newest: page 2's own response is discarded, the URL says
+    // page 2 while the body shows page 1, and the table never settles.
+    await waitFor(() =>
+      expect(questionsCalls().at(-1) ?? "").toContain("page=2"),
+    );
+    await waitFor(() =>
+      expect(within(desktopShell()).getByText("第21题")).toBeInTheDocument(),
+    );
+    expect(within(desktopShell()).queryByText("第1题")).not.toBeInTheDocument();
+    expect(urlSearch()).toContain("page=2");
+  });
+
   // ── A16 — the four failure classes ──
   it("A16: a first-load failure is a page-level error, not a permanent loader", async () => {
     apiGet.mockImplementation((url: string) => {
@@ -959,21 +1119,23 @@ describe("QuestionPage URL query state (#784 A3)", () => {
   });
 
   it("A16: a same-identity page-turn failure does not persist into the next page turn", async () => {
-    apiGet.mockImplementation((url: string) => {
-      if (url.startsWith("/api/questions/tags"))
-        return Promise.resolve({ tags: [] });
+    let releasePage3!: () => void;
+    const page3Gate = new Promise<void>((resolve) => {
+      releasePage3 = resolve;
+    });
+    let page3Held = false;
+    apiGet.mockImplementation(async (url: string) => {
+      if (url.startsWith("/api/questions/tags")) return { tags: [] };
       if (url.startsWith("/api/courses")) {
-        return Promise.resolve({
-          items: [],
-          total: 0,
-          page: 1,
-          pageSize: 20,
-          totalPages: 1,
-        });
+        return { items: [], total: 0, page: 1, pageSize: 20, totalPages: 1 };
       }
       const page = Number(new URLSearchParams(url.split("?")[1]).get("page"));
-      if (page === 2) return Promise.reject(new Error("boom"));
-      return Promise.resolve(pagePayload(page, 61));
+      if (page === 2) throw new Error("boom");
+      if (page === 3) {
+        page3Held = true;
+        await page3Gate;
+      }
+      return pagePayload(page, 61);
     });
 
     const user = userEvent.setup();
@@ -988,15 +1150,77 @@ describe("QuestionPage URL query state (#784 A3)", () => {
       ).toBeInTheDocument(),
     );
 
-    // The next page turn is a different request: the previous failure must not
-    // keep occupying the body while the new slice is in flight.
+    // The next page turn is a different request. The failure belongs to page
+    // 2's request key, so the IN-FLIGHT window of page 3 must already be the
+    // page-turn window again — asserting only the settled state would let an
+    // implementation that keys `failed` on the identity keep the old error row
+    // (and its missing busy signal) on screen for the whole request.
     await user.click(screen.getByRole("button", { name: "下一页" }));
+    await waitFor(() => expect(page3Held).toBe(true));
+    expect(
+      within(desktopShell()).queryByText("加载考生列表失败"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(desktopShell()).getByRole("table").querySelector("tbody"),
+    ).toHaveAttribute("aria-busy", "true");
+
+    releasePage3();
     await waitFor(() =>
       expect(within(desktopShell()).getByText("第41题")).toBeInTheDocument(),
     );
     expect(
       within(desktopShell()).queryByText("加载考生列表失败"),
     ).not.toBeInTheDocument();
+  });
+
+  // ── A10 — a clamp that happens mid-session (the identity is already loaded) ──
+  it("A10: a mid-session out-of-range page keeps the recovery window open until its own response lands", async () => {
+    let releaseClamp!: () => void;
+    const clampGate = new Promise<void>((resolve) => {
+      releaseClamp = resolve;
+    });
+    let clampHeld = false;
+    apiGet.mockImplementation(async (url: string) => {
+      if (url.startsWith("/api/questions/tags")) return { tags: [] };
+      if (url.startsWith("/api/courses")) {
+        return { items: [], total: 0, page: 1, pageSize: 20, totalPages: 1 };
+      }
+      const page = Number(new URLSearchParams(url.split("?")[1]).get("page"));
+      // Page 5 is out of range (4 pages) → an empty response the page must
+      // normalize; page 4 is the clamp target and is held open.
+      if (page === 5) return pagePayload(5, 61);
+      if (page === 4) {
+        clampHeld = true;
+        await clampGate;
+      }
+      return pagePayload(page, 61);
+    });
+
+    const user = userEvent.setup();
+    // Mount settled on page 1, then FORWARD into the out-of-range page: the
+    // identity is already loaded, so the recovery window is the only thing that
+    // can keep the body from rendering page 1's rows as page 4's result.
+    renderPage(["/admin/questions", "/admin/questions?page=5"], {
+      initialIndex: 0,
+    });
+    await waitFor(() =>
+      expect(within(desktopShell()).getByText("第1题")).toBeInTheDocument(),
+    );
+    await user.click(screen.getByRole("button", { name: "前进" }));
+    await waitFor(() => expect(clampHeld).toBe(true));
+
+    // Exactly one jump, and the URL names the page being loaded. The window is
+    // still open: the previous page's rows belong to a page the URL no longer
+    // names, and no empty state may be rendered.
+    await waitFor(() => expect(urlSearch()).toContain("page=4"));
+    expect(within(desktopShell()).queryByText("第1题")).not.toBeInTheDocument();
+    expect(screen.queryByText("未找到匹配的题目")).not.toBeInTheDocument();
+    expect(screen.queryByText("暂无题目")).not.toBeInTheDocument();
+
+    releaseClamp();
+    await waitFor(() =>
+      expect(within(desktopShell()).getByText("第61题")).toBeInTheDocument(),
+    );
   });
 
   it("A16: a clamp refetch that fails leaves the pending state and reports it", async () => {

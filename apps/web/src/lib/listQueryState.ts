@@ -11,11 +11,17 @@
 /**
  * Parses the `page` URL parameter.
  *
- * INVARIANT: the returned page is always a positive integer; every other input
- * (absent, "0", "-1", "abc", "1.5", " 2", "9007199254740993") means the first
- * page. The value is matched by an explicit pattern instead of `Number()` /
- * `parseInt` so a malformed page can never reach the API as `NaN` — the defect
- * shape that made `/api/questions?page=NaN` a 400 on ScoreListPage.
+ * INVARIANT: the returned page is always a positive integer; every input that is
+ * not a bare positive decimal (`null`/`undefined`, "0", "-1", "abc", "1.5",
+ * " 2", "") means the first page. The value is matched by an explicit pattern
+ * instead of `Number()` / `parseInt` so a malformed page can never reach the API
+ * as `NaN` — the defect shape that made `/api/questions?page=NaN` a 400 on
+ * ScoreListPage.
+ *
+ * Values beyond `Number.MAX_SAFE_INTEGER` are accepted by the pattern and lose
+ * precision in the conversion. They are not special-cased: such a page is
+ * out of range by any measure, and the empty page it answers with is normalized
+ * back into range by `resolveClampTarget`.
  *
  * Repeated parameters (`?page=3&page=2`): `URLSearchParams.get` returns the
  * FIRST value, and the page rewrites the URL to a single canonical value.

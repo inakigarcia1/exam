@@ -59,19 +59,39 @@ describe("resolveListReturnPath", () => {
     }
   });
 
-  it("falls back for protocol-relative and cross-origin targets", () => {
+  it("falls back for protocol-relative, absolute and other-scheme targets", () => {
+    // Every entry names the LAYER that rejects it, so an implementation that
+    // drops that layer fails here:
+    //  - shape: anything not starting with a single "/" would send the user to
+    //    the app root or off-origin entirely
+    //  - origin: WHATWG parsing strips tab/CR/LF BEFORE parsing, so
+    //    "/\t/evil.example" is only caught by comparing origins; a backslash is
+    //    a path separator, which makes "/\evil.example" protocol-relative.
     for (const from of [
-      "//evil.example/admin/questions",
-      "///evil.example",
-      "/\\evil.example",
-      "/\t/evil.example",
-      "/\n/evil.example",
-      "/\r/evil.example",
-      "https://evil.example/admin/questions",
-      "http://localhost:3000/admin/questions",
+      "//evil.example/admin/questions", // shape: protocol-relative
+      "///evil.example", // shape: protocol-relative
+      "https://evil.example/admin/questions", // shape: absolute URL
+      "https:evil.example", // shape: scheme with no path
+      "/\\evil.example", // origin: backslash separator
+      "/\t/evil.example", // origin: tab stripped before parsing
+      "/\n/evil.example", // origin: LF stripped before parsing
+      "/\r/evil.example", // origin: CR stripped before parsing
     ]) {
       expect(resolveListReturnPath({ from }, QUESTIONS)).toBe(QUESTIONS);
     }
+  });
+
+  it("a same-origin absolute target is a documented non-discriminating case", () => {
+    // Kept as an explicit statement of a limit rather than as evidence: a
+    // correct resolver and one that accepts ANY same-origin URL both return
+    // "/admin/questions" for this input, so the row cannot tell them apart. The
+    // inputs that can are in the tests above and below.
+    expect(
+      resolveListReturnPath(
+        { from: "http://localhost:3000/admin/questions" },
+        QUESTIONS,
+      ),
+    ).toBe(QUESTIONS);
   });
 
   it("falls back for any route other than this page's own list", () => {
