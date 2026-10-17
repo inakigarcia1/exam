@@ -47,10 +47,17 @@ export function TagFilterSelect({
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
+    // A selected tag the vocabulary does not currently offer — a deep-linked
+    // filter, or a vocabulary request that failed — is still an APPLIED
+    // filter, so it stays observable and individually removable. Without it
+    // the filter would be in force with nothing on screen to explain or undo
+    // it.
+    const selectedOnly = selected.filter((tag) => !tags.includes(tag));
+    const options = [...tags, ...selectedOnly];
     const q = query.trim().toLowerCase();
-    if (!q) return tags;
-    return tags.filter((tag) => tag.toLowerCase().includes(q));
-  }, [tags, query]);
+    if (!q) return options;
+    return options.filter((tag) => tag.toLowerCase().includes(q));
+  }, [tags, selected, query]);
 
   function toggle(tag: string) {
     onChange(

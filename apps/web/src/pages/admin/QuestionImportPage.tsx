@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api";
+import { resolveListReturnPath } from "@/lib/listReturnNavigation";
+import { routes } from "@/lib/routes";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { AppIcon } from "@/components/shared/AppIcon";
@@ -69,6 +71,7 @@ interface ImportResult {
 export function QuestionImportPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const [courses, setCourses] = useState<CourseRow[]>([]);
   const [selectedCourse, setSelectedCourse] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -457,7 +460,11 @@ export function QuestionImportPage() {
             )}
             <Button
               variant="outline"
-              onClick={() => void navigate("/admin/questions")}
+              onClick={() =>
+                void navigate(
+                  resolveListReturnPath(location.state, routes.admin.questions),
+                )
+              }
             >
               {t("admin.questionImport.backToList")}
             </Button>
