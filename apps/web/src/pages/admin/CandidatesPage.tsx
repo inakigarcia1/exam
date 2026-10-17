@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api";
 import { getApiErrorMessage, getApiFieldErrors } from "@/lib/apiErrors";
@@ -42,6 +48,8 @@ import {
 import { FieldError } from "@/components/shared/FieldError";
 import { RowActions } from "@/components/shared/RowActions";
 import { DataTableShell } from "@/components/shared/DataTableShell";
+import { DataViewFooter } from "@/components/shared/DataViewFooter";
+import { DataTablePagination } from "@/components/shared/DataTablePagination";
 import { DataToolbar } from "@/components/shared/DataToolbar";
 import { DataViewSearch } from "@/components/shared/DataViewSearch";
 import {
@@ -52,6 +60,9 @@ import { MobileRecordList } from "@/components/shared/MobileRecordList";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { DEFAULT_PASSWORD_POLICY } from "@exam/contracts";
+
+/** Candidate-list page size — real pagination reaches every candidate (#785). */
+const CANDIDATES_PAGE_SIZE = 20;
 
 /** Configuration of a candidate identity or metadata field. */
 interface Field {
@@ -76,6 +87,10 @@ interface Candidate {
 /** Generic paginated response wrapper. */
 interface Page<T> {
   items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 }
 
 /**
@@ -90,7 +105,8 @@ export function CandidatesPage() {
   const { t } = useTranslation();
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [fields, setFields] = useState<Field[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -102,7 +118,12 @@ export function CandidatesPage() {
   const [csv, setCsv] = useState("");
   const [importSummary, setImportSummary] = useState("");
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  // Search is split into two states (same contract as QuestionPage):
+  // searchInput is the live text in the field; committedSearch is the term
+  // actually sent to the server (debounced DataViewSearch commit). Typing
+  // never fires a request per keystroke.
+  const [searchInput, setSearchInput] = useState("");
+  const [committedSearch, setCommittedSearch] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -112,36 +133,70 @@ export function CandidatesPage() {
   const [resetConfirmPassword, setResetConfirmPassword] = useState("");
   const [resetFieldError, setResetFieldError] = useState("");
   const [resetting, setResetting] = useState(false);
+  // Latest-request guard: rapid search/page flips fire overlapping candidate
+  // requests; a stale response resolving last must not overwrite the table.
+  const candidatesGenRef = useRef(0);
+  // B12: the query identity whose response is currently rendered. Until it
+  // equals the submitted query, the list body shows the pending state — old
+  // rows are never presented as the new query's result.
+  const loadedKeyRef = useRef<string | null>(null);
+  const queryKey = `${page}|${committedSearch}`;
 
   const load = useCallback(async () => {
-    setIsLoading(true);
+    const generation = ++candidatesGenRef.current;
+    const isStale = () => generation !== candidatesGenRef.current;
     setError(null);
     try {
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(CANDIDATES_PAGE_SIZE),
+      });
+      if (committedSearch.trim()) params.set("search", committedSearch.trim());
       const [candidateData, fieldData] = await Promise.all([
-        api.get<Page<Candidate>>("/api/candidates"),
+        api.get<Page<Candidate>>(`/api/candidates?${params.toString()}`),
         api.get<Field[]>("/api/candidate-fields"),
       ]);
+      if (isStale()) return;
+      // B11: an empty page while records exist elsewhere is an out-of-range
+      // page (e.g. after a deletion). Never commit it — it would render a
+      // fake empty state. Jump straight to the last valid page in one step
+      // and stay pending until its rows land.
+      if (
+        candidateData.items.length === 0 &&
+        candidateData.total > 0 &&
+        page > 1
+      ) {
+        const lastValidPage = Math.max(
+          1,
+          Math.ceil(candidateData.total / CANDIDATES_PAGE_SIZE),
+        );
+        if (lastValidPage < page) {
+          setPage(lastValidPage);
+          return;
+        }
+      }
       setCandidates(candidateData.items);
+      setTotal(candidateData.total);
       setFields(fieldData.sort((a, b) => a.sortOrder - b.sortOrder));
+      loadedKeyRef.current = queryKey;
     } catch {
+      if (isStale()) return;
       setError(t("admin.candidates.loadFailed"));
-    } finally {
-      setIsLoading(false);
     }
-  }, []);
+  }, [page, committedSearch, queryKey, t]);
   useEffect(() => void load(), [load]);
 
-  const filteredCandidates = useMemo(
-    () =>
-      search
-        ? candidates.filter(
-            (c) =>
-              c.name.toLowerCase().includes(search.toLowerCase()) ||
-              c.username.toLowerCase().includes(search.toLowerCase()),
-          )
-        : candidates,
-    [candidates, search],
-  );
+  /** A search commit is a new query: it resets to the first page (#785). */
+  function handleSearchCommit(term: string) {
+    setCommittedSearch(term);
+    setPage(1);
+  }
+
+  function clearSearch() {
+    setSearchInput("");
+    setCommittedSearch("");
+    setPage(1);
+  }
 
   function open(candidate?: Candidate) {
     setEditing(candidate ?? null);
@@ -398,8 +453,54 @@ export function CandidatesPage() {
     }, 1500);
   }
 
-  if (isLoading) return <LoadingState />;
   if (error) return <ErrorState message={error} onRetry={load} />;
+
+  const toolbar = (
+    <DataToolbar
+      search={
+        <DataViewSearch
+          aria-label={t("admin.candidates.searchLabel")}
+          placeholder={t("admin.candidates.searchPlaceholder")}
+          value={searchInput}
+          onChange={setSearchInput}
+          onSearch={handleSearchCommit}
+          clearLabel={t("admin.candidates.clearSearchLabel")}
+        />
+      }
+    />
+  );
+
+  // Never-loaded: bare initial loader. In-flight query change (B11/B12):
+  // the single shell keeps its toolbar/footer mounted, list body shows the
+  // pending state — stale rows and fake empty states are never rendered.
+  if (loadedKeyRef.current === null) return <LoadingState />;
+  const pending = loadedKeyRef.current !== queryKey;
+
+  /** The one shell composition for this page: the footer authority is
+   * declared once; pending and loaded states only vary body and mobile. */
+  function renderShell(body: ReactNode, mobile?: ReactNode) {
+    return (
+      <DataTableShell
+        toolbar={toolbar}
+        footer={
+          <DataViewFooter
+            range={{ page, pageSize: CANDIDATES_PAGE_SIZE, total }}
+            navigation={
+              <DataTablePagination
+                page={page}
+                pageSize={CANDIDATES_PAGE_SIZE}
+                total={total}
+                onPageChange={setPage}
+              />
+            }
+          />
+        }
+        mobile={mobile}
+      >
+        {body}
+      </DataTableShell>
+    );
+  }
 
   // Single-source column declarations (issue 457): desktop table and mobile
   // cards render from the same array; dynamic CandidateField columns are
@@ -510,53 +611,23 @@ export function CandidatesPage() {
           </div>
         }
       />
-      <DataTableShell
-        toolbar={
-          <DataToolbar
-            search={
-              <DataViewSearch
-                aria-label={t("admin.candidates.searchLabel")}
-                placeholder={t("admin.candidates.searchPlaceholder")}
-                value={search}
-                onChange={setSearch}
-                onSearch={setSearch}
-                clearLabel={t("admin.candidates.clearSearchLabel")}
-              />
-            }
-          />
-        }
-        mobile={
-          <MobileRecordList
-            columns={columns}
-            rows={filteredCandidates}
-            getRowId={(c) => c.id}
-            empty={filteredCandidates.length === 0}
-            emptyTitle={t(
-              search ? "admin.candidates.noMatch" : "admin.candidates.empty",
-            )}
-            emptyDescription={t(
-              search
-                ? "admin.candidates.noMatchDescription"
-                : "admin.candidates.emptyDescription",
-              { q: search },
-            )}
-          />
-        }
-      >
-        {filteredCandidates.length === 0 && search ? (
+      {renderShell(
+        pending ? (
+          <LoadingState />
+        ) : candidates.length === 0 && committedSearch ? (
           <EmptyState
             icon={<AppIcon icon={Search} size="state" />}
             title={t("admin.candidates.noMatch")}
             description={t("admin.candidates.noMatchDescription", {
-              q: search,
+              q: committedSearch,
             })}
             action={
-              <Button variant="outline" onClick={() => setSearch("")}>
+              <Button variant="outline" onClick={clearSearch}>
                 {t("admin.common.clearSearch")}
               </Button>
             }
           />
-        ) : filteredCandidates.length === 0 ? (
+        ) : candidates.length === 0 ? (
           <EmptyState
             icon={<AppIcon icon={Users} size="state" />}
             title={t("admin.candidates.empty")}
@@ -582,11 +653,30 @@ export function CandidatesPage() {
         ) : (
           <DesktopDataTable
             columns={columns}
-            data={filteredCandidates}
+            data={candidates}
             getRowId={(c) => c.id}
           />
-        )}
-      </DataTableShell>
+        ),
+        pending ? undefined : (
+          <MobileRecordList
+            columns={columns}
+            rows={candidates}
+            getRowId={(c) => c.id}
+            empty={candidates.length === 0}
+            emptyTitle={t(
+              committedSearch
+                ? "admin.candidates.noMatch"
+                : "admin.candidates.empty",
+            )}
+            emptyDescription={t(
+              committedSearch
+                ? "admin.candidates.noMatchDescription"
+                : "admin.candidates.emptyDescription",
+              { q: committedSearch },
+            )}
+          />
+        ),
+      )}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent aria-describedby={undefined}>
           <DialogHeader>

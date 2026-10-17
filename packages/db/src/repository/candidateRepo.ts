@@ -1,12 +1,35 @@
 import type { Database } from "../types.js";
-import { candidateProfiles, examEnrollments, exams } from "../schema/pg.js";
+import {
+  candidateProfiles,
+  examEnrollments,
+  exams,
+  users,
+} from "../schema/pg.js";
 import {
   createAsyncTenantCrudRepo,
   resolveOptionalOrganizationId,
 } from "./baseRepo.js";
 import type { TenantContext } from "../types.js";
 import type { RequestContext } from "@exam/domain";
-import { and, count, eq, exists, inArray } from "drizzle-orm";
+import { and, count, eq, exists, inArray, sql } from "drizzle-orm";
+
+/** Filter options for listing candidates with DB-level filtering. */
+export interface CandidateListFilters {
+  /**
+   * Case-insensitive substring search over the candidate user's `name` and
+   * `username` (EXISTS, SQL-side, applied BEFORE limit/offset and the total
+   * count). The stored term is trimmed; an empty term after trim filters
+   * nothing (legacy listing semantics).
+   */
+  search?: string;
+  /**
+   * Restrict the listing to candidates with an ENROLLMENT whose exam's course
+   * is one of `courseIds` (LIST scope filter). Applied in SQL BEFORE
+   * limit/offset and the total count. An EMPTY array yields
+   * `{ items: [], total: 0 }` by contract (never unfiltered).
+   */
+  courseIds?: string[];
+}
 
 /** Creates a tenant-scoped CRUD repository for `candidateProfiles` with user lookup. */
 export function createCandidateRepo(db: Database) {
@@ -57,49 +80,71 @@ export function createCandidateRepo(db: Database) {
       );
     },
     /**
-     * Candidates restricted to the given course scope with pagination: a
-     * candidate is in scope when it has an ENROLLMENT
-     * whose exam's course is one of `courseIds` (EXISTS, SQL-side, applied
-     * BEFORE limit/offset and the total count — never post-pagination). An
-     * EMPTY course-id set yields `{ items: [], total: 0 }` by contract.
+     * Candidates under the given filters with pagination. Filtering (user
+     * name/username search, course-scope enrollment EXISTS) happens in SQL
+     * BEFORE limit/offset and BEFORE the total count — never post-pagination;
+     * `items` and `total` share one WHERE. EXISTS predicates cannot multiply
+     * rows, so multi-enrollment candidates stay single entries. An EMPTY
+     * course-id set yields `{ items: [], total: 0 }` by contract.
      * Ordering matches the generic listPaginated (createdAt, id).
      */
-    async listByCourseScopePaginated(
+    async listFiltered(
       ctx: TenantContext | RequestContext,
-      courseIds: string[],
-      page: number,
-      pageSize: number,
+      filters: CandidateListFilters,
+      pagination: { page: number; pageSize: number },
     ): Promise<{
       items: (typeof candidateProfiles.$inferSelect)[];
       total: number;
     }> {
-      if (courseIds.length === 0) return { items: [], total: 0 };
+      if (filters.courseIds && filters.courseIds.length === 0) {
+        return { items: [], total: 0 };
+      }
       const orgId = resolveOptionalOrganizationId(ctx);
-      const where = and(
-        eq(candidateProfiles.organizationId, orgId),
-        exists(
-          db
-            .select({ id: examEnrollments.id })
-            .from(examEnrollments)
-            .innerJoin(exams, eq(examEnrollments.examId, exams.id))
-            .where(
-              and(
-                eq(examEnrollments.organizationId, orgId),
-                eq(exams.organizationId, orgId),
-                eq(examEnrollments.candidateId, candidateProfiles.id),
-                inArray(exams.courseId, courseIds),
+      const conditions = [eq(candidateProfiles.organizationId, orgId)];
+      if (filters.search && filters.search.trim()) {
+        const term = filters.search.trim();
+        conditions.push(
+          exists(
+            db
+              .select({ id: users.id })
+              .from(users)
+              .where(
+                and(
+                  eq(users.organizationId, orgId),
+                  eq(users.id, candidateProfiles.userId),
+                  sql`(position(lower(${term}) in lower(${users.name})) > 0 or position(lower(${term}) in lower(${users.username})) > 0)`,
+                ),
               ),
-            ),
-        ),
-      )!;
-      const offset = (page - 1) * pageSize;
+          ),
+        );
+      }
+      if (filters.courseIds) {
+        conditions.push(
+          exists(
+            db
+              .select({ id: examEnrollments.id })
+              .from(examEnrollments)
+              .innerJoin(exams, eq(examEnrollments.examId, exams.id))
+              .where(
+                and(
+                  eq(examEnrollments.organizationId, orgId),
+                  eq(exams.organizationId, orgId),
+                  eq(examEnrollments.candidateId, candidateProfiles.id),
+                  inArray(exams.courseId, filters.courseIds),
+                ),
+              ),
+          ),
+        );
+      }
+      const where = and(...conditions)!;
+      const offset = (pagination.page - 1) * pagination.pageSize;
       const [items, totalRows] = await Promise.all([
         db
           .select()
           .from(candidateProfiles)
           .where(where)
           .orderBy(candidateProfiles.createdAt, candidateProfiles.id)
-          .limit(pageSize)
+          .limit(pagination.pageSize)
           .offset(offset),
         db.select({ value: count() }).from(candidateProfiles).where(where),
       ]);

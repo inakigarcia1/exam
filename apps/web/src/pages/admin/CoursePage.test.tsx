@@ -101,12 +101,31 @@ describe("CoursePage", () => {
     apiPost.mockReset();
     apiPatch.mockReset();
     apiDelete.mockReset();
-    apiGet.mockResolvedValue({
-      items: mockCourses,
-      total: 2,
-      page: 1,
-      pageSize: 20,
-      totalPages: 1,
+    // #785: the list is server-searched and server-paginated — the default
+    // mock honors page/pageSize/search like the real route.
+    apiGet.mockImplementation((path: string) => {
+      if (!path.startsWith("/api/courses")) {
+        return Promise.resolve({});
+      }
+      const params = new URLSearchParams(path.split("?")[1] ?? "");
+      const page = Number(params.get("page") ?? "1");
+      const pageSize = Number(params.get("pageSize") ?? "20");
+      const search = (params.get("search") ?? "").trim().toLowerCase();
+      const matched = search
+        ? mockCourses.filter(
+            (c) =>
+              c.name.toLowerCase().includes(search) ||
+              c.code.toLowerCase().includes(search),
+          )
+        : mockCourses;
+      const start = (page - 1) * pageSize;
+      return Promise.resolve({
+        items: matched.slice(start, start + pageSize),
+        total: matched.length,
+        page,
+        pageSize,
+        totalPages: Math.max(1, Math.ceil(matched.length / pageSize)),
+      });
     });
     apiPost.mockResolvedValue({ id: "c3" });
     apiPatch.mockResolvedValue(undefined);
@@ -227,13 +246,22 @@ describe("CoursePage", () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByRole("table");
-    await user.type(
-      screen.getByPlaceholderText("搜索课程名称、代码或描述..."),
-      "数",
-    );
-    const table = screen.getByRole("table");
-    expect(within(table).getByText("数学")).toBeInTheDocument();
-    expect(within(table).queryByText("英语")).not.toBeInTheDocument();
+    await user.type(screen.getByPlaceholderText("搜索课程名称或代码..."), "数");
+    await waitFor(() => {
+      const [lastUrl] = apiGet.mock.lastCall!;
+      expect(
+        new URLSearchParams(String(lastUrl).split("?")[1]).get("search"),
+      ).toBe("数");
+    });
+    // Sync on the filtered render (英语 drops out) before asserting 数学.
+    await waitFor(() => {
+      expect(
+        within(screen.getByRole("table")).queryByText("英语"),
+      ).not.toBeInTheDocument();
+    });
+    expect(
+      within(screen.getByRole("table")).getByText("数学"),
+    ).toBeInTheDocument();
   });
 
   it("searches courses by code", async () => {
@@ -241,12 +269,22 @@ describe("CoursePage", () => {
     renderPage();
     await screen.findByRole("table");
     await user.type(
-      screen.getByPlaceholderText("搜索课程名称、代码或描述..."),
+      screen.getByPlaceholderText("搜索课程名称或代码..."),
       "ENG",
     );
-    const table = screen.getByRole("table");
-    expect(within(table).getByText("英语")).toBeInTheDocument();
-    expect(within(table).queryByText("数学")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(apiGet).toHaveBeenCalledWith(
+        "/api/courses?page=1&pageSize=20&search=ENG",
+      );
+    });
+    await waitFor(() => {
+      expect(
+        within(screen.getByRole("table")).queryByText("数学"),
+      ).not.toBeInTheDocument();
+    });
+    expect(
+      within(screen.getByRole("table")).getByText("英语"),
+    ).toBeInTheDocument();
   });
 
   it("shows empty search result state with clear action", async () => {
@@ -254,21 +292,38 @@ describe("CoursePage", () => {
     renderPage();
     await screen.findByRole("table");
     await user.type(
-      screen.getByPlaceholderText("搜索课程名称、代码或描述..."),
+      screen.getByPlaceholderText("搜索课程名称或代码..."),
       "不存在",
     );
     expect(
-      screen.getByRole("heading", { name: "未找到匹配的课程" }),
+      await screen.findByRole("heading", { name: "未找到匹配的课程" }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("搜索课程")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "清除课程搜索" }));
+    await waitFor(() => {
+      expect(apiGet).toHaveBeenLastCalledWith(
+        "/api/courses?page=1&pageSize=20",
+      );
+    });
     expect(
-      within(screen.getByRole("table")).getByText("数学"),
+      await within(await screen.findByRole("table")).findByText("数学"),
     ).toBeInTheDocument();
     await user.type(screen.getByLabelText("搜索课程"), "不存在");
-    await user.click(screen.getByRole("button", { name: "清除搜索" }));
+    await waitFor(() => {
+      const [lastUrl] = apiGet.mock.lastCall!;
+      expect(
+        new URLSearchParams(String(lastUrl).split("?")[1]).get("search"),
+      ).toBe("不存在");
+    });
+    // The empty-state action only exists once the no-match response rendered.
+    await user.click(await screen.findByRole("button", { name: "清除搜索" }));
+    await waitFor(() => {
+      expect(apiGet).toHaveBeenLastCalledWith(
+        "/api/courses?page=1&pageSize=20",
+      );
+    });
     expect(
-      within(screen.getByRole("table")).getByText("英语"),
+      await within(await screen.findByRole("table")).findByText("英语"),
     ).toBeInTheDocument();
   });
 
@@ -337,7 +392,177 @@ describe("CoursePage", () => {
     renderPage();
     await screen.findByRole("heading", { name: "暂无课程" });
     expect(
-      screen.queryByPlaceholderText("搜索课程名称、代码或描述..."),
+      screen.queryByPlaceholderText("搜索课程名称或代码..."),
     ).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * #785 BDD acceptance — L2 (component level; mocked API with the REAL
+ * paginated response shape). Scenario source:
+ * docs/design/admin-list-pagination-bdd.md (B03).
+ */
+describe("CoursePage #785 server-side search and pagination (BDD L2)", () => {
+  function courseRow(id: string, name: string, code: string) {
+    return {
+      id,
+      name,
+      code,
+      description: "",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  /** Serves /api/courses with real pagination shapes, honoring page and search. */
+  function mockCourseApi(all: ReturnType<typeof courseRow>[]) {
+    apiGet.mockImplementation(async (url: string) => {
+      if (!url.startsWith("/api/courses")) {
+        throw new Error(`unexpected GET ${url}`);
+      }
+      const params = new URLSearchParams(url.split("?")[1] ?? "");
+      const page = Number(params.get("page") ?? "1");
+      const pageSize = Number(params.get("pageSize") ?? "20");
+      const search = (params.get("search") ?? "").trim().toLowerCase();
+      const matched = search
+        ? all.filter(
+            (c) =>
+              c.name.toLowerCase().includes(search) ||
+              c.code.toLowerCase().includes(search),
+          )
+        : all;
+      const start = (page - 1) * pageSize;
+      return {
+        items: matched.slice(start, start + pageSize),
+        total: matched.length,
+        page,
+        pageSize,
+        totalPages: Math.max(1, Math.ceil(matched.length / pageSize)),
+      };
+    });
+  }
+
+  it("B03: courses beyond the first page are reachable and the total is real", async () => {
+    const user = userEvent.setup();
+    const all = Array.from({ length: 21 }, (_, i) =>
+      courseRow(
+        `co${i + 1}`,
+        `课程${String(i + 1).padStart(2, "0")}`,
+        `C${i + 1}`,
+      ),
+    );
+    mockCourseApi(all);
+
+    renderPage();
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText("课程01")).toBeInTheDocument();
+    expect(within(table).queryByText("课程21")).not.toBeInTheDocument();
+    expect(screen.getByText(/共 21 条/)).toBeInTheDocument();
+    expect(apiGet).toHaveBeenCalledWith("/api/courses?page=1&pageSize=20");
+
+    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await waitFor(() => {
+      expect(apiGet).toHaveBeenCalledWith("/api/courses?page=2&pageSize=20");
+    });
+    expect(
+      await within(await screen.findByRole("table")).findByText("课程21"),
+    ).toBeInTheDocument();
+  });
+
+  it("B03: search queries the server full set and survives page flips", async () => {
+    const user = userEvent.setup();
+    const all = [
+      ...Array.from({ length: 25 }, (_, i) =>
+        courseRow(`co${i + 1}`, `bulk785 课程${i + 1}`, `B785-${i + 1}`),
+      ),
+      ...Array.from({ length: 15 }, (_, i) =>
+        courseRow(`ot${i + 1}`, `其他课程${i + 1}`, `OTH-${i + 1}`),
+      ),
+    ];
+    mockCourseApi(all);
+
+    renderPage();
+    await screen.findByRole("table");
+    await user.type(screen.getByLabelText("搜索课程"), "bulk785");
+    await waitFor(() => {
+      expect(apiGet).toHaveBeenCalledWith(
+        "/api/courses?page=1&pageSize=20&search=bulk785",
+      );
+    });
+    expect(await screen.findByText(/共 25 条/)).toBeInTheDocument();
+
+    // Paging keeps the search condition.
+    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await waitFor(() => {
+      expect(apiGet).toHaveBeenCalledWith(
+        "/api/courses?page=2&pageSize=20&search=bulk785",
+      );
+    });
+
+    // Clearing restores the unfiltered full set on page 1.
+    await user.click(screen.getByRole("button", { name: "清除课程搜索" }));
+    await waitFor(() => {
+      expect(apiGet).toHaveBeenLastCalledWith(
+        "/api/courses?page=1&pageSize=20",
+      );
+    });
+    expect(await screen.findByText(/共 40 条/)).toBeInTheDocument();
+  });
+
+  it("B07: deleting the only course on page 2 steps back to page 1", async () => {
+    const user = userEvent.setup();
+    let deleted = false;
+    const page1 = Array.from({ length: 20 }, (_, i) =>
+      courseRow(`co${i + 1}`, `课程${i + 1}`, `C${i + 1}`),
+    );
+    apiGet.mockImplementation(async (url: string) => {
+      if (!url.startsWith("/api/courses")) {
+        throw new Error(`unexpected GET ${url}`);
+      }
+      const params = new URLSearchParams(url.split("?")[1] ?? "");
+      const page = Number(params.get("page") ?? "1");
+      const total = deleted ? 20 : 21;
+      return {
+        items:
+          page === 1
+            ? page1
+            : deleted
+              ? []
+              : [courseRow("co21", "待删除课程", "C21")],
+        total,
+        page,
+        pageSize: 20,
+        totalPages: Math.max(1, Math.ceil(total / 20)),
+      };
+    });
+    apiDelete.mockImplementation(async () => {
+      deleted = true;
+    });
+
+    renderPage();
+    await screen.findByRole("table");
+    await user.click(screen.getByRole("button", { name: "下一页" }));
+    expect(
+      await within(await screen.findByRole("table")).findByText("待删除课程"),
+    ).toBeInTheDocument();
+
+    await user.click(
+      within(await screen.findByRole("table")).getByRole("button", {
+        name: "删除课程",
+      }),
+    );
+    await user.click(await screen.findByRole("button", { name: "确认" }));
+
+    await waitFor(() => {
+      expect(apiDelete).toHaveBeenCalledWith("/api/courses/co21");
+    });
+    await waitFor(() => {
+      expect(apiGet).toHaveBeenLastCalledWith(
+        "/api/courses?page=1&pageSize=20",
+      );
+    });
+    expect(
+      await within(await screen.findByRole("table")).findByText("课程1"),
+    ).toBeInTheDocument();
   });
 });

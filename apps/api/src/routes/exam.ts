@@ -17,6 +17,7 @@ import {
   ErrorResponseSchema,
   normalizeInterruptionPolicyConfiguration,
   DeleteDisabledReasonCodeEnum,
+  ExamStatusEnum,
   ScoreViewDisabledReasonCodeEnum,
 } from "@exam/contracts";
 import { createExamRepo } from "@exam/db/src/repository/examRepo.js";
@@ -49,6 +50,7 @@ import type {
   Exam,
   ExamProfile,
   ExamProfilePolicyDefaults,
+  ExamStatus,
   Question,
 } from "@exam/domain";
 import {
@@ -345,6 +347,40 @@ const examListResponseSchema = z.object({
   totalPages: z.number().int().nonnegative(),
 });
 
+/**
+ * Exam list query: the shared pagination defaults plus the OPTIONAL
+ * comma-separated `statuses` OR-filter (#785).
+ * Contract (docs/design/admin-list-pagination-bdd.md §1.7): absent or empty
+ * → no status filter (legacy clients unchanged); duplicate tokens collapse;
+ * any non-enum token is a 400, never a silent full scan.
+ */
+const ExamListQuerySchema = PaginationParamsSchema.extend({
+  statuses: z.string().max(300).optional(),
+});
+
+/**
+ * Parses the raw `statuses` query value into deduped `ExamStatus` tokens.
+ * Returns `{ statuses }` (absent = no filter) or `{ error }` for invalid
+ * tokens so the route can emit the standard 400 VALIDATION_ERROR shape.
+ */
+function parseExamStatusFilter(
+  raw: string | undefined,
+): { statuses?: ExamStatus[] } | { error: ZodError } {
+  if (raw === undefined) return {};
+  const tokens = [
+    ...new Set(
+      raw
+        .split(",")
+        .map((token) => token.trim())
+        .filter((token) => token.length > 0),
+    ),
+  ];
+  if (tokens.length === 0) return {};
+  const parsed = z.array(ExamStatusEnum).safeParse(tokens);
+  if (!parsed.success) return { error: parsed.error };
+  return { statuses: parsed.data };
+}
+
 /** Zod schema for a single exam participant entry with candidate info, status, and score. */
 const examParticipantSchema = z.object({
   candidateId: z.string().uuid(),
@@ -411,7 +447,7 @@ const examRoutes: FastifyPluginAsync = async (fastify) => {
         fastify.requireCapability(Permission.ExamView),
       ],
       schema: {
-        querystring: PaginationParamsSchema,
+        querystring: ExamListQuerySchema,
         security: cookieAuth,
         "x-role": ["Admin", "Teacher"],
         response: {
@@ -419,17 +455,31 @@ const examRoutes: FastifyPluginAsync = async (fastify) => {
         },
       },
     },
-    /** List exams with pagination. Each item includes participant count, graded attempt count, and UI action metadata. Teacher actors see only exams under assigned courses (SQL-side, before pagination). */
-    async (request: any) => {
+    /** List exams with pagination and an optional server-side status filter. Each item includes participant count, graded attempt count, and UI action metadata. Teacher actors see only exams under assigned courses (SQL-side, before pagination). */
+    async (request: any, reply: any) => {
       const ctx = ensureTargetOrg(getRequestContext(request));
-      const { page, pageSize } = PaginationParamsSchema.parse(request.query);
+      const { page, pageSize, statuses } = ExamListQuerySchema.parse(
+        request.query,
+      );
+      const statusFilter = parseExamStatusFilter(statuses);
+      if ("error" in statusFilter) {
+        return reply
+          .code(400)
+          .send(buildValidationErrorResponse(request.id, statusFilter.error));
+      }
       const repo = createExamRepo(fastify.db);
       // Issue #286 LIST scope: Admin → org-wide; Teacher → exams under the
       // active assigned course set, filtered in SQL before pagination/count.
+      // The status OR-filter composes into the SAME where clause (#785).
       const scope = await resolveTeacherCourseScope(fastify.db, ctx);
-      const { items, total } = scope
-        ? await repo.listByCourseIdsPaginated(ctx, scope, page, pageSize)
-        : await repo.listPaginated(ctx, page, pageSize);
+      const { items, total } = await repo.listFiltered(
+        ctx,
+        {
+          ...(statusFilter.statuses ? { statuses: statusFilter.statuses } : {}),
+          ...(scope ? { courseIds: scope } : {}),
+        },
+        { page, pageSize },
+      );
       const attemptRepo = createAttemptRepo(fastify.db);
       const allEnrollments = await createEnrollmentRepo(fastify.db).list(ctx);
       const now = fastify.now();

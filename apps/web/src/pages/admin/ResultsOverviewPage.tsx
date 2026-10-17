@@ -1,4 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from "react";
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useProductDateTime } from "@/contexts/DateTimeContext";
@@ -11,6 +17,8 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { AppIcon } from "@/components/shared/AppIcon";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { DataTableShell } from "@/components/shared/DataTableShell";
+import { DataViewFooter } from "@/components/shared/DataViewFooter";
+import { DataTablePagination } from "@/components/shared/DataTablePagination";
 import {
   DesktopDataTable,
   type DataViewColumnDef,
@@ -23,6 +31,17 @@ import { PageContainer } from "@/components/shared/PageContainer";
 import { Gauge, Eye } from "lucide-react";
 import type { ScoreViewDisabledReasonCode } from "@exam/contracts";
 import { scoreViewDisabledReasonKey } from "@/lib/examDisabledReasons";
+
+/** Results-overview page size — real pagination reaches every exam (#785). */
+const RESULTS_PAGE_SIZE = 20;
+
+/**
+ * The results-overview status set is a PRODUCT rule owned by the server
+ * query (#785): lifecycle states whose results may exist. draft/canceled are
+ * excluded by the `statuses` parameter — never by client-side filtering of a
+ * paginated response.
+ */
+const RESULTS_OVERVIEW_STATUSES = "published,open,closed,archived";
 
 /** Exam row shape as returned by the exams list API, including score-view permissions. */
 interface ExamRow {
@@ -40,42 +59,111 @@ interface ExamRow {
   scoreViewDisabledReason: string | null;
 }
 
-/** Admin page for browsing published/closed exams and navigating to their score lists. */
+/** Generic paginated API response wrapper. */
+interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+/**
+ * Admin page for browsing exams whose results may be viewable and navigating
+ * to their score lists. Membership comes from the server-filtered status set
+ * (`statuses=published,open,closed,archived`); the view-scores action stays a
+ * server fact (`canViewScores`) independent of `status` (#785).
+ */
 export function ResultsOverviewPage() {
   const { t } = useTranslation();
   const { formatDateTime } = useProductDateTime();
   const navigate = useNavigate();
   const [exams, setExams] = useState<ExamRow[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  // Latest-request guard: rapid page flips fire overlapping exams requests;
+  // a stale response resolving last must not overwrite the table.
+  const examsGenRef = useRef(0);
+  // B12: the query identity whose response is currently rendered. Until it
+  // equals the submitted query, the list body shows the pending state — old
+  // rows are never presented as the new query's result.
+  const loadedKeyRef = useRef<string | null>(null);
+  const queryKey = `page:${page}`;
 
-  /** Fetches exams and filters to those whose scores may be viewable. */
+  /** Fetches the current page of the server-filtered overview set. */
   const loadExams = useCallback(async () => {
-    setIsLoading(true);
+    const generation = ++examsGenRef.current;
+    const isStale = () => generation !== examsGenRef.current;
     setError(null);
     try {
-      const data = await api.get<{ items: ExamRow[] }>("/api/exams");
-      const visible = data.items.filter(
-        (e) =>
-          e.status === "published" ||
-          e.status === "open" ||
-          e.status === "closed" ||
-          e.status === "archived",
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(RESULTS_PAGE_SIZE),
+      });
+      params.set("statuses", RESULTS_OVERVIEW_STATUSES);
+      const data = await api.get<PaginatedResponse<ExamRow>>(
+        `/api/exams?${params.toString()}`,
       );
-      setExams(visible);
+      if (isStale()) return;
+      // B11: an empty page while records exist elsewhere is an out-of-range
+      // page (e.g. after a deletion elsewhere). Never commit it — jump
+      // straight to the last valid page and stay pending until it lands.
+      if (data.items.length === 0 && data.total > 0 && page > 1) {
+        const lastValidPage = Math.max(
+          1,
+          Math.ceil(data.total / RESULTS_PAGE_SIZE),
+        );
+        if (lastValidPage < page) {
+          setPage(lastValidPage);
+          return;
+        }
+      }
+      setExams(data.items);
+      setTotal(data.total);
+      loadedKeyRef.current = queryKey;
     } catch {
+      if (isStale()) return;
       setError(t("admin.resultsOverview.errors.loadFailed"));
-    } finally {
-      setIsLoading(false);
     }
-  }, [t]);
+  }, [page, queryKey, t]);
 
   useEffect(() => {
     void loadExams();
   }, [loadExams]);
 
-  if (isLoading) return <LoadingState />;
   if (error) return <ErrorState message={error} onRetry={loadExams} />;
+
+  // Never-loaded: bare initial loader. In-flight query change (B11/B12):
+  // the single shell keeps its footer mounted, list body shows the pending
+  // state — stale rows and fake empty states are never rendered.
+  if (loadedKeyRef.current === null) return <LoadingState />;
+  const pending = loadedKeyRef.current !== queryKey;
+
+  /** The one shell composition for this page: the footer authority is
+   * declared once; pending and loaded states only vary body and mobile. */
+  function renderShell(body: ReactNode, mobile?: ReactNode) {
+    return (
+      <DataTableShell
+        footer={
+          <DataViewFooter
+            range={{ page, pageSize: RESULTS_PAGE_SIZE, total }}
+            navigation={
+              <DataTablePagination
+                page={page}
+                pageSize={RESULTS_PAGE_SIZE}
+                total={total}
+                onPageChange={setPage}
+              />
+            }
+          />
+        }
+        mobile={mobile}
+      >
+        {body}
+      </DataTableShell>
+    );
+  }
 
   /** Returns whether the admin can view scores for the given exam. */
   function gradable(exam: ExamRow) {
@@ -155,33 +243,28 @@ export function ResultsOverviewPage() {
       <PageContainer role="admin-standard" className="flex flex-col gap-6">
         <PageHeader title={t("admin.resultsOverview.title")} />
 
-        <DataTableShell
-          title={t("admin.resultsOverview.cardTitle")}
-          mobile={
-            <MobileRecordList
-              columns={columns}
-              rows={exams}
-              getRowId={(e) => e.id}
-              empty={exams.length === 0}
-              emptyTitle={t("admin.resultsOverview.empty.title")}
-              emptyDescription={t("admin.resultsOverview.empty.description")}
-            />
-          }
-        >
-          {exams.length === 0 ? (
-            <EmptyState
-              icon={<AppIcon icon={Gauge} size="hero" />}
-              title={t("admin.resultsOverview.empty.title")}
-              description={t("admin.resultsOverview.empty.description")}
-            />
-          ) : (
+        {pending ? (
+          renderShell(<LoadingState />)
+        ) : total === 0 ? (
+          <EmptyState
+            icon={<AppIcon icon={Gauge} size="hero" />}
+            title={t("admin.resultsOverview.empty.title")}
+            description={t("admin.resultsOverview.empty.description")}
+          />
+        ) : (
+          renderShell(
             <DesktopDataTable
               columns={columns}
               data={exams}
               getRowId={(e) => e.id}
-            />
-          )}
-        </DataTableShell>
+            />,
+            <MobileRecordList
+              columns={columns}
+              rows={exams}
+              getRowId={(e) => e.id}
+            />,
+          )
+        )}
       </PageContainer>
     </TooltipProvider>
   );

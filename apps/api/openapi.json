@@ -4825,6 +4825,15 @@
             "in": "query",
             "name": "pageSize",
             "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "in": "query",
+            "name": "search",
+            "required": false
           }
         ],
         "security": [
@@ -15160,6 +15169,15 @@
             },
             "in": "query",
             "name": "pageSize",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 300
+            },
+            "in": "query",
+            "name": "statuses",
             "required": false
           }
         ],
