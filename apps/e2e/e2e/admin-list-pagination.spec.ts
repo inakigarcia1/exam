@@ -13,20 +13,24 @@ import { adminApiToken, adminPost, adminGet } from "../lib/flow";
  *
  * Scenario source: docs/design/admin-list-pagination-bdd.md.
  * Covered here: B01 (records beyond the first page are reachable by paging),
- * B02 (the 21st candidate is reachable via server-side search from page 1),
+ * B02 (the keyword candidate is reachable via server-side search from page 1),
  * B04 (the results overview lists the server-filtered status set with real
- * pagination) and B05 (the view-scores action obeys the server-computed
- * canViewScores, not the status alone).
+ * pagination), B05 (the view-scores action obeys the server-computed
+ * canViewScores, not the status alone) and B13 (course search matches the
+ * description on the server).
  *
  * Determinism contract: every seeded record carries a per-run unique stamp,
  * so assertions never depend on baseline data left by previous runs (the
  * exam_e2e database is persistent). Page walks are event-synced on the
- * list responses — no sleeps.
+ * list responses and bounded by the server's own totalPages for the same
+ * query — no sleeps, no fixed page cap, no assumed global page position.
  */
 
 const STAMP = Date.now().toString(36);
 /** Unique search keyword for the candidate seeded beyond the first page. */
 const KEYWORD = `zebra${STAMP}`;
+/** Unique keyword carried ONLY in a course's description (B13). */
+const DESC_KEYWORD = `descword${STAMP}`;
 /** The 21 seeded exams, title → unique. */
 const EXAM_TITLES = Array.from(
   { length: 21 },
@@ -96,17 +100,34 @@ async function seedPublishedExam(
   expect(publish.ok(), await publish.text()).toBe(true);
 }
 
+/** Fetches the server-declared page count for a list query. This is the
+ * explicit fixture premise that bounds the UI walk — no fixed page cap, and
+ * no assumption about how much baseline data the reseeded database holds. */
+async function fetchTotalPages(
+  request: APIRequestContext,
+  token: string,
+  listUrl: string,
+): Promise<number> {
+  const res = await adminGet(request, token, listUrl);
+  expect(res.ok(), await res.text()).toBe(true);
+  const body = (await res.json()) as { totalPages: number };
+  expect(body.totalPages).toBeGreaterThanOrEqual(1);
+  return body.totalPages;
+}
+
 /** Walks the list pages of a table view, collecting visible texts. Page 0 is
  * the already-loaded first page; every further page turn syncs on BOTH the
  * list API response AND the footer's rendered range line (the HTTP response
- * alone does not guarantee React has committed the new page). */
+ * alone does not guarantee React has committed the new page). `maxPages`
+ * comes from the server's own totalPages for the same query. */
 async function walkAllPages(
   page: Page,
   apiPath: string,
   wanted: string[],
+  maxPages: number,
 ): Promise<Set<string>> {
   const found = new Set<string>();
-  for (let pageNumber = 0; pageNumber < 40; pageNumber += 1) {
+  for (let pageNumber = 0; pageNumber < maxPages; pageNumber += 1) {
     if (pageNumber > 0) {
       const next = page.getByRole("button", { name: "下一页" });
       if (await next.isDisabled().catch(() => true)) break;
@@ -178,9 +199,18 @@ test.describe
     for (const title of EXAM_TITLES) {
       await seedPublishedExam(request, adminToken, title);
     }
+
+    // B13 fixture: a course whose description — and only its description —
+    // carries DESC_KEYWORD (name/code deliberately do not).
+    const descCourse = await adminPost(request, adminToken, "/api/courses", {
+      name: `普通课程${STAMP}`,
+      code: `ORD-${STAMP}`,
+      description: `课程简介 ${DESC_KEYWORD} 唯一`,
+    });
+    expect(descCourse.ok(), await descCourse.text()).toBe(true);
   });
 
-  test("B01/B02: candidates page — pagination reaches beyond page 1 and search finds the 22nd record", async ({
+  test("B01/B02: candidates page — pagination reaches beyond page 1 and search finds the seeded record", async ({
     page,
   }) => {
     await loginAsAdmin(page);
@@ -192,15 +222,16 @@ test.describe
     const next = page.getByRole("button", { name: "下一页" });
     await expect(next).toBeEnabled();
 
-    // Paging forward reaches records that do not exist on page 1 (B01).
-    await expect(
-      page.getByRole("table").getByText(`考生${STAMP}x01`, { exact: true }),
-    ).toBeVisible(); // oldest seeded candidate → first page
+    // Paging forward renders the second page's range line (B01). No
+    // assumption is made about WHERE a given seeded record sits in the
+    // global ordering — that depends on the reseed baseline, not the
+    // fixture; the footer range is the observed paging fact.
     const responsePromise = page.waitForResponse((r) =>
       r.url().includes("/api/candidates"),
     );
     await next.click();
     await responsePromise;
+    await expect(page.getByText(/显示 21-/)).toBeVisible();
 
     // Server-side search finds the keyword candidate from wherever the
     // browser currently is — no need to page to the end first (B02).
@@ -228,21 +259,55 @@ test.describe
 
   test("B01: exams page — all 21 seeded exams are reachable across pages", async ({
     page,
+    request,
   }) => {
     await loginAsAdmin(page);
     await page.goto("/admin/exams");
     await expect(page.getByRole("table")).toBeVisible();
     await expect(page.getByRole("button", { name: "下一页" })).toBeEnabled();
 
-    const found = await walkAllPages(page, "/api/exams", EXAM_TITLES);
+    const expectedPages = await fetchTotalPages(
+      request,
+      adminToken,
+      "/api/exams?page=1&pageSize=20",
+    );
+    const found = await walkAllPages(
+      page,
+      "/api/exams",
+      EXAM_TITLES,
+      expectedPages,
+    );
     expect(
       found.size,
       `reachable ${found.size}/21 — every seeded exam must be reachable by paging`,
     ).toBe(EXAM_TITLES.length);
   });
 
+  test("B13: courses page — search matches the course description on the server", async ({
+    page,
+  }) => {
+    await loginAsAdmin(page);
+    await page.goto("/admin/courses");
+    await expect(page.getByRole("table")).toBeVisible();
+
+    const searchBox = page.getByLabel("搜索课程");
+    await searchBox.fill(DESC_KEYWORD);
+    const searchResponse = page.waitForResponse((r) =>
+      r.url().includes(`search=${DESC_KEYWORD}`),
+    );
+    await searchBox.press("Enter");
+    await searchResponse;
+
+    // The course matches by description alone; exactly one row answers.
+    await expect(
+      page.getByRole("table").getByText(`普通课程${STAMP}`, { exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText(/共 1 条/)).toBeVisible();
+  });
+
   test("B04/B05: results overview — server status set paginates and view-scores obeys canViewScores", async ({
     page,
+    request,
   }) => {
     await loginAsAdmin(page);
     await page.goto("/admin/results");
@@ -261,7 +326,17 @@ test.describe
     // 21 newly published exams ⇒ the filtered set spans pages.
     await expect(page.getByRole("button", { name: "下一页" })).toBeEnabled();
 
-    const found = await walkAllPages(page, "/api/exams", EXAM_TITLES);
+    const expectedPages = await fetchTotalPages(
+      request,
+      adminToken,
+      "/api/exams?page=1&pageSize=20&statuses=published%2Copen%2Cclosed%2Carchived",
+    );
+    const found = await walkAllPages(
+      page,
+      "/api/exams",
+      EXAM_TITLES,
+      expectedPages,
+    );
     expect(found.size, `overview reachable ${found.size}/21`).toBe(
       EXAM_TITLES.length,
     );
