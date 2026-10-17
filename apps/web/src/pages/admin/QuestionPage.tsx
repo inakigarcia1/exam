@@ -210,8 +210,9 @@ export function QuestionPage() {
   // URL.
   const requestGenerationRef = useRef(0);
   // The settlement record behind the render gate. `idKey` is the RENDER key of
-  // the last settled response (the filter identity); `reqKey` is the exact
-  // request it answered. They are deliberately different key spaces: the gate
+  // the rows currently on screen (the filter identity of the last SUCCESSFUL
+  // response); `reqKey` is the exact request the last response — success or
+  // failure — answered. They are deliberately different key spaces: the gate
   // compares render keys, a failure is attributed to one request.
   const [loadState, setLoadState] = useState<{
     idKey: string | null;
@@ -398,6 +399,10 @@ export function QuestionPage() {
    * transient failure keeps the user's intent and routes to the retry path.
    */
   useEffect(() => {
+    // The loaded options are the first half of "is this id already known?", so
+    // the probe must not start before they land — otherwise every deep link
+    // carrying an ordinary courseId would probe it needlessly.
+    if (isInitialLoading) return;
     if (queryState.courseId === "" || courseKnown) return;
     let canceled = false;
     const id = queryState.courseId;
@@ -428,6 +433,7 @@ export function QuestionPage() {
       canceled = true;
     };
   }, [
+    isInitialLoading,
     queryState.courseId,
     courseKnown,
     courseProbeAttempt,
@@ -477,7 +483,15 @@ export function QuestionPage() {
     } catch {
       if (isStale()) return;
       setClamping(false);
-      setLoadState({ idKey: identity, reqKey: requestedKey, status: "failed" });
+      // A failure records WHICH request failed but never claims the identity:
+      // nothing of this query is on screen, so a first-load failure must be
+      // classified as "no rows to keep" (page-level), not as a same-identity
+      // page turn that can keep the shell.
+      setLoadState((prev) => ({
+        idKey: prev.idKey,
+        reqKey: requestedKey,
+        status: "failed",
+      }));
     }
   }, [
     baseParams,
