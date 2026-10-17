@@ -73,6 +73,7 @@ guidance.
 | [`architecture/configuration-authority.md`](architecture/configuration-authority.md) | Configuration authority DAG: source → resolver → consumer, precedence, audit baseline |
 | [`architecture/frontend.md`](architecture/frontend.md) | As-built frontend architecture |
 | [`design/candidate-rich-editor-ux.md`](design/candidate-rich-editor-ux.md) | Candidate Rich editor interaction contract (#669 Phase U) — command model, toolbar/keyboard/formula/table behavior, lock-state presentation; consumes, never restates, the Rich semantic authority |
+| [`design/admin-list-pagination-bdd.md`](design/admin-list-pagination-bdd.md) | **Admin list pagination / search / status behavior authority (#785)** — reachability, search scope, total semantics, page-reset rules, status vs score-permission independence for ExamPage / CandidatesPage / CoursePage / ResultsOverviewPage; query pipeline (scope → predicate → stable order → LIMIT/OFFSET), API param contracts, B01–B10 scenario→test matrix |
 
 #### Exam semantic authority — where to answer "who owns the fact?"
 

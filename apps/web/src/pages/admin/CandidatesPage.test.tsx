@@ -134,14 +134,46 @@ async function openRowMenu(
   return await screen.findByRole("menu");
 }
 
+/** Last /api/candidates call URL (parallel field fetches bypass lastCall). */
+function lastCandidatesUrl(): string {
+  const calls = apiGet.mock.calls as unknown as Array<[string]>;
+  for (let i = calls.length - 1; i >= 0; i--) {
+    if (calls[i]![0].startsWith("/api/candidates")) return calls[i]![0];
+  }
+  return "";
+}
+
 describe("CandidatesPage", () => {
   beforeEach(() => {
     apiGet.mockReset();
     apiPost.mockReset();
     apiPatch.mockReset();
+    // #785: the list is server-searched and server-paginated — the default
+    // mock honors page/pageSize/search like the real route.
     apiGet.mockImplementation((path: string) => {
       if (path === "/api/candidate-fields")
         return Promise.resolve([...mockFields]);
+      if (path.startsWith("/api/candidates")) {
+        const params = new URLSearchParams(path.split("?")[1] ?? "");
+        const page = Number(params.get("page") ?? "1");
+        const pageSize = Number(params.get("pageSize") ?? "20");
+        const search = (params.get("search") ?? "").trim().toLowerCase();
+        const matched = search
+          ? mockCandidates.filter(
+              (c) =>
+                c.name.toLowerCase().includes(search) ||
+                c.username.toLowerCase().includes(search),
+            )
+          : mockCandidates;
+        const start = (page - 1) * pageSize;
+        return Promise.resolve({
+          items: matched.slice(start, start + pageSize),
+          total: matched.length,
+          page,
+          pageSize,
+          totalPages: Math.max(1, Math.ceil(matched.length / pageSize)),
+        });
+      }
       return Promise.resolve({
         items: [...mockCandidates],
         total: 2,
@@ -306,7 +338,7 @@ describe("CandidatesPage", () => {
     expect(screen.getByText("导入考生")).toBeInTheDocument();
   });
 
-  it("searches candidates by name", async () => {
+  it("searches candidates by name (server-side, #785)", async () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByRole("table");
@@ -314,12 +346,17 @@ describe("CandidatesPage", () => {
       screen.getByPlaceholderText("搜索考生姓名或用户名..."),
       "One",
     );
+    await waitFor(() => {
+      expect(apiGet).toHaveBeenCalledWith(
+        "/api/candidates?page=1&pageSize=20&search=One",
+      );
+    });
     const table = screen.getByRole("table");
     expect(within(table).getByText("Candidate One")).toBeInTheDocument();
     expect(within(table).queryByText("Candidate Two")).not.toBeInTheDocument();
   });
 
-  it("searches candidates by username", async () => {
+  it("searches candidates by username (server-side, #785)", async () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByRole("table");
@@ -327,6 +364,11 @@ describe("CandidatesPage", () => {
       screen.getByPlaceholderText("搜索考生姓名或用户名..."),
       "candidate2",
     );
+    await waitFor(() => {
+      expect(apiGet).toHaveBeenCalledWith(
+        "/api/candidates?page=1&pageSize=20&search=candidate2",
+      );
+    });
     const table = screen.getByRole("table");
     expect(within(table).getByText("Candidate Two")).toBeInTheDocument();
     expect(within(table).queryByText("Candidate One")).not.toBeInTheDocument();
@@ -341,7 +383,7 @@ describe("CandidatesPage", () => {
       "不存在",
     );
     expect(
-      screen.getByRole("heading", { name: "未找到匹配的考生" }),
+      await screen.findByRole("heading", { name: "未找到匹配的考生" }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("搜索考生")).toBeInTheDocument();
     expect(
@@ -354,12 +396,28 @@ describe("CandidatesPage", () => {
     renderPage();
     await screen.findByRole("table");
     await user.type(screen.getByLabelText("搜索考生"), "不存在");
+    await waitFor(() => {
+      expect(
+        new URLSearchParams(lastCandidatesUrl().split("?")[1]).get("search"),
+      ).toBe("不存在");
+    });
     await user.click(screen.getByRole("button", { name: "清除考生搜索" }));
+    await waitFor(() => {
+      expect(lastCandidatesUrl()).toBe("/api/candidates?page=1&pageSize=20");
+    });
     expect(
       within(screen.getByRole("table")).getByText("Candidate One"),
     ).toBeInTheDocument();
     await user.type(screen.getByLabelText("搜索考生"), "不存在");
+    await waitFor(() => {
+      expect(
+        new URLSearchParams(lastCandidatesUrl().split("?")[1]).get("search"),
+      ).toBe("不存在");
+    });
     await user.click(screen.getByRole("button", { name: "清除搜索" }));
+    await waitFor(() => {
+      expect(lastCandidatesUrl()).toBe("/api/candidates?page=1&pageSize=20");
+    });
     expect(
       within(screen.getByRole("table")).getByText("Candidate Two"),
     ).toBeInTheDocument();
@@ -610,5 +668,174 @@ describe("CandidatesPage", () => {
         expect(toast.error).toHaveBeenCalledWith("服务器内部错误，请稍后重试");
       });
     });
+  });
+});
+
+/**
+ * #785 BDD acceptance — L2 (component level; mocked API with the REAL
+ * paginated response shape). Scenario source:
+ * docs/design/admin-list-pagination-bdd.md (B02).
+ */
+describe("CandidatesPage #785 server-side search and pagination (BDD L2)", () => {
+  function candidateRow(id: string, name: string, username: string) {
+    return {
+      id,
+      userId: `u-${id}`,
+      username,
+      name,
+      isActive: true,
+      fields: {},
+    };
+  }
+
+  /** Serves /api/candidates with real pagination shapes, honoring page and search. */
+  function mockCandidateApi(all: ReturnType<typeof candidateRow>[]) {
+    apiGet.mockImplementation(async (url: string) => {
+      if (url === "/api/candidate-fields")
+        return Promise.resolve([...mockFields]);
+      if (url.startsWith("/api/candidates")) {
+        const params = new URLSearchParams(url.split("?")[1] ?? "");
+        const page = Number(params.get("page") ?? "1");
+        const pageSize = Number(params.get("pageSize") ?? "20");
+        const search = (params.get("search") ?? "").trim().toLowerCase();
+        const matched = search
+          ? all.filter(
+              (c) =>
+                c.name.toLowerCase().includes(search) ||
+                c.username.toLowerCase().includes(search),
+            )
+          : all;
+        const start = (page - 1) * pageSize;
+        return {
+          items: matched.slice(start, start + pageSize),
+          total: matched.length,
+          page,
+          pageSize,
+          totalPages: Math.max(1, Math.ceil(matched.length / pageSize)),
+        };
+      }
+      throw new Error(`unexpected GET ${url}`);
+    });
+  }
+
+  it("B02: the 41st candidate is reachable through pagination and the total is 41", async () => {
+    const user = userEvent.setup();
+    const all = Array.from({ length: 41 }, (_, i) =>
+      candidateRow(
+        `c${i + 1}`,
+        `考生${String(i + 1).padStart(2, "0")}`,
+        `u${i + 1}`,
+      ),
+    );
+    mockCandidateApi(all);
+
+    renderPage();
+    const table = await screen.findByRole("table");
+    expect(within(table).getByText("考生01")).toBeInTheDocument();
+    expect(within(table).queryByText("考生41")).not.toBeInTheDocument();
+    expect(screen.getByText(/共 41 条/)).toBeInTheDocument();
+    expect(apiGet).toHaveBeenCalledWith("/api/candidates?page=1&pageSize=20");
+
+    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await waitFor(() => {
+      expect(apiGet).toHaveBeenCalledWith("/api/candidates?page=2&pageSize=20");
+    });
+    // Page 2 carries records 21-40; record 41 sits on page 3.
+    expect(
+      await within(await screen.findByRole("table")).findByText("考生21"),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await waitFor(() => {
+      expect(apiGet).toHaveBeenCalledWith("/api/candidates?page=3&pageSize=20");
+    });
+    expect(
+      await within(await screen.findByRole("table")).findByText("考生41"),
+    ).toBeInTheDocument();
+  });
+
+  it("B02: searching from page 1 reaches a record beyond the first page (server-side)", async () => {
+    const user = userEvent.setup();
+    const all = [
+      ...Array.from({ length: 40 }, (_, i) =>
+        candidateRow(`c${i + 1}`, `普通考生${i + 1}`, `plain${i + 1}`),
+      ),
+      candidateRow("c41", "Zoe zebra785", "u41"),
+    ];
+    mockCandidateApi(all);
+
+    renderPage();
+    await screen.findByRole("table");
+    await user.type(screen.getByLabelText("搜索考生"), "ZEBRA785");
+
+    await waitFor(() => {
+      expect(apiGet).toHaveBeenCalledWith(
+        "/api/candidates?page=1&pageSize=20&search=ZEBRA785",
+      );
+    });
+    expect(
+      await within(await screen.findByRole("table")).findByText("Zoe zebra785"),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/共 1 条/)).toBeInTheDocument();
+  });
+
+  it("B02: a no-match search renders the true empty state; clearing restores the full set", async () => {
+    const user = userEvent.setup();
+    const all = Array.from({ length: 25 }, (_, i) =>
+      candidateRow(`c${i + 1}`, `考生${i + 1}`, `u${i + 1}`),
+    );
+    mockCandidateApi(all);
+
+    renderPage();
+    await screen.findByRole("table");
+    await user.type(screen.getByLabelText("搜索考生"), "nomatch785");
+    await waitFor(() => {
+      expect(apiGet).toHaveBeenCalledWith(
+        "/api/candidates?page=1&pageSize=20&search=nomatch785",
+      );
+    });
+    expect(await screen.findAllByText("未找到匹配的考生")).not.toHaveLength(0);
+
+    await user.click(screen.getByRole("button", { name: "清除考生搜索" }));
+    await waitFor(() => {
+      expect(lastCandidatesUrl()).toBe("/api/candidates?page=1&pageSize=20");
+    });
+    expect(
+      await within(await screen.findByRole("table")).findByText("考生1"),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/共 25 条/)).toBeInTheDocument();
+  });
+
+  it("B02: search composes with paging — the filtered set spans page boundaries", async () => {
+    const user = userEvent.setup();
+    const all = [
+      ...Array.from({ length: 25 }, (_, i) =>
+        candidateRow(`c${i + 1}`, `bulk785 批次${i + 1}`, `bulk${i + 1}`),
+      ),
+      ...Array.from({ length: 16 }, (_, i) =>
+        candidateRow(`o${i + 1}`, `无关考生${i + 1}`, `other${i + 1}`),
+      ),
+    ];
+    mockCandidateApi(all);
+
+    renderPage();
+    await screen.findByRole("table");
+    await user.type(screen.getByLabelText("搜索考生"), "bulk785");
+    await waitFor(() => {
+      expect(screen.getByText(/共 25 条/)).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await waitFor(() => {
+      expect(apiGet).toHaveBeenCalledWith(
+        "/api/candidates?page=2&pageSize=20&search=bulk785",
+      );
+    });
+    // Page 2 of the filtered set shows the remaining five matches.
+    expect(
+      await within(await screen.findByRole("table")).findByText(
+        "bulk785 批次21",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/共 25 条/)).toBeInTheDocument();
   });
 });
