@@ -351,9 +351,16 @@ describe("CandidatesPage", () => {
         "/api/candidates?page=1&pageSize=20&search=One",
       );
     });
-    const table = screen.getByRole("table");
-    expect(within(table).getByText("Candidate One")).toBeInTheDocument();
-    expect(within(table).queryByText("Candidate Two")).not.toBeInTheDocument();
+    // The request alone is not the contract: sync on the rendered transition
+    // (the filtered-out row disappears) before asserting the result.
+    await waitFor(() => {
+      expect(
+        within(screen.getByRole("table")).queryByText("Candidate Two"),
+      ).not.toBeInTheDocument();
+    });
+    expect(
+      within(screen.getByRole("table")).getByText("Candidate One"),
+    ).toBeInTheDocument();
   });
 
   it("searches candidates by username (server-side, #785)", async () => {
@@ -369,9 +376,14 @@ describe("CandidatesPage", () => {
         "/api/candidates?page=1&pageSize=20&search=candidate2",
       );
     });
-    const table = screen.getByRole("table");
-    expect(within(table).getByText("Candidate Two")).toBeInTheDocument();
-    expect(within(table).queryByText("Candidate One")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        within(screen.getByRole("table")).queryByText("Candidate One"),
+      ).not.toBeInTheDocument();
+    });
+    expect(
+      within(screen.getByRole("table")).getByText("Candidate Two"),
+    ).toBeInTheDocument();
   });
 
   it("shows empty search result state and keeps toolbar visible", async () => {
@@ -406,7 +418,9 @@ describe("CandidatesPage", () => {
       expect(lastCandidatesUrl()).toBe("/api/candidates?page=1&pageSize=20");
     });
     expect(
-      within(screen.getByRole("table")).getByText("Candidate One"),
+      await within(await screen.findByRole("table")).findByText(
+        "Candidate One",
+      ),
     ).toBeInTheDocument();
     await user.type(screen.getByLabelText("搜索考生"), "不存在");
     await waitFor(() => {
@@ -414,12 +428,16 @@ describe("CandidatesPage", () => {
         new URLSearchParams(lastCandidatesUrl().split("?")[1]).get("search"),
       ).toBe("不存在");
     });
-    await user.click(screen.getByRole("button", { name: "清除搜索" }));
+    // The empty-state action only exists once the no-match response has
+    // rendered; findByRole is the sync point that proves it is clickable.
+    await user.click(await screen.findByRole("button", { name: "清除搜索" }));
     await waitFor(() => {
       expect(lastCandidatesUrl()).toBe("/api/candidates?page=1&pageSize=20");
     });
     expect(
-      within(screen.getByRole("table")).getByText("Candidate Two"),
+      await within(await screen.findByRole("table")).findByText(
+        "Candidate Two",
+      ),
     ).toBeInTheDocument();
   });
 

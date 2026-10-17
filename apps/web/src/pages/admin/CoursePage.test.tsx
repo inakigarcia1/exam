@@ -253,9 +253,15 @@ describe("CoursePage", () => {
         new URLSearchParams(String(lastUrl).split("?")[1]).get("search"),
       ).toBe("数");
     });
-    const table = screen.getByRole("table");
-    expect(within(table).getByText("数学")).toBeInTheDocument();
-    expect(within(table).queryByText("英语")).not.toBeInTheDocument();
+    // Sync on the filtered render (英语 drops out) before asserting 数学.
+    await waitFor(() => {
+      expect(
+        within(screen.getByRole("table")).queryByText("英语"),
+      ).not.toBeInTheDocument();
+    });
+    expect(
+      within(screen.getByRole("table")).getByText("数学"),
+    ).toBeInTheDocument();
   });
 
   it("searches courses by code", async () => {
@@ -271,9 +277,14 @@ describe("CoursePage", () => {
         "/api/courses?page=1&pageSize=20&search=ENG",
       );
     });
-    const table = screen.getByRole("table");
-    expect(within(table).getByText("英语")).toBeInTheDocument();
-    expect(within(table).queryByText("数学")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        within(screen.getByRole("table")).queryByText("数学"),
+      ).not.toBeInTheDocument();
+    });
+    expect(
+      within(screen.getByRole("table")).getByText("英语"),
+    ).toBeInTheDocument();
   });
 
   it("shows empty search result state with clear action", async () => {
@@ -295,7 +306,7 @@ describe("CoursePage", () => {
       );
     });
     expect(
-      within(screen.getByRole("table")).getByText("数学"),
+      await within(await screen.findByRole("table")).findByText("数学"),
     ).toBeInTheDocument();
     await user.type(screen.getByLabelText("搜索课程"), "不存在");
     await waitFor(() => {
@@ -304,14 +315,15 @@ describe("CoursePage", () => {
         new URLSearchParams(String(lastUrl).split("?")[1]).get("search"),
       ).toBe("不存在");
     });
-    await user.click(screen.getByRole("button", { name: "清除搜索" }));
+    // The empty-state action only exists once the no-match response rendered.
+    await user.click(await screen.findByRole("button", { name: "清除搜索" }));
     await waitFor(() => {
       expect(apiGet).toHaveBeenLastCalledWith(
         "/api/courses?page=1&pageSize=20",
       );
     });
     expect(
-      within(screen.getByRole("table")).getByText("英语"),
+      await within(await screen.findByRole("table")).findByText("英语"),
     ).toBeInTheDocument();
   });
 

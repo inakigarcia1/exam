@@ -255,8 +255,11 @@ describe("ExamPage #785 pagination and status filter (BDD L2)", () => {
     await waitFor(() => {
       expect(apiGet).toHaveBeenCalledWith("/api/exams?page=2&pageSize=20");
     });
-    const table2 = await screen.findByRole("table");
-    expect(within(table2).getByText("新考试 21")).toBeInTheDocument();
+    // The table element already exists from page 1; sync on the row that only
+    // the page-2 response can render.
+    expect(
+      await within(await screen.findByRole("table")).findByText("新考试 21"),
+    ).toBeInTheDocument();
   });
 
   it("B06: choosing a status filter queries the server set and resets to page 1", async () => {
@@ -343,8 +346,9 @@ describe("ExamPage #785 pagination and status filter (BDD L2)", () => {
     await screen.findByRole("table");
     await user.click(screen.getByRole("button", { name: "下一页" }));
     // Rows render twice by design (desktop + mobile); scope to the table.
+    // findByText (not getByText) is the sync point for the page-2 render.
     expect(
-      within(await screen.findByRole("table")).getByText("待删除考试"),
+      await within(await screen.findByRole("table")).findByText("待删除考试"),
     ).toBeInTheDocument();
 
     await user.click(
