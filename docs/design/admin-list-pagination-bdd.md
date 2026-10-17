@@ -36,10 +36,18 @@ Authorization/Tenant Scope → Search/Status Predicate → Stable Ordering (crea
 | 修改状态筛选 | 重置到第 1 页 |
 | 翻页 | 保持搜索/状态条件 |
 | 清空搜索 | 重置到第 1 页，恢复全集分页 |
-| 删除后当前页越界（空页且 page>1） | 回退到最后一个有效页并重新查询 |
+| 删除后当前页越界（空页且 page>1） | 单跳到最后一个有效页 `max(1, ceil(total/pageSize))` 并重新查询；恢复期间渲染 Loading，绝不渲染空态或旧数据行 |
 | 删除后当前页仍有数据 | 停留当前页并刷新 |
 
 删除失败不改变页码、不重查询。
+
+### 1.4.1 查询进行中的呈现（B12）
+
+**查询条件与已加载数据绑定**：页面渲染的数据必须属于当前查询（page + search + statuses）。当已提交的查询与已加载的数据不一致（新请求在途）时，列表区渲染明确的 Pending 态：
+
+- 不渲染旧查询的行（旧记录不得被呈现为新查询的结果，其行操作自然不可达）；
+- 不渲染任何空态（空态只属于已加载完成的数据）；
+- generation guard 继续保证只有最新请求可提交数据。
 
 ### 1.5 考试状态与查看成绩权限如何区分？
 
@@ -58,6 +66,7 @@ Authorization/Tenant Scope → Search/Status Predicate → Stable Ordering (crea
 - 排序恒为 `createdAt ASC, id ASC`：新建记录落在最后一页——通过真实翻页可达，禁止为此反转全局排序。
 - 删除/编辑/导入/状态变更后按 §1.4 规则刷新当前视图。
 - 请求竞态：同一列表的并发查询以 generation guard 序列化，仅最新请求可写 items/total/loading/error；过期响应不得覆盖新状态。
+- 请求在途的呈现按 §1.4.1：旧数据不充当新查询结果（B12）。
 
 ### 1.7 API 查询参数契约（向后兼容扩展）
 
@@ -67,7 +76,7 @@ Authorization/Tenant Scope → Search/Status Predicate → Stable Ordering (crea
 | --- | --- | --- |
 | `GET /api/exams` | `statuses` | 逗号分隔的 `ExamStatusEnum` 值，OR 语义；去重；缺省或空串 → 不过滤（兼容旧客户端）；含非法 token → 400 校验错误。`items` 与 `total` 同条件。响应字段不变。 |
 | `GET /api/candidates` | `search` | 可选，≤200 字符；trim 后为空 → 不过滤；大小写不敏感子串匹配对应 User 的 `name` 与 `username`；参数化查询，先于 LIMIT/OFFSET 与 COUNT。响应字段不变。 |
-| `GET /api/courses` | （既有）`search` | 不变；Web 页面开始真正发送并消费 `total`。 |
+| `GET /api/courses` | （既有）`search` | 搜索范围含 `name`、`code` 与 `description`（大小写不敏感子串；保持 #785 之前 Web 端客户端搜索的既有语义，见 B13）；≤200 字符；先于 LIMIT/OFFSET 与 COUNT。响应字段不变。 |
 
 不合法 `pageSize`（>100、<1、非整数）与非法 `statuses`/超长 `search` → 既有 400 校验错误语义，不静默放宽。
 
@@ -85,14 +94,17 @@ Authorization/Tenant Scope → Search/Status Predicate → Stable Ordering (crea
 | --- | --- | --- | --- | --- | --- |
 | B01 | 超过第一页容量的记录仍可经翻页到达，总数如实 | `page=2` 返回第 21 条；`total=21`；响应结构不变 | `LIMIT/OFFSET` 于稳定排序 `createdAt,id` 之后 | 分页控件存在；第 2 页含第 21 条；统计显示真实 total；两页无重复遗漏 | L1（exams/candidates/courses 参数化 0/1/19/20/21/40/41）+ L2（ExamPage/CandidatesPage/CoursePage 翻页）+ L3 |
 | B02 | 考生搜索在 DB 全集执行，不限于已加载页 | `?search=<kw>` 命中第 41 名；total=匹配数；无匹配 → 空 items、total=0；清空恢复全集 | `EXISTS(users WHERE lower(name/username) contains lower(term))` 于 LIMIT/COUNT 之前 | 第一页输入关键词即可命中；无匹配空态；清空恢复 | L1 + L2 + L3 |
-| B03 | 课程搜索与分页组合，翻页保持搜索条件 | 既有 `search` 参数；total 反映搜索后总数 | 既有 `listFiltered` 谓词（name/code） | 搜索 + 翻页条件保持；清空恢复 | L1 + L2 |
+| B03 | 课程搜索与分页组合，翻页保持搜索条件 | 既有 `search` 参数；total 反映搜索后总数 | 既有 `listFiltered` 谓词（name/code/description，见 B13） | 搜索 + 翻页条件保持；清空恢复 | L1 + L2 |
 | B04 | 状态筛选先于分页；成绩总览不因第一页草稿出现假空态 | `?statuses=published,open,closed,archived` 服务端过滤；total=过滤后总数 | `inArray(status, …)` 于 LIMIT/COUNT 之前 | 成绩总览列出全部符合状态条件的考试（含 >20）；状态标签与 `status` 一致 | L1 + L2 + L3 |
 | B05 | 状态标签与成绩查看权限相互独立 | 每项携带 `status`、`canViewScores`、`scoreViewDisabledReasonCode`，由服务端计算 | —（元数据由 route 计算层提供，非 repo） | 按钮可用性仅由 `canViewScores` 决定；禁用显示原因码对应文案；不因状态推断覆盖 | L1 + L2 + L3 |
 | B06 | 状态过滤与分页组合；切换状态重置页码 | 六状态各跨分页边界时 `statuses` 仍返回该状态全集与正确 total | 同上；Admin/Teacher 同语义 | 选择状态后回到第 1 页；翻页保持状态；切回“全部”恢复全集 | L1 + L2 |
-| B07 | 删除最后一条记录后回退到有效页 | —（列表重查询） | — | 第二页单条删除后回到第 1 页；total 减 1；无假空态；失败保持原页 | L2（+L1 删除路由语义既有） |
+| B07 | 删除最后一条记录后回退到有效页 | —（列表重查询） | — | 第二页单条删除后**单跳**回最后一个有效页；恢复期间渲染 Loading，任何时刻不得出现假空态或已删除行；失败保持原页 | L2 |
 | B08 | 搜索/筛选/翻页竞态下仅最新请求生效 | — | — | generation guard：旧响应不覆盖新数据；快速输入不产生无界请求（debounce） | L2 |
 | B09 | 授权范围约束搜索/过滤/计数；无跨组织泄漏；多 enrollment 不产生重复 | 相同查询参数下 Admin/Teacher 结果不同；Teacher 空 scope → 空集 total=0 | 谓词与 scope EXISTS 组合于同一 WHERE；EXISTS 保证不重复 | —（服务端权威，UI 无角色分支） | L1（Teacher scope × search/status、跨组织隔离、多 enrollment 去重） |
 | B10 | 旧客户端（无新参数）行为完全不变 | 缺省=page 1/pageSize 20/无状态过滤/原排序/原响应结构与错误语义 | 同 B01 | —（服务端契约） | L1（回归断言：缺省参数、非法 statuses=400、越界 pageSize=400） |
+| B11 | 越界恢复期间不得出现虚假空态 | — | — | 空页响应（total>0 且 page>1）不提交渲染；单跳恢复期间 UI 停留在 Loading；已删除行也不得残留 | L2（deferred 响应编排） |
+| B12 | 请求进行中，旧记录不得被呈现为新查询的结果 | — | — | 查询条件（filter/search/page）变更后、响应落地前：列表区渲染 Pending，旧行与其行操作不可见、不可点；不得出现任何空态 | L2（deferred 响应编排） |
+| B13 | 课程描述搜索覆盖服务端全集（保持 #785 前客户端搜索语义） | `?search=` 命中仅 description 含关键词的记录；total 为匹配全集数 | `position(lower(term) in lower(name/code/description))` OR 谓词，于 LIMIT/COUNT 之前 | 搜索框输入描述关键词即命中；跨页匹配 total 正确 | L1 + L2 + L3 |
 
 ### 场景细化（Given/When/Then）
 
@@ -129,7 +141,7 @@ Authorization/Tenant Scope → Search/Status Predicate → Stable Ordering (crea
 **B07_DeleteLastItemOnPage**
 - Given 用户在第 2 页，该页仅 1 条可删除记录
 - When 删除成功
-- Then 回退到第 1 页（有效页）；total 减 1；无假空态；无重复请求循环
+- Then 单跳回最后一个有效页（`ceil(total/pageSize)`，非逐页步退）；恢复期间渲染 Loading；无假空态；已删除行不残留；无重复请求循环
 - When 删除失败
 - Then 停留原页、原数据保留、显示错误
 
@@ -147,6 +159,23 @@ Authorization/Tenant Scope → Search/Status Predicate → Stable Ordering (crea
 - Given 客户端不带新增参数
 - When 调用三个列表 API
 - Then 默认 page=1/pageSize=20；响应结构与字段名不变；排序不变；无隐式状态过滤；非法 statuses/越界 pageSize → 400，不放宽为全量
+
+**B11_RecoveryNeverShowsFakeEmpty**
+- Given 第 3 页仅 1 条记录，删除后服务端返回 `items=[]、total=40`（有效页为第 2 页）
+- When 删除成功、恢复查询在途
+- Then UI 任何时刻不渲染空态（“暂无 X”/“未找到匹配”），不渲染已删除行；恰好发起一次 `page=2` 的恢复查询（单跳，非逐页步退）；恢复数据落地后渲染第 2 页行与真实 total
+
+**B12_InFlightStaleNeverPresentedAsResult**
+- Given 列表已显示 A 条件的行，用户提交 B 条件（状态筛选/搜索）
+- When B 查询在途（响应被延迟）
+- Then 列表区渲染 Pending 态：A 的行与其行操作不可见、不可点；不出现任何空态；B 响应落地后仅显示 B 的行
+- When B 查询失败
+- Then 显示错误态并可重试，不把 A 的行冒充为 B 的结果
+
+**B13_DescriptionSearchCoversFullSet**
+- Given 40 门课程，其中 25 门仅 description 含关键词（name/code 均不含），且匹配跨分页边界
+- When `?search=<关键词>`（或在搜索框输入）
+- Then total=25；两页并集=匹配全集；仅 name/code 含关键词的记录不因描述误命中；清空恢复全集
 
 ## 3. 反事实（Mutant）Oracle
 
