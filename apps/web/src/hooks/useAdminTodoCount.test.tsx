@@ -96,11 +96,30 @@ describe("useAdminTodoCount", () => {
     calls[1]!.reject(new Error("network"));
     await flushMicros();
 
+    // Refresh FROM stale: the old value stays visible under the in-flight
+    // marker (stale + refreshing), and a second failure re-lands on stale.
     act(() => {
       result.current.refresh();
     });
     await waitFor(() => expect(calls.length).toBe(3));
-    calls[2]!.resolve({ kind: "exact", value: 3 });
+    expect(result.current.state).toEqual({
+      kind: "stale",
+      count: { kind: "exact", value: 5 },
+      refreshing: true,
+    });
+    calls[2]!.reject(new Error("network again"));
+    await flushMicros();
+    expect(result.current.state).toEqual({
+      kind: "stale",
+      count: { kind: "exact", value: 5 },
+      refreshing: false,
+    });
+
+    act(() => {
+      result.current.refresh();
+    });
+    await waitFor(() => expect(calls.length).toBe(4));
+    calls[3]!.resolve({ kind: "exact", value: 3 });
     await flushMicros();
     expect(result.current.state).toEqual({
       kind: "ready",
