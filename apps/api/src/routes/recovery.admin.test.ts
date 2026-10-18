@@ -841,13 +841,14 @@ describe("Admin Recovery Center queue — GET /admin/recovery/incidents", () => 
 
     /** Seeds `count` incidents directly on the boundary exam. */
     async function seedBoundaryIncidents(
-      statuses: Array<"open" | "resolved">,
+      statuses: Array<"open" | "investigating" | "resolved" | "dismissed">,
+      examId: string = boundaryExamId,
     ): Promise<void> {
       const now = new Date();
       const rows = statuses.map((status, i) => ({
         id: randomUUID(),
         organizationId: ctx.org.id,
-        examId: boundaryExamId,
+        examId,
         attemptId: null,
         candidateId: null,
         type: "network_interruption" as const,
@@ -920,6 +921,52 @@ describe("Admin Recovery Center queue — GET /admin/recovery/incidents", () => 
       const body = res.json();
       expect(body.items.length).toBe(20);
       expect(body.nextCursor).not.toBeNull();
+    });
+
+    it("unresolvedOnly=true positively includes investigating and excludes terminal statuses", async () => {
+      // Isolated exam so the page is exactly the four seeded rows — the
+      // status set equality dies if the predicate drops investigating or
+      // leaks a terminal status, which a negatives-only probe cannot see.
+      const now = new Date();
+      const courseId = randomUUID();
+      const predicateExamId = randomUUID();
+      await insertRecoveryCourse(
+        ctx.db,
+        ctx.org.id,
+        "predicate course",
+        "RP",
+        now,
+        courseId,
+      );
+      await insertRecoveryExam(
+        ctx.db,
+        ctx.org.id,
+        courseId,
+        "Predicate Exam",
+        now,
+        {
+          id: predicateExamId,
+        },
+      );
+      await seedBoundaryIncidents(
+        ["open", "investigating", "resolved", "dismissed"],
+        predicateExamId,
+      );
+
+      const res = await ctx.app.inject({
+        method: "GET",
+        url: `/api/admin/recovery/incidents?unresolvedOnly=true&examId=${predicateExamId}`,
+        cookies: { "auth-token": adminToken },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      const items = body.items as Array<{ incident: { status: string } }>;
+      expect(items.map((it) => it.incident.status).sort()).toEqual([
+        "investigating",
+        "open",
+      ]);
+      expect(items.length).toBe(2);
+      expect(body.nextCursor).toBeNull();
     });
   });
 
