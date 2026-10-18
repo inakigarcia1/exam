@@ -248,4 +248,209 @@ describe("DashboardPage", () => {
       expect(await screen.findByText("重试")).toBeInTheDocument();
     });
   });
+
+  // ── #784 B3 — actionable todo section ────────────────────────
+
+  /** Per-URL API routing so each todo source can be controlled independently. */
+  function mockApiRouting(sources: {
+    dashboard?: unknown;
+    grading?: unknown;
+    incidents?: unknown;
+    dashboardError?: Error;
+    gradingError?: Error;
+    incidentsError?: Error;
+  }) {
+    apiGet.mockImplementation(async (path: string) => {
+      if (path.startsWith("/api/system/dashboard")) {
+        if (sources.dashboardError) throw sources.dashboardError;
+        return sources.dashboard ?? mockDashboardData;
+      }
+      if (path.startsWith("/api/admin/grading-queue")) {
+        if (sources.gradingError) throw sources.gradingError;
+        return sources.grading ?? { items: [], total: 0, page: 1, pageSize: 1 };
+      }
+      if (path.startsWith("/api/admin/recovery/incidents")) {
+        if (sources.incidentsError) throw sources.incidentsError;
+        return (
+          sources.incidents ?? {
+            items: [],
+            nextCursor: null,
+            snapshotAt: "2025-01-01T00:00:00Z",
+          }
+        );
+      }
+      throw new Error(`unexpected api path: ${path}`);
+    });
+  }
+
+  async function todoCard(label: string): Promise<HTMLElement> {
+    // The whole page stays on the dashboard skeleton until the summary source
+    // resolves, so the card labels only exist after that gate.
+    const heading = await screen.findByText(label);
+    const card = heading.closest("[data-slot='admin-todo-card']");
+    if (!(card instanceof HTMLElement)) {
+      throw new Error(`todo card ${label} not rendered`);
+    }
+    return card;
+  }
+
+  describe("todo section", () => {
+    it("requests the bounded authoritative reads (pageSize=1 / unresolvedOnly&limit=20)", async () => {
+      mockApiRouting({});
+      renderPage();
+      await screen.findByText("需要处理");
+      const gradingCalls = apiGet.mock.calls
+        .map((c) => String(c[0]))
+        .filter((p) => p.startsWith("/api/admin/grading-queue"));
+      expect(gradingCalls).toEqual([
+        "/api/admin/grading-queue?page=1&pageSize=1",
+      ]);
+      const incidentCalls = apiGet.mock.calls
+        .map((c) => String(c[0]))
+        .filter((p) => p.startsWith("/api/admin/recovery/incidents"));
+      expect(incidentCalls).toEqual([
+        "/api/admin/recovery/incidents?unresolvedOnly=true&limit=20",
+      ]);
+    });
+
+    it("renders the grading card from the authoritative total and the incident card from the keyset page", async () => {
+      mockApiRouting({
+        grading: { items: [], total: 25, page: 1, pageSize: 1 },
+        incidents: {
+          items: [{}, {}],
+          nextCursor: null,
+          snapshotAt: "2025-01-01T00:00:00Z",
+        },
+      });
+      renderPage();
+      const grading = await todoCard("待人工评分");
+      await within(grading).findByText("25");
+      expect(within(grading).getByText("份答卷")).toBeInTheDocument();
+
+      const incidents = await todoCard("待处理异常");
+      await within(incidents).findByText("2");
+      expect(within(incidents).getByText("条事件")).toBeInTheDocument();
+    });
+
+    it("shows the >20 lower bound when the incident page has a next cursor", async () => {
+      mockApiRouting({
+        incidents: {
+          items: Array.from({ length: 20 }),
+          nextCursor: "cursor",
+          snapshotAt: "2025-01-01T00:00:00Z",
+        },
+      });
+      renderPage();
+      const incidents = await todoCard("待处理异常");
+      await within(incidents).findByText(">20");
+      // A full first page must never be presented as the exact total.
+      expect(within(incidents).queryByText("20")).not.toBeInTheDocument();
+    });
+
+    it("renders verified zero only from fulfilled sources", async () => {
+      mockApiRouting({
+        grading: { items: [], total: 0, page: 1, pageSize: 1 },
+        incidents: {
+          items: [],
+          nextCursor: null,
+          snapshotAt: "2025-01-01T00:00:00Z",
+        },
+      });
+      renderPage();
+      const grading = await todoCard("待人工评分");
+      await within(grading).findByText("0");
+      expect(within(grading).getByText("暂无待评分答卷")).toBeInTheDocument();
+      const incidents = await todoCard("待处理异常");
+      await within(incidents).findByText("0");
+      expect(within(incidents).getByText("暂无未处理异常")).toBeInTheDocument();
+    });
+
+    it("a failed grading source never renders a fake zero and keeps the incident card intact (B05/B06)", async () => {
+      mockApiRouting({
+        gradingError: new Error("500"),
+        incidents: {
+          items: [{}, {}],
+          nextCursor: null,
+          snapshotAt: "2025-01-01T00:00:00Z",
+        },
+      });
+      renderPage();
+      const grading = await todoCard("待人工评分");
+      await within(grading).findByText("无法获取");
+      expect(
+        within(grading).getByRole("button", { name: "重试" }),
+      ).toBeEnabled();
+      expect(within(grading).queryByText("0")).not.toBeInTheDocument();
+
+      const incidents = await todoCard("待处理异常");
+      await within(incidents).findByText("2");
+      expect(within(incidents).queryByText("无法获取")).not.toBeInTheDocument();
+    });
+
+    it("a failed incident source leaves the grading card untouched (B06, reverse direction)", async () => {
+      mockApiRouting({
+        grading: { items: [], total: 7, page: 1, pageSize: 1 },
+        incidentsError: new Error("500"),
+      });
+      renderPage();
+      const grading = await todoCard("待人工评分");
+      await within(grading).findByText("7");
+      const incidents = await todoCard("待处理异常");
+      await within(incidents).findByText("无法获取");
+      expect(within(incidents).queryByText("0")).not.toBeInTheDocument();
+    });
+
+    it("hides the grading card without GradingQueueView and the incident card without IncidentRecoveryView", async () => {
+      apiGet.mockImplementation(async () => mockDashboardData);
+      render(
+        <MemoryRouter initialEntries={["/admin/dashboard"]}>
+          <AuthProvider
+            initialUser={{
+              id: "1",
+              username: "admin",
+              name: "Admin",
+              role: "Admin",
+              organizationId: "org1",
+              capabilities: permissionsForRole("Admin").filter(
+                (p) =>
+                  p !== "grading.queue.view" && p !== "incident.recovery.view",
+              ),
+            }}
+          >
+            <BrandProvider>
+              <Routes>
+                <Route path="/admin/dashboard" element={<DashboardPage />} />
+              </Routes>
+            </BrandProvider>
+          </AuthProvider>
+        </MemoryRouter>,
+      );
+      await screen.findByText("题目总数");
+      expect(screen.queryByText("需要处理")).not.toBeInTheDocument();
+      expect(screen.queryByText("待人工评分")).not.toBeInTheDocument();
+      expect(screen.queryByText("待处理异常")).not.toBeInTheDocument();
+      // A capability-hidden card must not fire its request at all — no
+      // guaranteed 403 behind a hidden surface.
+      const todoCalls = apiGet.mock.calls
+        .map((c) => String(c[0]))
+        .filter(
+          (p) =>
+            p.startsWith("/api/admin/grading-queue") ||
+            p.startsWith("/api/admin/recovery/incidents"),
+        );
+      expect(todoCalls).toEqual([]);
+    });
+
+    it("keeps the four stats cards, quick actions and recent exams alongside the todo section (B10)", async () => {
+      mockApiRouting({});
+      renderPage();
+      await screen.findByText("需要处理");
+      expect(screen.getByText("题目总数")).toBeInTheDocument();
+      expect(screen.getByText("考生总数")).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "创建考试" }),
+      ).toBeInTheDocument();
+      expect(screen.getByText("近期考试")).toBeInTheDocument();
+    });
+  });
 });

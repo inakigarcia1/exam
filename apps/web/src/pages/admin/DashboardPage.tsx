@@ -1,11 +1,25 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
-import type { DashboardRecentExam, DashboardResponse } from "@exam/contracts";
+import type {
+  DashboardRecentExam,
+  DashboardResponse,
+  GradingQueueListResponse,
+  RecoveryQueueResponse,
+} from "@exam/contracts";
 import { api } from "@/lib/api";
+import { routes } from "@/lib/routes";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  gradingQueueTotalCount,
+  unresolvedIncidentCount,
+  useAdminTodoCount,
+} from "@/hooks/useAdminTodoCount";
+import { canSeeGradingQueue, canSeeRecovery } from "@/lib/capabilities";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { AppIcon } from "@/components/shared/AppIcon";
 import { StatsCard } from "@/components/shared/StatsCard";
+import { AdminTodoCard } from "@/components/shared/AdminTodoCard";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,13 +40,23 @@ import {
   Users,
   CalendarCheck,
   Activity,
+  ListChecks,
+  LifeBuoy,
   PlusCircle,
   Upload,
 } from "lucide-react";
 
+/** Page size 1: the grading card consumes only the authoritative `total`,
+ * so the list body is fetched at its minimum bounded cost. */
+const GRADING_COUNT_QUERY = "/api/admin/grading-queue?page=1&pageSize=1";
+/** Bounded first page: 20 rows decide exact-vs->20 for the incident card. */
+const INCIDENT_COUNT_LIMIT = 20;
+
 /**
  * Admin dashboard page showing summary statistics (question count, active exams,
- * candidate count, today's exams), quick-action buttons, and a table of recent exams.
+ * candidate count, today's exams), actionable todo queues (pending manual
+ * grading, unresolved incidents), quick-action buttons, and a table of recent
+ * exams.
  *
  * Stats cards with icon containers, admin table
  * with distinct header, clear boundaries, cool-neutral palette.
@@ -40,6 +64,12 @@ import {
 export function DashboardPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  // The dashboard route is gated to Admin server-side, so `user` is present in
+  // every authorized render; the null branch only satisfies the type between
+  // session restore states and renders no todo surface.
+  const canGrade = user ? canSeeGradingQueue(user) : false;
+  const canRecover = user ? canSeeRecovery(user) : false;
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +90,31 @@ export function DashboardPage() {
   useEffect(() => {
     loadDashboard();
   }, [loadDashboard]);
+
+  // Each todo card owns an independent request + state machine: a failed
+  // source lands on Unknown/Stale and can never zero or overwrite the other
+  // card (partial-failure is the combination, not a shared error state).
+  // `enabled` mirrors the render gate so a capability-hidden card neither
+  // fires its request nor accumulates a guaranteed 403.
+  const gradingTodo = useAdminTodoCount(
+    (signal) =>
+      api
+        .get<GradingQueueListResponse>(GRADING_COUNT_QUERY, { signal })
+        .then(gradingQueueTotalCount),
+    { enabled: canGrade },
+  );
+  const incidentTodo = useAdminTodoCount(
+    (signal) =>
+      api
+        .get<RecoveryQueueResponse>(
+          `/api/admin/recovery/incidents?unresolvedOnly=true&limit=${INCIDENT_COUNT_LIMIT}`,
+          { signal },
+        )
+        .then((response) =>
+          unresolvedIncidentCount(response, INCIDENT_COUNT_LIMIT),
+        ),
+    { enabled: canRecover },
+  );
 
   if (isLoading) {
     return <DashboardSkeleton />;
@@ -143,6 +198,60 @@ export function DashboardPage() {
           icon={<AppIcon icon={CalendarCheck} size="metric" />}
         />
       </div>
+
+      {/* Todo section: capability-gated like the sidebar entries (UX-only;
+          backend authorization stays authoritative). Both cards are hidden
+          entirely when neither queue is actionable for this principal. */}
+      {(canGrade || canRecover) && (
+        <section
+          aria-labelledby="admin-todo-heading"
+          className="flex flex-col gap-3"
+        >
+          <h2 id="admin-todo-heading" className="type-section-title">
+            {t("admin.dashboard.todo.sectionTitle")}
+          </h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {canGrade && (
+              <AdminTodoCard
+                icon={ListChecks}
+                href={routes.admin.gradingQueue}
+                state={gradingTodo.state}
+                onRefresh={gradingTodo.refresh}
+                copy={{
+                  label: t("admin.dashboard.todo.grading.label"),
+                  unit: t("admin.dashboard.todo.grading.unit"),
+                  zeroCaption: t("admin.dashboard.todo.grading.zero"),
+                  unknownValue: t("admin.dashboard.todo.unknownValue"),
+                  staleCaption: t("admin.dashboard.todo.staleCaption"),
+                  refreshingCaption: t("admin.dashboard.todo.refreshing"),
+                  retryLabel: t("admin.dashboard.todo.retry"),
+                  refreshLabel: t("admin.dashboard.todo.refresh"),
+                  cta: t("admin.dashboard.todo.grading.cta"),
+                }}
+              />
+            )}
+            {canRecover && (
+              <AdminTodoCard
+                icon={LifeBuoy}
+                href={`${routes.admin.recovery}?unresolvedOnly=true`}
+                state={incidentTodo.state}
+                onRefresh={incidentTodo.refresh}
+                copy={{
+                  label: t("admin.dashboard.todo.incidents.label"),
+                  unit: t("admin.dashboard.todo.incidents.unit"),
+                  zeroCaption: t("admin.dashboard.todo.incidents.zero"),
+                  unknownValue: t("admin.dashboard.todo.unknownValue"),
+                  staleCaption: t("admin.dashboard.todo.staleCaption"),
+                  refreshingCaption: t("admin.dashboard.todo.refreshing"),
+                  retryLabel: t("admin.dashboard.todo.retry"),
+                  refreshLabel: t("admin.dashboard.todo.refresh"),
+                  cta: t("admin.dashboard.todo.incidents.cta"),
+                }}
+              />
+            )}
+          </div>
+        </section>
+      )}
 
       <div className="flex gap-3">
         <Button onClick={() => navigate("/admin/exams/new")}>

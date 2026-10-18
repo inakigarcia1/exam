@@ -830,6 +830,146 @@ describe("Admin Recovery Center queue — GET /admin/recovery/incidents", () => 
     expect(body.items.length).toBeLessThanOrEqual(1);
   });
 
+  // ── #784 B3 — the honest-count boundary the dashboard card renders ──
+  // The response has no `total`, so the card's three-branch display rests on
+  // the keyset protocol: `nextCursor === null` ⇔ this page holds ALL matching
+  // rows. These two tests pin that equivalence at the card's limit (20) on a
+  // dedicated exam (the examId filter controls the exact base count the
+  // org-wide queue cannot).
+  describe("unresolved count boundary at the dashboard page limit (B02 anchor)", () => {
+    let boundaryExamId: string;
+
+    /** Seeds `count` incidents directly on the boundary exam. */
+    async function seedBoundaryIncidents(
+      statuses: Array<"open" | "investigating" | "resolved" | "dismissed">,
+      examId: string = boundaryExamId,
+    ): Promise<void> {
+      const now = new Date();
+      const rows = statuses.map((status, i) => ({
+        id: randomUUID(),
+        organizationId: ctx.org.id,
+        examId,
+        attemptId: null,
+        candidateId: null,
+        type: "network_interruption" as const,
+        severity: "minor" as const,
+        status,
+        occurredAt: null,
+        description: `boundary incident ${i}`,
+        resolutionSummary: status === "resolved" ? "done" : null,
+        resolvedAt: status === "resolved" ? now : null,
+        resolvedBy: status === "resolved" ? ctx.admin.id : null,
+        reportedBy: ctx.admin.id,
+        version: 1,
+        createdAt: now,
+        // Strictly increasing timestamps keep the keyset order deterministic.
+        updatedAt: new Date(now.getTime() + i),
+      }));
+      await ctx.db.insert(schema.examIncidents).values(rows);
+    }
+
+    it("exactly 20 unresolved (plus resolved noise) → nextCursor=null proves the exact count 20", async () => {
+      const now = new Date();
+      const courseId = randomUUID();
+      boundaryExamId = randomUUID();
+      await insertRecoveryCourse(
+        ctx.db,
+        ctx.org.id,
+        "boundary course",
+        "RB",
+        now,
+        courseId,
+      );
+      await insertRecoveryExam(
+        ctx.db,
+        ctx.org.id,
+        courseId,
+        "Boundary Exam",
+        now,
+        {
+          id: boundaryExamId,
+        },
+      );
+      await seedBoundaryIncidents([
+        ...Array<"open">(20).fill("open"),
+        ...Array<"resolved">(5).fill("resolved"),
+      ]);
+
+      const res = await ctx.app.inject({
+        method: "GET",
+        url: `/api/admin/recovery/incidents?unresolvedOnly=true&limit=20&examId=${boundaryExamId}`,
+        cookies: { "auth-token": adminToken },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      expect(body.items.length).toBe(20);
+      // A null cursor with a FULL page is what makes 20 an exact fact.
+      expect(body.nextCursor).toBeNull();
+      for (const it of body.items)
+        expect(["open", "investigating"]).toContain(it.incident.status);
+    });
+
+    it("a 21st unresolved incident flips the same query to a bounded page (>20)", async () => {
+      await seedBoundaryIncidents(["open"]);
+
+      const res = await ctx.app.inject({
+        method: "GET",
+        url: `/api/admin/recovery/incidents?unresolvedOnly=true&limit=20&examId=${boundaryExamId}`,
+        cookies: { "auth-token": adminToken },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      expect(body.items.length).toBe(20);
+      expect(body.nextCursor).not.toBeNull();
+    });
+
+    it("unresolvedOnly=true positively includes investigating and excludes terminal statuses", async () => {
+      // Isolated exam so the page is exactly the four seeded rows — the
+      // status set equality dies if the predicate drops investigating or
+      // leaks a terminal status, which a negatives-only probe cannot see.
+      const now = new Date();
+      const courseId = randomUUID();
+      const predicateExamId = randomUUID();
+      await insertRecoveryCourse(
+        ctx.db,
+        ctx.org.id,
+        "predicate course",
+        "RP",
+        now,
+        courseId,
+      );
+      await insertRecoveryExam(
+        ctx.db,
+        ctx.org.id,
+        courseId,
+        "Predicate Exam",
+        now,
+        {
+          id: predicateExamId,
+        },
+      );
+      await seedBoundaryIncidents(
+        ["open", "investigating", "resolved", "dismissed"],
+        predicateExamId,
+      );
+
+      const res = await ctx.app.inject({
+        method: "GET",
+        url: `/api/admin/recovery/incidents?unresolvedOnly=true&examId=${predicateExamId}`,
+        cookies: { "auth-token": adminToken },
+      });
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      const items = body.items as Array<{ incident: { status: string } }>;
+      expect(items.map((it) => it.incident.status).sort()).toEqual([
+        "investigating",
+        "open",
+      ]);
+      expect(items.length).toBe(2);
+      expect(body.nextCursor).toBeNull();
+    });
+  });
+
   it("limit over max is rejected with 400", async () => {
     const res = await ctx.app.inject({
       method: "GET",

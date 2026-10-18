@@ -171,6 +171,7 @@ Per-component role ownership (from the component-authority record):
 | metadata tag chip | `TagBadge` (`default` / `compact-table` variants, badge/recipes.css single owner) |
 | generic confirmation dialog | `ConfirmDialog` |
 | metric / KPI presentation | `StatsCard` (+ `type-metric`) |
+| actionable todo entry (count + navigation + independent retry) | `AdminTodoCard` (Link and retry Button are siblings, never nested; `0` renders only from a fulfilled source) |
 | content container (arbitrary body) | `PageSection` |
 | description metadata (label → value definition list) | `DefinitionList` |
 | read-only long-text answer well (multiline plain text) | `ReadOnlyLongText` |

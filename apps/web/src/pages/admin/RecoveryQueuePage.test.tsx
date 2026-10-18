@@ -1,6 +1,12 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes, useLocation } from "react-router";
+import {
+  MemoryRouter,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { permissionsForRole } from "@exam/authz";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -456,5 +462,212 @@ describe("RecoveryQueuePage", () => {
     expect(screen.getByTestId("location-search")).toHaveTextContent(
       "examId=exam-9",
     );
+  });
+
+  // ── #784 B3 — unresolvedOnly URL filter state ─────────────────
+
+  it("deep link ?unresolvedOnly=true queries the unresolved predicate and shows the active filter", async () => {
+    renderPage(["/admin/recovery?unresolvedOnly=true"]);
+    await screen.findAllByText("网络恢复考试");
+    const lastCall = getMock.mock.calls.at(-1)?.[0] as string;
+    expect(lastCall).toContain("unresolvedOnly=true");
+
+    // The active filter is VISIBLE (resolution select reads 仅未处理) and the
+    // generic clear button is present because a filter is active.
+    expect(
+      screen.getByRole("combobox", { name: "全部事件" }),
+    ).toHaveTextContent("仅未处理");
+    expect(
+      screen.getByRole("button", { name: "清除筛选" }),
+    ).toBeInTheDocument();
+  });
+
+  it("toggling 仅未处理 on/off writes the URL (replace) and refetches page 1", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findAllByText("网络恢复考试");
+
+    await user.click(screen.getByRole("combobox", { name: "全部事件" }));
+    await user.click(await screen.findByRole("option", { name: "仅未处理" }));
+    expect(screen.getByTestId("location-search")).toHaveTextContent(
+      "unresolvedOnly=true",
+    );
+    expect(getMock.mock.calls.at(-1)?.[0]).toContain("unresolvedOnly=true");
+
+    await user.click(screen.getByRole("combobox", { name: "全部事件" }));
+    await user.click(await screen.findByRole("option", { name: "全部事件" }));
+    expect(screen.getByTestId("location-search")).not.toHaveTextContent(
+      "unresolvedOnly",
+    );
+    expect(getMock.mock.calls.at(-1)?.[0]).not.toContain("unresolvedOnly");
+  });
+
+  it("enabling 仅未处理 over a terminal status atomically resets the status", async () => {
+    const user = userEvent.setup();
+    renderPage(["/admin/recovery?status=resolved"]);
+    await screen.findAllByText("网络恢复考试");
+
+    await user.click(screen.getByRole("combobox", { name: "全部事件" }));
+    await user.click(await screen.findByRole("option", { name: "仅未处理" }));
+    expect(screen.getByTestId("location-search")).toHaveTextContent(
+      "unresolvedOnly=true",
+    );
+    expect(screen.getByTestId("location-search")).not.toHaveTextContent(
+      "status=resolved",
+    );
+    const lastCall = getMock.mock.calls.at(-1)?.[0] as string;
+    expect(lastCall).toContain("unresolvedOnly=true");
+    expect(lastCall).not.toContain("status=");
+  });
+
+  it("selecting a terminal status while 仅未处理 is active atomically clears it (no hidden conflict)", async () => {
+    const user = userEvent.setup();
+    renderPage(["/admin/recovery?unresolvedOnly=true"]);
+    await screen.findAllByText("网络恢复考试");
+
+    await user.click(screen.getByRole("combobox", { name: "全部状态" }));
+    await user.click(await screen.findByRole("option", { name: "已解决" }));
+    expect(screen.getByTestId("location-search")).toHaveTextContent(
+      "status=resolved",
+    );
+    expect(screen.getByTestId("location-search")).not.toHaveTextContent(
+      "unresolvedOnly",
+    );
+    // The resolution select visibly reflects the resolution (全部事件).
+    expect(
+      screen.getByRole("combobox", { name: "全部事件" }),
+    ).toHaveTextContent("全部事件");
+  });
+
+  it("selecting an unresolved status keeps both filters (compatible predicates)", async () => {
+    const user = userEvent.setup();
+    renderPage(["/admin/recovery?unresolvedOnly=true"]);
+    await screen.findAllByText("网络恢复考试");
+
+    await user.click(screen.getByRole("combobox", { name: "全部状态" }));
+    await user.click(await screen.findByRole("option", { name: "调查中" }));
+    expect(screen.getByTestId("location-search")).toHaveTextContent(
+      "unresolvedOnly=true",
+    );
+    expect(screen.getByTestId("location-search")).toHaveTextContent(
+      "status=investigating",
+    );
+    const lastCall = getMock.mock.calls.at(-1)?.[0] as string;
+    expect(lastCall).toContain("unresolvedOnly=true");
+    expect(lastCall).toContain("status=investigating");
+  });
+
+  it("a conflicting deep link normalizes deterministically to unresolvedOnly (replace, no loop)", async () => {
+    renderPage(["/admin/recovery?unresolvedOnly=true&status=resolved"]);
+    await screen.findAllByText("网络恢复考试");
+
+    // The contradictory status never reaches the API.
+    for (const call of getMock.mock.calls) {
+      const url = String(call[0]);
+      if (url.includes("unresolvedOnly=true")) {
+        expect(url).not.toContain("status=");
+      }
+    }
+    // The URL is corrected to the canonical form.
+    expect(screen.getByTestId("location-search").textContent).toBe(
+      "?unresolvedOnly=true",
+    );
+    expect(
+      screen.getByRole("combobox", { name: "全部状态" }),
+    ).toHaveTextContent("全部状态");
+
+    // Bounded requests: the normalization settled after one replace — a fixed
+    // number of page-1 fetches (initial + refetch), never a loop.
+    const page1Calls = getMock.mock.calls.filter((c) =>
+      String(c[0]).includes(
+        "/api/admin/recovery/incidents?unresolvedOnly=true",
+      ),
+    );
+    expect(page1Calls.length).toBeLessThanOrEqual(3);
+  });
+
+  it("a COMPATIBLE deep link keeps both params (normalizer strips terminal statuses only)", async () => {
+    // Mutant guard: a normalizer that stripped ANY status under
+    // unresolvedOnly=true would fail here — `open` is unresolved, so the
+    // pair is consistent and must survive untouched (URL and API query).
+    renderPage(["/admin/recovery?unresolvedOnly=true&status=open"]);
+    await screen.findAllByText("网络恢复考试");
+
+    expect(screen.getByTestId("location-search").textContent).toBe(
+      "?unresolvedOnly=true&status=open",
+    );
+    const lastCall = getMock.mock.calls.at(-1)?.[0] as string;
+    expect(lastCall).toContain("unresolvedOnly=true");
+    expect(lastCall).toContain("status=open");
+    expect(
+      screen.getByRole("combobox", { name: "全部事件" }),
+    ).toHaveTextContent("仅未处理");
+  });
+
+  it("清除筛选 removes the unresolved predicate too", async () => {
+    const user = userEvent.setup();
+    renderPage(["/admin/recovery?unresolvedOnly=true"]);
+    await screen.findAllByText("网络恢复考试");
+
+    await user.click(screen.getByRole("button", { name: "清除筛选" }));
+    expect(screen.getByTestId("location-search").textContent).toBe("");
+    expect(getMock.mock.calls.at(-1)?.[0]).not.toContain("unresolvedOnly");
+  });
+
+  it("normalization uses replace — Back skips the corrected entry (no history spam)", async () => {
+    // Two stack entries: landing on the conflicting deep link must CORRECT the
+    // URL with replace. If it pushed instead, Back would return to the raw
+    // contradictory params; with replace, Back lands on the clean prior entry.
+    function BackProbe() {
+      const navigate = useNavigate();
+      return (
+        <button type="button" onClick={() => navigate(-1)}>
+          back-probe
+        </button>
+      );
+    }
+    render(
+      <MemoryRouter
+        initialEntries={[
+          "/admin/recovery",
+          "/admin/recovery?unresolvedOnly=true&status=resolved",
+        ]}
+        initialIndex={1}
+      >
+        <AuthProvider
+          initialUser={{
+            id: "admin-1",
+            username: "admin",
+            name: "Admin",
+            role: "Admin",
+            organizationId: "org1",
+            capabilities: [...permissionsForRole("Admin")],
+          }}
+        >
+          <BrandProvider>
+            <Routes>
+              <Route
+                path="/admin/recovery"
+                element={
+                  <>
+                    <LocationProbe />
+                    <BackProbe />
+                    <RecoveryQueuePage />
+                  </>
+                }
+              />
+            </Routes>
+          </BrandProvider>
+        </AuthProvider>
+      </MemoryRouter>,
+    );
+    await screen.findAllByText("网络恢复考试");
+    expect(screen.getByTestId("location-search").textContent).toBe(
+      "?unresolvedOnly=true",
+    );
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "back-probe" }));
+    expect(screen.getByTestId("location-search").textContent).toBe("");
   });
 });
