@@ -705,13 +705,13 @@ describe("QuestionPage URL query state (#784 A3)", () => {
       fireEvent.change(screen.getByLabelText("搜索题目"), {
         target: { value: "导航" },
       });
-      // One advance past the debounce deadline, then an IMMEDIATE write in the
-      // same act: if the second write started from render-time params it would
-      // drop the just-committed search.
+      // ONE act: the debounce deadline and the immediate page write land in the
+      // same task, so there is no render between the two writes. If the second
+      // write started from render-time params it would drop the just-committed
+      // search; only a write that composes against the latest committed state
+      // survives.
       await act(async () => {
         await vi.advanceTimersByTimeAsync(300);
-      });
-      await act(async () => {
         fireEvent.click(screen.getByRole("button", { name: "下一页" }));
       });
 
