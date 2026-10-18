@@ -392,9 +392,9 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
     // ⑥ Back from the committed state LEAVES the list. A filter commit is a
     //    history REPLACEMENT, so the query the user committed over is not an
     //    entry they can return to; a push-on-commit implementation would leave
-    //    one behind and this Back would land on it.
-    await page.goBack();
-    await expect(page).toHaveURL((url) => url.pathname === editorPath);
+    //    one behind and this Back would land on it (a /admin/questions URL).
+    //    The editor entry is FORWARD history after ⑤'s Back, so the only
+    //    discriminative claim here is that the list is gone.
     await page.goBack();
     await expect(page).not.toHaveURL(
       (url) => url.pathname === "/admin/questions",
