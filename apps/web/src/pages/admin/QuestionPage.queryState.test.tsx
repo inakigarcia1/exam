@@ -144,7 +144,16 @@ const questionsCalls = () =>
 
 function LocationProbe() {
   const location = useLocation();
-  return <div data-testid="location-search">{location.search}</div>;
+  return (
+    <>
+      <div data-testid="location-search">{location.search}</div>
+      <div data-testid="location-state">
+        {location.state === null || location.state === undefined
+          ? ""
+          : JSON.stringify(location.state)}
+      </div>
+    </>
+  );
 }
 
 /** Real history navigation through the router (Back/Forward), not a URL write. */
@@ -1438,5 +1447,11 @@ describe("QuestionPage URL query state (#784 A3)", () => {
       within(desktopShell()).getAllByRole("button", { name: "编辑题目" })[0]!,
     );
     expect(await screen.findByText("编辑页")).toBeInTheDocument();
+    // The list URL is CARRIED, not merely left behind: the exit needs it to
+    // restore the query without a browser Back. Asserting only that the editor
+    // rendered would let a write-side that passes no state pass this test.
+    expect(screen.getByTestId("location-state").textContent).toBe(
+      JSON.stringify({ from: "/admin/questions?courseId=course-1&page=2" }),
+    );
   });
 });

@@ -322,7 +322,19 @@ export function ExamPage() {
       ? loadFailure.message
       : null;
 
-  if (error) return <ErrorState message={error} onRetry={loadExams} />;
+  if (error)
+    return (
+      <ErrorState
+        message={error}
+        onRetry={() => {
+          // Retry is a new attempt, not a re-render of the failure: releasing
+          // the failed key puts the page back into its in-flight state so the
+          // user sees the request they just asked for.
+          setLoadFailure(null);
+          void loadExamsRef.current();
+        }}
+      />
+    );
 
   const toolbar = (
     <DataToolbar aria-label={t("admin.exams.toolbarLabel")}>

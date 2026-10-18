@@ -38,6 +38,20 @@ describe("parsePageParam", () => {
       expect(Number.isInteger(parsePageParam(raw))).toBe(true);
     }
   });
+
+  it("falls back to page 1 for a decimal it cannot represent exactly", () => {
+    // Admitting these would break the parser's own contract: `Number` answers
+    // Infinity for a 309-digit input, so the canonicalizing write would emit
+    // `page=Infinity` — a value this parser rejects — and a merely huge page
+    // would be sent to the API as an offset it cannot serve.
+    expect(parsePageParam("9007199254740993")).toBe(1);
+    expect(parsePageParam("1".padEnd(309, "9"))).toBe(1);
+    expect(parsePageParam(String(Number.MAX_SAFE_INTEGER + 1))).toBe(1);
+    // The largest safe page is still a page.
+    expect(parsePageParam(String(Number.MAX_SAFE_INTEGER))).toBe(
+      Number.MAX_SAFE_INTEGER,
+    );
+  });
 });
 
 describe("resolveClampTarget", () => {

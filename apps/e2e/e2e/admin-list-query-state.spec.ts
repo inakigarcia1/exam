@@ -362,10 +362,39 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
     await expect(page.getByLabel("搜索题目")).toHaveValue(KEYWORD);
     await expect(page.getByText(/共 21 条/)).toBeVisible();
 
-    // ⑤ Back from the committed state LEAVES the list. A filter commit is a
+    // ⑤ A04: entering a row's editor is a PUSH, so Back returns to the query the
+    //    user was on — URL, control and rows all describe it again.
+    await page
+      .getByRole("table")
+      .getByRole("button", { name: "编辑题目" })
+      .first()
+      .click();
+    await expect(page).toHaveURL(/\/admin\/questions\/[^/]+\/edit$/);
+    const editorPath = new URL(page.url()).pathname;
+    const backResponse = new URL(
+      await (async () => {
+        const pending = nextListResponse(page, QUESTIONS_LIST);
+        await page.goBack();
+        return pending;
+      })(),
+    );
+    expect(backResponse.searchParams.get("search")).toBe(KEYWORD);
+    expect(backResponse.searchParams.get("difficulty")).toBe("2");
+    await expect(page).toHaveURL(
+      (url) =>
+        url.pathname === "/admin/questions" &&
+        url.searchParams.get("search") === KEYWORD &&
+        url.searchParams.get("difficulty") === "2",
+    );
+    await expect(page.getByLabel("搜索题目")).toHaveValue(KEYWORD);
+    await expect(page.getByText(/共 21 条/)).toBeVisible();
+
+    // ⑥ Back from the committed state LEAVES the list. A filter commit is a
     //    history REPLACEMENT, so the query the user committed over is not an
     //    entry they can return to; a push-on-commit implementation would leave
     //    one behind and this Back would land on it.
+    await page.goBack();
+    await expect(page).toHaveURL((url) => url.pathname === editorPath);
     await page.goBack();
     await expect(page).not.toHaveURL(
       (url) => url.pathname === "/admin/questions",
@@ -378,6 +407,8 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
         `page-turn request -> page=${turnUrl.searchParams.get("page")} search=${turnUrl.searchParams.get("search")}`,
         "Back restored URL = control value = footer range (page 1)",
         `post-Back commit  -> search=${commitUrl.searchParams.get("search")} difficulty=${commitUrl.searchParams.get("difficulty")} page=${commitUrl.searchParams.get("page")}`,
+        `editor entry      -> ${editorPath} (push)`,
+        `Back from editor  -> search=${backResponse.searchParams.get("search")} difficulty=${backResponse.searchParams.get("difficulty")}`,
         "no page=2 revived after Back; the keyword survived the commit",
         "Back from the committed query left the list (commit replaced its entry)",
       ].join("\n"),

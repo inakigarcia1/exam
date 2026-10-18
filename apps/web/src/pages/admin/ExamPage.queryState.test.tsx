@@ -413,6 +413,39 @@ describe("ExamPage URL query state (#784 A3)", () => {
     expect(screen.queryByText("加载中...")).not.toBeInTheDocument();
   });
 
+  it("A16: retry leaves the error presentation and reports the attempt it started", async () => {
+    let releaseRetry!: () => void;
+    const retryGate = new Promise<void>((resolve) => {
+      releaseRetry = resolve;
+    });
+    let failing = true;
+    apiGet.mockImplementation(async () => {
+      if (failing) throw new Error("boom");
+      await retryGate;
+      return examsPayload(1, 3);
+    });
+
+    renderPage();
+    await screen.findByRole("alert");
+
+    failing = false;
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "重试" }));
+
+    // Retry is a NEW attempt, not a re-render of the failure: while its request
+    // is in flight the error must be gone and the page must show that it is
+    // working. Leaving the error up makes the click look like a no-op — the
+    // button stays mounted, so every extra click issues another request.
+    await waitFor(() =>
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument(),
+    );
+    expect(screen.getByText("加载中...")).toBeInTheDocument();
+
+    releaseRetry();
+    await waitFor(() => expect(screen.getByRole("table")).toBeInTheDocument());
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("A16: a failure never persists into the next query", async () => {
     let failAll = true;
     apiGet.mockImplementation((url: string) => {

@@ -81,11 +81,13 @@ describe("resolveListReturnPath", () => {
     }
   });
 
-  it("a same-origin absolute target is a documented non-discriminating case", () => {
+  it("an absolute target is a documented non-discriminating case", () => {
     // Kept as an explicit statement of a limit rather than as evidence: a
-    // correct resolver and one that accepts ANY same-origin URL both return
-    // "/admin/questions" for this input, so the row cannot tell them apart. The
-    // inputs that can are in the tests above and below.
+    // correct resolver and one that accepts any same-origin URL both return
+    // "/admin/questions" for this input, so the row cannot tell them apart. (The
+    // jsdom origin is the dev-server origin, so this input is in fact rejected
+    // by the origin layer — which only makes it less discriminating, not more.)
+    // The inputs that can tell implementations apart are in the tests above.
     expect(
       resolveListReturnPath(
         { from: "http://localhost:3000/admin/questions" },

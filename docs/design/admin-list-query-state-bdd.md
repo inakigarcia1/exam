@@ -51,7 +51,7 @@ URL 用单数 `status`，API 仍用复数 `statuses`：URL 表达「控件能表
 
 ### 3.1 通用规则
 
-- 规范化写回一律 `replace`，不产生历史记录；规范化**幂等**（规范化后再解析得到同一请求键，不触发第二次改写）。
+- 规范化写回一律 `replace`，不产生历史记录；规范化**幂等**（规范化后再解析得到同一请求键，不触发第二次改写）。解析器只接受可精确表示的正整数，因此规范化写回的值必然仍是合法值（`Number` 对超长输入给出 `Infinity`，若接受它，写回的 `page=Infinity` 会被自己的解析器拒绝）。
 - 重复参数取**第一个**出现值并改写为单一值。
 - 越界 clamp 触发条件：仅 `items.length === 0 && page > 1`；`total <= 0` → 目标 1；否则 `lastValid = max(1, ceil(total/pageSize))`，**仅当 `lastValid < page`** 时 clamp。
 - **绝不因 `page > totalPages` 丢弃非空页**：分页 SELECT 与 COUNT 是两条语句（`examRepo` / `questionRepo` 把二者放在 `Promise.all` 里各发一条），并发删除会合法产出「`items` 非空、`total` 偏小」的组合。
@@ -133,7 +133,12 @@ pending = !failed && (loadState.idKey !== renderKey || clamping || 身份未定)
 
 **(g) 错误呈现**：首屏失败与跨身份失败 → 页级 `ErrorState`（`role="alert"` + 重试）；同身份翻页失败 → 既有表体错误行（外壳保留，页码控件仍可用）。重试是**新的一次尝试**：必须离开错误呈现进入在途状态。
 
-**(h) 未定义/已声明偏差**（不声称已消除）：被删除行在确认响应落地前仍可见；反向竞态（COUNT 先于批量删除）可返回自相矛盾的空页并被提交；`MobileRecordList` 无 `aria-busy`；搜索框在请求期间被禁用；页数事实存在多份显示侧拷贝。
+**(h) 未定义/已声明偏差**（不声称已消除）：
+
+- 同身份翻页窗口内 footer 的 range 与 `total` 属两个请求键（页号属新请求、计数属旧请求）；OD3 只覆盖**身份**变化，翻页保留真实 footer（B08 依赖它）。
+- 被删除行在确认响应落地前仍可见；反向竞态（COUNT 先于批量删除）可返回自相矛盾的空页并被提交。
+- `MobileRecordList` 无 `aria-busy`（移动分支的在途信号只有工具栏指示）；搜索框在请求期间被禁用。
+- 页数事实存在多份显示侧拷贝；`courseId` 折回服务端拼写与探测都会带来一次被取代的列表请求。
 
 ## 6. 场景 → 测试矩阵
 
@@ -144,8 +149,8 @@ pending = !failed && (loadState.idKey !== renderKey || clamping || 身份未定)
 | A01 | Questions 深链接恢复筛选+页码，且控件显示出被应用的筛选 | L2 | `QuestionPage.queryState.test.tsx` |
 | A02 | 多标签 AND + 搜索 + 页码组合正确 | L2 | 同上 |
 | A03 | Exams 状态+页码恢复 | L2 | `ExamPage.queryState.test.tsx` |
-| A04 | 列表→详情→Back 恢复 | L3 | `admin-list-query-state.spec.ts` |
-| A05 | 内部返回三情形（表头入口 / 行入口 / 刷新后 / 恶意目标） | L2 + L3 | `listReturnNavigation.pages.test.tsx`、spec |
+| A04 | 列表→详情→Back 恢复（两页；Exams 在 A15 走查内，Questions 在 A04/A06 用例内） | L3 | `admin-list-query-state.spec.ts` |
+| A05 | 内部返回四情形（表头入口 / 行入口 / 刷新后 / 恶意目标），五个返回出口全部覆盖 | L2 + L3 | `listReturnNavigation.pages.test.tsx`（5 个出口 × 合法/恶意）、spec |
 | A06 | Back/Forward 一致；Back 后写入不复活已离开参数 | L3 + L2 | spec、两个 queryState 套件 |
 | A07 | 非法/重复/过期参数不产生错误状态 | U + L2 | `listQueryState.test.ts`、queryState 套件 |
 | A08 | 旧请求晚完成不覆盖新查询 | L2 | queryState 套件 |
@@ -155,7 +160,7 @@ pending = !failed && (loadState.idKey !== renderKey || clamping || 身份未定)
 | A11 | 既有机制与既有断言零修改（#785 B01/B06/B07/B08/B11/B12） | L2 + L3 | `ExamPage.test.tsx`、`admin-list-pagination.spec.ts` |
 | A12 | debounce 与筛选变更互不覆盖；外部导航取消草稿 | L2 | queryState 套件 |
 | A13 | Questions 跨身份 pending 的几何不塌陷 | L3 | spec（含几何 artifact） |
-| A14 | 不可显示筛选值不生效（可解析则显示，否则丢弃） | U + L2 | `listQueryState.test.ts`、queryState 套件 |
+| A14 | 不可显示筛选值不生效（可解析则显示，否则丢弃；含大小写折叠与临时失败保留） | L2 | queryState 套件（`listQueryState.test.ts` 只覆盖 `page` 与 clamp） |
 | A15 | 历史语义可观察（筛选 replace / 翻页 push / 内部返回 push） | L3 | spec（Back 栈走查 + artifact） |
 | A16 | 四类失败都不得被 pending 吞掉或停留 Loading | L2 | queryState 套件 |
 | A17 | 重复参数与默认值省略（钉住存活值） | U + L2 | `listQueryState.test.ts`、queryState 套件 |
