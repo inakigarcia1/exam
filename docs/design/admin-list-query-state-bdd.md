@@ -129,7 +129,7 @@ pending = !failed && (loadState.idKey !== renderKey || clamping || 身份未定)
 - Exams：`queryKey` 含 page，翻页也开启身份门（#785 B12 已冻结行为）。
 - 统一两者必须推翻 `DesktopDataTable` 中记录在案的实测决策（占位行会把表格从 1374px 压到 170px），故不统一。
 
-**(f) 跨身份 pending 的几何**：Questions 的 pending 主体不得渲染旧身份的行、不得渲染空态，**且不得塌陷**——列表区必须保留最后一次结算时的高度（实测锚点：20 行 ≈1374px，单占位行 ≈170px）。Exams 的 pending 主体沿用既有 `LoadingState`（#785 冻结）。
+**(f) 跨身份 pending 的几何**：Questions **桌面分支**的 pending 主体不得渲染旧身份的行、不得渲染空态，**且不得塌陷**——桌面列表区必须保留最后一次结算时的高度（实测锚点：20 行 ≈1374px，单占位行 ≈170px）。移动分支沿用既有的整页 `LoadingState` 替换（基线行为，无高度预留）。Exams 的 pending 主体沿用既有 `LoadingState`（#785 冻结）。
 
 **(g) 错误呈现**：首屏失败与跨身份失败 → 页级 `ErrorState`（`role="alert"` + 重试）；同身份翻页失败 → 既有表体错误行（外壳保留，页码控件仍可用）。重试是**新的一次尝试**：必须离开错误呈现进入在途状态。
 
