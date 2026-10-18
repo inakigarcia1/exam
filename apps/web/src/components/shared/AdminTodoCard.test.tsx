@@ -129,7 +129,11 @@ describe("AdminTodoCard", () => {
   });
 
   it("refreshing over a value shows the refresh caption", () => {
-    renderCard({ kind: "ready", count: ready(7).count, refreshing: true });
+    renderCard({
+      kind: "ready",
+      count: { kind: "exact", value: 7 },
+      refreshing: true,
+    });
     const card = getCard();
     expect(within(card).getByText("7")).toBeInTheDocument();
     expect(within(card).getByText("刷新中…")).toBeInTheDocument();
