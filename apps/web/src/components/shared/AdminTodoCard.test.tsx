@@ -70,7 +70,7 @@ describe("AdminTodoCard", () => {
       document.querySelector("[data-slot='skeleton']"),
     ).toBeInTheDocument();
     expect(
-      screen.queryByTestId("admin-todo-card-value"),
+      document.querySelector("[data-slot='admin-todo-card-value']"),
     ).not.toBeInTheDocument();
   });
 
@@ -111,7 +111,7 @@ describe("AdminTodoCard", () => {
     // The failure state must not read as an empty workset.
     expect(within(card).queryByText("0")).not.toBeInTheDocument();
     expect(
-      within(card).queryByTestId("admin-todo-card-value"),
+      document.querySelector("[data-slot='admin-todo-card-value']"),
     ).not.toBeInTheDocument();
   });
 

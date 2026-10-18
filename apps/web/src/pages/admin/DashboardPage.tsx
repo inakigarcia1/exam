@@ -94,20 +94,26 @@ export function DashboardPage() {
   // Each todo card owns an independent request + state machine: a failed
   // source lands on Unknown/Stale and can never zero or overwrite the other
   // card (partial-failure is the combination, not a shared error state).
-  const gradingTodo = useAdminTodoCount((signal) =>
-    api
-      .get<GradingQueueListResponse>(GRADING_COUNT_QUERY, { signal })
-      .then(gradingQueueTotalCount),
+  // `enabled` mirrors the render gate so a capability-hidden card neither
+  // fires its request nor accumulates a guaranteed 403.
+  const gradingTodo = useAdminTodoCount(
+    (signal) =>
+      api
+        .get<GradingQueueListResponse>(GRADING_COUNT_QUERY, { signal })
+        .then(gradingQueueTotalCount),
+    { enabled: canGrade },
   );
-  const incidentTodo = useAdminTodoCount((signal) =>
-    api
-      .get<RecoveryQueueResponse>(
-        `/api/admin/recovery/incidents?unresolvedOnly=true&limit=${INCIDENT_COUNT_LIMIT}`,
-        { signal },
-      )
-      .then((response) =>
-        unresolvedIncidentCount(response, INCIDENT_COUNT_LIMIT),
-      ),
+  const incidentTodo = useAdminTodoCount(
+    (signal) =>
+      api
+        .get<RecoveryQueueResponse>(
+          `/api/admin/recovery/incidents?unresolvedOnly=true&limit=${INCIDENT_COUNT_LIMIT}`,
+          { signal },
+        )
+        .then((response) =>
+          unresolvedIncidentCount(response, INCIDENT_COUNT_LIMIT),
+        ),
+    { enabled: canRecover },
   );
 
   if (isLoading) {

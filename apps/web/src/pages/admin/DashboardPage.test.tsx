@@ -429,6 +429,16 @@ describe("DashboardPage", () => {
       expect(screen.queryByText("需要处理")).not.toBeInTheDocument();
       expect(screen.queryByText("待人工评分")).not.toBeInTheDocument();
       expect(screen.queryByText("待处理异常")).not.toBeInTheDocument();
+      // A capability-hidden card must not fire its request at all — no
+      // guaranteed 403 behind a hidden surface.
+      const todoCalls = apiGet.mock.calls
+        .map((c) => String(c[0]))
+        .filter(
+          (p) =>
+            p.startsWith("/api/admin/grading-queue") ||
+            p.startsWith("/api/admin/recovery/incidents"),
+        );
+      expect(todoCalls).toEqual([]);
     });
 
     it("keeps the four stats cards, quick actions and recent exams alongside the todo section (B10)", async () => {

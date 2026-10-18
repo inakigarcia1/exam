@@ -58,11 +58,6 @@ export function AdminTodoCard({
   copy: AdminTodoCardCopy;
   onRefresh: () => void;
 }) {
-  const showUnit =
-    state.kind === "stale" ||
-    (state.kind === "ready" &&
-      (state.count.kind === "bounded" || state.count.value > 0));
-
   return (
     <div
       data-slot="admin-todo-card"
@@ -82,9 +77,13 @@ export function AdminTodoCard({
         </div>
         <ValueSurface state={state} copy={copy} />
         <StatusLine state={state} copy={copy} />
-        <span className="type-metadata inline-flex items-center gap-1 text-primary group-hover:underline">
-          {copy.cta}
-          <AppIcon icon={ChevronRight} size="inline" />
+        {/* Color lives on the inner span: type-metadata owns color, so the
+            accent must not sit on the recipe node itself (exam-ui lint). */}
+        <span className="type-metadata inline-flex items-center gap-1 group-hover:underline">
+          <span className="inline-flex items-center gap-1 text-primary">
+            {copy.cta}
+            <AppIcon icon={ChevronRight} size="inline" />
+          </span>
         </span>
       </Link>
       {(state.kind === "unknown" || state.kind === "stale") && (
@@ -164,10 +163,14 @@ function StatusLine({
     return <p className="type-metadata">{copy.refreshingCaption}</p>;
   }
   if (state.kind === "stale") {
+    // Warning color on the inner span: type-metadata owns color (exam-ui
+    // lint) — same pattern as the queue page's stale snapshot line.
     return (
-      <p className="type-metadata flex items-center gap-1 text-warning">
-        <AppIcon icon={CircleAlert} size="inline" />
-        {copy.staleCaption}
+      <p className="type-metadata flex items-center gap-1">
+        <span className="flex items-center gap-1 text-warning">
+          <AppIcon icon={CircleAlert} size="inline" />
+          {copy.staleCaption}
+        </span>
       </p>
     );
   }

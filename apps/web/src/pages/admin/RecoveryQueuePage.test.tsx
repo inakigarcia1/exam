@@ -586,6 +586,24 @@ describe("RecoveryQueuePage", () => {
     expect(page1Calls.length).toBeLessThanOrEqual(3);
   });
 
+  it("a COMPATIBLE deep link keeps both params (normalizer strips terminal statuses only)", async () => {
+    // Mutant guard: a normalizer that stripped ANY status under
+    // unresolvedOnly=true would fail here — `open` is unresolved, so the
+    // pair is consistent and must survive untouched (URL and API query).
+    renderPage(["/admin/recovery?unresolvedOnly=true&status=open"]);
+    await screen.findAllByText("网络恢复考试");
+
+    expect(screen.getByTestId("location-search").textContent).toBe(
+      "?unresolvedOnly=true&status=open",
+    );
+    const lastCall = getMock.mock.calls.at(-1)?.[0] as string;
+    expect(lastCall).toContain("unresolvedOnly=true");
+    expect(lastCall).toContain("status=open");
+    expect(
+      screen.getByRole("combobox", { name: "全部事件" }),
+    ).toHaveTextContent("仅未处理");
+  });
+
   it("清除筛选 removes the unresolved predicate too", async () => {
     const user = userEvent.setup();
     renderPage(["/admin/recovery?unresolvedOnly=true"]);

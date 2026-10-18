@@ -84,20 +84,31 @@ export interface AdminTodoSource {
  * card (no polling: the dashboard is a projection at load time, per the B2
  * contract — polling stays a Recovery-queue-page semantic).
  *
+ * `enabled` mirrors the render gate (a capability-hidden card must not fire
+ * its request at all); it is the capability snapshot at mount — the same
+ * snapshot the sidebar consults. A disabled hook never leaves `loading` and
+ * its refresh is a no-op.
+ *
  * Superseded responses can never commit: each load captures a generation
  * number and only the latest may write state, so a slow older response losing
  * a race against a newer refresh is dropped (and its aborted network work is
  * cancelled via the signal). The source callback is read through a ref, so a
  * caller passing an inline arrow cannot retrigger the mount effect.
  */
-export function useAdminTodoCount(source: AdminTodoSource) {
+export function useAdminTodoCount(
+  source: AdminTodoSource,
+  { enabled = true }: { enabled?: boolean } = {},
+) {
   const [state, setState] = useState<AdminTodoState>({ kind: "loading" });
   const sourceRef = useRef(source);
   sourceRef.current = source;
+  const enabledRef = useRef(enabled);
+  enabledRef.current = enabled;
   const generation = useRef(0);
   const inFlight = useRef<AbortController | null>(null);
 
   const load = useCallback(() => {
+    if (!enabledRef.current) return;
     const gen = ++generation.current;
     inFlight.current?.abort();
     const controller = new AbortController();
@@ -129,6 +140,7 @@ export function useAdminTodoCount(source: AdminTodoSource) {
   }, []);
 
   useEffect(() => {
+    if (!enabledRef.current) return;
     load();
     return () => {
       // Invalidate in-flight commits and cancel the network work on unmount.
