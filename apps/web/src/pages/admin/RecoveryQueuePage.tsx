@@ -58,6 +58,10 @@ function endOfDayISO(date: Date): string {
 
 const INCIDENT_STATUSES = ["open", "investigating", "resolved", "dismissed"];
 const INCIDENT_SEVERITIES = ["info", "minor", "major", "critical"];
+/** Statuses whose incidents are already handled — they contradict the
+ * "unresolved only" predicate (its server-side meaning is
+ * `status IN ('open','investigating')`). */
+const TERMINAL_INCIDENT_STATUSES = new Set(["resolved", "dismissed"]);
 const NAMESPACE = "admin.recoveryQueue";
 
 interface QueueFilters {
@@ -67,6 +71,41 @@ interface QueueFilters {
   candidateId: string;
   createdFrom: string;
   createdTo: string;
+  /** "true" when the unresolved predicate is active (URL param verbatim). */
+  unresolvedOnly: string;
+}
+
+/**
+ * Deep-link conflict normalization for `unresolvedOnly` × terminal `status`.
+ *
+ * `?unresolvedOnly=true&status=resolved|dismissed` intersects to a permanently
+ * empty list, so a link carrying both gets one deterministic canonical form:
+ * the unresolved predicate wins and the terminal status param is dropped.
+ * Returns null when the params need no correction.
+ *
+ * Interactive conflicts are resolved by the last action instead (see the
+ * Select handlers below); this normalizer owns only what a raw URL means.
+ * The full transition table (URL = authority, all writes `replace:true`):
+ *
+ * | current URL                          | action                    | resulting URL |
+ * | ------------------------------------ | ------------------------- | ----------------------------------- |
+ * | (none)                               | toggle 仅未处理 on         | ?unresolvedOnly=true |
+ * | ?unresolvedOnly=true                 | toggle 仅未处理 off        | (none) |
+ * | ?status=resolved                     | toggle 仅未处理 on         | ?unresolvedOnly=true (status reset) |
+ * | ?unresolvedOnly=true                 | select status=resolved    | ?status=resolved (unresolved cleared) |
+ * | ?unresolvedOnly=true                 | select status=open        | ?unresolvedOnly=true&status=open |
+ * | ?unresolvedOnly=true&status=resolved | deep link lands           | ?unresolvedOnly=true (normalize) |
+ * | (any with filters)                   | 清除筛选                   | (none) |
+ */
+function normalizeUnresolvedConflict(
+  params: URLSearchParams,
+): URLSearchParams | null {
+  if (params.get("unresolvedOnly") !== "true") return null;
+  const status = params.get("status");
+  if (status === null || !TERMINAL_INCIDENT_STATUSES.has(status)) return null;
+  const next = new URLSearchParams(params);
+  next.delete("status");
+  return next;
 }
 
 /**
@@ -92,22 +131,42 @@ export function RecoveryQueuePage() {
   const { formatTime } = useProductDateTime();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  // The params every consumer reads are the CONFLICT-FREE form: a deep link
+  // carrying both `unresolvedOnly=true` and a terminal status is corrected
+  // here before it can reach the API query or the toolbar state.
+  const conflictingParams = useMemo(
+    () => normalizeUnresolvedConflict(searchParams),
+    [searchParams],
+  );
+
+  // Push the canonical form back with `replace` — a correction, not a
+  // navigation, so Back must skip it. Runs once per conflict: after the
+  // replace the normalizer finds nothing to fix (loop-free by construction).
+  useEffect(() => {
+    if (conflictingParams)
+      setSearchParams(conflictingParams, { replace: true });
+  }, [conflictingParams, setSearchParams]);
+
+  const params = conflictingParams ?? searchParams;
+
   const filters: QueueFilters = useMemo(
     () => ({
-      status: searchParams.get("status") ?? "",
-      severity: searchParams.get("severity") ?? "",
-      examId: searchParams.get("examId") ?? "",
-      candidateId: searchParams.get("candidateId") ?? "",
-      createdFrom: searchParams.get("createdFrom") ?? "",
-      createdTo: searchParams.get("createdTo") ?? "",
+      status: params.get("status") ?? "",
+      severity: params.get("severity") ?? "",
+      examId: params.get("examId") ?? "",
+      candidateId: params.get("candidateId") ?? "",
+      createdFrom: params.get("createdFrom") ?? "",
+      createdTo: params.get("createdTo") ?? "",
+      unresolvedOnly: params.get("unresolvedOnly") === "true" ? "true" : "",
     }),
-    [searchParams],
+    [params],
   );
 
   const hasActiveFilter = Object.values(filters).some(Boolean);
 
   const buildQuery = useMemo(() => {
     const params = new URLSearchParams();
+    if (filters.unresolvedOnly === "true") params.set("unresolvedOnly", "true");
     if (filters.status) params.set("status", filters.status);
     if (filters.severity) params.set("severity", filters.severity);
     if (filters.examId) params.set("examId", filters.examId);
@@ -187,10 +246,12 @@ export function RecoveryQueuePage() {
    * starts from the latest URL state whether or not a re-render happened in
    * between.
    */
-  const latestParams = useRef(searchParams);
+  const latestParams = useRef(params);
   useEffect(() => {
-    latestParams.current = searchParams;
-  }, [searchParams]);
+    // Sync from the CONFLICT-FREE form, so a commit never rebuilds the
+    // contradictory pair the deep-link normalizer just removed.
+    latestParams.current = params;
+  }, [params]);
 
   function commitFilter(patch: Partial<QueueFilters>) {
     const next = new URLSearchParams(latestParams.current);
@@ -364,10 +425,54 @@ export function RecoveryQueuePage() {
         toolbar={
           <DataToolbar>
             <Select
+              value={filters.unresolvedOnly === "true" ? "unresolved" : "all"}
+              onValueChange={(v) => {
+                if (v === "unresolved") {
+                  commitFilter({
+                    unresolvedOnly: "true",
+                    // Enabling "unresolved only" over a terminal status would
+                    // intersect to a permanently empty list — reset the status
+                    // atomically so the toggle takes visible effect.
+                    ...(filters.status &&
+                    TERMINAL_INCIDENT_STATUSES.has(filters.status)
+                      ? { status: "" }
+                      : {}),
+                  });
+                } else {
+                  commitFilter({ unresolvedOnly: "" });
+                }
+              }}
+            >
+              <ToolbarFilter size="narrow">
+                <SelectTrigger
+                  aria-label={t("admin.recoveryQueue.filters.resolutionAll")}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+              </ToolbarFilter>
+              <SelectContent>
+                <SelectItem value="all">
+                  {t("admin.recoveryQueue.filters.resolutionAll")}
+                </SelectItem>
+                <SelectItem value="unresolved">
+                  {t("admin.recoveryQueue.filters.unresolvedOnly")}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
               value={filters.status || "all"}
-              onValueChange={(v) =>
-                commitFilter({ status: v === "all" ? "" : v })
-              }
+              onValueChange={(v) => {
+                const status = v === "all" ? "" : v;
+                commitFilter({
+                  status,
+                  // Selecting a terminal status contradicts the unresolved
+                  // predicate — clear it atomically instead of intersecting
+                  // into a silently empty result set.
+                  ...(status && TERMINAL_INCIDENT_STATUSES.has(status)
+                    ? { unresolvedOnly: "" }
+                    : {}),
+                });
+              }}
             >
               <ToolbarFilter size="narrow">
                 <SelectTrigger
