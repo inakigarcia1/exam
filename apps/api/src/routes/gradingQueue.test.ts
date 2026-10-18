@@ -1466,6 +1466,70 @@ describe("grading queue routes", () => {
     expect(mine).toBeUndefined();
   });
 
+  // ── #784 B3 — total is the DISTINCT-attempt workset count ──
+  // The dashboard todo card renders this `total` verbatim, so the count unit
+  // is pinned here: one attempt holding SEVERAL pending entries must move the
+  // total by exactly 1 (an entry-count mutant would move it by 2+), and
+  // completing that work moves it back by exactly 1.
+  it("total counts DISTINCT attempts, not grading entries (B01 anchor)", async () => {
+    const before = await ctx.app.inject({
+      method: "GET",
+      url: "/api/admin/grading-queue?page=1&pageSize=1",
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    const beforeTotal = before.json().total as number;
+
+    // Attempt A carries TWO pending manual entries; attempt B carries one.
+    const multi = await seedAttempt(ctx, {
+      questions: [
+        subjectiveQuestion("q-multi-1"),
+        subjectiveQuestion("q-multi-2"),
+      ],
+      title: "Multi Entry Total",
+    });
+    await seedGradingEntries(
+      ctx,
+      multi.attemptId,
+      [subjectiveQuestion("q-multi-1"), subjectiveQuestion("q-multi-2")],
+      [],
+    );
+    const single = await seedAttempt(ctx, {
+      questions: [subjectiveQuestion("q-single-1")],
+      title: "Single Entry Total",
+    });
+    await seedGradingEntries(
+      ctx,
+      single.attemptId,
+      [subjectiveQuestion("q-single-1")],
+      [],
+    );
+
+    const after = await ctx.app.inject({
+      method: "GET",
+      url: "/api/admin/grading-queue?page=1&pageSize=1",
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    // 3 pending entries, but only 2 distinct attempts.
+    expect(after.json().total).toBe(beforeTotal + 2);
+
+    // Completing one attempt's whole workset removes exactly that attempt.
+    for (const q of ["q-multi-1", "q-multi-2"]) {
+      const graded = await ctx.app.inject({
+        method: "POST",
+        url: `/api/admin/attempts/${multi.attemptId}/grade-question`,
+        payload: { questionId: q, score: 5 },
+        cookies: { "auth-token": ctx.adminToken },
+      });
+      expect(graded.statusCode).toBe(200);
+    }
+    const settled = await ctx.app.inject({
+      method: "GET",
+      url: "/api/admin/grading-queue?page=1&pageSize=1",
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    expect(settled.json().total).toBe(beforeTotal + 1);
+  });
+
   // ── mixed exam exposes only text_response work; non-null std answer ok ──
   it("exposes only text_response work in a mixed exam, including a text_response with non-null standardAnswer", async () => {
     const textWithRef: QuestionSnapshot = {
