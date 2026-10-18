@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useLocation, useNavigate, useParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api";
 import { getApiErrorMessage } from "@/lib/apiErrors";
+import { resolveListReturnPath } from "@/lib/listReturnNavigation";
+import { routes } from "@/lib/routes";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { ErrorState } from "@/components/shared/ErrorState";
@@ -33,6 +35,7 @@ interface CourseRow {
 export function QuestionEditPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams<{ id: string }>();
   const isEdit = id !== undefined && id !== "new";
 
@@ -220,7 +223,12 @@ export function QuestionEditPage() {
       } else {
         await api.post("/api/questions", payload);
       }
-      void navigate("/admin/questions");
+      // Return to the list query the user left (URL query state), not to a
+      // bare list route: the target is validated against this page's own list
+      // route and falls back to it (C2).
+      void navigate(
+        resolveListReturnPath(location.state, routes.admin.questions),
+      );
     } catch (err) {
       setSaveError(
         getApiErrorMessage(err, t, t("admin.questionEdit.saveFailed")),
@@ -268,7 +276,11 @@ export function QuestionEditPage() {
       <div className="flex justify-end gap-3 pt-4">
         <Button
           variant="outline"
-          onClick={() => void navigate("/admin/questions")}
+          onClick={() =>
+            void navigate(
+              resolveListReturnPath(location.state, routes.admin.questions),
+            )
+          }
           disabled={saving}
         >
           {t("admin.questionEdit.actions.cancel")}

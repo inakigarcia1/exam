@@ -323,6 +323,12 @@ const zhCN = {
     /** DataTablePagination copy with interpolation. */
     table: {
       summary: "共 {{total}} 条，显示 {{start}}-{{end}} 条",
+      /**
+       * Footer summary while a NEW query identity is pending: the previous
+       * query's count is not this query's fact, so it is not shown until its
+       * own response lands (#784 OD3).
+       */
+      pendingSummary: "正在查询…",
       prev: "上一页",
       next: "下一页",
       pageLabel: "第 {{page}} 页",
@@ -1150,6 +1156,7 @@ const zhCN = {
       emptyDescription: "还没有创建任何题目，点击上方按钮创建。",
       noMatch: "未找到匹配的题目",
       noMatchDescription: "当前筛选或搜索没有匹配题目。",
+      courseResolveFailed: "无法解析链接中的课程筛选，请重试",
       searchPlaceholder: "搜索题目内容...",
       searchLabel: "搜索题目",
       filterToolbar: "题目筛选工具栏",

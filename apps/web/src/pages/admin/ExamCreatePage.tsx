@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api";
 import { fetchAllPickerQuestions } from "@/lib/allQuestions";
 import { getApiErrorMessage, getApiFieldErrors } from "@/lib/apiErrors";
+import { resolveListReturnPath } from "@/lib/listReturnNavigation";
+import { routes } from "@/lib/routes";
 import { useProductDateTime } from "@/contexts/DateTimeContext";
 import {
   buildWizardPolicyPreview,
@@ -185,6 +187,7 @@ function useSummaryLabels(): ProfileSummaryLabels {
 export function ExamCreatePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const summaryLabels = useSummaryLabels();
   const { formatDateTime } = useProductDateTime();
 
@@ -925,7 +928,14 @@ export function ExamCreatePage() {
       {/* Navigation */}
       <Separator />
       <div className="flex flex-wrap justify-between gap-3 pt-2">
-        <Button variant="outline" onClick={() => void navigate("/admin/exams")}>
+        <Button
+          variant="outline"
+          onClick={() =>
+            void navigate(
+              resolveListReturnPath(location.state, routes.admin.exams),
+            )
+          }
+        >
           {t("admin.examWizard.actions.cancel")}
         </Button>
         <div className="flex gap-3">

@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useParams, useNavigate } from "react-router";
+import { useLocation, useParams, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { ExamDTO } from "@exam/contracts";
 import { useProductDateTime } from "@/contexts/DateTimeContext";
 import { api } from "@/lib/api";
 import { getApiErrorMessage } from "@/lib/apiErrors";
 import { routes } from "@/lib/routes";
+import { resolveListReturnPath } from "@/lib/listReturnNavigation";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { LoadingState } from "@/components/shared/LoadingState";
@@ -105,6 +106,7 @@ export function ExamDetailPage() {
   const { user } = useAuth();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   // Localized value labels for the 考试配置 block. Raw enum values (e.g.
   // "timed_window", "unlimited") must never reach the admin UI; unknown
   // values fall back to the raw value so a future enum addition degrades
@@ -638,7 +640,11 @@ export function ExamDetailPage() {
               )}
             <Button
               variant="outline"
-              onClick={() => void navigate("/admin/exams")}
+              onClick={() =>
+                void navigate(
+                  resolveListReturnPath(location.state, routes.admin.exams),
+                )
+              }
             >
               {t("admin.examDetail.actions.backToList")}
             </Button>
