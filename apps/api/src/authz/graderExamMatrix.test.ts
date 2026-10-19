@@ -18,51 +18,24 @@ import {
 } from "../routes/testHelpers.js";
 
 /**
- * Issue #296 — Grader@Exam adversarial scope matrix (Exam A / Exam B).
- *
- * One Grader (G) holds an ACTIVE grader_exam_assignments row for Exam A
- * ONLY. The matrix proves, endpoint by endpoint, that:
- *   - the grading-queue LIST shows only Exam A rows and the pagination TOTAL
- *     reflects the scope BEFORE pagination (list and count agree);
- *   - an EMPTY assignment set sees an empty queue (never org-wide);
- *   - grading detail/write fold out-of-scope probes into the canonical 404
- *     (anti-enumeration — never a 403 that leaks existence);
- *   - a bare Grader role WITHOUT assignments sees nothing (role ≠ resource
- *     assignment; the scope row alone grants nothing);
- *   - multi-role combinations stay correct (Admin+Grader → org-wide via the
- *     Admin short-circuit; Teacher+Grader → the Teacher course assignment
- *     grants NO grading scope and the Grader exam assignment grants NO
- *     course authority);
- *   - revocation is effective on the NEXT request.
+ * Shared harness for the Grader@Exam scope suites. Every privilege change
+ * goes through the REAL admin assignment API (product path proof), and every
+ * queue row is real pending_manual work driven by real candidate submissions.
+ * The context/token getters dereference at call time, so the harness can be
+ * assembled at describe scope while `beforeAll` assigns the backing variables.
  */
-describe("Grader@Exam scope matrix (issue #296)", () => {
-  let ctx: TestContext;
-  let courseAId: string;
-  let courseBId: string;
-  let examAId: string;
-  let examBId: string;
-  let examAQuestionId: string;
-  let examBQuestionId: string;
-  let graderToken = "";
-  let graderUserId = "";
-  let unassignedGraderToken = "";
-  let unassignedGraderUserId = "";
-  let adminGraderToken = "";
-  let teacherGraderToken = "";
-  let teacherGraderUserId = "";
-
-  /**
-   * Pending attempt ids in submission order:
-   * [0]=A#1, [1]=A#2, [2]=B#1, [3]=B#2. The Admin-parity test grades B#1
-   * (flipping it out of the pending queue), so B#2 remains the untouched
-   * out-of-scope pending probe for the later grant tests.
-   */
-  const attemptIds: string[] = [];
-
-  const tGet = (url: string, token = graderToken) =>
-    ctx.app.inject({ method: "GET", url, cookies: { "auth-token": token } });
-  const tPost = (url: string, payload: unknown, token = graderToken) =>
-    ctx.app.inject({
+function createGraderMatrixHarness(
+  getCtx: () => TestContext,
+  defaultToken: () => string,
+) {
+  const tGet = (url: string, token = defaultToken()) =>
+    getCtx().app.inject({
+      method: "GET",
+      url,
+      cookies: { "auth-token": token },
+    });
+  const tPost = (url: string, payload: unknown, token = defaultToken()) =>
+    getCtx().app.inject({
       method: "POST",
       url,
       cookies: { "auth-token": token },
@@ -74,7 +47,7 @@ describe("Grader@Exam scope matrix (issue #296)", () => {
     const res = await tPost(
       `/api/admin/users/${userId}/exam-assignments`,
       { examId },
-      ctx.adminToken,
+      getCtx().adminToken,
     );
     expect(res.statusCode, res.body).toBe(200);
     return res.json() as { outcome: string };
@@ -84,7 +57,7 @@ describe("Grader@Exam scope matrix (issue #296)", () => {
     const res = await tPost(
       `/api/admin/users/${userId}/exam-assignments/${examId}/revoke`,
       {},
-      ctx.adminToken,
+      getCtx().adminToken,
     );
     expect(res.statusCode, res.body).toBe(200);
   };
@@ -97,6 +70,7 @@ describe("Grader@Exam scope matrix (issue #296)", () => {
     courseId: string,
     examTitle: string,
   ): Promise<{ examId: string; questionId: string }> => {
+    const ctx = getCtx();
     const qRes = await ctx.app.inject({
       method: "POST",
       url: "/api/questions",
@@ -145,12 +119,14 @@ describe("Grader@Exam scope matrix (issue #296)", () => {
    * Drives one real candidate submission on an already-published exam —
    * the attempt lands with pending_manual grading entries, i.e. REAL queue
    * work (the queue reads attempt_grading_entries, never fabricated state).
+   * Returns the attempt id.
    */
   const submitCandidateOnExam = async (
     examId: string,
     questionId: string,
     candidateUsername: string,
   ): Promise<string> => {
+    const ctx = getCtx();
     const candidate = await createCandidateViaApi(
       ctx.app,
       ctx.adminToken,
@@ -199,9 +175,72 @@ describe("Grader@Exam scope matrix (issue #296)", () => {
       "text_response submission must land pending manual grading",
     ).toBe("submitted");
 
-    attemptIds.push(attemptId);
     return attemptId;
   };
+
+  return {
+    tGet,
+    tPost,
+    grantExam,
+    revokeExam,
+    createManualExam,
+    submitCandidateOnExam,
+  };
+}
+
+/**
+ * Issue #296 — Grader@Exam adversarial scope matrix (Exam A / Exam B).
+ *
+ * One Grader (G) holds an ACTIVE grader_exam_assignments row for Exam A
+ * ONLY. The matrix proves, endpoint by endpoint, that:
+ *   - the grading-queue LIST shows only Exam A rows and the pagination TOTAL
+ *     reflects the scope BEFORE pagination (list and count agree);
+ *   - an EMPTY assignment set sees an empty queue (never org-wide);
+ *   - grading detail/write fold out-of-scope probes into the canonical 404
+ *     (anti-enumeration — never a 403 that leaks existence);
+ *   - a bare Grader role WITHOUT assignments sees nothing (role ≠ resource
+ *     assignment; the scope row alone grants nothing);
+ *   - multi-role combinations stay correct (Admin+Grader → org-wide via the
+ *     Admin short-circuit; Teacher+Grader → the Teacher course assignment
+ *     grants NO grading scope and the Grader exam assignment grants NO
+ *     course authority);
+ *   - revocation is effective on the NEXT request.
+ */
+describe("Grader@Exam scope matrix (issue #296)", () => {
+  let ctx: TestContext;
+  let courseAId: string;
+  let courseBId: string;
+  let examAId: string;
+  let examBId: string;
+  let examAQuestionId: string;
+  let examBQuestionId: string;
+  let graderToken = "";
+  let graderUserId = "";
+  let unassignedGraderToken = "";
+  let unassignedGraderUserId = "";
+  let adminGraderToken = "";
+  let teacherGraderToken = "";
+  let teacherGraderUserId = "";
+
+  /**
+   * Pending attempt ids in submission order:
+   * [0]=A#1, [1]=A#2, [2]=B#1, [3]=B#2. The Admin-parity test grades B#1
+   * (flipping it out of the pending queue), so B#2 remains the untouched
+   * out-of-scope pending probe for the later grant tests.
+   */
+  const attemptIds: string[] = [];
+
+  const {
+    tGet,
+    tPost,
+    grantExam,
+    revokeExam,
+    createManualExam,
+    submitCandidateOnExam,
+  } = createGraderMatrixHarness(
+    () => ctx,
+    () => graderToken,
+  );
 
   beforeAll(async () => {
     ctx = await buildTestApp(async (fastify) => {
@@ -242,25 +281,33 @@ describe("Grader@Exam scope matrix (issue #296)", () => {
 
     // Two pending attempts per exam: scope totals are provable (2 in-scope,
     // 2 out-of-scope) and the Admin-parity grading of B#1 leaves B#2 pending.
-    await submitCandidateOnExam(
-      examAId,
-      examAQuestionId,
-      `gmatrix-cand-a1-${uniquePrefix()}`,
+    attemptIds.push(
+      await submitCandidateOnExam(
+        examAId,
+        examAQuestionId,
+        `gmatrix-cand-a1-${uniquePrefix()}`,
+      ),
     );
-    await submitCandidateOnExam(
-      examAId,
-      examAQuestionId,
-      `gmatrix-cand-a2-${uniquePrefix()}`,
+    attemptIds.push(
+      await submitCandidateOnExam(
+        examAId,
+        examAQuestionId,
+        `gmatrix-cand-a2-${uniquePrefix()}`,
+      ),
     );
-    await submitCandidateOnExam(
-      examBId,
-      examBQuestionId,
-      `gmatrix-cand-b1-${uniquePrefix()}`,
+    attemptIds.push(
+      await submitCandidateOnExam(
+        examBId,
+        examBQuestionId,
+        `gmatrix-cand-b1-${uniquePrefix()}`,
+      ),
     );
-    await submitCandidateOnExam(
-      examBId,
-      examBQuestionId,
-      `gmatrix-cand-b2-${uniquePrefix()}`,
+    attemptIds.push(
+      await submitCandidateOnExam(
+        examBId,
+        examBQuestionId,
+        `gmatrix-cand-b2-${uniquePrefix()}`,
+      ),
     );
 
     // Grader G: active assignment to Exam A ONLY, granted via the REAL API
@@ -634,5 +681,225 @@ describe("Grader@Exam scope matrix (issue #296)", () => {
       revokes.some((r) => r.targetId === examAId),
       "revoke audit present",
     ).toBe(true);
+  });
+});
+
+/**
+ * Post-#784 hardening oracles (issue #791): the two escaped mutants from the
+ * #784 G1 independent review that no permanent test owned (the one-shot CDP
+ * witnesses were consumed and never counted as regression protection):
+ *
+ *   - M-G4-a: a revoke whose WHERE accidentally widens (dropping the
+ *     graderUserId or the examId constraint) revokes MORE than the target
+ *     exam. Revoking Exam A must leave Exam B's active assignment, queue
+ *     rows and direct-ID access fully intact.
+ *
+ * Each test uses a dedicated grader and dedicated exams, and asserts only on
+ * the beforeAll fixture plus its own actions — no test reads state another
+ * test wrote.
+ */
+describe("Grader@Exam revocation scope (post-#784 oracles)", () => {
+  let ctx: TestContext;
+  // Revocation-scope grader: active assignments on Exam A + Exam B.
+  let examAId: string;
+  let examBId: string;
+  let scopeGraderToken = "";
+  let scopeGraderUserId = "";
+  /** Pending attempts in submission order: [0]=A#1, [1]=A#2, [2]=B#1, [3]=B#2. */
+  const scopeAttemptIds: string[] = [];
+  // Recovery grader: active assignment on the stable Exam E only; the
+  // lifecycle Exam C stays UNASSIGNED until the re-grant test claims it.
+  let examCId: string;
+  let examEId: string;
+  let recoveryGraderToken = "";
+  let recoveryGraderUserId = "";
+  /** Pending attempts: [0]=C#1, [1]=E#1. */
+  const recoveryAttemptIds: string[] = [];
+
+  const scope = createGraderMatrixHarness(
+    () => ctx,
+    () => scopeGraderToken,
+  );
+  const recovery = createGraderMatrixHarness(
+    () => ctx,
+    () => recoveryGraderToken,
+  );
+
+  beforeAll(async () => {
+    ctx = await buildTestApp(async (fastify) => {
+      await fastify.register(courseRoutes);
+      await fastify.register(questionRoutes);
+      await fastify.register(examRoutes);
+      await fastify.register(attemptRoutes);
+      await fastify.register(candidateRoutes);
+      await fastify.register(scoreRoutes);
+      await fastify.register(adminGraderAssignmentRoutes);
+    });
+
+    const createCourse = async (name: string, code: string) => {
+      const res = await ctx.app.inject({
+        method: "POST",
+        url: "/api/courses",
+        payload: { name, code, description: "" },
+        cookies: { "auth-token": ctx.adminToken },
+      });
+      expect(res.statusCode).toBe(201);
+      return (res.json() as { id: string }).id;
+    };
+    const courseScopeId = await createCourse(
+      "GMatrix Hardening Scope",
+      `GH-S-${uniquePrefix()}`,
+    );
+    const courseRecoveryId = await createCourse(
+      "GMatrix Hardening Recovery",
+      `GH-R-${uniquePrefix()}`,
+    );
+
+    const examA = await scope.createManualExam(
+      courseScopeId,
+      `GMatrix Hardening A ${uniquePrefix()}`,
+    );
+    examAId = examA.examId;
+    const examB = await scope.createManualExam(
+      courseScopeId,
+      `GMatrix Hardening B ${uniquePrefix()}`,
+    );
+    examBId = examB.examId;
+    const examC = await recovery.createManualExam(
+      courseRecoveryId,
+      `GMatrix Hardening C ${uniquePrefix()}`,
+    );
+    examCId = examC.examId;
+    const examE = await recovery.createManualExam(
+      courseRecoveryId,
+      `GMatrix Hardening E ${uniquePrefix()}`,
+    );
+    examEId = examE.examId;
+
+    scopeAttemptIds.push(
+      await scope.submitCandidateOnExam(
+        examAId,
+        examA.questionId,
+        `gh-cand-a1-${uniquePrefix()}`,
+      ),
+    );
+    scopeAttemptIds.push(
+      await scope.submitCandidateOnExam(
+        examAId,
+        examA.questionId,
+        `gh-cand-a2-${uniquePrefix()}`,
+      ),
+    );
+    scopeAttemptIds.push(
+      await scope.submitCandidateOnExam(
+        examBId,
+        examB.questionId,
+        `gh-cand-b1-${uniquePrefix()}`,
+      ),
+    );
+    scopeAttemptIds.push(
+      await scope.submitCandidateOnExam(
+        examBId,
+        examB.questionId,
+        `gh-cand-b2-${uniquePrefix()}`,
+      ),
+    );
+    recoveryAttemptIds.push(
+      await recovery.submitCandidateOnExam(
+        examCId,
+        examC.questionId,
+        `gh-cand-c1-${uniquePrefix()}`,
+      ),
+    );
+    recoveryAttemptIds.push(
+      await recovery.submitCandidateOnExam(
+        examEId,
+        examE.questionId,
+        `gh-cand-e1-${uniquePrefix()}`,
+      ),
+    );
+
+    const scopeGrader = await createAssignedUserForTest(
+      ctx.db,
+      ctx.org.id,
+      "Grader",
+      "ghardening-scope",
+    );
+    scopeGraderToken = scopeGrader.token;
+    scopeGraderUserId = scopeGrader.user.id;
+    expect((await scope.grantExam(scopeGraderUserId, examAId)).outcome).toBe(
+      "applied",
+    );
+    expect((await scope.grantExam(scopeGraderUserId, examBId)).outcome).toBe(
+      "applied",
+    );
+
+    const recoveryGrader = await createAssignedUserForTest(
+      ctx.db,
+      ctx.org.id,
+      "Grader",
+      "ghardening-recovery",
+    );
+    recoveryGraderToken = recoveryGrader.token;
+    recoveryGraderUserId = recoveryGrader.user.id;
+    expect(
+      (await recovery.grantExam(recoveryGraderUserId, examEId)).outcome,
+    ).toBe("applied");
+  });
+
+  afterAll(async () => {
+    await ctx.cleanup();
+  });
+
+  it("revoking ONLY Exam A leaves Exam B's active assignment, queue rows and direct-ID access intact (M-G4-a)", async () => {
+    // Precondition: the grader's full scope = A(2) + B(2) pending attempts.
+    const before = await scope.tGet("/api/admin/grading-queue");
+    expect(before.statusCode).toBe(200);
+    expect((before.json() as { total: number }).total).toBe(4);
+
+    await scope.revokeExam(scopeGraderUserId, examAId);
+
+    const queue = await scope.tGet("/api/admin/grading-queue");
+    expect(queue.statusCode).toBe(200);
+    const body = queue.json() as {
+      items: Array<{ examId: string }>;
+      total: number;
+    };
+    const queueExamIds = body.items.map((i) => i.examId);
+    expect(queueExamIds).not.toContain(examAId);
+    expect(queueExamIds).toContain(examBId);
+    // No over-shrink: the total equals the remaining scope (B's two pending
+    // attempts) exactly — a widened revoke would drop B's rows as well.
+    expect(body.total).toBe(2);
+
+    const detailA = await scope.tGet(
+      `/api/admin/attempts/${scopeAttemptIds[0]}/grading-details`,
+    );
+    expect(detailA.statusCode).toBe(404);
+    expect(detailA.json().error.code).toBe("RESOURCE_NOT_FOUND");
+
+    const detailB = await scope.tGet(
+      `/api/admin/attempts/${scopeAttemptIds[2]}/grading-details`,
+    );
+    expect(detailB.statusCode, detailB.body).toBe(200);
+
+    // Episode invariant: exactly B's active row survives untouched; A's row
+    // is the revoked one.
+    const episodes = await ctx.db
+      .select()
+      .from(schema.graderExamAssignments)
+      .where(
+        and(
+          eq(schema.graderExamAssignments.organizationId, ctx.org.id),
+          eq(schema.graderExamAssignments.graderUserId, scopeGraderUserId),
+        ),
+      );
+    const bEpisodes = episodes.filter((r) => r.examId === examBId);
+    expect(bEpisodes).toHaveLength(1);
+    expect(bEpisodes[0]!.status).toBe("active");
+    expect(bEpisodes[0]!.revokedAt).toBeNull();
+    const aEpisodes = episodes.filter((r) => r.examId === examAId);
+    expect(aEpisodes).toHaveLength(1);
+    expect(aEpisodes[0]!.status).toBe("revoked");
   });
 });
