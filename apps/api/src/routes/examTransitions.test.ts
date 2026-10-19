@@ -378,6 +378,58 @@ describe("exam reconciliation characterization", () => {
       expect(res.json().error.code).toBe("EXAM_EXTEND_NOT_ALLOWED");
       expect(res.json().error.details?.reason).toBe("ALREADY_CLOSED");
     });
+
+    it("rejected stale extend is side-effect free: closeAt keeps its baseline and no success audit is written", async () => {
+      const examId = await createExamWithTimeWindow(
+        ctx,
+        "Extend Stale No Side Effect",
+        new Date(Date.now() - 172_800_000),
+        new Date(Date.now() - 60_000),
+      );
+      await ctx.app.inject({
+        method: "POST",
+        url: `/api/exams/${examId}/publish`,
+        cookies: adminCookies(ctx.adminToken),
+      });
+
+      const beforeRows = await ctx.db
+        .select({
+          status: schema.exams.status,
+          closeAt: schema.exams.closeAt,
+        })
+        .from(schema.exams)
+        .where(eq(schema.exams.id, examId));
+      const baseline = beforeRows[0];
+      if (!baseline) throw new Error("baseline exam row missing after publish");
+
+      const res = await ctx.app.inject({
+        method: "POST",
+        url: `/api/exams/${examId}/extend`,
+        payload: { extendMinutes: 15 },
+        cookies: adminCookies(ctx.adminToken),
+      });
+      expect(res.statusCode).toBe(409);
+      expect(res.json().error.code).toBe("EXAM_EXTEND_NOT_ALLOWED");
+      expect(res.json().error.details?.reason).toBe("ALREADY_CLOSED");
+      // INVARIANT: the rejection rolls the whole transaction back — including
+      // the reconcile write that observed open->closed inside it. The row must
+      // still sit at its pre-mutation state with closeAt byte-identical, and
+      // no success audit may exist for the rejected operation (a best-effort
+      // or pre-guard audit channel would show up here).
+      const afterRows = await ctx.db
+        .select({
+          status: schema.exams.status,
+          closeAt: schema.exams.closeAt,
+        })
+        .from(schema.exams)
+        .where(eq(schema.exams.id, examId));
+      expect(afterRows[0]?.status).toBe(baseline.status);
+      expect(afterRows[0]?.closeAt?.getTime()).toBe(
+        baseline.closeAt?.getTime(),
+      );
+      expect(await countAudit(ctx, "exam.extend", examId)).toBe(0);
+      expect(await countAudit(ctx, "exam.close", examId)).toBe(0);
+    });
   });
 
   describe("admin route reconciliation: cancel", () => {
