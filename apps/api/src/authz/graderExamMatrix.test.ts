@@ -693,12 +693,16 @@ describe("Grader@Exam scope matrix (issue #296)", () => {
  *     graderUserId or the examId constraint) revokes MORE than the target
  *     exam. Revoking Exam A must leave Exam B's active assignment, queue
  *     rows and direct-ID access fully intact.
+ *   - M-G6-a: `listActiveExamIdsByGrader` tombstones exams that carry a
+ *     historical revoked episode. Re-granting a previously revoked exam must
+ *     restore access on the SAME session via a NEW active episode, without
+ *     overwriting or reviving episode history.
  *
  * Each test uses a dedicated grader and dedicated exams, and asserts only on
- * the beforeAll fixture plus its own actions — no test reads state another
- * test wrote.
+ * the beforeAll fixture plus its own actions — execution order between the
+ * two tests is provably irrelevant (no test reads state another test wrote).
  */
-describe("Grader@Exam revocation scope (post-#784 oracles)", () => {
+describe("Grader@Exam revocation scope & re-grant recovery (post-#784 oracles)", () => {
   let ctx: TestContext;
   // Revocation-scope grader: active assignments on Exam A + Exam B.
   let examAId: string;
@@ -901,5 +905,74 @@ describe("Grader@Exam revocation scope (post-#784 oracles)", () => {
     const aEpisodes = episodes.filter((r) => r.examId === examAId);
     expect(aEpisodes).toHaveLength(1);
     expect(aEpisodes[0]!.status).toBe("revoked");
+  });
+
+  it("re-granting a previously revoked exam restores access on the SAME session without touching episode history (M-G6-a)", async () => {
+    // First authorization of the dedicated lifecycle exam.
+    const first = await recovery.grantExam(recoveryGraderUserId, examCId);
+    expect(first.outcome).toBe("applied");
+    const queueBefore = await recovery.tGet("/api/admin/grading-queue");
+    expect(queueBefore.statusCode).toBe(200);
+    const beforeBody = queueBefore.json() as {
+      items: Array<{ examId: string }>;
+      total: number;
+    };
+    expect(beforeBody.total).toBe(2); // C + stable E
+    expect(beforeBody.items.map((i) => i.examId)).toContain(examCId);
+    const detailFirst = await recovery.tGet(
+      `/api/admin/attempts/${recoveryAttemptIds[0]}/grading-details`,
+    );
+    expect(detailFirst.statusCode, detailFirst.body).toBe(200);
+
+    // Revoke: the same session loses C on the next request.
+    await recovery.revokeExam(recoveryGraderUserId, examCId);
+    const detailRevoked = await recovery.tGet(
+      `/api/admin/attempts/${recoveryAttemptIds[0]}/grading-details`,
+    );
+    expect(detailRevoked.statusCode).toBe(404);
+    expect(detailRevoked.json().error.code).toBe("RESOURCE_NOT_FOUND");
+    const detailEWhileRevoked = await recovery.tGet(
+      `/api/admin/attempts/${recoveryAttemptIds[1]}/grading-details`,
+    );
+    expect(detailEWhileRevoked.statusCode, detailEWhileRevoked.body).toBe(200);
+
+    // Re-grant: a NEW active episode for an exam with revoked history. The
+    // tombstone mutant (M-G6-a) would keep excluding C from every scope read.
+    const second = await recovery.grantExam(recoveryGraderUserId, examCId);
+    expect(second.outcome).toBe("applied");
+    const detailRestored = await recovery.tGet(
+      `/api/admin/attempts/${recoveryAttemptIds[0]}/grading-details`,
+    );
+    expect(detailRestored.statusCode, detailRestored.body).toBe(200);
+    const queueAfter = await recovery.tGet("/api/admin/grading-queue");
+    expect(queueAfter.statusCode).toBe(200);
+    const afterBody = queueAfter.json() as {
+      items: Array<{ examId: string }>;
+      total: number;
+    };
+    expect(afterBody.total).toBe(2);
+    expect(afterBody.items.map((i) => i.examId)).toContain(examCId);
+    expect(afterBody.items.map((i) => i.examId)).toContain(examEId);
+
+    // Episode history: exactly one revoked + one active episode; the revoked
+    // episode keeps its stamps (history is neither overwritten nor revived).
+    const episodes = await ctx.db
+      .select()
+      .from(schema.graderExamAssignments)
+      .where(
+        and(
+          eq(schema.graderExamAssignments.organizationId, ctx.org.id),
+          eq(schema.graderExamAssignments.graderUserId, recoveryGraderUserId),
+          eq(schema.graderExamAssignments.examId, examCId),
+        ),
+      );
+    expect(episodes).toHaveLength(2);
+    const revoked = episodes.filter((r) => r.status === "revoked");
+    const active = episodes.filter((r) => r.status === "active");
+    expect(revoked).toHaveLength(1);
+    expect(active).toHaveLength(1);
+    expect(revoked[0]!.revokedAt).not.toBeNull();
+    expect(revoked[0]!.revokedBy).toBe(ctx.admin.id);
+    expect(active[0]!.revokedAt).toBeNull();
   });
 });
