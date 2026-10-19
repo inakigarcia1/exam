@@ -359,6 +359,61 @@ describe("ExamDetailPage", () => {
       expect(screen.getByTestId("exam-detail-extend-btn")).toBeInTheDocument();
     });
 
+    // Closed-state action projection (post-#784 hardening, #791): the closed
+    // branch previously had NO permanent component owner — the one-shot CDP
+    // witness (C-J2 J2-D) was consumed and never counted as regression
+    // protection. Per the lifecycle (draft → published → open → closed →
+    // archived) a closed exam keeps Archive and — for manual-mode exams with
+    // unpublished results — Publish Results, and loses every draft/open/
+    // published-only entry. Deliberately NOT "only an archive button".
+    const closedExam = {
+      ...mockDraftExam,
+      status: "closed",
+      resultPublicationMode: "manual",
+      resultsPublishedAt: null,
+    };
+
+    it("renders the closed status with archive, publish-results and back-to-list entries", async () => {
+      getMock.mockImplementation((path: string) => {
+        if (path.includes("/enrollments")) return Promise.resolve([]);
+        return Promise.resolve({ ...closedExam });
+      });
+
+      renderPage("Admin");
+
+      expect(await screen.findByText("期末能力测评")).toBeInTheDocument();
+      expect(screen.getByText("已关闭")).toBeInTheDocument();
+      expect(screen.getByText("归档")).toBeInTheDocument();
+      expect(
+        screen.getByTestId("exam-detail-publish-results-btn"),
+      ).toBeInTheDocument();
+      expect(screen.getByText("返回列表")).toBeEnabled();
+    });
+
+    it("hides every draft/open/published-only lifecycle entry in the closed state", async () => {
+      getMock.mockImplementation((path: string) => {
+        if (path.includes("/enrollments")) return Promise.resolve([]);
+        return Promise.resolve({ ...closedExam });
+      });
+
+      renderPage("Admin");
+
+      await screen.findByText("期末能力测评");
+      expect(
+        screen.queryByTestId("exam-detail-close-btn"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("exam-detail-extend-btn"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("exam-detail-unpublish-btn"),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText("取消考试")).not.toBeInTheDocument();
+      expect(screen.queryByText("发布考试")).not.toBeInTheDocument();
+      expect(screen.queryByText("编辑")).not.toBeInTheDocument();
+      expect(screen.queryByText("监考")).not.toBeInTheDocument();
+    });
+
     it("shows publish-results button for manual-mode unpublished published exam", async () => {
       getMock.mockImplementation((path: string) => {
         if (path.includes("/enrollments")) return Promise.resolve([]);
