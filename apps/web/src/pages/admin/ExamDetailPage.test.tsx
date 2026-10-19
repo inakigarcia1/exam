@@ -345,10 +345,13 @@ describe("ExamDetailPage", () => {
           extendMinutes: 15,
         });
       });
-      // Current as-built failure contract: the catch branch renders a fixed
-      // error toast, discards the server code/reason, and never refetches —
-      // recovery stays manual (F5). A success toast or an exam re-read here
-      // would mean the failure was treated as success.
+      // AS_BUILT_CHARACTERIZATION, not a normative recovery contract:
+      // today a rejected extend shows the generic error toast, keeps the
+      // dialog open, and does not refetch the exam — recovery stays manual
+      // (F5). The no-refetch assertion documents the current implementation
+      // only; a separately approved recovery UX may refetch after a 409,
+      // and this test must then be updated alongside it. Showing a success
+      // toast for the rejected operation remains incorrect in any variant.
       expect(toast.error).toHaveBeenCalledWith("延长失败，请稍后重试");
       expect(toast.success).not.toHaveBeenCalled();
       expect(getMock.mock.calls.length).toBe(readsAfterLoad);
