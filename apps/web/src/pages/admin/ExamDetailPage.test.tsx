@@ -386,6 +386,14 @@ describe("ExamDetailPage", () => {
       ).not.toBeInTheDocument();
       expect(screen.queryByText("取消考试")).not.toBeInTheDocument();
       expect(screen.getByText("已关闭")).toBeInTheDocument();
+      // The refreshed closed projection is not merely a subtraction: the
+      // still-legal closed-state entries (archive for the capable Admin,
+      // manual-mode publish-results) appear, exactly as a native closed
+      // render would.
+      expect(screen.getByText("归档")).toBeInTheDocument();
+      expect(
+        screen.getByTestId("exam-detail-publish-results-btn"),
+      ).toBeInTheDocument();
     });
 
     it("stale-close 409 with a failing refetch reports the real failure and keeps the retry path", async () => {
