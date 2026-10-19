@@ -3,8 +3,8 @@ import { useLocation, useParams, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
 import type { ExamDTO } from "@exam/contracts";
 import { useProductDateTime } from "@/contexts/DateTimeContext";
-import { api } from "@/lib/api";
-import { getApiErrorMessage } from "@/lib/apiErrors";
+import { api, ApiError } from "@/lib/api";
+import { getApiErrorMessage, readApiErrorReason } from "@/lib/apiErrors";
 import { routes } from "@/lib/routes";
 import { resolveListReturnPath } from "@/lib/listReturnNavigation";
 import { toast } from "sonner";
@@ -100,6 +100,22 @@ interface EnrollmentItem {
  * Displays exam configuration, statistics, enrollment management (add/remove candidates),
  * and provides publish, close, and archive lifecycle actions.
  */
+/**
+ * True when the server rejected an extend because the exam is already
+ * closed: the wire triple 409 + EXAM_EXTEND_NOT_ALLOWED +
+ * details.reason = "ALREADY_CLOSED" (exam.ts emits it for status "closed").
+ * Machine facts only — the stale-close recovery branch keys on this triple,
+ * never on server prose; every other failure keeps the generic handling.
+ */
+function isStaleClosedExtendRejection(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    error.status === 409 &&
+    error.code === "EXAM_EXTEND_NOT_ALLOWED" &&
+    readApiErrorReason(error) === "ALREADY_CLOSED"
+  );
+}
+
 export function ExamDetailPage() {
   const { t } = useTranslation();
   const { formatDateTime } = useProductDateTime();
@@ -173,16 +189,24 @@ export function ExamDetailPage() {
   const mayExtendExam = user ? canExtendExam(user) : false;
   const maySeeProctor = user ? canSeeProctor(user) : false;
 
-  /** Fetches the full exam detail from the API. */
-  const loadExam = useCallback(async () => {
-    if (!id) return;
+  /**
+   * Fetches the full exam detail from the API. Resolves `true` when fresh
+   * server state landed and `false` when the read failed — callers that
+   * react to a failed mutation need the outcome to phrase their recovery
+   * message honestly (the stale-extend branch must never claim "updated"
+   * after a failed refetch).
+   */
+  const loadExam = useCallback(async (): Promise<boolean> => {
+    if (!id) return false;
     setIsLoading(true);
     setError(null);
     try {
       const data = await api.get<ExamDetail>(`/api/exams/${id}`);
       setExam(data);
+      return true;
     } catch {
       setError(t("admin.examDetail.errors.loadFailed"));
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -440,8 +464,24 @@ export function ExamDetailPage() {
       );
       setExtendDialogOpen(false);
       await loadExam();
-    } catch {
-      toast.error(t("admin.examDetail.errors.extendFailed"));
+    } catch (err) {
+      if (isStaleClosedExtendRejection(err)) {
+        // Another admin closed the exam while this page held a stale open
+        // state. The dialog's premise is gone: exit it and let the fresh
+        // server status drive the projection (the closed render gates hide
+        // Extend/Close/Cancel on their own). The "updated" claim is only
+        // made after the refetch actually succeeded; a failed refresh gets
+        // the retryable failure copy instead of a false recovery claim.
+        setExtendDialogOpen(false);
+        const refreshed = await loadExam();
+        toast.error(
+          refreshed
+            ? t("admin.examDetail.errors.extendStaleClosedRecovered")
+            : t("admin.examDetail.errors.extendStaleClosedRefreshFailed"),
+        );
+      } else {
+        toast.error(t("admin.examDetail.errors.extendFailed"));
+      }
     } finally {
       setExtending(false);
     }

@@ -2042,6 +2042,10 @@ const zhCN = {
         unpublishFailed: "撤回发布失败，请稍后重试",
         publishResultsFailed: "发布成绩失败，请稍后重试",
         extendFailed: "延长失败，请稍后重试",
+        extendStaleClosedRecovered:
+          "考试已关闭，无法延长。已为你更新考试状态。",
+        extendStaleClosedRefreshFailed:
+          "考试已关闭，无法延长。最新状态加载失败，请重试。",
         archiveFailed: "归档失败，请稍后重试",
         cancelFailed: "取消失败，请稍后重试",
       },
