@@ -118,6 +118,18 @@ function readReason(details: unknown): string | undefined {
   return typeof reason === "string" && reason ? reason : undefined;
 }
 
+/**
+ * Safe `(code, details.reason)` discrimination for callers that branch on a
+ * specific server error semantic (e.g. the stale-extend recovery): returns
+ * the wire `details.reason` of an {@link ApiError} without ever touching
+ * server prose. Unknown shapes resolve to undefined, so a caller can only
+ * match the machine fact it expects.
+ */
+export function readApiErrorReason(error: unknown): string | undefined {
+  if (!(error instanceof ApiError)) return undefined;
+  return readReason(error.details);
+}
+
 /** Extracts the wire `details.params` interpolation values from details. */
 function readParams(
   details: unknown,

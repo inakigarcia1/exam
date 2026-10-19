@@ -4,6 +4,7 @@ import { ApiError } from "./api";
 import {
   getApiErrorMessage,
   getApiFieldErrors,
+  readApiErrorReason,
   resolveFieldError,
 } from "./apiErrors";
 
@@ -341,5 +342,52 @@ describe("resolveFieldError — C2 field violation protocol", () => {
         },
       }),
     ).toEqual({ name: "请输入名称" });
+  });
+});
+
+// readApiErrorReason backs machine-fact discrimination on the wire
+// details.reason (the stale-extend recovery keys on it): it must surface the
+// reason only for ApiError values carrying a non-empty string reason, and
+// degrade to undefined for every other ApiError shape and non-ApiError value
+// — never throw on unknown wire data.
+describe("readApiErrorReason — safe wire reason discrimination", () => {
+  it("extracts the reason from an ApiError with record details", () => {
+    expect(
+      readApiErrorReason(
+        new ApiError(409, "msg", "EXAM_EXTEND_NOT_ALLOWED", {
+          reason: "ALREADY_CLOSED",
+        }),
+      ),
+    ).toBe("ALREADY_CLOSED");
+  });
+
+  it("returns undefined for ApiError details shapes without a string reason", () => {
+    const code = "EXAM_EXTEND_NOT_ALLOWED";
+    expect(
+      readApiErrorReason(new ApiError(409, "msg", code, { other: 1 })),
+    ).toBeUndefined();
+    expect(
+      readApiErrorReason(new ApiError(409, "msg", code, { reason: 42 })),
+    ).toBeUndefined();
+    expect(
+      readApiErrorReason(new ApiError(409, "msg", code, { reason: "" })),
+    ).toBeUndefined();
+    expect(
+      readApiErrorReason(new ApiError(409, "msg", code, ["ALREADY_CLOSED"])),
+    ).toBeUndefined();
+    expect(
+      readApiErrorReason(new ApiError(409, "msg", code, "ALREADY_CLOSED")),
+    ).toBeUndefined();
+    expect(
+      readApiErrorReason(new ApiError(409, "msg", code, null)),
+    ).toBeUndefined();
+    expect(readApiErrorReason(new ApiError(409, "msg", code))).toBeUndefined();
+  });
+
+  it("returns undefined for non-ApiError values without throwing", () => {
+    expect(readApiErrorReason(new Error("plain"))).toBeUndefined();
+    expect(readApiErrorReason("ALREADY_CLOSED")).toBeUndefined();
+    expect(readApiErrorReason(null)).toBeUndefined();
+    expect(readApiErrorReason(undefined)).toBeUndefined();
   });
 });

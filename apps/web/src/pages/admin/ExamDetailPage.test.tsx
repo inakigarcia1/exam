@@ -319,15 +319,126 @@ describe("ExamDetailPage", () => {
       });
     });
 
-    it("extend failure shows the fixed error toast, keeps the dialog open, and does not refetch the exam", async () => {
+    // Stale-extend recovery contract (#792; supersedes the AUGMENT-B as-built
+    // characterization, which pinned "generic toast + dialog open + no
+    // refetch" for every failure). A 409 EXAM_EXTEND_NOT_ALLOWED with
+    // details.reason = ALREADY_CLOSED means another admin closed the exam
+    // while this page held a stale open state: the recovery branch exits the
+    // dialog, refetches once, and lets the fresh server status drive the
+    // projection — the "updated" claim is made only after the refetch
+    // succeeded. Every OTHER failure keeps the legacy handling (generic
+    // toast, dialog open, no refetch).
+    const staleClosedError = () =>
+      new ApiError(409, "考试当前状态不能延长", "EXAM_EXTEND_NOT_ALLOWED", {
+        reason: "ALREADY_CLOSED",
+      });
+
+    it("stale-close 409 exits the dialog, refetches once, and projects the refreshed closed state", async () => {
+      // Superset shape up front so the pre/post-refresh payloads share one
+      // inferred type (mockDraftExam alone lacks the results fields).
+      let currentExam = {
+        ...mockDraftExam,
+        status: "open",
+        resultPublicationMode: "manual",
+        resultsPublishedAt: null,
+      };
+      getMock.mockImplementation((path: string) => {
+        if (path.includes("/enrollments")) return Promise.resolve([]);
+        return Promise.resolve({ ...currentExam });
+      });
+      postMock.mockRejectedValueOnce(staleClosedError());
+      const user = userEvent.setup();
+      renderPage();
+      await screen.findByText("期末能力测评");
+      expect(screen.getByTestId("exam-detail-extend-btn")).toBeInTheDocument();
+
+      await user.click(screen.getByTestId("exam-detail-extend-btn"));
+      const dialog = screen.getByRole("dialog");
+      // The server truth flips before the rejection's refetch lands: the
+      // initial page rendered open, the refresh must observe closed.
+      currentExam = { ...currentExam, status: "closed" };
+      await user.click(
+        within(dialog).getByRole("button", { name: "延长 15 分钟" }),
+      );
+
+      // Exactly one rejected extend mutation, then exactly one refresh.
+      await waitFor(() => {
+        expect(postMock).toHaveBeenCalledTimes(1);
+      });
+      expect(postMock).toHaveBeenCalledWith("/api/exams/exam-1/extend", {
+        extendMinutes: 15,
+      });
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith(
+          "考试已关闭，无法延长。已为你更新考试状态。",
+        );
+      });
+      // The rejected operation never claims success.
+      expect(toast.success).not.toHaveBeenCalled();
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      // Server-driven projection: the stale open-state entries are gone and
+      // the closed status badge is shown.
+      expect(
+        screen.queryByTestId("exam-detail-extend-btn"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("exam-detail-close-btn"),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText("取消考试")).not.toBeInTheDocument();
+      expect(screen.getByText("已关闭")).toBeInTheDocument();
+      // The refreshed closed projection is not merely a subtraction: the
+      // still-legal closed-state entries (archive for the capable Admin,
+      // manual-mode publish-results) appear, exactly as a native closed
+      // render would.
+      expect(screen.getByText("归档")).toBeInTheDocument();
+      expect(
+        screen.getByTestId("exam-detail-publish-results-btn"),
+      ).toBeInTheDocument();
+    });
+
+    it("stale-close 409 with a failing refetch reports the real failure and keeps the retry path", async () => {
+      let refreshMustFail = false;
+      getMock.mockImplementation((path: string) => {
+        if (path.includes("/enrollments")) return Promise.resolve([]);
+        if (refreshMustFail) return Promise.reject(new Error("network down"));
+        return Promise.resolve({ ...mockDraftExam, status: "open" });
+      });
+      postMock.mockRejectedValueOnce(staleClosedError());
+      const user = userEvent.setup();
+      renderPage();
+      await screen.findByText("期末能力测评");
+      const readsAfterLoad = getMock.mock.calls.length;
+
+      await user.click(screen.getByTestId("exam-detail-extend-btn"));
+      const dialog = screen.getByRole("dialog");
+      refreshMustFail = true;
+      await user.click(
+        within(dialog).getByRole("button", { name: "延长 15 分钟" }),
+      );
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith(
+          "考试已关闭，无法延长。最新状态加载失败，请重试。",
+        );
+      });
+      // No false recovery claim for a failed refresh.
+      expect(toast.success).not.toHaveBeenCalled();
+      // One rejected mutation, exactly one refresh attempt, no loop.
+      expect(postMock).toHaveBeenCalledTimes(1);
+      expect(getMock.mock.calls.length).toBe(readsAfterLoad + 1);
+      // The failed refresh surfaces the standard retryable error state —
+      // never a blank page or a stale actionable dialog.
+      expect(await screen.findByText("加载考试详情失败")).toBeInTheDocument();
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
+    it("non-stale extend failures keep the legacy handling: generic toast, dialog open, no refetch", async () => {
       getMock.mockImplementation((path: string) => {
         if (path.includes("/enrollments")) return Promise.resolve([]);
         return Promise.resolve({ ...mockDraftExam, status: "open" });
       });
-      postMock.mockRejectedValue(
-        new ApiError(409, "考试当前状态不能延长", "EXAM_EXTEND_NOT_ALLOWED", {
-          reason: "ALREADY_CLOSED",
-        }),
+      postMock.mockRejectedValueOnce(
+        new ApiError(500, "服务器内部错误", "INTERNAL_ERROR"),
       );
       const user = userEvent.setup();
       renderPage();
@@ -341,19 +452,10 @@ describe("ExamDetailPage", () => {
       );
 
       await waitFor(() => {
-        expect(postMock).toHaveBeenCalledWith("/api/exams/exam-1/extend", {
-          extendMinutes: 15,
-        });
+        expect(toast.error).toHaveBeenCalledWith("延长失败，请稍后重试");
       });
-      // AS_BUILT_CHARACTERIZATION, not a normative recovery contract:
-      // today a rejected extend shows the generic error toast, keeps the
-      // dialog open, and does not refetch the exam — recovery stays manual
-      // (F5). The no-refetch assertion documents the current implementation
-      // only; a separately approved recovery UX may refetch after a 409,
-      // and this test must then be updated alongside it. Showing a success
-      // toast for the rejected operation remains incorrect in any variant.
-      expect(toast.error).toHaveBeenCalledWith("延长失败，请稍后重试");
       expect(toast.success).not.toHaveBeenCalled();
+      expect(postMock).toHaveBeenCalledTimes(1);
       expect(getMock.mock.calls.length).toBe(readsAfterLoad);
       expect(screen.getByRole("dialog")).toBeInTheDocument();
       expect(screen.getByTestId("exam-detail-extend-btn")).toBeInTheDocument();
