@@ -7,6 +7,8 @@ dist
 .env.local
 .env.*.local
 .env.production
+# Local deployment credentials — never commit.
+/.env.deploy
 *.db
 *.db-shm
 *.db-wal
