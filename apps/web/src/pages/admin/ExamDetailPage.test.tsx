@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api, ApiError } from "@/lib/api";
+import { toast } from "sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { BrandProvider } from "@/components/layout/BrandProvider";
 import { ExamDetailPage } from "./ExamDetailPage";
@@ -316,6 +317,43 @@ describe("ExamDetailPage", () => {
       await waitFor(() => {
         expect(postMock).toHaveBeenCalledWith("/api/exams/exam-1/cancel");
       });
+    });
+
+    it("extend failure shows the fixed error toast, keeps the dialog open, and does not refetch the exam", async () => {
+      getMock.mockImplementation((path: string) => {
+        if (path.includes("/enrollments")) return Promise.resolve([]);
+        return Promise.resolve({ ...mockDraftExam, status: "open" });
+      });
+      postMock.mockRejectedValue(
+        new ApiError(409, "考试当前状态不能延长", "EXAM_EXTEND_NOT_ALLOWED", {
+          reason: "ALREADY_CLOSED",
+        }),
+      );
+      const user = userEvent.setup();
+      renderPage();
+      await screen.findByText("期末能力测评");
+      const readsAfterLoad = getMock.mock.calls.length;
+
+      await user.click(screen.getByTestId("exam-detail-extend-btn"));
+      const dialog = screen.getByRole("dialog");
+      await user.click(
+        within(dialog).getByRole("button", { name: "延长 15 分钟" }),
+      );
+
+      await waitFor(() => {
+        expect(postMock).toHaveBeenCalledWith("/api/exams/exam-1/extend", {
+          extendMinutes: 15,
+        });
+      });
+      // Current as-built failure contract: the catch branch renders a fixed
+      // error toast, discards the server code/reason, and never refetches —
+      // recovery stays manual (F5). A success toast or an exam re-read here
+      // would mean the failure was treated as success.
+      expect(toast.error).toHaveBeenCalledWith("延长失败，请稍后重试");
+      expect(toast.success).not.toHaveBeenCalled();
+      expect(getMock.mock.calls.length).toBe(readsAfterLoad);
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+      expect(screen.getByTestId("exam-detail-extend-btn")).toBeInTheDocument();
     });
 
     it("shows publish-results button for manual-mode unpublished published exam", async () => {
