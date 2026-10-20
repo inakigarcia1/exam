@@ -20,7 +20,7 @@
       "default": "./built/deep/*.js"
     }
   },
-  "dependencies": {
+  "devDependencies": {
     "@exam/source-fixture-dep": "workspace:*"
   }
 }

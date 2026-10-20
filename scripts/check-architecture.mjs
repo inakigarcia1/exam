@@ -207,12 +207,24 @@ for (const entry of await readdir("packages", { withFileTypes: true })) {
       continue;
     }
     const sourceTarget = value[TEST_SOURCE_CONDITION];
+    const typesTarget = value.types;
     const defaultTarget = value.default;
-    if (typeof sourceTarget !== "string" || typeof defaultTarget !== "string") {
+    if (
+      typeof sourceTarget !== "string" ||
+      typeof typesTarget !== "string" ||
+      typeof defaultTarget !== "string"
+    ) {
       violations.push(
-        `${label}: must declare both "${TEST_SOURCE_CONDITION}" and "default" conditions`,
+        `${label}: must declare "${TEST_SOURCE_CONDITION}", "types" and "default" conditions — the three-condition contract`,
       );
       continue;
+    }
+    if (typesTarget.startsWith("./src/") && manifest.scripts?.build) {
+      // Packages that build must publish dist declarations; the only
+      // src-typed manifests are the never-built source-fixture packages.
+      violations.push(
+        `${label}: "types" must point at built declarations when the package has a build script`,
+      );
     }
     if (defaultTarget.startsWith("./src/")) {
       violations.push(
@@ -244,13 +256,23 @@ for (const entry of await readdir("packages", { withFileTypes: true })) {
 // is specifier-shaped (not a bare grep): it matches imports, dynamic
 // imports, vi.mock strings and doc references alike — a physical /src/
 // specifier in active code is always a resolution-contract violation.
+// Cross-package RELATIVE imports are banned for the same reason: they bypass
+// the declared exports contract and load whatever file the path happens to
+// name (docs/architecture/workspace-module-resolution.md).
 const PHYSICAL_SRC_SPECIFIER = /@exam\/[a-z-]+\/src\//;
+const CROSS_PACKAGE_RELATIVE =
+  /(?:from|import|require\()\s*["'][^"']*\.\.[/\\]packages[/\\]/;
 for (const file of await allCodeFiles("apps", [".ts", ".tsx", ".mjs", ".js"])) {
   if (file.endsWith(".d.ts")) continue;
   const text = await readFile(file, "utf8");
   if (PHYSICAL_SRC_SPECIFIER.test(text)) {
     violations.push(
       `${file}: physical "@exam/*/src/" specifier — import the package's public root/subpath entries instead (#794)`,
+    );
+  }
+  if (CROSS_PACKAGE_RELATIVE.test(text)) {
+    violations.push(
+      `${file}: cross-package relative import — workspace code reaches other packages only through their public exports (#794)`,
     );
   }
 }
@@ -260,6 +282,9 @@ for (const dir of ["packages", "config", "scripts"]) {
     const text = await readFile(file, "utf8");
     if (PHYSICAL_SRC_SPECIFIER.test(text)) {
       violations.push(`${file}: physical "@exam/*/src/" specifier (#794)`);
+    }
+    if (CROSS_PACKAGE_RELATIVE.test(text)) {
+      violations.push(`${file}: cross-package relative import (#794)`);
     }
   }
 }
@@ -296,6 +321,69 @@ for (const app of ["apps/api", "apps/web"]) {
       `${configPath}: does not consume workspaceSourceResolutionPlugin (#794)`,
     );
   }
+}
+
+// 5. Every vitest project that consumes the plugin must also carry its
+// permanent source-freshness oracle, and the api globalSetup must carry the
+// main-process canary — deleting the oracles would otherwise pass every
+// static gate and leave the mechanism unproven (review round 1, #794).
+const ORACLE_ASSERTION =
+  'expect(SOURCE_FIXTURE_MARKER).toBe("source-fixture:src:root")';
+for (const entry of await readdir("packages", { withFileTypes: true })) {
+  if (!entry.isDirectory()) continue;
+  const pkgDir = join("packages", entry.name);
+  const manifest = JSON.parse(
+    await readFile(join(pkgDir, "package.json"), "utf8"),
+  );
+  if (
+    !manifest.scripts?.test ||
+    !manifest.devDependencies?.["@exam/source-fixture"]
+  )
+    continue;
+  const oraclePath = join(pkgDir, "src/workspaceSourceResolution.test.ts");
+  if (!existsSync(oraclePath)) {
+    violations.push(
+      `${oraclePath}: missing — every plugin-consuming project must pin source freshness with the fixture oracle (#794)`,
+    );
+    continue;
+  }
+  const oracleText = await readFile(oraclePath, "utf8");
+  if (!oracleText.includes(ORACLE_ASSERTION)) {
+    violations.push(
+      `${oraclePath}: does not assert the fixture src marker — execution provenance assertion missing (#794)`,
+    );
+  }
+}
+for (const app of ["apps/api", "apps/web"]) {
+  const oraclePath = join(app, "src/workspaceSourceResolution.test.ts");
+  if (
+    !existsSync(oraclePath) ||
+    !(await readFile(oraclePath, "utf8")).includes(ORACLE_ASSERTION)
+  ) {
+    violations.push(
+      `${oraclePath}: missing or incomplete fixture oracle (#794)`,
+    );
+  }
+}
+const apiGlobalSetup = await readFile("apps/api/vitest.globalSetup.ts", "utf8");
+if (
+  !apiGlobalSetup.includes(
+    'SOURCE_FIXTURE_MARKER !== "source-fixture:src:root"',
+  )
+) {
+  violations.push(
+    "apps/api/vitest.globalSetup.ts: main-process source-resolution canary missing (#794)",
+  );
+}
+
+// 6. The api typecheck config must activate the same reserved condition the
+// plugin does — otherwise type evidence silently reverts to dist .d.ts when
+// the authority renames the condition (review round 1, #794).
+const apiTypecheck = await readFile("apps/api/tsconfig.typecheck.json", "utf8");
+if (!apiTypecheck.includes(`"${TEST_SOURCE_CONDITION}"`)) {
+  violations.push(
+    "apps/api/tsconfig.typecheck.json: customConditions must contain the TEST_SOURCE_CONDITION from config/workspace-resolution.ts",
+  );
 }
 
 if (violations.length > 0) {

@@ -209,7 +209,8 @@ if (child.status !== 0 || !child.stdout.trim()) {
         "--eval",
         `const f = await import("@exam/source-fixture");
          const w = await import("@exam/source-fixture/repository/widget");
-         console.log(JSON.stringify({ root: f.SOURCE_FIXTURE_MARKER, widget: w.WIDGET_MARKER }));`,
+         const d = await import("@exam/source-fixture/deep/mod");
+         console.log(JSON.stringify({ root: f.SOURCE_FIXTURE_MARKER, widget: w.WIDGET_MARKER, deep: d.DEEP_MOD_MARKER }));`,
       ],
       { cwd: join(ROOT, "apps/api"), encoding: "utf8", timeout: 30_000 },
     );
@@ -225,6 +226,11 @@ if (child.status !== 0 || !child.stdout.trim()) {
       if (markers.widget !== "source-fixture:built:repository/widget") {
         fail(
           `fixture polarity broken: production Node observed widget marker ${markers.widget}, expected the built marker`,
+        );
+      }
+      if (markers.deep !== "source-fixture:built:deep/mod") {
+        fail(
+          `fixture polarity broken: production Node observed pattern-subpath marker ${markers.deep}, expected the built marker`,
         );
       }
     }

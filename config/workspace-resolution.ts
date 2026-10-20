@@ -124,9 +124,11 @@ function getTable(): WorkspaceResolutionTable {
 /**
  * Match a package-relative subpath ("" for the root entry) against the
  * package's exports keys. Exact keys win over patterns; among patterns the
- * longest static prefix wins (mirrors the exports algorithm closely enough
- * for the shapes this repository declares — overlapping ambiguous patterns
- * are a manifest smell the architecture check rejects).
+ * longest static prefix wins, mirroring the exports algorithm. Ties between
+ * equally specific patterns resolve to the first declared — the manifests in
+ * this repository keep pattern prefixes disjoint, and an overlapping-pattern
+ * manifest is a review-smell, not something this matcher tries to
+ * arbitrate.
  */
 function matchMapping(
   mappings: SourceMapping[],

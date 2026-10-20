@@ -11,8 +11,10 @@ retired #689 single-package alias mechanism.
 ## The contract
 
 Every workspace package under `packages/` declares its public API in
-`package.json` `exports`. Each entry — the root `"."` and every supported
-subpath — is a condition object with exactly three conditions:
+`package.json` `exports` (all nine manifests — the seven production packages
+and the two source-fixture packages — follow this contract). Each entry —
+the root `"."` and every supported subpath — is a condition object with
+exactly three conditions:
 
 ```jsonc
 "./repository/*": {
@@ -94,6 +96,13 @@ typecheck `paths` entry — were retired by #794).
 4. `pnpm lint:arch` enforces all of the above — a missing manifest entry,
    missing vitest project, or physical `/src/` specifier fails the gate.
 5. Nothing else: the resolution plugin discovers the package automatically.
+
+## The source-fixture packages are a sanctioned variant
+
+`@exam/source-fixture` / `@exam/source-fixture-dep` never build, so their
+`types` condition points at `src` and their `default` at a hand-written
+`built/` tree holding the opposite marker — that asymmetry is what makes the
+resolution oracles possible. Do not copy them as templates for real packages.
 
 ## Special dependencies
 

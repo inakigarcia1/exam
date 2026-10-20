@@ -99,6 +99,14 @@ jobs:
       - name: Build once
         run: pnpm build
 
+      - name: Production resolution oracle (#794)
+        # Plain-Node polarity check: every declared workspace entry loads from
+        # dist/built (never src), and every @exam/* specifier compiled into
+        # apps/api/dist resolves under the production default branch. Needs
+        # the dist tree produced by the step above; complements the Vitest
+        # source-freshness oracles (see config/workspace-resolution.ts).
+        run: pnpm lint:prod-resolution
+
       - name: Upload build outputs
         uses: actions/upload-artifact@v7
         with:
