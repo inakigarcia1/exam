@@ -319,9 +319,17 @@ async function requireCompleteOracle(oraclePath, grammarProbe) {
       `${oraclePath}: does not assert the fixture src marker — execution provenance assertion missing (#794)`,
     );
   }
-  if (!oracleText.includes(grammarProbe)) {
+  // Assertion-shaped, like the classification needles below (review round
+  // 3): the probe specifier is quoted in the oracles' explanatory comments,
+  // so a bare includes() would pass with the executable probe deleted. The
+  // shape pins the call: dynamicImport("SPEC")[,)] followed by
+  // .rejects.toThrow (whitespace/newline tolerant — Prettier reflows).
+  const grammarNeedle = new RegExp(
+    `${grammarProbe.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*,?\\s*\\)\\s*\\.rejects\\.toThrow`,
+  );
+  if (!grammarNeedle.test(oracleText)) {
     violations.push(
-      `${oraclePath}: missing the dot-segment grammar probe (${grammarProbe}) — captures that escape the declared pattern family must be pinned (#794)`,
+      `${oraclePath}: missing the dot-segment grammar probe (${grammarProbe}) executable rejection — captures that escape the declared pattern family must be pinned (#794)`,
     );
   }
   // Assertion-shaped needles, not bare words (review round 2): the

@@ -83,15 +83,20 @@ missing fails at resolve time with `MISSING_SOURCE`.
 
 **Capture grammar is Node-exact, not permissive.** Native Node rejects
 captures containing `.`, `..`, or `node_modules` path segments — raw or
-percent-encoded — and any encoded separator or backslash, with
-`ERR_INVALID_MODULE_SPECIFIER` before file lookup; the matcher rejects the
-same family (`BAD_SPECIFIER_SHAPE`) before any path math. This is not a
+percent-encoded — and any encoded separator, with
+`ERR_INVALID_MODULE_SPECIFIER` before file lookup; it never serves a
+trailing-slash workspace specifier (outright rejection, or the deprecated
+form failing at file lookup). The matcher rejects the same family plus
+backslash captures (POSIX Node would serve `a\b` as `a/b`; rejecting them
+all is the fail-closed direction of parity) as `BAD_SPECIFIER_SHAPE`
+before any path math. This is not a
 style rule: `join()` normalizes paths, so an unvalidated dot-segment
 capture could resolve a file the exports field never declared (probed
 live: `@exam/db/repository/../sqlIdent` executed the undeclared
 `src/sqlIdent.ts` under the plugin while both plain Node and Vitest's
 default chain rejected the specifier). Every Vitest project pins the
-closed bypass with a permanent oracle probe; the production oracle pins
+closed bypass family — raw dot-segment, percent-encoded, and empty
+captures — with permanent oracle probes; the production oracle pins
 Node's native rejection with the exact error code.
 
 **Why fail-closed is mandatory**: on the fall-through design, a missing

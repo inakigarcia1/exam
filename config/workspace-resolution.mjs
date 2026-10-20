@@ -139,13 +139,20 @@ function patternKeyCompare(a, b) {
 // on the toolchain Node): inside a pattern capture, ".", ".." and
 // "node_modules" segments — raw or percent-encoded in any case — are
 // rejected with ERR_INVALID_MODULE_SPECIFIER before any file lookup, as are
-// encoded path separators and backslashes. Empty segments and trailing
-// slashes are deprecated-but-allowed there and stay allowed here (they can
-// only normalize onto a declared file, same as Node). This check must run
-// BEFORE any path math: join() normalizes captures, so a rejected shape
-// like "repository/../sqlIdent" would otherwise resolve an existing
-// undeclared file (observed live: the plugin executed src/sqlIdent.ts while
-// both native Node and Vitest's default chain rejected the specifier).
+// encoded path separators (%2f/%5c). Raw backslashes: Node serves "a\b" as
+// "a/b" on POSIX and rejects only backslashes that form dot segments, so
+// rejecting every backslash here is the fail-closed direction of parity
+// (no toolchain emits backslash package specifiers). Malformed
+// percent-encoding is rejected for the same reason. Mid-capture empty
+// segments are deprecated-but-allowed in Node and stay allowed here (they
+// can only normalize onto a declared file); trailing slashes are never
+// served by Node (outright rejection or DEP0155 + file-level failure) and
+// are rejected here. This check must run BEFORE any path math: join()
+// normalizes captures, so a rejected shape like
+// "repository/../sqlIdent" would
+// otherwise resolve an existing undeclared file (observed live: the plugin
+// executed src/sqlIdent.ts while both native Node and Vitest's default
+// chain rejected the specifier).
 function isInvalidCaptureSegment(segment) {
   const raw = segment.toLowerCase();
   if (
@@ -336,6 +343,23 @@ export function matchWorkspaceSource(table, specifier) {
     return { status: "unmanaged" };
   }
   const withoutScope = specifier.slice("@exam/".length);
+  // Grammar parity: Node never serves a trailing-slash workspace specifier
+  // — a bare "@exam/db/" is rejected outright, a subpath trailing slash is
+  // DEP0155-deprecated and then fails at file lookup. Serving the root or
+  // a capture here would out-serve Node in the loose direction. A bare
+  // "@exam/" keeps falling through to UNKNOWN_WORKSPACE_PACKAGE below.
+  if (withoutScope !== "" && withoutScope.endsWith("/")) {
+    return {
+      status: "error",
+      classification: "BAD_SPECIFIER_SHAPE",
+      message:
+        `${specifier}: BAD_SPECIFIER_SHAPE — workspace package specifiers ` +
+        `never carry a trailing slash; import "@exam/${withoutScope.slice(
+          0,
+          withoutScope.indexOf("/"),
+        )}" or one of its declared subpaths instead`,
+    };
+  }
   const slash = withoutScope.indexOf("/");
   const packageName =
     slash === -1 ? withoutScope : withoutScope.slice(0, slash);
@@ -384,17 +408,23 @@ export function matchWorkspaceSource(table, specifier) {
   }
   if (entry.prefix !== null) {
     // Pattern captures are validated as subpath shapes before any file
-    // math (grammar parity, see isInvalidCaptureSegment above).
-    const invalidSegment = capture.split("/").find(isInvalidCaptureSegment);
-    if (invalidSegment !== undefined) {
+    // math (grammar parity, see isInvalidCaptureSegment above). An empty
+    // capture ("./prefix/") is Node-rejected, and left unchecked it would
+    // path-math onto the pattern base rather than a module.
+    const shapeViolation =
+      capture === "" ? "" : capture.split("/").find(isInvalidCaptureSegment);
+    if (shapeViolation !== undefined) {
       return {
         status: "error",
         classification: "BAD_SPECIFIER_SHAPE",
         message:
           `${specifier}: BAD_SPECIFIER_SHAPE — pattern captures may not ` +
-          `contain ".", "..", "node_modules", encoded-separator or ` +
-          `backslash path segments (Node exports parity); invalid segment ` +
-          `"${invalidSegment}" in capture "${capture}" of "@exam/${packageName}"`,
+          `be empty or contain ".", "..", "node_modules", encoded-separator ` +
+          `or backslash path segments (Node exports parity); ${
+            capture === ""
+              ? `the capture after "./${entry.prefix}" is empty`
+              : `invalid segment "${shapeViolation}" in capture "${capture}"`
+          } of "@exam/${packageName}"`,
       };
     }
   }

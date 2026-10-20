@@ -66,15 +66,22 @@ describe("workspace source resolution oracle", () => {
     ).rejects.toThrow(/BAD_SPECIFIER_SHAPE/);
   });
 
-  it("rejects dot-segment captures that would leave the declared pattern", async () => {
+  it("rejects captures that escape the declared pattern grammar", async () => {
     // Grammar parity with Node's exports resolution (probed live, #794):
-    // native Node rejects "./deep/../index" with ERR_INVALID_MODULE_SPECIFIER
-    // before any file lookup; the join()-normalizing matcher must reject it
-    // too, or a capture could name files outside the declared pattern
-    // family (probed: "@exam/db/repository/../sqlIdent" resolved the
-    // undeclared src/sqlIdent.ts).
+    // native Node rejects these with ERR_INVALID_MODULE_SPECIFIER /
+    // ERR_PACKAGE_PATH_NOT_EXPORTED before any file lookup; the
+    // join()-normalizing matcher must reject the family too, or a capture
+    // could name files outside the declared pattern family (probed:
+    // "@exam/db/repository/../sqlIdent" resolved the undeclared
+    // src/sqlIdent.ts).
     await expect(
       dynamicImport("@exam/source-fixture/deep/../index"),
     ).rejects.toThrow(/BAD_SPECIFIER_SHAPE/);
+    await expect(
+      dynamicImport("@exam/source-fixture/deep/%2e%2e/index"),
+    ).rejects.toThrow(/BAD_SPECIFIER_SHAPE/);
+    await expect(dynamicImport("@exam/source-fixture/deep/")).rejects.toThrow(
+      /BAD_SPECIFIER_SHAPE/,
+    );
   });
 });
