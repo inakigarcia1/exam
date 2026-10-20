@@ -145,27 +145,25 @@ await forbid("apps/api/src/routes", [
 
 // ---------------------------------------------------------------------------
 // #794 — workspace module resolution governance. The unified contract lives
-// in docs/architecture/workspace-module-resolution.md; the plugin authority
-// is config/workspace-resolution.ts. These checks make the contract
-// structural: manifests, vitest projects and active imports cannot drift
-// back to per-package aliases, inline workarounds or physical /src/
-// specifiers (the #689/#794 stale-dist failure modes).
+// in docs/architecture/workspace-module-resolution.md; the authority is
+// config/workspace-resolution.mjs — imported here (not re-implemented) so
+// manifests, vitest projects and active imports cannot drift back to
+// per-package aliases, inline workarounds or physical /src/ specifiers (the
+// #689/#794 stale-dist failure modes).
 
-// The reserved condition name is extracted from the authority module instead
-// of being restated here — one source of truth for the identifier.
-const authoritySource = await readFile(
-  "config/workspace-resolution.ts",
-  "utf8",
-);
-const conditionMatch = authoritySource.match(
-  /export const TEST_SOURCE_CONDITION = "([^"]+)"/,
-);
-if (!conditionMatch) {
+// Layer 1 (package contract validation): loading the table validates every
+// manifest — three-condition entries, single-star pattern keys, disjoint
+// pattern families, src/default target existence, declared negative
+// entries. A load error IS the violation; report it and stop.
+const authority = await import("../config/workspace-resolution.mjs");
+const TEST_SOURCE_CONDITION = authority.TEST_SOURCE_CONDITION;
+try {
+  authority.loadWorkspaceResolutionTable();
+} catch (err) {
   violations.push(
-    "config/workspace-resolution.ts: TEST_SOURCE_CONDITION declaration not found",
+    `workspace manifests: ${err instanceof Error ? err.message : String(err)}`,
   );
 }
-const TEST_SOURCE_CONDITION = conditionMatch?.[1] ?? "@exam/test-source";
 
 async function allCodeFiles(path, extensions) {
   const result = [];
@@ -180,76 +178,6 @@ async function allCodeFiles(path, extensions) {
     }
   }
   return result;
-}
-
-// 1 + 2. Package manifests: every workspace package must declare the
-// three-condition exports contract, and every declared source target must
-// exist. "default" must never point into src/ — plain Node (API start,
-// workers, CLI, Playwright) resolves it, and production must load dist.
-for (const entry of await readdir("packages", { withFileTypes: true })) {
-  if (!entry.isDirectory()) continue;
-  const pkgDir = join("packages", entry.name);
-  const manifest = JSON.parse(
-    await readFile(join(pkgDir, "package.json"), "utf8"),
-  );
-  if (!manifest.exports) {
-    violations.push(
-      `${pkgDir}/package.json: missing "exports" — every workspace package declares its public API (#794 contract)`,
-    );
-    continue;
-  }
-  for (const [key, value] of Object.entries(manifest.exports)) {
-    const label = `${pkgDir}/package.json exports["${key}"]`;
-    if (typeof value !== "object" || value === null) {
-      violations.push(
-        `${label}: plain-string exports cannot separate the test-source condition from production resolution`,
-      );
-      continue;
-    }
-    const sourceTarget = value[TEST_SOURCE_CONDITION];
-    const typesTarget = value.types;
-    const defaultTarget = value.default;
-    if (
-      typeof sourceTarget !== "string" ||
-      typeof typesTarget !== "string" ||
-      typeof defaultTarget !== "string"
-    ) {
-      violations.push(
-        `${label}: must declare "${TEST_SOURCE_CONDITION}", "types" and "default" conditions — the three-condition contract`,
-      );
-      continue;
-    }
-    if (typesTarget.startsWith("./src/") && manifest.scripts?.build) {
-      // Packages that build must publish dist declarations; the only
-      // src-typed manifests are the never-built source-fixture packages.
-      violations.push(
-        `${label}: "types" must point at built declarations when the package has a build script`,
-      );
-    }
-    if (defaultTarget.startsWith("./src/")) {
-      violations.push(
-        `${label}: "default" must not resolve into src/ — production Node would execute sources`,
-      );
-    }
-    // Pattern entries ("./repository/*") cannot name one file; validate the
-    // target's directory instead of a literal path.
-    if (sourceTarget.includes("*")) {
-      const dir = join(
-        pkgDir,
-        sourceTarget.replace("*", "").replace(/^\.\//, ""),
-        "..",
-      );
-      if (!existsSync(dir)) {
-        violations.push(
-          `${label}: "${TEST_SOURCE_CONDITION}" target directory ${dir} does not exist`,
-        );
-      }
-    } else if (!existsSync(join(pkgDir, sourceTarget.replace(/^\.\//, "")))) {
-      violations.push(
-        `${label}: "${TEST_SOURCE_CONDITION}" target ${sourceTarget} does not exist`,
-      );
-    }
-  }
 }
 
 // 3. Active code must not import physical package-internal src paths. This
@@ -324,9 +252,11 @@ for (const app of ["apps/api", "apps/web"]) {
 }
 
 // 5. Every vitest project that consumes the plugin must also carry its
-// permanent source-freshness oracle, and the api globalSetup must carry the
-// main-process canary — deleting the oracles would otherwise pass every
-// static gate and leave the mechanism unproven (review round 1, #794).
+// permanent resolution oracle — the positive fixture-marker assertions AND
+// every fail-closed classification from the authority (deleting the
+// oracles, or dropping one rejection class, would otherwise pass every
+// static gate and leave the mechanism unproven). The api globalSetup must
+// carry the main-process canary (review round 1, #794; negatives round 2).
 const ORACLE_ASSERTION =
   'expect(SOURCE_FIXTURE_MARKER).toBe("source-fixture:src:root")';
 for (const entry of await readdir("packages", { withFileTypes: true })) {
@@ -341,29 +271,12 @@ for (const entry of await readdir("packages", { withFileTypes: true })) {
   )
     continue;
   const oraclePath = join(pkgDir, "src/workspaceSourceResolution.test.ts");
-  if (!existsSync(oraclePath)) {
-    violations.push(
-      `${oraclePath}: missing — every plugin-consuming project must pin source freshness with the fixture oracle (#794)`,
-    );
-    continue;
-  }
-  const oracleText = await readFile(oraclePath, "utf8");
-  if (!oracleText.includes(ORACLE_ASSERTION)) {
-    violations.push(
-      `${oraclePath}: does not assert the fixture src marker — execution provenance assertion missing (#794)`,
-    );
-  }
+  await requireCompleteOracle(oraclePath);
 }
 for (const app of ["apps/api", "apps/web"]) {
-  const oraclePath = join(app, "src/workspaceSourceResolution.test.ts");
-  if (
-    !existsSync(oraclePath) ||
-    !(await readFile(oraclePath, "utf8")).includes(ORACLE_ASSERTION)
-  ) {
-    violations.push(
-      `${oraclePath}: missing or incomplete fixture oracle (#794)`,
-    );
-  }
+  await requireCompleteOracle(
+    join(app, "src/workspaceSourceResolution.test.ts"),
+  );
 }
 const apiGlobalSetup = await readFile("apps/api/vitest.globalSetup.ts", "utf8");
 if (
@@ -376,14 +289,59 @@ if (
   );
 }
 
-// 6. The api typecheck config must activate the same reserved condition the
-// plugin does — otherwise type evidence silently reverts to dist .d.ts when
-// the authority renames the condition (review round 1, #794).
-const apiTypecheck = await readFile("apps/api/tsconfig.typecheck.json", "utf8");
-if (!apiTypecheck.includes(`"${TEST_SOURCE_CONDITION}"`)) {
-  violations.push(
-    "apps/api/tsconfig.typecheck.json: customConditions must contain the TEST_SOURCE_CONDITION from config/workspace-resolution.ts",
+async function requireCompleteOracle(oraclePath) {
+  if (!existsSync(oraclePath)) {
+    violations.push(
+      `${oraclePath}: missing — every plugin-consuming project must pin both resolution rails with the fixture oracle (#794)`,
+    );
+    return;
+  }
+  const oracleText = await readFile(oraclePath, "utf8");
+  if (!oracleText.includes(ORACLE_ASSERTION)) {
+    violations.push(
+      `${oraclePath}: does not assert the fixture src marker — execution provenance assertion missing (#794)`,
+    );
+  }
+  for (const classification of authority.RESOLUTION_FAILURE_CLASSIFICATIONS) {
+    if (!oracleText.includes(classification)) {
+      violations.push(
+        `${oraclePath}: does not pin the fail-closed classification ${classification} (#794)`,
+      );
+    }
+  }
+}
+
+// 6. Every typecheck entrypoint must activate the same reserved condition
+// the plugin does — otherwise type evidence silently reverts to dist .d.ts
+// and a stale build can fake a typecheck PASS while tests execute fresh
+// sources (review round 2, #794). Applies to the api, the web app and every
+// workspace package that declares a typecheck script.
+for (const dir of ["apps/api", "apps/web", ...(await listPackageDirs())]) {
+  const manifest = JSON.parse(
+    await readFile(join(dir, "package.json"), "utf8"),
   );
+  if (!manifest.scripts?.typecheck) continue;
+  const typecheckConfig = join(dir, "tsconfig.typecheck.json");
+  if (!existsSync(typecheckConfig)) {
+    violations.push(
+      `${typecheckConfig}: missing — a typecheck script must pin ${TEST_SOURCE_CONDITION} via customConditions (#794)`,
+    );
+    continue;
+  }
+  const typecheckText = await readFile(typecheckConfig, "utf8");
+  if (!typecheckText.includes(`"${TEST_SOURCE_CONDITION}"`)) {
+    violations.push(
+      `${typecheckConfig}: customConditions must contain the TEST_SOURCE_CONDITION from config/workspace-resolution.mjs (#794)`,
+    );
+  }
+}
+
+async function listPackageDirs() {
+  const dirs = [];
+  for (const entry of await readdir("packages", { withFileTypes: true })) {
+    if (entry.isDirectory()) dirs.push(join("packages", entry.name));
+  }
+  return dirs;
 }
 
 if (violations.length > 0) {

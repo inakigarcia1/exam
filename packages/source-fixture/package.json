@@ -18,9 +18,19 @@
       "@exam/test-source": "./src/deep/*.ts",
       "types": "./src/deep/*.ts",
       "default": "./built/deep/*.js"
+    },
+    "./ghost": {
+      "@exam/test-source": "./src/ghost.ts",
+      "types": "./src/ghost.ts",
+      "default": "./built/ghost.js"
     }
   },
   "devDependencies": {
     "@exam/source-fixture-dep": "workspace:*"
+  },
+  "workspaceResolution": {
+    "negativeEntries": [
+      "./ghost"
+    ]
   }
 }

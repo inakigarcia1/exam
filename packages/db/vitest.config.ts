@@ -7,7 +7,7 @@ import {
   loadSupportedTestEnvFiles,
   seedProcessEnvFromFiles,
 } from "../../config/vitest.shared.js";
-import { workspaceSourceResolutionPlugin } from "../../config/workspace-resolution.js";
+import { workspaceSourceResolutionPlugin } from "../../config/workspace-resolution.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(__dirname, "../..");
@@ -39,7 +39,7 @@ export default defineConfig(() => ({
   // scripts/check-env-surface.mjs.
   envDir: false,
   // #794: workspace packages resolve to sources in tests (transitively
-  // included) — see config/workspace-resolution.ts.
+  // included) — see config/workspace-resolution.mjs.
   plugins: [workspaceSourceResolutionPlugin()],
   test: {
     maxWorkers,

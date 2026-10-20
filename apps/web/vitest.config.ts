@@ -1,5 +1,5 @@
 import { defineConfig } from "vitest/config";
-import { workspaceSourceResolutionPlugin } from "../../config/workspace-resolution.js";
+import { workspaceSourceResolutionPlugin } from "../../config/workspace-resolution.mjs";
 import { fileURLToPath, URL } from "node:url";
 
 export default defineConfig({

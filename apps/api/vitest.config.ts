@@ -1,7 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
-import { workspaceSourceResolutionPlugin } from "../../config/workspace-resolution.js";
+import { workspaceSourceResolutionPlugin } from "../../config/workspace-resolution.mjs";
 import {
   TEST_RUNTIME_ENV,
   loadSupportedTestEnvFiles,
@@ -55,7 +55,7 @@ export default defineConfig(() => ({
   // #794: every @exam/* import — root, deep subpath, direct or transitive,
   // including this project's globalSetup file loaded by the main-process
   // runner — resolves to workspace SOURCES via the shared resolution plugin
-  // (config/workspace-resolution.ts). A direct `pnpm exec vitest run` always
+  // (config/workspace-resolution.mjs). A direct `pnpm exec vitest run` always
   // executes the code just edited; production Node and the Vite build keep
   // reading dist via package exports.
   plugins: [workspaceSourceResolutionPlugin()],
