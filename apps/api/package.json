@@ -2,6 +2,9 @@
   "name": "@exam/api",
   "private": true,
   "type": "module",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "node ../../scripts/clean-dist.mjs . && tsc -p tsconfig.build.json",
