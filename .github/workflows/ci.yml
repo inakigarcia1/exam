@@ -540,6 +540,46 @@ jobs:
           docker build --target runner -t exam-local:dev .
           docker build --target web-runner -t exam-local:web-dev .
 
+      # #798 runtime artifact contract: assert the DEPLOYED file boundary on
+      # the real image tree (positive closure + negative leak scans) before
+      # anything boots — a `docker build` success alone proves nothing about
+      # what the payload contains. The oracle is the single authority
+      # (scripts/check-deploy-payload.mjs); this step only extracts /app.
+      - name: Assert API image payload artifact contract
+        run: |
+          cid=$(docker create exam-local:dev)
+          docker cp "$cid:/app" payload-inspection
+          docker rm "$cid" > /dev/null
+          node scripts/check-deploy-payload.mjs payload-inspection
+
+      # #798 production module resolution + native addon probe, inside the
+      # real image: every governed @exam/* entry must resolve through the
+      # production default branch and argon2 must load — with the container's
+      # own Node, store layout and entrypoint WORKDIR (network-isolated; no
+      # server start, no database). argon2 loads through its owning
+      # dependency @exam/auth/password — pnpm's strict layout correctly hides
+      # transitive deps from the app root, so the owning path IS the
+      # production load path.
+      - name: Probe production module resolution and native addon in container
+        run: |
+          docker run --rm --network none --entrypoint node exam-local:dev \
+            --input-type=module --eval '
+              const specs = [
+                "@exam/domain", "@exam/contracts", "@exam/auth", "@exam/authz",
+                "@exam/db", "@exam/db/postgres", "@exam/db/repository/examRepo",
+                "@exam/exam-engine", "@exam/import-export",
+              ];
+              for (const spec of specs) {
+                const url = import.meta.resolve(spec);
+                if (!url.includes("/dist/")) {
+                  console.error(`${spec} resolved outside dist: ${url}`);
+                  process.exit(1);
+                }
+              }
+              await import("@exam/auth/password");
+              console.log(`production resolution OK (${specs.length} entries from dist, argon2 loaded via @exam/auth/password)`);
+            '
+
       - name: Write rehearsal .env.production
         run: |
           cat > .env.production <<EOF
