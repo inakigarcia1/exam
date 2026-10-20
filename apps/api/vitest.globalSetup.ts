@@ -74,12 +74,28 @@
  */
 import { createConnection } from "node:net";
 import { URL } from "node:url";
-import { resolveTestBranchUrl } from "@exam/db/src/databaseUrl.js";
-import { acquireTestInfraRunLease } from "@exam/db/src/testInfraLock.js";
+import { resolveTestBranchUrl } from "@exam/db/databaseUrl";
+import { acquireTestInfraRunLease } from "@exam/db/testInfraLock";
 import {
   prepareTestDatabase,
   type TestDbBootstrapOutcome,
-} from "@exam/db/src/testDbBootstrap.js";
+} from "@exam/db/testDbBootstrap";
+import { SOURCE_FIXTURE_MARKER } from "@exam/source-fixture";
+
+// #794 permanent canary for the MAIN-PROCESS resolution context. This file
+// is loaded by vitest's main-process module runner, which ignores Vite
+// condition plumbing (resolve/ssr.resolve.conditions) — the shared
+// workspace-source plugin (config/workspace-resolution.ts) is what routes
+// the import below to the fixture SOURCE. A regression to default
+// resolution yields the fixture's built marker instead; fail the whole run
+// before any test starts rather than testing against stale artifacts.
+if (SOURCE_FIXTURE_MARKER !== "source-fixture:src:root") {
+  throw new Error(
+    `workspace source resolution broken in globalSetup context: observed ` +
+      `"${SOURCE_FIXTURE_MARKER}", expected "source-fixture:src:root" ` +
+      `(see config/workspace-resolution.ts)`,
+  );
+}
 
 const PROBE_TIMEOUT_MS = 2_000;
 const RETRY_COUNT = 5;
@@ -114,7 +130,7 @@ function probeTcp(host: string, port: number): Promise<boolean> {
 /**
  * Whether this invocation runs in worker-database isolation and therefore
  * needs the run-level exclusion lease. Mirrors `resolveDbIsolation` in
- * `@exam/db/src/testScope.ts` (default `worker-database`; unset/empty = the
+ * `@exam/db/testScope` (default `worker-database`; unset/empty = the
  * default) WITHOUT calling the full scope resolver: `resolveTestScope` also
  * resolves the worker identity, which correctly fails in this pre-worker
  * process (VITEST=true without VITEST_POOL_ID — the round-3 fail-fast). Only
