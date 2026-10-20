@@ -140,7 +140,7 @@ provides the same clean-before-compile guarantee there:
 | Layer | Rules | Owner | Dynamic proof |
 | --- | --- | --- | --- |
 | Package contract validation | exports shape, key grammar, disjoint patterns, source/target existence, negative-entry declarations, banned import forms | `lint:arch` (`scripts/check-architecture.mjs` via the authority loader) | table-load throw at every Vitest config load |
-| Test runtime resolution | source-fresh execution, fail-closed classifications in every governed Vitest config (nine projects + api child harnesses) + globalSetup | `config/workspace-resolution.mjs` plugin | positive marker oracles + per-classification rejection oracles + main-process canary |
+| Test runtime resolution | source-fresh execution, fail-closed classifications in every governed Vitest config (nine projects + api child harnesses) + globalSetup | `config/workspace-resolution.mjs` plugin | positive marker oracles + per-classification rejection oracles + main-process canary (the nine projects carry the dynamic oracles; the child harness configs are enforced statically and run env-guarded fixture proofs only) |
 | Production artifact validation | dist-only loading, built-marker polarity (incl. ghost), negative namespace rejection, orphan/test-free dist, entry completeness, compiled-specifier resolvability | `scripts/check-production-resolution.mjs` (wired after `pnpm build` in `pnpm verify` and CI) | child-process provenance hook + plain-Node probes |
 
 Static checks prevent configuration absence; the dynamic oracles prove

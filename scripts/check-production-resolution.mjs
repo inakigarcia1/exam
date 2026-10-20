@@ -43,7 +43,6 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const API_DIST = join(ROOT, "apps/api", "dist");
-const CONDITION = "@exam/test-source";
 
 const failures = [];
 const fail = (message) => failures.push(message);
@@ -154,7 +153,7 @@ if (child.status !== 0 || !child.stdout.trim()) {
     for (const [spec, url] of Object.entries(result.loaded)) {
       if (url.includes("/src/")) {
         fail(
-          `${spec}: production Node loaded SOURCE ${url} — the ${CONDITION} condition must never be active outside Vitest`,
+          `${spec}: production Node loaded SOURCE ${url} — the ${authority.TEST_SOURCE_CONDITION} condition must never be active outside Vitest`,
         );
       }
       if (!/\/(dist|built)\//.test(url)) {

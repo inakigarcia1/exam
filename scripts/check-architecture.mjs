@@ -245,7 +245,10 @@ for (const entry of await readdir("packages", { withFileTypes: true })) {
     );
   }
 }
-for (const configPath of await allCodeFiles("apps", [".ts"])) {
+// INVARIANT: the walker's extension list must cover everything the regex
+// below admits — a narrower list silently exempts .mjs/.js vitest configs
+// from the plugin requirement while the gate appears to scan them.
+for (const configPath of await allCodeFiles("apps", [".ts", ".mjs", ".js"])) {
   if (!/(?:^|\/)vitest\.[\w.]*config\.(?:ts|mjs|js)$/.test(configPath)) {
     continue;
   }
