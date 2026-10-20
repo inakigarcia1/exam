@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 
@@ -137,10 +138,165 @@ await forbid("apps/api/src/routes", [
   ],
   [/from ["']drizzle-orm/, "routes must not import drizzle-orm directly"],
   [
-    /from ["']@exam\/db\/src\/schema\//,
+    /from ["']@exam\/db\/schema(\/|["'])/,
     "routes must not import DB schema directly",
   ],
 ]);
+
+// ---------------------------------------------------------------------------
+// #794 — workspace module resolution governance. The unified contract lives
+// in docs/architecture/workspace-module-resolution.md; the plugin authority
+// is config/workspace-resolution.ts. These checks make the contract
+// structural: manifests, vitest projects and active imports cannot drift
+// back to per-package aliases, inline workarounds or physical /src/
+// specifiers (the #689/#794 stale-dist failure modes).
+
+// The reserved condition name is extracted from the authority module instead
+// of being restated here — one source of truth for the identifier.
+const authoritySource = await readFile(
+  "config/workspace-resolution.ts",
+  "utf8",
+);
+const conditionMatch = authoritySource.match(
+  /export const TEST_SOURCE_CONDITION = "([^"]+)"/,
+);
+if (!conditionMatch) {
+  violations.push(
+    "config/workspace-resolution.ts: TEST_SOURCE_CONDITION declaration not found",
+  );
+}
+const TEST_SOURCE_CONDITION = conditionMatch?.[1] ?? "@exam/test-source";
+
+async function allCodeFiles(path, extensions) {
+  const result = [];
+  for (const entry of await readdir(path, { withFileTypes: true })) {
+    if (["dist", "coverage", "node_modules", ".turbo"].includes(entry.name))
+      continue;
+    const target = join(path, entry.name);
+    if (entry.isDirectory()) {
+      result.push(...(await allCodeFiles(target, extensions)));
+    } else if (extensions.some((e) => entry.name.endsWith(e))) {
+      result.push(target);
+    }
+  }
+  return result;
+}
+
+// 1 + 2. Package manifests: every workspace package must declare the
+// three-condition exports contract, and every declared source target must
+// exist. "default" must never point into src/ — plain Node (API start,
+// workers, CLI, Playwright) resolves it, and production must load dist.
+for (const entry of await readdir("packages", { withFileTypes: true })) {
+  if (!entry.isDirectory()) continue;
+  const pkgDir = join("packages", entry.name);
+  const manifest = JSON.parse(
+    await readFile(join(pkgDir, "package.json"), "utf8"),
+  );
+  if (!manifest.exports) {
+    violations.push(
+      `${pkgDir}/package.json: missing "exports" — every workspace package declares its public API (#794 contract)`,
+    );
+    continue;
+  }
+  for (const [key, value] of Object.entries(manifest.exports)) {
+    const label = `${pkgDir}/package.json exports["${key}"]`;
+    if (typeof value !== "object" || value === null) {
+      violations.push(
+        `${label}: plain-string exports cannot separate the test-source condition from production resolution`,
+      );
+      continue;
+    }
+    const sourceTarget = value[TEST_SOURCE_CONDITION];
+    const defaultTarget = value.default;
+    if (typeof sourceTarget !== "string" || typeof defaultTarget !== "string") {
+      violations.push(
+        `${label}: must declare both "${TEST_SOURCE_CONDITION}" and "default" conditions`,
+      );
+      continue;
+    }
+    if (defaultTarget.startsWith("./src/")) {
+      violations.push(
+        `${label}: "default" must not resolve into src/ — production Node would execute sources`,
+      );
+    }
+    // Pattern entries ("./repository/*") cannot name one file; validate the
+    // target's directory instead of a literal path.
+    if (sourceTarget.includes("*")) {
+      const dir = join(
+        pkgDir,
+        sourceTarget.replace("*", "").replace(/^\.\//, ""),
+        "..",
+      );
+      if (!existsSync(dir)) {
+        violations.push(
+          `${label}: "${TEST_SOURCE_CONDITION}" target directory ${dir} does not exist`,
+        );
+      }
+    } else if (!existsSync(join(pkgDir, sourceTarget.replace(/^\.\//, "")))) {
+      violations.push(
+        `${label}: "${TEST_SOURCE_CONDITION}" target ${sourceTarget} does not exist`,
+      );
+    }
+  }
+}
+
+// 3. Active code must not import physical package-internal src paths. This
+// is specifier-shaped (not a bare grep): it matches imports, dynamic
+// imports, vi.mock strings and doc references alike — a physical /src/
+// specifier in active code is always a resolution-contract violation.
+const PHYSICAL_SRC_SPECIFIER = /@exam\/[a-z-]+\/src\//;
+for (const file of await allCodeFiles("apps", [".ts", ".tsx", ".mjs", ".js"])) {
+  if (file.endsWith(".d.ts")) continue;
+  const text = await readFile(file, "utf8");
+  if (PHYSICAL_SRC_SPECIFIER.test(text)) {
+    violations.push(
+      `${file}: physical "@exam/*/src/" specifier — import the package's public root/subpath entries instead (#794)`,
+    );
+  }
+}
+for (const dir of ["packages", "config", "scripts"]) {
+  for (const file of await allCodeFiles(dir, [".ts", ".tsx", ".mjs", ".js"])) {
+    if (file.endsWith(".d.ts")) continue;
+    const text = await readFile(file, "utf8");
+    if (PHYSICAL_SRC_SPECIFIER.test(text)) {
+      violations.push(`${file}: physical "@exam/*/src/" specifier (#794)`);
+    }
+  }
+}
+
+// 4. Every package that ships tests must have a vitest project consuming the
+// shared resolution plugin — a new workspace package cannot silently skip
+// source-fresh test execution (the exact #794 gap for @exam/db/@exam/auth).
+for (const entry of await readdir("packages", { withFileTypes: true })) {
+  if (!entry.isDirectory()) continue;
+  const pkgDir = join("packages", entry.name);
+  const manifest = JSON.parse(
+    await readFile(join(pkgDir, "package.json"), "utf8"),
+  );
+  if (!manifest.scripts?.test) continue;
+  const configPath = join(pkgDir, "vitest.config.ts");
+  if (!existsSync(configPath)) {
+    violations.push(
+      `${configPath}: missing — every tested workspace package needs a vitest project (#794)`,
+    );
+    continue;
+  }
+  const configText = await readFile(configPath, "utf8");
+  if (!configText.includes("workspaceSourceResolutionPlugin")) {
+    violations.push(
+      `${configPath}: does not consume workspaceSourceResolutionPlugin — direct vitest runs would resolve workspace packages to dist`,
+    );
+  }
+}
+for (const app of ["apps/api", "apps/web"]) {
+  const configPath = join(app, "vitest.config.ts");
+  const configText = await readFile(configPath, "utf8");
+  if (!configText.includes("workspaceSourceResolutionPlugin")) {
+    violations.push(
+      `${configPath}: does not consume workspaceSourceResolutionPlugin (#794)`,
+    );
+  }
+}
 
 if (violations.length > 0) {
   process.stderr.write(`Architecture violations:\n${violations.join("\n")}\n`);
