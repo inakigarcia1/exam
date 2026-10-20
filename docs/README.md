@@ -59,6 +59,7 @@ guidance.
 | --- | --- |
 | [`architecture/exam-semantic-boundaries.md`](architecture/exam-semantic-boundaries.md) | **Cross-boundary Exam semantic authority** — EXSEM-001..020 frozen invariants: fact ownership, authority freeze/transfer points, legitimately live facts, candidate-observable boundary, effective-state rule, supported-capability definition (adopted by [ADR-021](adr/ADR-021-exam-semantic-authority-adoption.md)) |
 | [`architecture/authorization.md`](architecture/authorization.md) | Capability-based authorization model |
+| [`architecture/workspace-module-resolution.md`](architecture/workspace-module-resolution.md) | **Workspace module resolution authority (#794)** — the `@exam/*` exports contract (`@exam/test-source` → src in tests, `default`/`types` → dist in production), the shared Vitest resolution plugin, the permanent source-freshness oracles, and the banned physical-`/src/` import forms |
 | [`architecture/exam-runtime.md`](architecture/exam-runtime.md) | Exam / Attempt / Answer / Submit / Grading / Result visibility protocol |
 | [`architecture/rich-content-semantic-contract.md`](architecture/rich-content-semantic-contract.md) | **Rich V1 semantic and integration authority** — closed grammar, canonicalization, limits, read/write/render/export/capability seams (adopted by [ADR-019](adr/ADR-019-content-document-model.md)) |
 | [`architecture/exam-system/README.md`](architecture/exam-system/README.md) | Exam-system architecture map and known limitations |
