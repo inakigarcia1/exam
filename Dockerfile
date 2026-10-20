@@ -56,6 +56,9 @@ RUN pnpm install --frozen-lockfile --reporter=append-only
 
 COPY packages/ packages/
 COPY apps/ apps/
+# scripts/clean-dist.mjs is the first step of every package build (#794
+# clean-before-compile artifact lifecycle); it is dependency-free.
+COPY scripts/clean-dist.mjs scripts/clean-dist.mjs
 
 RUN pnpm --reporter=append-only --filter @exam/domain build
 RUN pnpm --reporter=append-only --filter @exam/contracts build
