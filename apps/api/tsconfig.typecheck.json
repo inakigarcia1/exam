@@ -1,15 +1,12 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    // #689: direct typecheck mirrors the Vitest source alias — resolve the
-    // exact @exam/domain entry to source so type evidence is never a stale
-    // dist/index.d.ts. Production build keeps tsconfig.json (dist types).
-    // rootDir widens to the repo root because the aliased domain sources
-    // live outside this app; harmless under noEmit.
+    // #794: direct typecheck resolves workspace packages through the same
+    // "@exam/test-source" condition the Vitest runtime applies, so type
+    // evidence matches the source the tests execute — never a stale dist
+    // .d.ts. Production build keeps tsconfig.json (dist types are the
+    // production type authority, guaranteed fresh by turbo ^build).
     "noEmit": true,
-    "rootDir": "../..",
-    "paths": {
-      "@exam/domain": ["../../packages/domain/src/index.ts"]
-    }
+    "customConditions": ["@exam/test-source"]
   }
 }

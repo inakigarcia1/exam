@@ -17,7 +17,7 @@ import scoreRoutes from "./scores.js";
 import { exportRoutes } from "./export.js";
 import candidateRoutes from "./candidate.js";
 import candidateFieldRoutes from "./candidateField.js";
-import { schema } from "@exam/db/src/schema/pg.js";
+import { schema } from "@exam/db/schema/pg";
 
 /**
  * Live-identity conformance (EXSEM-015 / ADR-021 D4,

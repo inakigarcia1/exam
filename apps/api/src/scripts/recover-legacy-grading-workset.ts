@@ -92,8 +92,8 @@ import {
   parseDatabaseName,
   refuseRepairTargetMessage,
 } from "@exam/db";
-import type { Database } from "@exam/db/src/types.js";
-import { schema } from "@exam/db/src/schema/pg.js";
+import type { Database } from "@exam/db/types";
+import { schema } from "@exam/db/schema/pg";
 import { randomUUID } from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { loadRootEnv } from "../config/loadRootEnv.js";

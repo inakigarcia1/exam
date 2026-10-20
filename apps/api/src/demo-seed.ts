@@ -1,8 +1,8 @@
-import { createDatabase } from "@exam/db/src/database.js";
-import { migratePostgres } from "@exam/db/src/postgres.js";
-import { seedDemo } from "@exam/db/src/demo-seed.js";
-import { verifyDemoSeed } from "@exam/db/src/demo-seed-verify.js";
-import { hashPassword } from "@exam/auth/src/password.js";
+import { createDatabase } from "@exam/db/database";
+import { migratePostgres } from "@exam/db/postgres";
+import { seedDemo } from "@exam/db/demo-seed";
+import { verifyDemoSeed } from "@exam/db/demo-seed-verify";
+import { hashPassword } from "@exam/auth/password";
 import { createDemoSeedGrader } from "./demo-seed-grader.js";
 import { loadRootEnv } from "./config/loadRootEnv.js";
 import { getRuntimeConfig } from "./config/runtimeConfig.js";

@@ -24,12 +24,12 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { createDatabase } from "@exam/db/src/database.js";
-import { seed } from "@exam/db/src/seed.js";
-import type { Database } from "@exam/db/src/types.js";
-import { hashPassword } from "@exam/auth/src/password.js";
-import { signJWT } from "@exam/auth/src/session.js";
+import { schema } from "@exam/db/schema/pg";
+import { createDatabase } from "@exam/db/database";
+import { seed } from "@exam/db/seed";
+import type { Database } from "@exam/db/types";
+import { hashPassword } from "@exam/auth/password";
+import { signJWT } from "@exam/auth/session";
 import { getRuntimeConfig } from "../config/runtimeConfig.js";
 import {
   isWorkerDatabaseMode,

@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
 
@@ -137,10 +138,250 @@ await forbid("apps/api/src/routes", [
   ],
   [/from ["']drizzle-orm/, "routes must not import drizzle-orm directly"],
   [
-    /from ["']@exam\/db\/src\/schema\//,
+    /from ["']@exam\/db\/schema(\/|["'])/,
     "routes must not import DB schema directly",
   ],
 ]);
+
+// ---------------------------------------------------------------------------
+// #794 — workspace module resolution governance. The unified contract lives
+// in docs/architecture/workspace-module-resolution.md; the authority is
+// config/workspace-resolution.mjs — imported here (not re-implemented) so
+// manifests, vitest projects and active imports cannot drift back to
+// per-package aliases, inline workarounds or physical /src/ specifiers (the
+// #689/#794 stale-dist failure modes).
+
+// Layer 1 (package contract validation): loading the table validates every
+// manifest — three-condition entries, single-star pattern keys, disjoint
+// pattern families, src/default target existence, declared negative
+// entries. A load error IS the violation; report it and stop.
+const authority = await import("../config/workspace-resolution.mjs");
+const TEST_SOURCE_CONDITION = authority.TEST_SOURCE_CONDITION;
+try {
+  authority.loadWorkspaceResolutionTable();
+} catch (err) {
+  violations.push(
+    `workspace manifests: ${err instanceof Error ? err.message : String(err)}`,
+  );
+}
+
+async function allCodeFiles(path, extensions) {
+  const result = [];
+  for (const entry of await readdir(path, { withFileTypes: true })) {
+    if (["dist", "coverage", "node_modules", ".turbo"].includes(entry.name))
+      continue;
+    const target = join(path, entry.name);
+    if (entry.isDirectory()) {
+      result.push(...(await allCodeFiles(target, extensions)));
+    } else if (extensions.some((e) => entry.name.endsWith(e))) {
+      result.push(target);
+    }
+  }
+  return result;
+}
+
+// 3. Active code must not import physical package-internal src paths. This
+// is specifier-shaped (not a bare grep): it matches imports, dynamic
+// imports, vi.mock strings and doc references alike — a physical /src/
+// specifier in active code is always a resolution-contract violation.
+// Cross-package RELATIVE imports are banned for the same reason: they bypass
+// the declared exports contract and load whatever file the path happens to
+// name (docs/architecture/workspace-module-resolution.md).
+const PHYSICAL_SRC_SPECIFIER = /@exam\/[a-z-]+\/src\//;
+const CROSS_PACKAGE_RELATIVE =
+  /(?:from|import|require\()\s*["'][^"']*\.\.[/\\]packages[/\\]/;
+for (const file of await allCodeFiles("apps", [".ts", ".tsx", ".mjs", ".js"])) {
+  if (file.endsWith(".d.ts")) continue;
+  const text = await readFile(file, "utf8");
+  if (PHYSICAL_SRC_SPECIFIER.test(text)) {
+    violations.push(
+      `${file}: physical "@exam/*/src/" specifier — import the package's public root/subpath entries instead (#794)`,
+    );
+  }
+  if (CROSS_PACKAGE_RELATIVE.test(text)) {
+    violations.push(
+      `${file}: cross-package relative import — workspace code reaches other packages only through their public exports (#794)`,
+    );
+  }
+}
+for (const dir of ["packages", "config", "scripts"]) {
+  for (const file of await allCodeFiles(dir, [".ts", ".tsx", ".mjs", ".js"])) {
+    if (file.endsWith(".d.ts")) continue;
+    const text = await readFile(file, "utf8");
+    if (PHYSICAL_SRC_SPECIFIER.test(text)) {
+      violations.push(`${file}: physical "@exam/*/src/" specifier (#794)`);
+    }
+    if (CROSS_PACKAGE_RELATIVE.test(text)) {
+      violations.push(`${file}: cross-package relative import (#794)`);
+    }
+  }
+}
+
+// 4. Every vitest config in the workspace — package/app main configs AND
+// app child harness configs (the api process tests' fixture runners) — must
+// consume the shared resolution plugin: any config that skips it would
+// resolve governed @exam/* imports to dist behind the test's back
+// (review round 2: the api slot-reuse/bootstrap-lifetime child configs were
+// exactly that gap). Package configs additionally must exist at all for
+// tested packages.
+for (const entry of await readdir("packages", { withFileTypes: true })) {
+  if (!entry.isDirectory()) continue;
+  const pkgDir = join("packages", entry.name);
+  const manifest = JSON.parse(
+    await readFile(join(pkgDir, "package.json"), "utf8"),
+  );
+  if (!manifest.scripts?.test) continue;
+  const configPath = join(pkgDir, "vitest.config.ts");
+  if (!existsSync(configPath)) {
+    violations.push(
+      `${configPath}: missing — every tested workspace package needs a vitest project (#794)`,
+    );
+    continue;
+  }
+  const configText = await readFile(configPath, "utf8");
+  if (!configText.includes("workspaceSourceResolutionPlugin")) {
+    violations.push(
+      `${configPath}: does not consume workspaceSourceResolutionPlugin — direct vitest runs would resolve workspace packages to dist`,
+    );
+  }
+}
+// INVARIANT: the walker's extension list must cover everything the regex
+// below admits — a narrower list silently exempts .mjs/.js vitest configs
+// from the plugin requirement while the gate appears to scan them.
+for (const configPath of await allCodeFiles("apps", [".ts", ".mjs", ".js"])) {
+  if (!/(?:^|\/)vitest\.[\w.]*config\.(?:ts|mjs|js)$/.test(configPath)) {
+    continue;
+  }
+  const configText = await readFile(configPath, "utf8");
+  if (!configText.includes("workspaceSourceResolutionPlugin")) {
+    violations.push(
+      `${configPath}: does not consume workspaceSourceResolutionPlugin — every vitest config is a governed resolution context (#794)`,
+    );
+  }
+}
+
+// 5. Every vitest project that consumes the plugin must also carry its
+// permanent resolution oracle — the positive fixture-marker assertions AND
+// every fail-closed classification from the authority (deleting the
+// oracles, or dropping one rejection class, would otherwise pass every
+// static gate and leave the mechanism unproven). The api globalSetup must
+// carry the main-process canary (review round 1, #794; negatives round 2).
+const ORACLE_ASSERTION =
+  'expect(SOURCE_FIXTURE_MARKER).toBe("source-fixture:src:root")';
+// Dot-segment grammar probe each oracle must pin (review round 3, #794):
+// a capture with ".." used to join()-normalize onto files the exports
+// field never declared (live-bypassed: "@exam/db/repository/../sqlIdent"
+// executed src/sqlIdent.ts while native Node rejected the specifier).
+const FIXTURE_GRAMMAR_PROBE =
+  'dynamicImport("@exam/source-fixture/deep/../index")';
+const API_GRAMMAR_PROBE = 'dynamicImport("@exam/db/repository/../sqlIdent")';
+for (const entry of await readdir("packages", { withFileTypes: true })) {
+  if (!entry.isDirectory()) continue;
+  const pkgDir = join("packages", entry.name);
+  const manifest = JSON.parse(
+    await readFile(join(pkgDir, "package.json"), "utf8"),
+  );
+  if (
+    !manifest.scripts?.test ||
+    !manifest.devDependencies?.["@exam/source-fixture"]
+  )
+    continue;
+  const oraclePath = join(pkgDir, "src/workspaceSourceResolution.test.ts");
+  await requireCompleteOracle(oraclePath, FIXTURE_GRAMMAR_PROBE);
+}
+for (const app of ["apps/api", "apps/web"]) {
+  await requireCompleteOracle(
+    join(app, "src/workspaceSourceResolution.test.ts"),
+    app === "apps/api" ? API_GRAMMAR_PROBE : FIXTURE_GRAMMAR_PROBE,
+  );
+}
+const apiGlobalSetup = await readFile("apps/api/vitest.globalSetup.ts", "utf8");
+if (
+  !apiGlobalSetup.includes(
+    'SOURCE_FIXTURE_MARKER !== "source-fixture:src:root"',
+  )
+) {
+  violations.push(
+    "apps/api/vitest.globalSetup.ts: main-process source-resolution canary missing (#794)",
+  );
+}
+
+async function requireCompleteOracle(oraclePath, grammarProbe) {
+  if (!existsSync(oraclePath)) {
+    violations.push(
+      `${oraclePath}: missing — every plugin-consuming project must pin both resolution rails with the fixture oracle (#794)`,
+    );
+    return;
+  }
+  const oracleText = await readFile(oraclePath, "utf8");
+  if (!oracleText.includes(ORACLE_ASSERTION)) {
+    violations.push(
+      `${oraclePath}: does not assert the fixture src marker — execution provenance assertion missing (#794)`,
+    );
+  }
+  // Assertion-shaped, like the classification needles below (review round
+  // 3): the probe specifier is quoted in the oracles' explanatory comments,
+  // so a bare includes() would pass with the executable probe deleted. The
+  // shape pins the call: dynamicImport("SPEC")[,)] followed by
+  // .rejects.toThrow (whitespace/newline tolerant — Prettier reflows).
+  const grammarNeedle = new RegExp(
+    `${grammarProbe.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*,?\\s*\\)\\s*\\.rejects\\.toThrow`,
+  );
+  if (!grammarNeedle.test(oracleText)) {
+    violations.push(
+      `${oraclePath}: missing the dot-segment grammar probe (${grammarProbe}) executable rejection — captures that escape the declared pattern family must be pinned (#794)`,
+    );
+  }
+  // Assertion-shaped needles, not bare words (review round 2): the
+  // classification names also appear in the oracle docblock, so a textual
+  // scan for the word alone would pass with the rejection tests deleted.
+  // Whitespace/trailing-comma tolerant — Prettier reflows the toThrow call,
+  // and a needle pinned to one spelling breaks on every reformat (observed
+  // live when format split `.rejects.toThrow(\n  /CLASS/,\n)`).
+  for (const classification of authority.RESOLUTION_FAILURE_CLASSIFICATIONS) {
+    const rejectionShape = new RegExp(
+      `\\.rejects\\.toThrow\\(\\s*/${classification}/\\s*[),]`,
+    );
+    if (!rejectionShape.test(oracleText)) {
+      violations.push(
+        `${oraclePath}: does not pin the fail-closed classification ${classification} with an executable rejection (#794)`,
+      );
+    }
+  }
+}
+
+// 6. Every typecheck entrypoint must activate the same reserved condition
+// the plugin does — otherwise type evidence silently reverts to dist .d.ts
+// and a stale build can fake a typecheck PASS while tests execute fresh
+// sources (review round 2, #794). Applies to the api, the web app and every
+// workspace package that declares a typecheck script.
+for (const dir of ["apps/api", "apps/web", ...(await listPackageDirs())]) {
+  const manifest = JSON.parse(
+    await readFile(join(dir, "package.json"), "utf8"),
+  );
+  if (!manifest.scripts?.typecheck) continue;
+  const typecheckConfig = join(dir, "tsconfig.typecheck.json");
+  if (!existsSync(typecheckConfig)) {
+    violations.push(
+      `${typecheckConfig}: missing — a typecheck script must pin ${TEST_SOURCE_CONDITION} via customConditions (#794)`,
+    );
+    continue;
+  }
+  const typecheckText = await readFile(typecheckConfig, "utf8");
+  if (!typecheckText.includes(`"${TEST_SOURCE_CONDITION}"`)) {
+    violations.push(
+      `${typecheckConfig}: customConditions must contain the TEST_SOURCE_CONDITION from config/workspace-resolution.mjs (#794)`,
+    );
+  }
+}
+
+async function listPackageDirs() {
+  const dirs = [];
+  for (const entry of await readdir("packages", { withFileTypes: true })) {
+    if (entry.isDirectory()) dirs.push(join("packages", entry.name));
+  }
+  return dirs;
+}
 
 if (violations.length > 0) {
   process.stderr.write(`Architecture violations:\n${violations.join("\n")}\n`);

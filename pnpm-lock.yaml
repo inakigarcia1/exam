@@ -105,6 +105,9 @@ importers:
         specifier: ^3.25.28
         version: 3.25.76
     devDependencies:
+      '@exam/source-fixture':
+        specifier: workspace:*
+        version: link:../../packages/source-fixture
       '@types/node':
         specifier: ^22.15.21
         version: 22.19.19
@@ -274,6 +277,9 @@ importers:
         specifier: ^3.25.76
         version: 3.25.76
     devDependencies:
+      '@exam/source-fixture':
+        specifier: workspace:*
+        version: link:../../packages/source-fixture
       '@tailwindcss/vite':
         specifier: ^4.1.7
         version: 4.3.0(vite@8.0.16(@types/node@26.1.1)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.3)(yaml@2.9.0))
@@ -356,6 +362,9 @@ importers:
         specifier: ^9.0.2
         version: 9.0.3
     devDependencies:
+      '@exam/source-fixture':
+        specifier: workspace:*
+        version: link:../source-fixture
       '@types/jsonwebtoken':
         specifier: ^9.0.6
         version: 9.0.10
@@ -375,6 +384,9 @@ importers:
         specifier: workspace:*
         version: link:../domain
     devDependencies:
+      '@exam/source-fixture':
+        specifier: workspace:*
+        version: link:../source-fixture
       typescript:
         specifier: ^5.8.3
         version: 5.9.3
@@ -391,6 +403,9 @@ importers:
         specifier: ^3.25.28
         version: 3.25.76
     devDependencies:
+      '@exam/source-fixture':
+        specifier: workspace:*
+        version: link:../source-fixture
       '@vitest/coverage-v8':
         specifier: ^4.1.7
         version: 4.1.7(vitest@4.1.7)
@@ -419,6 +434,9 @@ importers:
       '@exam/auth':
         specifier: workspace:*
         version: link:../auth
+      '@exam/source-fixture':
+        specifier: workspace:*
+        version: link:../source-fixture
       '@types/node':
         specifier: ^22.19.19
         version: 22.19.19
@@ -443,6 +461,9 @@ importers:
 
   packages/domain:
     devDependencies:
+      '@exam/source-fixture':
+        specifier: workspace:*
+        version: link:../source-fixture
       typescript:
         specifier: ^5.8.3
         version: 5.9.3
@@ -462,6 +483,9 @@ importers:
         specifier: workspace:*
         version: link:../domain
     devDependencies:
+      '@exam/source-fixture':
+        specifier: workspace:*
+        version: link:../source-fixture
       '@types/node':
         specifier: ^22.19.19
         version: 22.19.19
@@ -474,12 +498,23 @@ importers:
 
   packages/import-export:
     devDependencies:
+      '@exam/source-fixture':
+        specifier: workspace:*
+        version: link:../source-fixture
       typescript:
         specifier: ^5.8.3
         version: 5.9.3
       vitest:
         specifier: ^4.1.7
         version: 4.1.7(@types/node@26.1.1)(@vitest/coverage-v8@4.1.7)(jsdom@29.1.1)(msw@2.14.6(@types/node@26.1.1)(typescript@5.9.3))(vite@8.0.16(@types/node@26.1.1)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.3)(yaml@2.9.0))
+
+  packages/source-fixture:
+    devDependencies:
+      '@exam/source-fixture-dep':
+        specifier: workspace:*
+        version: link:../source-fixture-dep
+
+  packages/source-fixture-dep: {}
 
 packages:
 

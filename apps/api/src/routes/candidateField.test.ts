@@ -1,11 +1,11 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
-import { hashPassword } from "@exam/auth/src/password.js";
-import { signJWT } from "@exam/auth/src/session.js";
+import { hashPassword } from "@exam/auth/password";
+import { signJWT } from "@exam/auth/session";
 import { eq } from "drizzle-orm";
 import candidateFieldRoutes from "./candidateField.js";
 import { buildTestApp, uniquePrefix } from "./testHelpers.js";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { cleanupOrganizationTestData } from "@exam/db/src/testCleanup.js";
+import { schema } from "@exam/db/schema/pg";
+import { cleanupOrganizationTestData } from "@exam/db/testCleanup";
 import { getRuntimeConfig } from "../config/runtimeConfig.js";
 
 describe("candidate field routes", () => {

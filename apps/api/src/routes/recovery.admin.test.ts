@@ -22,8 +22,8 @@ import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { FastifyPluginAsync } from "fastify";
 import { and, eq, inArray } from "drizzle-orm";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { cleanupOrganizationTestData } from "@exam/db/src/testCleanup.js";
+import { schema } from "@exam/db/schema/pg";
+import { cleanupOrganizationTestData } from "@exam/db/testCleanup";
 import {
   buildTestApp,
   createAssignedUserForTest,

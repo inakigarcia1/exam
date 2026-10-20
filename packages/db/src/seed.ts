@@ -1,6 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import {
   executeInTransaction,
   type Database,
@@ -21,6 +19,13 @@ import { parseAppMode } from "./databaseUrl.js";
 
 /** Function signature for a password hashing function used during seeding. */
 export type HashFunction = (password: string) => string | Promise<string>;
+
+// OWNERSHIP (#794): this module is a LIBRARY — the hash function enters as
+// the `hashPassword` parameter. The seed CLI lives in apps/api/src/seed.ts,
+// which resolves the hasher and the environment. A direct-invocation (isMain)
+// block here would re-create a production runtime import edge from @exam/db
+// to @exam/auth (the hasher) that the package does not declare as a
+// dependency — do not add one.
 
 /** IDs of the seed users created by {@link seed}. */
 export interface SeedUserIds {
@@ -268,31 +273,4 @@ export async function seed(
       candidate2Id: userIds[2]!,
     },
   };
-}
-
-/** Detects whether this file is the entry point (directly invoked). */
-const isMain =
-  process.argv[1] !== undefined &&
-  resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url));
-
-if (isMain) {
-  let conn:
-    | Awaited<ReturnType<typeof import("./database.js").createDatabase>>
-    | undefined;
-  try {
-    const { createDatabase } = await import("./database.js");
-    const { hashPassword } = await import("@exam/auth/src/password.js");
-
-    conn = await createDatabase();
-    process.stdout.write("Seeding database...\n");
-    const result = await seed(conn.db, hashPassword);
-    process.stdout.write(
-      `Done! Created org=${result.orgId}, admin=${result.users.adminId}\n`,
-    );
-  } catch (err) {
-    process.stderr.write(`Seed failed: ${String(err)}\n`);
-    process.exitCode = 1;
-  } finally {
-    await conn?.sql.end();
-  }
 }

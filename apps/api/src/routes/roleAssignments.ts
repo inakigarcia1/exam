@@ -9,8 +9,8 @@ import {
 } from "@exam/contracts";
 import { ROLE_PRESETS, Role, type RoleKey, Permission } from "@exam/authz";
 import type { RolePreset } from "@exam/authz";
-import { createUserRoleAssignmentRepo } from "@exam/db/src/repository/userRoleAssignmentRepo.js";
-import { createUserRepo } from "@exam/db/src/repository/userRepo.js";
+import { createUserRoleAssignmentRepo } from "@exam/db/repository/userRoleAssignmentRepo";
+import { createUserRepo } from "@exam/db/repository/userRepo";
 import { NotFoundError } from "@exam/domain";
 import { ensureTargetOrg, getRequestContext } from "./helpers.js";
 import { recordAtomicHttpAudit } from "../audit/auditWriter.js";

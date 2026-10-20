@@ -21,15 +21,15 @@ import { randomUUID } from "node:crypto";
 import type { RequestContext } from "@exam/domain";
 import { IdempotencyConflictError } from "@exam/domain";
 import { and, eq } from "drizzle-orm";
-import { createAuditLogWriter } from "@exam/db/src/repository/auditLogRepo.js";
-import { createProctorAssignmentRepo } from "@exam/db/src/repository/proctorAssignmentRepo.js";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { migratePostgres } from "@exam/db/src/postgres.js";
-import { setupIsolatedTestDb } from "@exam/db/src/testIsolation.js";
-import { resolveTestDbUrl } from "@exam/db/src/testDb.js";
-import { withTestInfraLifecycleLock } from "@exam/db/src/testInfraLock.js";
-import { createPostgresDatabase } from "@exam/db/src/postgres.js";
-import type { Database } from "@exam/db/src/types.js";
+import { createAuditLogWriter } from "@exam/db/repository/auditLogRepo";
+import { createProctorAssignmentRepo } from "@exam/db/repository/proctorAssignmentRepo";
+import { schema } from "@exam/db/schema/pg";
+import { migratePostgres } from "@exam/db/postgres";
+import { setupIsolatedTestDb } from "@exam/db/testIsolation";
+import { resolveTestDbUrl } from "@exam/db/testDb";
+import { withTestInfraLifecycleLock } from "@exam/db/testInfraLock";
+import { createPostgresDatabase } from "@exam/db/postgres";
+import type { Database } from "@exam/db/types";
 import {
   assignProctorToExam,
   revokeProctorFromExam,

@@ -17,8 +17,8 @@ import type { RequestContext } from "@exam/domain";
 import { generateCSV } from "@exam/import-export";
 import { NotFoundError } from "@exam/domain";
 import { Permission } from "@exam/authz";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
-import { createAuditLogRepo } from "@exam/db/src/repository/auditLogRepo.js";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
+import { createAuditLogRepo } from "@exam/db/repository/auditLogRepo";
 import {
   ensureTargetOrg,
   formatZodError,

@@ -9,10 +9,10 @@ import type {
 } from "@exam/domain";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { getIsolatedTestDb } from "@exam/db/src/testDb.js";
-import { createOrganizationRepo } from "@exam/db/src/repository/organizationRepo.js";
-import { emailOutbox, workerHeartbeats } from "@exam/db/src/schema/pg.js";
-import type { Database } from "@exam/db/src/types.js";
+import { getIsolatedTestDb } from "@exam/db/testDb";
+import { createOrganizationRepo } from "@exam/db/repository/organizationRepo";
+import { emailOutbox, workerHeartbeats } from "@exam/db/schema/pg";
+import type { Database } from "@exam/db/types";
 import { resetRuntimeConfigForTest } from "../config/runtimeConfig.js";
 import type { NowProvider } from "./now.js";
 import emailOutboxLoopPlugin, {

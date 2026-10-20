@@ -1,16 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
 import postgres from "postgres";
-import {
-  createPostgresDatabase,
-  migratePostgres,
-} from "@exam/db/src/postgres.js";
-import { setupIsolatedTestDb } from "@exam/db/src/testIsolation.js";
-import { schema, type AssignableRole } from "@exam/db/src/schema/pg.js";
-import type { Database, TenantContext } from "@exam/db/src/types.js";
-import { createUserRepo } from "@exam/db/src/repository/userRepo.js";
-import { createUserRoleAssignmentRepo } from "@exam/db/src/repository/userRoleAssignmentRepo.js";
-import { hashPassword } from "@exam/auth/src/password.js";
+import { createPostgresDatabase, migratePostgres } from "@exam/db/postgres";
+import { setupIsolatedTestDb } from "@exam/db/testIsolation";
+import { schema, type AssignableRole } from "@exam/db/schema/pg";
+import type { Database, TenantContext } from "@exam/db/types";
+import { createUserRepo } from "@exam/db/repository/userRepo";
+import { createUserRoleAssignmentRepo } from "@exam/db/repository/userRoleAssignmentRepo";
+import { hashPassword } from "@exam/auth/password";
 import { mutateWithAuthorityInvariants } from "./adminMaintainerExclusion.js";
 import { createDeferred } from "../testing/barrier.js";
 import { waitForBackendBlocked } from "../testing/pgConcurrencyProbes.js";

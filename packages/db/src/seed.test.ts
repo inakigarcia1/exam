@@ -12,8 +12,8 @@ import type { Database } from "./types.js";
 import { getIsolatedTestDb } from "./testDb.js";
 import { seed, assertNotProductionSeed } from "./seed.js";
 import { schema } from "./schema/pg.js";
-import { hashPassword } from "@exam/auth/src/password.js";
-import { verifyPassword } from "@exam/auth/src/password.js";
+import { hashPassword } from "@exam/auth/password";
+import { verifyPassword } from "@exam/auth/password";
 import { createUserRoleAssignmentRepo } from "./repository/userRoleAssignmentRepo.js";
 
 describe(

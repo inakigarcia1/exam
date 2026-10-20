@@ -10,10 +10,10 @@
  * This sync keeps the `users.role` compatibility cache consistent with the
  * primary assignment for legacy display paths.
  */
-import type { Database } from "@exam/db/src/types.js";
+import type { Database } from "@exam/db/types";
 import type { RequestContext } from "@exam/domain";
-import { createUserRoleAssignmentRepo } from "@exam/db/src/repository/userRoleAssignmentRepo.js";
-import { createUserRepo } from "@exam/db/src/repository/userRepo.js";
+import { createUserRoleAssignmentRepo } from "@exam/db/repository/userRoleAssignmentRepo";
+import { createUserRepo } from "@exam/db/repository/userRepo";
 
 /**
  * Sets `users.role` to the user's current primary active assignment role

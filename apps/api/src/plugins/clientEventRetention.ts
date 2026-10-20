@@ -1,10 +1,10 @@
 import type { FastifyPluginAsync, FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 import type { RequestContext } from "@exam/domain";
-import { createOrganizationRepo } from "@exam/db/src/repository/organizationRepo.js";
-import { createClientEventRepo } from "@exam/db/src/repository/clientEventRepo.js";
+import { createOrganizationRepo } from "@exam/db/repository/organizationRepo";
+import { createClientEventRepo } from "@exam/db/repository/clientEventRepo";
 import { SYSTEM_ACTOR_IDS, createSystemRequestContext } from "@exam/authz";
-import type { Database } from "@exam/db/src/types.js";
+import type { Database } from "@exam/db/types";
 
 /**
  * Client-event retention executor (#544).

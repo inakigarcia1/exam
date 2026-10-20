@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { schema } from "@exam/db/src/schema/pg.js";
+import { schema } from "@exam/db/schema/pg";
 import { getRuntimeConfig } from "../config/runtimeConfig.js";
 import {
   buildTestApp,
@@ -16,8 +16,8 @@ import attemptRoutes from "./attempts.js";
 import examRoutes from "./exam.js";
 import courseRoutes from "./course.js";
 import questionRoutes from "./question.js";
-import { createUserRepo } from "@exam/db/src/repository/userRepo.js";
-import { createCandidateRepo } from "@exam/db/src/repository/candidateRepo.js";
+import { createUserRepo } from "@exam/db/repository/userRepo";
+import { createCandidateRepo } from "@exam/db/repository/candidateRepo";
 
 describe("candidate profile invariant", () => {
   let ctx: Awaited<ReturnType<typeof buildTestApp>>;
@@ -103,7 +103,7 @@ describe("candidate profile invariant", () => {
       organizationId: ctx.org.id,
       username: `bare-cand-${uniquePrefix()}`,
       passwordHash: await (
-        await import("@exam/auth/src/password.js")
+        await import("@exam/auth/password")
       ).hashPassword("test123"),
       name: "Bare Candidate",
       role: "Candidate",
@@ -125,7 +125,7 @@ describe("candidate profile invariant", () => {
       createdAt: now,
       updatedAt: now,
     });
-    const { signJWT } = await import("@exam/auth/src/session.js");
+    const { signJWT } = await import("@exam/auth/session");
     const bareToken = signJWT(
       {
         actorId: bareUserId,
@@ -154,7 +154,7 @@ describe("candidate profile invariant", () => {
       organizationId: ctx.org.id,
       username: `bare-start-cand-${uniquePrefix()}`,
       passwordHash: await (
-        await import("@exam/auth/src/password.js")
+        await import("@exam/auth/password")
       ).hashPassword("test123"),
       name: "Bare Start Candidate",
       role: "Candidate",
@@ -177,7 +177,7 @@ describe("candidate profile invariant", () => {
       createdAt: now,
       updatedAt: now,
     });
-    const { signJWT } = await import("@exam/auth/src/session.js");
+    const { signJWT } = await import("@exam/auth/session");
     const bareToken = signJWT(
       {
         actorId: bareUserId,

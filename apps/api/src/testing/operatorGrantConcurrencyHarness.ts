@@ -23,7 +23,7 @@
  */
 
 import { sql } from "drizzle-orm";
-import type { Database } from "@exam/db/src/types.js";
+import type { Database } from "@exam/db/types";
 import type { OperatorGrantExecutionObserver } from "../orchestrators/operatorGrantExecution.js";
 import type { RaceBarrier } from "./barrier.js";
 

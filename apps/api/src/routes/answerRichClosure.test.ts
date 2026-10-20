@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { schema } from "@exam/db/src/schema/pg.js";
+import { schema } from "@exam/db/schema/pg";
 import { ContentDocumentV1Schema } from "@exam/contracts";
 import type { TestContext } from "./testHelpers.js";
 import { buildTestApp, uniquePrefix } from "./testHelpers.js";

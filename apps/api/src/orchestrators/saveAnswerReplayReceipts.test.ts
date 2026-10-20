@@ -30,26 +30,20 @@ import { and, eq, sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { QuestionSnapshot, RequestContext } from "@exam/domain";
 import { NotFoundError } from "@exam/domain";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
-import { createCandidateRepo } from "@exam/db/src/repository/candidateRepo.js";
-import { createExamRepo } from "@exam/db/src/repository/examRepo.js";
-import { createEnrollmentRepo } from "@exam/db/src/repository/enrollmentRepo.js";
-import { createAttemptGradingEntryRepo } from "@exam/db/src/repository/attemptGradingEntryRepo.js";
-import { createAttemptInterruptionRepo } from "@exam/db/src/repository/attemptInterruptionRepo.js";
-import { createAttemptInterruptionEventRepo } from "@exam/db/src/repository/attemptInterruptionEventRepo.js";
-import { schema } from "@exam/db/src/schema/pg.js";
-import {
-  createPostgresDatabase,
-  migratePostgres,
-} from "@exam/db/src/postgres.js";
-import { setupIsolatedTestDb } from "@exam/db/src/testIsolation.js";
-import { resolveTestDbUrl } from "@exam/db/src/testDb.js";
-import { withTestInfraLifecycleLock } from "@exam/db/src/testInfraLock.js";
-import {
-  executeInTransaction,
-  type TransactionDatabase,
-} from "@exam/db/src/types.js";
-import type { Database } from "@exam/db/src/types.js";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
+import { createCandidateRepo } from "@exam/db/repository/candidateRepo";
+import { createExamRepo } from "@exam/db/repository/examRepo";
+import { createEnrollmentRepo } from "@exam/db/repository/enrollmentRepo";
+import { createAttemptGradingEntryRepo } from "@exam/db/repository/attemptGradingEntryRepo";
+import { createAttemptInterruptionRepo } from "@exam/db/repository/attemptInterruptionRepo";
+import { createAttemptInterruptionEventRepo } from "@exam/db/repository/attemptInterruptionEventRepo";
+import { schema } from "@exam/db/schema/pg";
+import { createPostgresDatabase, migratePostgres } from "@exam/db/postgres";
+import { setupIsolatedTestDb } from "@exam/db/testIsolation";
+import { resolveTestDbUrl } from "@exam/db/testDb";
+import { withTestInfraLifecycleLock } from "@exam/db/testInfraLock";
+import { executeInTransaction, type TransactionDatabase } from "@exam/db/types";
+import type { Database } from "@exam/db/types";
 import {
   lockEnrollmentAndAttempt,
   prepareReconciledAttemptMutation,

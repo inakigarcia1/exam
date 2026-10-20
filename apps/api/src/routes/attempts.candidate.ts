@@ -44,17 +44,17 @@ import {
   isCandidateRetakeDeferred,
   projectEnrollmentForLifecycleState,
 } from "@exam/exam-engine";
-import { createExamRepo } from "@exam/db/src/repository/examRepo.js";
-import { createExamAdmissionRepo } from "@exam/db/src/repository/examAdmissionRepo.js";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
+import { createExamRepo } from "@exam/db/repository/examRepo";
+import { createExamAdmissionRepo } from "@exam/db/repository/examAdmissionRepo";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
 import { Permission } from "@exam/authz";
-import { executeInTransaction } from "@exam/db/src/types.js";
-import { createEnrollmentRepo } from "@exam/db/src/repository/enrollmentRepo.js";
-import { createCandidateRepo } from "@exam/db/src/repository/candidateRepo.js";
-import { createAttemptGradingEntryRepo } from "@exam/db/src/repository/attemptGradingEntryRepo.js";
-import { createAttemptInterruptionRepo } from "@exam/db/src/repository/attemptInterruptionRepo.js";
-import { createAttemptInterruptionEventRepo } from "@exam/db/src/repository/attemptInterruptionEventRepo.js";
-import { createAttemptTimeAdjustmentRepo } from "@exam/db/src/repository/attemptTimeAdjustmentRepo.js";
+import { executeInTransaction } from "@exam/db/types";
+import { createEnrollmentRepo } from "@exam/db/repository/enrollmentRepo";
+import { createCandidateRepo } from "@exam/db/repository/candidateRepo";
+import { createAttemptGradingEntryRepo } from "@exam/db/repository/attemptGradingEntryRepo";
+import { createAttemptInterruptionRepo } from "@exam/db/repository/attemptInterruptionRepo";
+import { createAttemptInterruptionEventRepo } from "@exam/db/repository/attemptInterruptionEventRepo";
+import { createAttemptTimeAdjustmentRepo } from "@exam/db/repository/attemptTimeAdjustmentRepo";
 import {
   startOrRestoreAttempt,
   restoreInterruptedAttempt,

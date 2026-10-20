@@ -37,7 +37,7 @@
  */
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { FastifyBaseLogger } from "fastify";
-import type { Database } from "@exam/db/src/types.js";
+import type { Database } from "@exam/db/types";
 import { buildErrorResponse } from "../lib/errorResponse.js";
 import {
   Permission,

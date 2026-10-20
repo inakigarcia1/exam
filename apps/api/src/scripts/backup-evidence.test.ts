@@ -5,11 +5,11 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { createPostgresDatabase } from "@exam/db/src/postgres.js";
-import { getIsolatedTestDb, resolveTestDbUrl } from "@exam/db/src/testDb.js";
-import { addSearchPathToUrl } from "@exam/db/src/testIsolation.js";
-import { createOrganizationRepo } from "@exam/db/src/repository/organizationRepo.js";
-import { backupRuns } from "@exam/db/src/schema/pg.js";
+import { createPostgresDatabase } from "@exam/db/postgres";
+import { getIsolatedTestDb, resolveTestDbUrl } from "@exam/db/testDb";
+import { addSearchPathToUrl } from "@exam/db/testIsolation";
+import { createOrganizationRepo } from "@exam/db/repository/organizationRepo";
+import { backupRuns } from "@exam/db/schema/pg";
 import {
   decideEvidenceDbAccess,
   parseNonNegativeInt,

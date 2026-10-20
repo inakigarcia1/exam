@@ -88,11 +88,11 @@ import type {
   MisconductMarkRequestPayload,
   MisconductMarkResultPayload,
 } from "@exam/domain";
-import type { Database, TransactionDatabase } from "@exam/db/src/types.js";
-import { executeInTransaction } from "@exam/db/src/types.js";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
-import { createAttemptCommandReceiptRepo } from "@exam/db/src/repository/attemptCommandReceiptRepo.js";
-import type { AttemptCommandReceiptRow } from "@exam/db/src/repository/attemptCommandReceiptRepo.js";
+import type { Database, TransactionDatabase } from "@exam/db/types";
+import { executeInTransaction } from "@exam/db/types";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
+import { createAttemptCommandReceiptRepo } from "@exam/db/repository/attemptCommandReceiptRepo";
+import type { AttemptCommandReceiptRow } from "@exam/db/repository/attemptCommandReceiptRepo";
 import type { AttemptCommandReceiptResponse } from "@exam/contracts";
 import { recordAtomicHttpAudit } from "../audit/auditWriter.js";
 import {

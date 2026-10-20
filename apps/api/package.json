@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "node ../../scripts/clean-dist.mjs . && tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.typecheck.json",
     "lint": "node ../../scripts/check-code-quality.mjs",
     "test": "vitest run",
@@ -51,6 +51,7 @@
     "zod": "^3.25.28"
   },
   "devDependencies": {
+    "@exam/source-fixture": "workspace:*",
     "@types/node": "^22.15.21",
     "@types/nodemailer": "^8.0.1",
     "@vitest/coverage-v8": "^4.1.7",

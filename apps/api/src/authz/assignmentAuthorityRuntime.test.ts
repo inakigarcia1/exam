@@ -38,8 +38,8 @@ import {
   createCandidateViaApi,
   submitExamAsCandidate,
 } from "../routes/testHelpers.js";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { signJWT } from "@exam/auth/src/session.js";
+import { schema } from "@exam/db/schema/pg";
+import { signJWT } from "@exam/auth/session";
 import { getRuntimeConfig } from "../config/runtimeConfig.js";
 import { SYSTEM_ACTOR_IDS, createSystemRequestContext } from "@exam/authz";
 import { buildExamPayload } from "../routes/attempts/__tests__/attempts.testHelpers.js";

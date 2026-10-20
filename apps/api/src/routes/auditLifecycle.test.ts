@@ -1,12 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { FastifyPluginAsync } from "fastify";
 import { eq } from "drizzle-orm";
-import type { Database } from "@exam/db/src/types.js";
-import { schema } from "@exam/db/src/schema/pg.js";
+import type { Database } from "@exam/db/types";
+import { schema } from "@exam/db/schema/pg";
 import {
   cleanupBusinessData,
   cleanupOrganizationTestData,
-} from "@exam/db/src/testCleanup.js";
+} from "@exam/db/testCleanup";
 
 const auditProbe = vi.hoisted(() => {
   let blocker: Promise<void> | null = null;
@@ -54,11 +54,9 @@ const auditProbe = vi.hoisted(() => {
   };
 });
 
-vi.mock("@exam/db/src/repository/auditLogRepo.js", async (importOriginal) => {
+vi.mock("@exam/db/repository/auditLogRepo", async (importOriginal) => {
   const actual =
-    await importOriginal<
-      typeof import("@exam/db/src/repository/auditLogRepo.js")
-    >();
+    await importOriginal<typeof import("@exam/db/repository/auditLogRepo")>();
   return {
     ...actual,
     createAuditLogWriter(db: Database) {

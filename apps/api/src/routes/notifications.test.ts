@@ -6,7 +6,7 @@ import {
   createAssignedUserForTest,
   type TestContext,
 } from "./testHelpers.js";
-import { createNotificationRepo } from "@exam/db/src/repository/notificationRepo.js";
+import { createNotificationRepo } from "@exam/db/repository/notificationRepo";
 
 const AT = new Date("2026-07-25T12:00:00.000Z");
 

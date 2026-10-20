@@ -1,14 +1,14 @@
 import type { RequestContext, ExamAttempt } from "@exam/domain";
 import type { FastifyRequest } from "fastify";
 import { InvalidStateTransitionError, NotFoundError } from "@exam/domain";
-import type { Database } from "@exam/db/src/types.js";
-import { executeInTransaction } from "@exam/db/src/types.js";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
-import { createExamRepo } from "@exam/db/src/repository/examRepo.js";
-import { createEnrollmentRepo } from "@exam/db/src/repository/enrollmentRepo.js";
-import { createAttemptGradingEntryRepo } from "@exam/db/src/repository/attemptGradingEntryRepo.js";
-import { createAttemptInterruptionRepo } from "@exam/db/src/repository/attemptInterruptionRepo.js";
-import { createAttemptInterruptionEventRepo } from "@exam/db/src/repository/attemptInterruptionEventRepo.js";
+import type { Database } from "@exam/db/types";
+import { executeInTransaction } from "@exam/db/types";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
+import { createExamRepo } from "@exam/db/repository/examRepo";
+import { createEnrollmentRepo } from "@exam/db/repository/enrollmentRepo";
+import { createAttemptGradingEntryRepo } from "@exam/db/repository/attemptGradingEntryRepo";
+import { createAttemptInterruptionRepo } from "@exam/db/repository/attemptInterruptionRepo";
+import { createAttemptInterruptionEventRepo } from "@exam/db/repository/attemptInterruptionEventRepo";
 import {
   submitAttempt,
   readGradingSnapshot,

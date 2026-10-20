@@ -36,9 +36,9 @@
  */
 
 import { createDatabase, parseAppMode, type AppMode } from "@exam/db";
-import { createBackupEvidenceRepo } from "@exam/db/src/repository/backupEvidenceRepo.js";
-import { createRetentionEvidenceRepo } from "@exam/db/src/repository/retentionEvidenceRepo.js";
-import { schema } from "@exam/db/src/schema/pg.js";
+import { createBackupEvidenceRepo } from "@exam/db/repository/backupEvidenceRepo";
+import { createRetentionEvidenceRepo } from "@exam/db/repository/retentionEvidenceRepo";
+import { schema } from "@exam/db/schema/pg";
 import { loadRootEnv } from "../config/loadRootEnv.js";
 import { resolveDatabaseUrlFromEnv } from "../config/runtimeConfig.js";
 import type {

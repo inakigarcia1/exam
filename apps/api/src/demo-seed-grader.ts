@@ -1,6 +1,6 @@
 import type { RequestContext } from "@exam/domain";
-import type { Database } from "@exam/db/src/types.js";
-import type { DemoSeedGrader } from "@exam/db/src/demo-seed.js";
+import type { Database } from "@exam/db/types";
+import type { DemoSeedGrader } from "@exam/db/demo-seed";
 import { submitAndGradeAttempt } from "./orchestrators/submitAndGradeAttempt.js";
 
 /**

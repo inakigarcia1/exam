@@ -20,21 +20,21 @@ import {
   NotFoundError,
 } from "@exam/domain";
 import { Permission, Role, type PermissionKey } from "@exam/authz";
-import { createIncidentRepo } from "@exam/db/src/repository/incidentRepo.js";
+import { createIncidentRepo } from "@exam/db/repository/incidentRepo";
 import {
   createRecoveryRepo,
   deriveStatusActionCandidates,
   type AttemptAllowedAction,
   type IncidentAllowedAction,
   type IncidentQueueCursor,
-} from "@exam/db/src/repository/recoveryRepo.js";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
-import { createExamRepo } from "@exam/db/src/repository/examRepo.js";
-import { createEnrollmentRepo } from "@exam/db/src/repository/enrollmentRepo.js";
-import { createAttemptTimeAdjustmentRepo } from "@exam/db/src/repository/attemptTimeAdjustmentRepo.js";
-import { createAttemptInterruptionRepo } from "@exam/db/src/repository/attemptInterruptionRepo.js";
-import { createAuditLogRepo } from "@exam/db/src/repository/auditLogRepo.js";
-import type { TransactionDatabase } from "@exam/db/src/types.js";
+} from "@exam/db/repository/recoveryRepo";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
+import { createExamRepo } from "@exam/db/repository/examRepo";
+import { createEnrollmentRepo } from "@exam/db/repository/enrollmentRepo";
+import { createAttemptTimeAdjustmentRepo } from "@exam/db/repository/attemptTimeAdjustmentRepo";
+import { createAttemptInterruptionRepo } from "@exam/db/repository/attemptInterruptionRepo";
+import { createAuditLogRepo } from "@exam/db/repository/auditLogRepo";
+import type { TransactionDatabase } from "@exam/db/types";
 import {
   createExamIncident,
   startIncidentInvestigation,

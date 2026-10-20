@@ -28,11 +28,11 @@ import {
   systemIncidentOperationId,
   type HeartbeatEpisodeFact,
 } from "@exam/exam-engine";
-import { createAttemptInterruptionEventRepo } from "@exam/db/src/repository/attemptInterruptionEventRepo.js";
-import { createAttemptInterruptionRepo } from "@exam/db/src/repository/attemptInterruptionRepo.js";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
-import { createIncidentRepo } from "@exam/db/src/repository/incidentRepo.js";
-import type { Database } from "@exam/db/src/types.js";
+import { createAttemptInterruptionEventRepo } from "@exam/db/repository/attemptInterruptionEventRepo";
+import { createAttemptInterruptionRepo } from "@exam/db/repository/attemptInterruptionRepo";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
+import { createIncidentRepo } from "@exam/db/repository/incidentRepo";
+import type { Database } from "@exam/db/types";
 import { recordAtomicSystemAudit } from "../audit/auditWriter.js";
 import { withIncidentOperationRecovery } from "./incidentOperationRecovery.js";
 

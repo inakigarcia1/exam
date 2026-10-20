@@ -1,0 +1,36 @@
+{
+  "name": "@exam/source-fixture",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "@exam/test-source": "./src/index.ts",
+      "types": "./src/index.ts",
+      "default": "./built/index.js"
+    },
+    "./repository/widget": {
+      "@exam/test-source": "./src/repository/widget.ts",
+      "types": "./src/repository/widget.ts",
+      "default": "./built/repository/widget.js"
+    },
+    "./deep/*": {
+      "@exam/test-source": "./src/deep/*.ts",
+      "types": "./src/deep/*.ts",
+      "default": "./built/deep/*.js"
+    },
+    "./ghost": {
+      "@exam/test-source": "./src/ghost.ts",
+      "types": "./src/ghost.ts",
+      "default": "./built/ghost.js"
+    }
+  },
+  "devDependencies": {
+    "@exam/source-fixture-dep": "workspace:*"
+  },
+  "workspaceResolution": {
+    "negativeEntries": [
+      "./ghost"
+    ]
+  }
+}

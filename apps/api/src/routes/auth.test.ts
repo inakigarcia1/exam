@@ -7,7 +7,7 @@ import {
   it,
   vi,
 } from "vitest";
-import { createUserRepo } from "@exam/db/src/repository/userRepo.js";
+import { createUserRepo } from "@exam/db/repository/userRepo";
 import type { RequestContext } from "@exam/domain";
 import authRoutes from "./auth.js";
 import { resetRuntimeConfigForTest } from "../config/runtimeConfig.js";
@@ -22,10 +22,10 @@ import {
   rebuildAppOnSameDb,
   type UnsupportedRole,
 } from "./testHelpers.js";
-import { schema } from "@exam/db/src/schema/pg.js";
+import { schema } from "@exam/db/schema/pg";
 import { eq } from "drizzle-orm";
-import { hashPassword } from "@exam/auth/src/password.js";
-import { signJWT, verifyJWT } from "@exam/auth/src/session.js";
+import { hashPassword } from "@exam/auth/password";
+import { signJWT, verifyJWT } from "@exam/auth/session";
 import { createHmac } from "node:crypto";
 import type { FastifyPluginAsync } from "fastify";
 import userRoutes from "./user.js";

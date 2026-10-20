@@ -5,11 +5,11 @@ import { Permission } from "@exam/authz";
 import {
   createProctorAssignmentRepo,
   type AssignmentCursor,
-} from "@exam/db/src/repository/proctorAssignmentRepo.js";
-import { createExamRepo } from "@exam/db/src/repository/examRepo.js";
-import { createUserRepo } from "@exam/db/src/repository/userRepo.js";
-import { createUserRoleAssignmentRepo } from "@exam/db/src/repository/userRoleAssignmentRepo.js";
-import type { TransactionDatabase } from "@exam/db/src/types.js";
+} from "@exam/db/repository/proctorAssignmentRepo";
+import { createExamRepo } from "@exam/db/repository/examRepo";
+import { createUserRepo } from "@exam/db/repository/userRepo";
+import { createUserRoleAssignmentRepo } from "@exam/db/repository/userRoleAssignmentRepo";
+import type { TransactionDatabase } from "@exam/db/types";
 import {
   assignProctorToExam,
   canonicalAssignmentPayload,

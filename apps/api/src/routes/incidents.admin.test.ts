@@ -12,8 +12,8 @@ import attemptRoutes from "./attempts.js";
 import { disruptAttempt } from "./attempts/__tests__/attempts.testHelpers.js";
 import { registerAdminIncidentRoutes } from "./incidents.admin.js";
 import { eq } from "drizzle-orm";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { cleanupOrganizationTestData } from "@exam/db/src/testCleanup.js";
+import { schema } from "@exam/db/schema/pg";
+import { cleanupOrganizationTestData } from "@exam/db/testCleanup";
 
 const plugin: FastifyPluginAsync = async (fastify, opts) => {
   await fastify.register(candidateRoutes, { prefix: "" });

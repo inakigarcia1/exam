@@ -36,18 +36,15 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
-import {
-  createPostgresDatabase,
-  migratePostgres,
-} from "@exam/db/src/postgres.js";
-import { withTestInfraLifecycleLock } from "@exam/db/src/testInfraLock.js";
-import { setupIsolatedTestDb } from "@exam/db/src/testIsolation.js";
-import { resolveTestDbUrl } from "@exam/db/src/testDb.js";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
-import { createAttemptInterruptionRepo } from "@exam/db/src/repository/attemptInterruptionRepo.js";
-import { createAttemptInterruptionEventRepo } from "@exam/db/src/repository/attemptInterruptionEventRepo.js";
-import { createIncidentRepo } from "@exam/db/src/repository/incidentRepo.js";
+import { createPostgresDatabase, migratePostgres } from "@exam/db/postgres";
+import { withTestInfraLifecycleLock } from "@exam/db/testInfraLock";
+import { setupIsolatedTestDb } from "@exam/db/testIsolation";
+import { resolveTestDbUrl } from "@exam/db/testDb";
+import { schema } from "@exam/db/schema/pg";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
+import { createAttemptInterruptionRepo } from "@exam/db/repository/attemptInterruptionRepo";
+import { createAttemptInterruptionEventRepo } from "@exam/db/repository/attemptInterruptionEventRepo";
+import { createIncidentRepo } from "@exam/db/repository/incidentRepo";
 import type { RequestContext } from "@exam/domain";
 import { IdempotencyConflictError } from "@exam/domain";
 import { SYSTEM_ACTOR_IDS, createSystemRequestContext } from "@exam/authz";
@@ -56,7 +53,7 @@ import {
   linkIncidentInterruption,
   systemIncidentOperationId,
 } from "@exam/exam-engine";
-import type { Database } from "@exam/db/src/types.js";
+import type { Database } from "@exam/db/types";
 import { markAttemptDisrupted } from "../plugins/heartbeat.js";
 import {
   deliverSystemIncidentForHeartbeatEpisode,

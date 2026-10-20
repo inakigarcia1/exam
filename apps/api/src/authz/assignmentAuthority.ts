@@ -34,7 +34,7 @@
  * synthetic System actor (`packages/authz/src/systemActor.ts`) is NOT backed by
  * `user_role_assignments` and never reaches this path (task §3.8).
  */
-import type { Database, TenantContext } from "@exam/db/src/types.js";
+import type { Database, TenantContext } from "@exam/db/types";
 import type { RequestContext } from "@exam/domain";
 import {
   Role as AuthzRole,
@@ -42,8 +42,8 @@ import {
   type RoleKey,
   permissionsForRole,
 } from "@exam/authz";
-import { createUserRoleAssignmentRepo } from "@exam/db/src/repository/userRoleAssignmentRepo.js";
-import type { UserRoleAssignmentRow } from "@exam/db/src/repository/userRoleAssignmentRepo.js";
+import { createUserRoleAssignmentRepo } from "@exam/db/repository/userRoleAssignmentRepo";
+import type { UserRoleAssignmentRow } from "@exam/db/repository/userRoleAssignmentRepo";
 
 /**
  * Assignable role set — mirrors the DB schema's `ASSIGNABLE_ROLES`, kept as

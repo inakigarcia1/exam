@@ -26,13 +26,10 @@
  *   candidate4 / candidate123 = graded      / view_result
  */
 
-import { createDatabase } from "@exam/db/src/database.js";
-import { migratePostgres } from "@exam/db/src/postgres.js";
-import {
-  runE2eSeed,
-  buildE2eSeedOutput,
-} from "@exam/db/src/e2eSeedOrchestrator.js";
-import { hashPassword } from "@exam/auth/src/password.js";
+import { createDatabase } from "@exam/db/database";
+import { migratePostgres } from "@exam/db/postgres";
+import { runE2eSeed, buildE2eSeedOutput } from "@exam/db/e2eSeedOrchestrator";
+import { hashPassword } from "@exam/auth/password";
 import { createDemoSeedGrader } from "./demo-seed-grader.js";
 import { loadRootEnv } from "./config/loadRootEnv.js";
 import { getRuntimeConfig } from "./config/runtimeConfig.js";

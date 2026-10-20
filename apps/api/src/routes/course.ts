@@ -7,11 +7,11 @@ import {
   ErrorResponseSchema,
 } from "@exam/contracts";
 import { Permission, AuditAction } from "@exam/authz";
-import { createCourseRepo } from "@exam/db/src/repository/courseRepo.js";
-import type { CourseListFilters } from "@exam/db/src/repository/courseRepo.js";
-import { createQuestionRepo } from "@exam/db/src/repository/questionRepo.js";
-import { createTeacherCourseAssignmentRepo } from "@exam/db/src/repository/teacherCourseAssignmentRepo.js";
-import { executeInTransaction } from "@exam/db/src/types.js";
+import { createCourseRepo } from "@exam/db/repository/courseRepo";
+import type { CourseListFilters } from "@exam/db/repository/courseRepo";
+import { createQuestionRepo } from "@exam/db/repository/questionRepo";
+import { createTeacherCourseAssignmentRepo } from "@exam/db/repository/teacherCourseAssignmentRepo";
+import { executeInTransaction } from "@exam/db/types";
 import type { RequestContext } from "@exam/domain";
 import { ensureTargetOrg, getRequestContext } from "./helpers.js";
 import { isOrgWideAdmin, resolveTeacherCourseScope } from "./teacherScope.js";

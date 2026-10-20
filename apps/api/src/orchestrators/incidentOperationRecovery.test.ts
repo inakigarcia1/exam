@@ -22,11 +22,11 @@ const mocks = vi.hoisted(() => ({
   createIncidentRepo: vi.fn(),
 }));
 
-vi.mock("@exam/db/src/types.js", () => ({
+vi.mock("@exam/db/types", () => ({
   executeInTransaction: mocks.executeInTransaction,
 }));
 
-vi.mock("@exam/db/src/repository/incidentRepo.js", () => ({
+vi.mock("@exam/db/repository/incidentRepo", () => ({
   createIncidentRepo: mocks.createIncidentRepo,
 }));
 

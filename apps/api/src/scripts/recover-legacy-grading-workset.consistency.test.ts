@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { Database } from "@exam/db/src/types.js";
-import { schema } from "@exam/db/src/schema/pg.js";
+import type { Database } from "@exam/db/types";
+import { schema } from "@exam/db/schema/pg";
 import type { RequestContext } from "@exam/domain";
 import { recoverLegacyGradingWorkset } from "./recover-legacy-grading-workset.js";
 import {

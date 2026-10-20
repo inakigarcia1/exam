@@ -1,8 +1,8 @@
 import type { RequestContext } from "@exam/domain";
 import type { ClientEvent } from "@exam/contracts";
-import type { Database } from "@exam/db/src/types.js";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
-import { createExamRepo } from "@exam/db/src/repository/examRepo.js";
+import type { Database } from "@exam/db/types";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
+import { createExamRepo } from "@exam/db/repository/examRepo";
 
 /**
  * Client-event reference trust boundary (#544).

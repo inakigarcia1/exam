@@ -24,16 +24,16 @@ import {
   hashPassword,
   verifyPassword,
   verifyPasswordOrDummy,
-} from "@exam/auth/src/password.js";
-import { generateToken, hashToken } from "@exam/auth/src/tokens.js";
-import { signJWT, verifyJWT } from "@exam/auth/src/session.js";
-import { createUserRepo } from "@exam/db/src/repository/userRepo.js";
-import { createUserRoleAssignmentRepo } from "@exam/db/src/repository/userRoleAssignmentRepo.js";
-import { createOrganizationRepo } from "@exam/db/src/repository/organizationRepo.js";
-import { createStaffInvitationRepo } from "@exam/db/src/repository/staffInvitationRepo.js";
-import { createPasswordResetTokenRepo } from "@exam/db/src/repository/passwordResetTokenRepo.js";
-import { createEmailOutboxRepo } from "@exam/db/src/repository/emailOutboxRepo.js";
-import { executeInTransaction } from "@exam/db/src/types.js";
+} from "@exam/auth/password";
+import { generateToken, hashToken } from "@exam/auth/tokens";
+import { signJWT, verifyJWT } from "@exam/auth/session";
+import { createUserRepo } from "@exam/db/repository/userRepo";
+import { createUserRoleAssignmentRepo } from "@exam/db/repository/userRoleAssignmentRepo";
+import { createOrganizationRepo } from "@exam/db/repository/organizationRepo";
+import { createStaffInvitationRepo } from "@exam/db/repository/staffInvitationRepo";
+import { createPasswordResetTokenRepo } from "@exam/db/repository/passwordResetTokenRepo";
+import { createEmailOutboxRepo } from "@exam/db/repository/emailOutboxRepo";
+import { executeInTransaction } from "@exam/db/types";
 import type { PublicBrandingContext, RequestContext, Role } from "@exam/domain";
 import { NotFoundError } from "@exam/domain";
 import { ROLE_PRESETS } from "@exam/authz";

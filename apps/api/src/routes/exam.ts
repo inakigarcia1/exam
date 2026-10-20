@@ -20,19 +20,19 @@ import {
   ExamStatusEnum,
   ScoreViewDisabledReasonCodeEnum,
 } from "@exam/contracts";
-import { createExamRepo } from "@exam/db/src/repository/examRepo.js";
-import { createExamAdmissionRepo } from "@exam/db/src/repository/examAdmissionRepo.js";
+import { createExamRepo } from "@exam/db/repository/examRepo";
+import { createExamAdmissionRepo } from "@exam/db/repository/examAdmissionRepo";
 import { deriveAdmissionViews } from "@exam/exam-engine";
-import { createGraderExamAssignmentRepo } from "@exam/db/src/repository/graderExamAssignmentRepo.js";
-import { createExamProfileRepo } from "@exam/db/src/repository/examProfileRepo.js";
-import { createQuestionRepo } from "@exam/db/src/repository/questionRepo.js";
-import { createCourseRepo } from "@exam/db/src/repository/courseRepo.js";
-import { createEnrollmentRepo } from "@exam/db/src/repository/enrollmentRepo.js";
-import { createCandidateRepo } from "@exam/db/src/repository/candidateRepo.js";
-import { createUserRepo } from "@exam/db/src/repository/userRepo.js";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
-import { executeInTransaction } from "@exam/db/src/types.js";
-import type { Database } from "@exam/db/src/types.js";
+import { createGraderExamAssignmentRepo } from "@exam/db/repository/graderExamAssignmentRepo";
+import { createExamProfileRepo } from "@exam/db/repository/examProfileRepo";
+import { createQuestionRepo } from "@exam/db/repository/questionRepo";
+import { createCourseRepo } from "@exam/db/repository/courseRepo";
+import { createEnrollmentRepo } from "@exam/db/repository/enrollmentRepo";
+import { createCandidateRepo } from "@exam/db/repository/candidateRepo";
+import { createUserRepo } from "@exam/db/repository/userRepo";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
+import { executeInTransaction } from "@exam/db/types";
+import type { Database } from "@exam/db/types";
 import {
   archiveExam,
   closeExam,

@@ -21,9 +21,9 @@
  */
 import { describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
-import { createPostgresDatabase } from "@exam/db/src/postgres.js";
-import { getIsolatedTestDb, resolveTestDbUrl } from "@exam/db/src/testDb.js";
-import { addSearchPathToUrl } from "@exam/db/src/testIsolation.js";
+import { createPostgresDatabase } from "@exam/db/postgres";
+import { getIsolatedTestDb, resolveTestDbUrl } from "@exam/db/testDb";
+import { addSearchPathToUrl } from "@exam/db/testIsolation";
 import type postgres from "postgres";
 import {
   getCapacityResearchSnapshot,

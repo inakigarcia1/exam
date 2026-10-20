@@ -27,7 +27,7 @@ import type {
   AttemptCommandReplayDecision,
   AttemptCommandType,
 } from "@exam/domain";
-import type { AttemptCommandReceiptRow } from "@exam/db/src/repository/attemptCommandReceiptRepo.js";
+import type { AttemptCommandReceiptRow } from "@exam/db/repository/attemptCommandReceiptRepo";
 import {
   AttemptCommandReceiptRecordSchema,
   AttemptCommandReceiptResponseSchema,

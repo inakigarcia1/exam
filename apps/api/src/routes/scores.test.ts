@@ -1,10 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
-import { createEnrollmentRepo } from "@exam/db/src/repository/enrollmentRepo.js";
-import { createExamRepo } from "@exam/db/src/repository/examRepo.js";
-import { signJWT } from "@exam/auth/src/session.js";
+import { schema } from "@exam/db/schema/pg";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
+import { createEnrollmentRepo } from "@exam/db/repository/enrollmentRepo";
+import { createExamRepo } from "@exam/db/repository/examRepo";
+import { signJWT } from "@exam/auth/session";
 import { getRuntimeConfig } from "../config/runtimeConfig.js";
 import type { TestContext } from "./testHelpers.js";
 import {

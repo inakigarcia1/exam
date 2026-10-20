@@ -2,12 +2,12 @@ import type {
   Database,
   TenantContext,
   TransactionDatabase,
-} from "@exam/db/src/types.js";
+} from "@exam/db/types";
 import type { RequestContext } from "@exam/domain";
-import { acquireOrganizationAdvisoryLock } from "@exam/db/src/lock.js";
-import { createUserRepo } from "@exam/db/src/repository/userRepo.js";
-import { createUserRoleAssignmentRepo } from "@exam/db/src/repository/userRoleAssignmentRepo.js";
-import { executeInTransaction } from "@exam/db/src/types.js";
+import { acquireOrganizationAdvisoryLock } from "@exam/db/lock";
+import { createUserRepo } from "@exam/db/repository/userRepo";
+import { createUserRoleAssignmentRepo } from "@exam/db/repository/userRoleAssignmentRepo";
+import { executeInTransaction } from "@exam/db/types";
 import { ValidationError } from "@exam/domain";
 
 /**

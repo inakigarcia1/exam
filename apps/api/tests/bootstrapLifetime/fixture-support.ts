@@ -3,8 +3,8 @@ import { join } from "node:path";
 import { open, readFile, writeFile } from "node:fs/promises";
 import { expect } from "vitest";
 import type { TestContext } from "../../src/routes/testHelpers.js";
-import { getTestInfraLockAcquisitionCount } from "@exam/db/src/testInfraLock.js";
-import { resolveTestScope } from "@exam/db/src/testScope.js";
+import { getTestInfraLockAcquisitionCount } from "@exam/db/testInfraLock";
+import { resolveTestScope } from "@exam/db/testScope";
 
 /**
  * Shared protocol for the two bootstrap-lifetime fixture files (spawned as

@@ -12,9 +12,9 @@ import {
   createCandidateViaApi,
   createExamViaApi,
 } from "./testHelpers.js";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { createClientEventRepo } from "@exam/db/src/repository/clientEventRepo.js";
-import { createAuditLogRepo } from "@exam/db/src/repository/auditLogRepo.js";
+import { schema } from "@exam/db/schema/pg";
+import { createClientEventRepo } from "@exam/db/repository/clientEventRepo";
+import { createAuditLogRepo } from "@exam/db/repository/auditLogRepo";
 
 /**
  * Registers auth + the monitoring routes under test. Auth is needed to mint

@@ -22,8 +22,8 @@
  * (ADR §3.9).
  */
 import type { FastifyBaseLogger } from "fastify";
-import type { Database, TenantContext } from "@exam/db/src/types.js";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
+import type { Database, TenantContext } from "@exam/db/types";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
 import {
   Scope,
   type ResolverContext,

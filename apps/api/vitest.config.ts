@@ -1,7 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
-import { DOMAIN_TEST_SOURCE_ALIAS } from "../../config/vitest.sourceAliases.js";
+import { workspaceSourceResolutionPlugin } from "../../config/workspace-resolution.mjs";
 import {
   TEST_RUNTIME_ENV,
   loadSupportedTestEnvFiles,
@@ -52,15 +52,14 @@ export default defineConfig(() => ({
   // .env* files can never reach import.meta.env. Pinned by
   // scripts/check-env-surface.mjs.
   envDir: false,
-  // #689: bypass stale @exam/domain/dist when running Vitest outside Turbo.
-  // Production package exports / TS build resolution remain unchanged.
-  resolve: { alias: [DOMAIN_TEST_SOURCE_ALIAS] },
+  // #794: every @exam/* import — root, deep subpath, direct or transitive,
+  // including this project's globalSetup file loaded by the main-process
+  // runner — resolves to workspace SOURCES via the shared resolution plugin
+  // (config/workspace-resolution.mjs). A direct `pnpm exec vitest run` always
+  // executes the code just edited; production Node and the Vite build keep
+  // reading dist via package exports.
+  plugins: [workspaceSourceResolutionPlugin()],
   test: {
-    // #689: @exam/contracts is a runtime intermediary importing
-    // @exam/domain. Inline this one linked workspace package so its
-    // transitive import is also routed through the source alias instead
-    // of being resolved by Node directly from domain/dist.
-    server: { deps: { inline: ["@exam/contracts"] } },
     // Fail-fast DB availability pre-check. Runs once before any test file;
     // aborts the run with a clear "run pnpm db:up" message if the test DB is
     // unreachable, instead of letting every integration test file cascade with

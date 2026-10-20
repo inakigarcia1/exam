@@ -654,22 +654,28 @@ pnpm --filter @exam/domain test
   via `TEST_RUNTIME_ENV`; the pure packages set no `test.env` (Vitest's
   default `NODE_ENV=test` applies when the variable is unset, and they read
   no `APP_MODE`).
-- **Stale-dist trap**: workspace packages advertise built `dist/` as their
-  production entry, so every resolution through Node/package exports reads
-  the last build, not `src/`. Two exact-match exceptions exist (#746/#689):
-  the `@exam/api` and `@exam/contracts` vitest projects alias the exact
-  `@exam/domain` root import to `packages/domain/src/index.ts` (and direct
-  `tsc` typecheck in both projects maps the same entry), so a direct
-  `vitest run` there is source-fresh for that one exact import. Everything
-  else still resolves via `dist/`: deep or non-root `@exam/domain` imports
-  (the alias regex is exact-match by design), all other `@exam/*` packages,
-  and all production resolution. Filtered commands like
-  `pnpm --filter <pkg> test` also bypass Turbo's `^build` chain — the
-  build-first graph `pnpm test` / `pnpm verify` run — so after editing
-  package source, either run the root `pnpm build` first or stay within the
-  two documented aliases; otherwise the filtered run silently tests stale
-  code. #746 did NOT eliminate the stale-dist risk for other workspace
-  packages.
+- **Source-fresh test execution (#794)**: workspace packages resolve to
+  `src/` in every Vitest project via the shared resolution plugin
+  (`config/workspace-resolution.mjs`), so a direct `pnpm --filter <pkg> test`
+  after editing any `packages/*/src` file executes the edit immediately — no
+  manual rebuild, no per-package aliases. Root, deep subpath, transitive, and
+  globalSetup (main-process) contexts are all covered and pinned by permanent
+  oracles (`src/workspaceSourceResolution.test.ts` in each project + the api
+  globalSetup canary). Production resolution is untouched: plain Node, `tsc`
+  builds, the web production bundle and Playwright read `dist/` through the
+  packages' `exports` (`default`/`types` conditions), and
+  `scripts/check-production-resolution.mjs` re-proves that polarity after
+  every `pnpm build`. The full contract — exports shape, subpath design, the
+  plugin, and the retired #689 alias/inline mechanisms — lives in
+  [`docs/architecture/workspace-module-resolution.md`](../architecture/workspace-module-resolution.md).
+  Resolution fails closed: a governed `@exam/*` specifier whose source
+  is missing is a classified error (`MISSING_SOURCE`), never a silent
+  fallback to dist — the same contract pins `NOT_EXPORTED`,
+  `UNKNOWN_WORKSPACE_PACKAGE` and `BAD_SPECIFIER_SHAPE` rejections in
+  every project's oracle.
+  Direct typecheck is source-fresh the same way in every project
+  (`tsconfig.typecheck.json` uses `customConditions`), so type evidence
+  matches the code tests execute.
 
 ### 5.2 API Integration Tests
 

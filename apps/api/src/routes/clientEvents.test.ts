@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import authRoutes from "./auth.js";
 import clientEventRoutes from "./clientEvents.js";
 import { buildTestApp } from "./testHelpers.js";
-import { schema } from "@exam/db/src/schema/pg.js";
+import { schema } from "@exam/db/schema/pg";
 
 const combinedPlugin: FastifyPluginAsync = async (fastify) => {
   await fastify.register(authRoutes, { prefix: "/auth" });

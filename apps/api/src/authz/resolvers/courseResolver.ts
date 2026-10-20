@@ -1,7 +1,7 @@
 import type { FastifyBaseLogger } from "fastify";
-import type { Database, TenantContext } from "@exam/db/src/types.js";
-import { createCourseRepo } from "@exam/db/src/repository/courseRepo.js";
-import { createQuestionRepo } from "@exam/db/src/repository/questionRepo.js";
+import type { Database, TenantContext } from "@exam/db/types";
+import { createCourseRepo } from "@exam/db/repository/courseRepo";
+import { createQuestionRepo } from "@exam/db/repository/questionRepo";
 import {
   Scope,
   type ResolverContext,

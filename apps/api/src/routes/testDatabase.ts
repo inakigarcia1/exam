@@ -15,13 +15,13 @@
 import {
   isTestDbIsolationEnabled,
   setupIsolatedTestDb,
-} from "@exam/db/src/testIsolation.js";
+} from "@exam/db/testIsolation";
 import {
   setupWorkerTestDatabase,
   type WorkerDatabaseHandle,
-} from "@exam/db/src/testWorkerDatabase.js";
-import { resolveTestScope, type ResolverEnv } from "@exam/db/src/testScope.js";
-import { resolveTestBranchUrl } from "@exam/db/src/databaseUrl.js";
+} from "@exam/db/testWorkerDatabase";
+import { resolveTestScope, type ResolverEnv } from "@exam/db/testScope";
+import { resolveTestBranchUrl } from "@exam/db/databaseUrl";
 
 /** Which isolation strategy the adapter selected for this call. */
 export type ApiTestDatabaseMode = "file-schema" | "worker-database";

@@ -3,7 +3,7 @@ import {
   isWorkerDatabaseMode,
   setupApiTestDatabaseFromEnv,
 } from "./testDatabase.js";
-import { resolveTestDbUrl } from "@exam/db/src/testDb.js";
+import { resolveTestDbUrl } from "@exam/db/testDb";
 
 /**
  * ADR-007 Phase 3B — API test database adapter tests.
@@ -31,7 +31,7 @@ const BASE_URL = resolveTestDbUrl();
 
 const setupWorkerMock = vi.fn();
 
-vi.mock("@exam/db/src/testWorkerDatabase.js", () => ({
+vi.mock("@exam/db/testWorkerDatabase", () => ({
   setupWorkerTestDatabase: (opts: unknown) => setupWorkerMock(opts),
 }));
 

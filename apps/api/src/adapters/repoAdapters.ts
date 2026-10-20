@@ -7,16 +7,16 @@ import type {
   InterruptionTimePolicy,
   RequestContext,
 } from "@exam/domain";
-import type { createExamRepo } from "@exam/db/src/repository/examRepo.js";
-import type { createExamAdmissionRepo } from "@exam/db/src/repository/examAdmissionRepo.js";
+import type { createExamRepo } from "@exam/db/repository/examRepo";
+import type { createExamAdmissionRepo } from "@exam/db/repository/examAdmissionRepo";
 import type { ExamAdmissionRepository } from "@exam/exam-engine";
-import type { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
-import type { createEnrollmentRepo } from "@exam/db/src/repository/enrollmentRepo.js";
-import type { createAttemptGradingEntryRepo } from "@exam/db/src/repository/attemptGradingEntryRepo.js";
-import type { createAttemptInterruptionRepo } from "@exam/db/src/repository/attemptInterruptionRepo.js";
-import type { createAttemptInterruptionEventRepo } from "@exam/db/src/repository/attemptInterruptionEventRepo.js";
-import type { createAttemptTimeAdjustmentRepo } from "@exam/db/src/repository/attemptTimeAdjustmentRepo.js";
-import type { createIncidentRepo } from "@exam/db/src/repository/incidentRepo.js";
+import type { createAttemptRepo } from "@exam/db/repository/attemptRepo";
+import type { createEnrollmentRepo } from "@exam/db/repository/enrollmentRepo";
+import type { createAttemptGradingEntryRepo } from "@exam/db/repository/attemptGradingEntryRepo";
+import type { createAttemptInterruptionRepo } from "@exam/db/repository/attemptInterruptionRepo";
+import type { createAttemptInterruptionEventRepo } from "@exam/db/repository/attemptInterruptionEventRepo";
+import type { createAttemptTimeAdjustmentRepo } from "@exam/db/repository/attemptTimeAdjustmentRepo";
+import type { createIncidentRepo } from "@exam/db/repository/incidentRepo";
 import type {
   ExamRepository,
   AttemptRepository,

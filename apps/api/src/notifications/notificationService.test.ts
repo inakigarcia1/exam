@@ -1,14 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { RequestContext } from "@exam/domain";
-import { executeInTransaction } from "@exam/db/src/types.js";
-import type { Database } from "@exam/db/src/types.js";
-import { getIsolatedTestDb } from "@exam/db/src/testDb.js";
-import { createNotificationRepo } from "@exam/db/src/repository/notificationRepo.js";
-import { createEmailOutboxRepo } from "@exam/db/src/repository/emailOutboxRepo.js";
-import { createOrganizationRepo } from "@exam/db/src/repository/organizationRepo.js";
-import { createUserRepo } from "@exam/db/src/repository/userRepo.js";
-import { emailOutbox } from "@exam/db/src/schema/pg.js";
+import { executeInTransaction } from "@exam/db/types";
+import type { Database } from "@exam/db/types";
+import { getIsolatedTestDb } from "@exam/db/testDb";
+import { createNotificationRepo } from "@exam/db/repository/notificationRepo";
+import { createEmailOutboxRepo } from "@exam/db/repository/emailOutboxRepo";
+import { createOrganizationRepo } from "@exam/db/repository/organizationRepo";
+import { createUserRepo } from "@exam/db/repository/userRepo";
+import { emailOutbox } from "@exam/db/schema/pg";
 import { eq } from "drizzle-orm";
 import {
   dispatchResultPublishedFanOut,

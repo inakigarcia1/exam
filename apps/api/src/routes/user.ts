@@ -9,12 +9,12 @@ import {
   type AssignableRole,
 } from "@exam/contracts";
 import { PaginationParamsSchema } from "@exam/contracts";
-import { hashPassword } from "@exam/auth/src/password.js";
-import { createUserRepo } from "@exam/db/src/repository/userRepo.js";
-import { createUserRoleAssignmentRepo } from "@exam/db/src/repository/userRoleAssignmentRepo.js";
-import { createPasswordResetTokenRepo } from "@exam/db/src/repository/passwordResetTokenRepo.js";
-import { createCandidateRepo } from "@exam/db/src/repository/candidateRepo.js";
-import { executeInTransaction } from "@exam/db/src/types.js";
+import { hashPassword } from "@exam/auth/password";
+import { createUserRepo } from "@exam/db/repository/userRepo";
+import { createUserRoleAssignmentRepo } from "@exam/db/repository/userRoleAssignmentRepo";
+import { createPasswordResetTokenRepo } from "@exam/db/repository/passwordResetTokenRepo";
+import { createCandidateRepo } from "@exam/db/repository/candidateRepo";
+import { executeInTransaction } from "@exam/db/types";
 import { ValidationError } from "@exam/domain";
 import { Permission } from "@exam/authz";
 import { ensureTargetOrg, getRequestContext } from "./helpers.js";

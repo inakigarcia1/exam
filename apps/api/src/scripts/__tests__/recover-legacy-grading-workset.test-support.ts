@@ -3,14 +3,14 @@ import {
   executeInTransaction,
   migratePostgres,
 } from "@exam/db";
-import { resolveTestDbUrl } from "@exam/db/src/testDb.js";
-import type { Database } from "@exam/db/src/types.js";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
-import { createEnrollmentRepo } from "@exam/db/src/repository/enrollmentRepo.js";
-import { createExamRepo } from "@exam/db/src/repository/examRepo.js";
-import { createAttemptGradingEntryRepo } from "@exam/db/src/repository/attemptGradingEntryRepo.js";
-import { setupIsolatedTestDb } from "@exam/db/src/testIsolation.js";
+import { resolveTestDbUrl } from "@exam/db/testDb";
+import type { Database } from "@exam/db/types";
+import { schema } from "@exam/db/schema/pg";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
+import { createEnrollmentRepo } from "@exam/db/repository/enrollmentRepo";
+import { createExamRepo } from "@exam/db/repository/examRepo";
+import { createAttemptGradingEntryRepo } from "@exam/db/repository/attemptGradingEntryRepo";
+import { setupIsolatedTestDb } from "@exam/db/testIsolation";
 import { eq, sql } from "drizzle-orm";
 import type {
   AnswerRecord,

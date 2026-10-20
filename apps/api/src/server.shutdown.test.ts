@@ -35,9 +35,9 @@ import { tmpdir } from "node:os";
 import { createServer } from "node:net";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createPostgresDatabase } from "@exam/db/src/postgres.js";
-import { getIsolatedTestDb, resolveTestDbUrl } from "@exam/db/src/testDb.js";
-import { addSearchPathToUrl } from "@exam/db/src/testIsolation.js";
+import { createPostgresDatabase } from "@exam/db/postgres";
+import { getIsolatedTestDb, resolveTestDbUrl } from "@exam/db/testDb";
+import { addSearchPathToUrl } from "@exam/db/testIsolation";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SERVER_PATH = resolve(__dirname, "server.ts");

@@ -2,12 +2,12 @@ import type { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
 import { randomUUID } from "node:crypto";
 import { hostname } from "node:os";
-import { createEmailOutboxRepo } from "@exam/db/src/repository/emailOutboxRepo.js";
-import { createOrganizationRepo } from "@exam/db/src/repository/organizationRepo.js";
+import { createEmailOutboxRepo } from "@exam/db/repository/emailOutboxRepo";
+import { createOrganizationRepo } from "@exam/db/repository/organizationRepo";
 import {
   createWorkerHeartbeatRepo,
   type WorkerHeartbeatRepo,
-} from "@exam/db/src/repository/workerHeartbeatRepo.js";
+} from "@exam/db/repository/workerHeartbeatRepo";
 import { EmailOutboxService } from "../email/outboxService.js";
 import { getRuntimeConfig } from "../config/runtimeConfig.js";
 import {

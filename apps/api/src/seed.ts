@@ -1,7 +1,7 @@
-import { createDatabase } from "@exam/db/src/database.js";
-import { migratePostgres } from "@exam/db/src/postgres.js";
-import { seed } from "@exam/db/src/seed.js";
-import { hashPassword } from "@exam/auth/src/password.js";
+import { createDatabase } from "@exam/db/database";
+import { migratePostgres } from "@exam/db/postgres";
+import { seed } from "@exam/db/seed";
+import { hashPassword } from "@exam/auth/password";
 import { loadRootEnv } from "./config/loadRootEnv.js";
 import { getRuntimeConfig } from "./config/runtimeConfig.js";
 

@@ -3,7 +3,7 @@
 // Authority: docs/contracts/exam-policy-authority.md §11, §21.
 
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
-import { createExamRepo } from "@exam/db/src/repository/examRepo.js";
+import { createExamRepo } from "@exam/db/repository/examRepo";
 import examRoutes from "./exam.js";
 import courseRoutes from "./course.js";
 import questionRoutes from "./question.js";

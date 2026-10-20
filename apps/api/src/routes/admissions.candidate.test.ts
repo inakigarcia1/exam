@@ -17,9 +17,9 @@ import examRoutes from "./exam.js";
 import attemptRoutes from "./attempts.js";
 import courseRoutes from "./course.js";
 import questionRoutes from "./question.js";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { hashPassword } from "@exam/auth/src/password.js";
-import { signJWT } from "@exam/auth/src/session.js";
+import { schema } from "@exam/db/schema/pg";
+import { hashPassword } from "@exam/auth/password";
+import { signJWT } from "@exam/auth/session";
 import { getRuntimeConfig } from "../config/runtimeConfig.js";
 
 type Json = Record<string, unknown>;

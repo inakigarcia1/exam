@@ -53,19 +53,19 @@
 
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { randomUUID } from "node:crypto";
-import { createPostgresDatabase } from "@exam/db/src/postgres.js";
-import { setupIsolatedTestDb } from "@exam/db/src/testIsolation.js";
-import { resolveTestDbUrl } from "@exam/db/src/testDb.js";
+import { createPostgresDatabase } from "@exam/db/postgres";
+import { setupIsolatedTestDb } from "@exam/db/testIsolation";
+import { resolveTestDbUrl } from "@exam/db/testDb";
 import { buildTestApp } from "../testHelpers.js";
 import examRoutes from "../exam.js";
 import attemptRoutes from "../attempts.js";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
-import { createExamRepo } from "@exam/db/src/repository/examRepo.js";
-import { createEnrollmentRepo } from "@exam/db/src/repository/enrollmentRepo.js";
-import { createAttemptGradingEntryRepo } from "@exam/db/src/repository/attemptGradingEntryRepo.js";
-import { createAttemptInterruptionRepo } from "@exam/db/src/repository/attemptInterruptionRepo.js";
-import { createAttemptInterruptionEventRepo } from "@exam/db/src/repository/attemptInterruptionEventRepo.js";
+import { schema } from "@exam/db/schema/pg";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
+import { createExamRepo } from "@exam/db/repository/examRepo";
+import { createEnrollmentRepo } from "@exam/db/repository/enrollmentRepo";
+import { createAttemptGradingEntryRepo } from "@exam/db/repository/attemptGradingEntryRepo";
+import { createAttemptInterruptionRepo } from "@exam/db/repository/attemptInterruptionRepo";
+import { createAttemptInterruptionEventRepo } from "@exam/db/repository/attemptInterruptionEventRepo";
 import {
   ensureAttemptDeadlineReconciled,
   lockEnrollmentAndAttempt,
@@ -78,13 +78,13 @@ import {
   createInterruptionEpisodeRepoAdapter,
   createInterruptionEventRepoAdapter,
 } from "../../adapters/repoAdapters.js";
-import { hashPassword } from "@exam/auth/src/password.js";
-import { signJWT } from "@exam/auth/src/session.js";
+import { hashPassword } from "@exam/auth/password";
+import { signJWT } from "@exam/auth/session";
 import { getRuntimeConfig } from "../../config/runtimeConfig.js";
 import type { Permission, RequestContext, Role } from "@exam/domain";
 import { NotFoundError } from "@exam/domain";
-import type { Database } from "@exam/db/src/types.js";
-import { executeInTransaction } from "@exam/db/src/types.js";
+import type { Database } from "@exam/db/types";
+import { executeInTransaction } from "@exam/db/types";
 import { createDeferred, type Deferred } from "../../testing/barrier.js";
 import type { ExamAttempt } from "@exam/domain";
 import { and, eq, sql as drizzleSql } from "drizzle-orm";

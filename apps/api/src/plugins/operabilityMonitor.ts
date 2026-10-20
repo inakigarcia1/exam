@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
-import { createSystemStatsRepo } from "@exam/db/src/repository/systemStatsRepo.js";
-import type { Database } from "@exam/db/src/types.js";
+import { createSystemStatsRepo } from "@exam/db/repository/systemStatsRepo";
+import type { Database } from "@exam/db/types";
 import { getRuntimeConfig } from "../config/runtimeConfig.js";
 import { heartbeatMetrics } from "./heartbeat.js";
 import { deadlineScannerMetrics } from "./deadlineScanner.js";

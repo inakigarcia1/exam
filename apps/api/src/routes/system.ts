@@ -17,22 +17,22 @@ import {
   UpsertOpsPolicyRequestSchema,
   type ComplianceStatus,
 } from "@exam/contracts";
-import { executeInTransaction } from "@exam/db/src/types.js";
-import { createOperationalPolicyRepo } from "@exam/db/src/repository/operationalPolicyRepo.js";
+import { executeInTransaction } from "@exam/db/types";
+import { createOperationalPolicyRepo } from "@exam/db/repository/operationalPolicyRepo";
 import { recordAtomicHttpAudit } from "../audit/auditWriter.js";
-import { createSystemStatsRepo } from "@exam/db/src/repository/systemStatsRepo.js";
-import { createEmailOutboxRepo } from "@exam/db/src/repository/emailOutboxRepo.js";
-import { createWorkerHeartbeatRepo } from "@exam/db/src/repository/workerHeartbeatRepo.js";
-import { createIntegrityDiagnosticsRepo } from "@exam/db/src/repository/integrityDiagnosticsRepo.js";
-import { createBackupEvidenceRepo } from "@exam/db/src/repository/backupEvidenceRepo.js";
+import { createSystemStatsRepo } from "@exam/db/repository/systemStatsRepo";
+import { createEmailOutboxRepo } from "@exam/db/repository/emailOutboxRepo";
+import { createWorkerHeartbeatRepo } from "@exam/db/repository/workerHeartbeatRepo";
+import { createIntegrityDiagnosticsRepo } from "@exam/db/repository/integrityDiagnosticsRepo";
+import { createBackupEvidenceRepo } from "@exam/db/repository/backupEvidenceRepo";
 import type {
   BackupRunRow,
   RestoreDrillRow,
-} from "@exam/db/src/repository/backupEvidenceRepo.js";
-import { createRetentionEvidenceRepo } from "@exam/db/src/repository/retentionEvidenceRepo.js";
-import type { RetentionRunRow } from "@exam/db/src/repository/retentionEvidenceRepo.js";
+} from "@exam/db/repository/backupEvidenceRepo";
+import { createRetentionEvidenceRepo } from "@exam/db/repository/retentionEvidenceRepo";
+import type { RetentionRunRow } from "@exam/db/repository/retentionEvidenceRepo";
 import { getRequestContext } from "./helpers.js";
-import type { Database } from "@exam/db/src/types.js";
+import type { Database } from "@exam/db/types";
 import {
   getRuntimeConfig,
   buildPublicConfig,

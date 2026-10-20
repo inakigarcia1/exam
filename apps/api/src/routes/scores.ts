@@ -15,8 +15,8 @@ import type {
   RequestContext,
 } from "@exam/domain";
 import { NotFoundError, PermissionDeniedError } from "@exam/domain";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
-import { createExamRepo } from "@exam/db/src/repository/examRepo.js";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
+import { createExamRepo } from "@exam/db/repository/examRepo";
 import { Permission } from "@exam/authz";
 import { resolveCandidateResultVisibility } from "@exam/exam-engine";
 import {

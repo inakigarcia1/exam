@@ -6,12 +6,120 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js",
-    "./src/*": "./dist/*"
+    ".": {
+      "@exam/test-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./database": {
+      "@exam/test-source": "./src/database.ts",
+      "types": "./dist/database.d.ts",
+      "default": "./dist/database.js"
+    },
+    "./databaseUrl": {
+      "@exam/test-source": "./src/databaseUrl.ts",
+      "types": "./dist/databaseUrl.d.ts",
+      "default": "./dist/databaseUrl.js"
+    },
+    "./demo-seed": {
+      "@exam/test-source": "./src/demo-seed.ts",
+      "types": "./dist/demo-seed.d.ts",
+      "default": "./dist/demo-seed.js"
+    },
+    "./demo-seed-verify": {
+      "@exam/test-source": "./src/demo-seed-verify.ts",
+      "types": "./dist/demo-seed-verify.d.ts",
+      "default": "./dist/demo-seed-verify.js"
+    },
+    "./e2eSeedOrchestrator": {
+      "@exam/test-source": "./src/e2eSeedOrchestrator.ts",
+      "types": "./dist/e2eSeedOrchestrator.d.ts",
+      "default": "./dist/e2eSeedOrchestrator.js"
+    },
+    "./lock": {
+      "@exam/test-source": "./src/lock.ts",
+      "types": "./dist/lock.d.ts",
+      "default": "./dist/lock.js"
+    },
+    "./postgres": {
+      "@exam/test-source": "./src/postgres.ts",
+      "types": "./dist/postgres.d.ts",
+      "default": "./dist/postgres.js"
+    },
+    "./repository/*": {
+      "@exam/test-source": "./src/repository/*.ts",
+      "types": "./dist/repository/*.d.ts",
+      "default": "./dist/repository/*.js"
+    },
+    "./schema": {
+      "@exam/test-source": "./src/schema.ts",
+      "types": "./dist/schema.d.ts",
+      "default": "./dist/schema.js"
+    },
+    "./seed": {
+      "@exam/test-source": "./src/seed.ts",
+      "types": "./dist/seed.d.ts",
+      "default": "./dist/seed.js"
+    },
+    "./testCleanup": {
+      "@exam/test-source": "./src/testCleanup.ts",
+      "types": "./dist/testCleanup.d.ts",
+      "default": "./dist/testCleanup.js"
+    },
+    "./testDb": {
+      "@exam/test-source": "./src/testDb.ts",
+      "types": "./dist/testDb.d.ts",
+      "default": "./dist/testDb.js"
+    },
+    "./testDbBootstrap": {
+      "@exam/test-source": "./src/testDbBootstrap.ts",
+      "types": "./dist/testDbBootstrap.d.ts",
+      "default": "./dist/testDbBootstrap.js"
+    },
+    "./testInfraLock": {
+      "@exam/test-source": "./src/testInfraLock.ts",
+      "types": "./dist/testInfraLock.d.ts",
+      "default": "./dist/testInfraLock.js"
+    },
+    "./testIsolation": {
+      "@exam/test-source": "./src/testIsolation.ts",
+      "types": "./dist/testIsolation.d.ts",
+      "default": "./dist/testIsolation.js"
+    },
+    "./testScope": {
+      "@exam/test-source": "./src/testScope.ts",
+      "types": "./dist/testScope.d.ts",
+      "default": "./dist/testScope.js"
+    },
+    "./testWorkerDatabase": {
+      "@exam/test-source": "./src/testWorkerDatabase.ts",
+      "types": "./dist/testWorkerDatabase.d.ts",
+      "default": "./dist/testWorkerDatabase.js"
+    },
+    "./types": {
+      "@exam/test-source": "./src/types.ts",
+      "types": "./dist/types.d.ts",
+      "default": "./dist/types.js"
+    },
+    "./schema/pg": {
+      "@exam/test-source": "./src/schema/pg.ts",
+      "types": "./dist/schema/pg.d.ts",
+      "default": "./dist/schema/pg.js"
+    },
+    "./scripts/destructiveDbNameGuard": {
+      "@exam/test-source": "./src/scripts/destructiveDbNameGuard.ts",
+      "types": "./dist/scripts/destructiveDbNameGuard.d.ts",
+      "default": "./dist/scripts/destructiveDbNameGuard.js"
+    },
+    "./testHelpers/auditLogTestRepo": {
+      "@exam/test-source": "./src/testHelpers/auditLogTestRepo.ts",
+      "types": "./dist/testHelpers/auditLogTestRepo.d.ts",
+      "default": "./dist/testHelpers/auditLogTestRepo.js"
+    }
   },
   "scripts": {
-    "build": "tsc",
-    "typecheck": "tsc --noEmit",
+    "build": "node ../../scripts/clean-dist.mjs . && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.typecheck.json",
     "lint": "node ../../scripts/check-code-quality.mjs",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
@@ -23,6 +131,7 @@
   },
   "devDependencies": {
     "@exam/auth": "workspace:*",
+    "@exam/source-fixture": "workspace:*",
     "@types/node": "^22.19.19",
     "@vitest/coverage-v8": "^4.1.7",
     "drizzle-kit": "^0.31.10",

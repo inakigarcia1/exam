@@ -11,7 +11,7 @@ import { eq, sql } from "drizzle-orm";
 import launchpadRoutes from "./launchpad.js";
 import { buildTestApp, type TestContext } from "./testHelpers.js";
 import { resetRuntimeConfigForTest } from "../config/runtimeConfig.js";
-import { schema } from "@exam/db/src/schema/pg.js";
+import { schema } from "@exam/db/schema/pg";
 
 const VALID_TOKEN = "test-launchpad-setup-token-DO-NOT-USE-IN-PROD";
 

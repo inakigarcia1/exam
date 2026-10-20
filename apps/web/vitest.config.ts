@@ -1,4 +1,5 @@
 import { defineConfig } from "vitest/config";
+import { workspaceSourceResolutionPlugin } from "../../config/workspace-resolution.mjs";
 import { fileURLToPath, URL } from "node:url";
 
 export default defineConfig({
@@ -6,6 +7,12 @@ export default defineConfig({
   // files can never reach import.meta.env in tests; VITE_* values come from
   // the process environment only. Pinned by scripts/check-env-surface.mjs.
   envDir: false,
+  // #794: workspace packages (@exam/domain, @exam/authz, @exam/contracts)
+  // resolve to sources in tests, same as every other Vitest project — before
+  // #794 this project had no workspace source handling and a direct vitest
+  // run silently executed stale dist. The "@" and mathlive aliases below are
+  // app-local concerns and stay here.
+  plugins: [workspaceSourceResolutionPlugin()],
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),

@@ -13,8 +13,8 @@ import {
   createCandidateViaApi,
   publishExamViaApi,
 } from "./testHelpers.js";
-import { signJWT } from "@exam/auth/src/session.js";
-import { schema } from "@exam/db/src/schema/pg.js";
+import { signJWT } from "@exam/auth/session";
+import { schema } from "@exam/db/schema/pg";
 
 /**
  * Exam creation with profile application (§19–§24).

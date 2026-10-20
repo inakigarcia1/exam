@@ -1,8 +1,8 @@
 import type { FastifyRequest } from "fastify";
 import type { RequestContext, Exam } from "@exam/domain";
-import { createExamRepo } from "@exam/db/src/repository/examRepo.js";
-import { executeInTransaction } from "@exam/db/src/types.js";
-import type { Database, TransactionDatabase } from "@exam/db/src/types.js";
+import { createExamRepo } from "@exam/db/repository/examRepo";
+import { executeInTransaction } from "@exam/db/types";
+import type { Database, TransactionDatabase } from "@exam/db/types";
 import { reconcileExamForMutation } from "./reconciliation.js";
 import {
   recordAtomicHttpAudit,

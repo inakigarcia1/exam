@@ -2,12 +2,12 @@ import { randomUUID } from "node:crypto";
 import type { FastifyPluginAsync } from "fastify";
 import { beforeAll, afterAll, describe, expect, it } from "vitest";
 import { and, desc, eq, isNull } from "drizzle-orm";
-import { hashToken } from "@exam/auth/src/tokens.js";
+import { hashToken } from "@exam/auth/tokens";
 import authRoutes from "./auth.js";
 import userRoutes from "./user.js";
 import invitationRoutes from "./invitation.js";
 import { buildTestApp, createAssignedUserForTest } from "./testHelpers.js";
-import { schema } from "@exam/db/src/schema/pg.js";
+import { schema } from "@exam/db/schema/pg";
 
 /**
  * The full identity-lifecycle route composition (#297): auth (public accept

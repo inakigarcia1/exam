@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance, FastifyPluginAsync } from "fastify";
-import { signJWT } from "@exam/auth/src/session.js";
-import { hashPassword } from "@exam/auth/src/password.js";
-import { schema } from "@exam/db/src/schema/pg.js";
-import type { AssignableRole } from "@exam/db/src/schema/pg.js";
+import { signJWT } from "@exam/auth/session";
+import { hashPassword } from "@exam/auth/password";
+import { schema } from "@exam/db/schema/pg";
+import type { AssignableRole } from "@exam/db/schema/pg";
 import { getRuntimeConfig } from "../../config/runtimeConfig.js";
 import { buildTestApp } from "../../routes/testHelpers.js";
 

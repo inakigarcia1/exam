@@ -49,9 +49,9 @@
  */
 import type { RequestContext } from "@exam/domain";
 import { IdempotencyConflictError, NotFoundError } from "@exam/domain";
-import type { Database, TransactionDatabase } from "@exam/db/src/types.js";
-import { executeInTransaction } from "@exam/db/src/types.js";
-import { createProctorAssignmentRepo } from "@exam/db/src/repository/proctorAssignmentRepo.js";
+import type { Database, TransactionDatabase } from "@exam/db/types";
+import { executeInTransaction } from "@exam/db/types";
+import { createProctorAssignmentRepo } from "@exam/db/repository/proctorAssignmentRepo";
 import {
   isConstraintViolation,
   payloadsEqual,

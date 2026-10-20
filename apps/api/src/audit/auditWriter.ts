@@ -10,8 +10,8 @@ import type {
   Database,
   TenantContext,
   TransactionDatabase,
-} from "@exam/db/src/types.js";
-import { createAuditLogWriter } from "@exam/db/src/repository/auditLogRepo.js";
+} from "@exam/db/types";
+import { createAuditLogWriter } from "@exam/db/repository/auditLogRepo";
 import { assertAuditAction, type AuditActionKey } from "@exam/authz";
 import {
   AUDIT_IP_ADDRESS_MAX_LENGTH,

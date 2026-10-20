@@ -3,8 +3,8 @@ import { and, eq } from "drizzle-orm";
 import { buildTestApp, uniquePrefix } from "../testHelpers.js";
 import examRoutes from "../exam.js";
 import attemptRoutes from "../attempts.js";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
+import { schema } from "@exam/db/schema/pg";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
 import {
   buildExamPayload,
   DEFAULT_CONTROL_FLAGS,

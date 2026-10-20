@@ -38,20 +38,17 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
-import {
-  createPostgresDatabase,
-  migratePostgres,
-} from "@exam/db/src/postgres.js";
-import { withTestInfraLifecycleLock } from "@exam/db/src/testInfraLock.js";
-import { setupIsolatedTestDb } from "@exam/db/src/testIsolation.js";
-import { resolveTestDbUrl } from "@exam/db/src/testDb.js";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { createExamRepo } from "@exam/db/src/repository/examRepo.js";
-import { executeInTransaction } from "@exam/db/src/types.js";
+import { createPostgresDatabase, migratePostgres } from "@exam/db/postgres";
+import { withTestInfraLifecycleLock } from "@exam/db/testInfraLock";
+import { setupIsolatedTestDb } from "@exam/db/testIsolation";
+import { resolveTestDbUrl } from "@exam/db/testDb";
+import { schema } from "@exam/db/schema/pg";
+import { createExamRepo } from "@exam/db/repository/examRepo";
+import { executeInTransaction } from "@exam/db/types";
 import { publishResults } from "@exam/exam-engine";
 import type { ExamRepository } from "@exam/exam-engine";
 import type { RequestContext } from "@exam/domain";
-import type { Database, TransactionDatabase } from "@exam/db/src/types.js";
+import type { Database, TransactionDatabase } from "@exam/db/types";
 import { createExamRepoAdapter } from "../adapters/repoAdapters.js";
 import { createDeferred, type Deferred } from "../testing/barrier.js";
 

@@ -1,10 +1,10 @@
 import type { RequestContext } from "@exam/domain";
 import type { CandidateStatusItem } from "@exam/contracts";
-import type { Database } from "@exam/db/src/types.js";
-import { createEnrollmentRepo } from "@exam/db/src/repository/enrollmentRepo.js";
-import { createCandidateRepo } from "@exam/db/src/repository/candidateRepo.js";
-import { createUserRepo } from "@exam/db/src/repository/userRepo.js";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
+import type { Database } from "@exam/db/types";
+import { createEnrollmentRepo } from "@exam/db/repository/enrollmentRepo";
+import { createCandidateRepo } from "@exam/db/repository/candidateRepo";
+import { createUserRepo } from "@exam/db/repository/userRepo";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
 
 type AttemptRow = Awaited<
   ReturnType<ReturnType<typeof createAttemptRepo>["listByExam"]>

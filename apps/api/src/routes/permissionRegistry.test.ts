@@ -1,13 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { FastifyPluginAsync } from "fastify";
 import { eq } from "drizzle-orm";
-import { hashPassword } from "@exam/auth/src/password.js";
-import { signJWT } from "@exam/auth/src/session.js";
+import { hashPassword } from "@exam/auth/password";
+import { signJWT } from "@exam/auth/session";
 import { Permission, ROLE_PRESETS } from "@exam/authz";
 import authRoutes from "./auth.js";
 import { permissionRegistryRoutes } from "./permissionRegistry.js";
 import { buildTestApp } from "./testHelpers.js";
-import { schema } from "@exam/db/src/schema/pg.js";
+import { schema } from "@exam/db/schema/pg";
 import { getRuntimeConfig } from "../config/runtimeConfig.js";
 
 const combinedPlugin: FastifyPluginAsync = async (fastify) => {

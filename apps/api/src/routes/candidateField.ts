@@ -5,8 +5,8 @@ import {
   UpdateCandidateFieldRequestSchema,
   ErrorResponseSchema,
 } from "@exam/contracts";
-import { createCandidateFieldRepo } from "@exam/db/src/repository/candidateFieldRepo.js";
-import { createCandidateRepo } from "@exam/db/src/repository/candidateRepo.js";
+import { createCandidateFieldRepo } from "@exam/db/repository/candidateFieldRepo";
+import { createCandidateRepo } from "@exam/db/repository/candidateRepo";
 import { ensureTargetOrg, getRequestContext } from "./helpers.js";
 import { recordBestEffortAudit } from "../audit/auditWriter.js";
 import { buildErrorResponse } from "../lib/errorResponse.js";

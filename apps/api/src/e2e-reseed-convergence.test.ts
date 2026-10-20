@@ -30,18 +30,18 @@
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { createDatabase } from "@exam/db/src/database.js";
-import { migratePostgres } from "@exam/db/src/postgres.js";
+import { createDatabase } from "@exam/db/database";
+import { migratePostgres } from "@exam/db/postgres";
 import {
   ensureDatabaseExists,
   dropDatabaseIfExists,
   withDatabaseName,
-} from "@exam/db/src/testWorkerDatabase.js";
-import { resolveTestInfraCoordinationUrl } from "@exam/db/src/testInfraLock.js";
-import { resolveTestDbUrl } from "@exam/db/src/testDb.js";
-import { runE2eSeed } from "@exam/db/src/e2eSeedOrchestrator.js";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { hashPassword } from "@exam/auth/src/password.js";
+} from "@exam/db/testWorkerDatabase";
+import { resolveTestInfraCoordinationUrl } from "@exam/db/testInfraLock";
+import { resolveTestDbUrl } from "@exam/db/testDb";
+import { runE2eSeed } from "@exam/db/e2eSeedOrchestrator";
+import { schema } from "@exam/db/schema/pg";
+import { hashPassword } from "@exam/auth/password";
 import { createDemoSeedGrader } from "./demo-seed-grader.js";
 
 const RESET_TEST_DB = "exam_e2e_w31";

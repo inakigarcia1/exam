@@ -13,13 +13,13 @@
  *     --username admin --password 'NewStrongPassword123!'
  */
 
-import { hashPassword } from "@exam/auth/src/password.js";
+import { hashPassword } from "@exam/auth/password";
 import { createDatabase } from "@exam/db";
-import type { Database } from "@exam/db/src/types.js";
-import { executeInTransaction } from "@exam/db/src/types.js";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { createUserRepo } from "@exam/db/src/repository/userRepo.js";
-import { createUserRoleAssignmentRepo } from "@exam/db/src/repository/userRoleAssignmentRepo.js";
+import type { Database } from "@exam/db/types";
+import { executeInTransaction } from "@exam/db/types";
+import { schema } from "@exam/db/schema/pg";
+import { createUserRepo } from "@exam/db/repository/userRepo";
+import { createUserRoleAssignmentRepo } from "@exam/db/repository/userRoleAssignmentRepo";
 import { recordAtomicSystemAudit } from "../audit/auditWriter.js";
 import { loadRootEnv } from "../config/loadRootEnv.js";
 import { resolveDatabaseUrlFromEnv } from "../config/runtimeConfig.js";

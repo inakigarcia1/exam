@@ -17,7 +17,7 @@ import { createDatabase } from "./database.js";
 import { migratePostgres } from "./postgres.js";
 import { schema } from "./schema/pg.js";
 import { seed } from "./seed.js";
-import { hashPassword } from "@exam/auth/src/password.js";
+import { hashPassword } from "@exam/auth/password";
 import { getIsolatedTestDb, resolveTestDbUrl } from "./testDb.js";
 import { getTestInfraLockAcquisitionCount } from "./testInfraLock.js";
 

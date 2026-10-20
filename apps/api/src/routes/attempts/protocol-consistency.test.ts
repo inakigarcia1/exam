@@ -3,8 +3,8 @@ import { randomUUID } from "node:crypto";
 import { buildTestApp } from "../testHelpers.js";
 import examRoutes from "../exam.js";
 import attemptRoutes from "../attempts.js";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
-import { schema } from "@exam/db/src/schema/pg.js";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
+import { schema } from "@exam/db/schema/pg";
 import {
   buildExamPayload,
   enrollCandidateForExam,

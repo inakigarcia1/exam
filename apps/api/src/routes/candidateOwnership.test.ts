@@ -15,9 +15,9 @@ import examRoutes from "./exam.js";
 import courseRoutes from "./course.js";
 import questionRoutes from "./question.js";
 import scoreRoutes from "./scores.js";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { hashPassword } from "@exam/auth/src/password.js";
-import { signJWT } from "@exam/auth/src/session.js";
+import { schema } from "@exam/db/schema/pg";
+import { hashPassword } from "@exam/auth/password";
+import { signJWT } from "@exam/auth/session";
 
 /**
  * Candidate ownership boundary proof (cross-candidate matrix).

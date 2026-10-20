@@ -1,15 +1,12 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
-import {
-  createPostgresDatabase,
-  migratePostgres,
-} from "@exam/db/src/postgres.js";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { resolveTestDbUrl } from "@exam/db/src/testDb.js";
-import type { Database } from "@exam/db/src/types.js";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
-import { hashPassword } from "@exam/auth/src/password.js";
-import { seed } from "@exam/db/src/seed.js";
-import { setupIsolatedTestDb } from "@exam/db/src/testIsolation.js";
+import { createPostgresDatabase, migratePostgres } from "@exam/db/postgres";
+import { schema } from "@exam/db/schema/pg";
+import { resolveTestDbUrl } from "@exam/db/testDb";
+import type { Database } from "@exam/db/types";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
+import { hashPassword } from "@exam/auth/password";
+import { seed } from "@exam/db/seed";
+import { setupIsolatedTestDb } from "@exam/db/testIsolation";
 import { createDeferred } from "../../src/testing/barrier.js";
 import { collectConnectionEvidence } from "../../src/testing/operatorGrantConcurrencyHarness.js";
 import {
