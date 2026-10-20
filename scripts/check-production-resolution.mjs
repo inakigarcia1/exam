@@ -215,6 +215,11 @@ const negativeProbes = [
   ["@exam/nonexistent-794", "ERR_MODULE_NOT_FOUND"],
   ["@exam/db/repository/examRepo.js", "ERR_MODULE_NOT_FOUND"],
   ["@exam/db/repository/examRepo.test", "ERR_MODULE_NOT_FOUND"],
+  // Grammar parity anchor (review round 3, #794): Node rejects dot-segment
+  // captures with ERR_INVALID_MODULE_SPECIFIER before file lookup — the
+  // matcher now rejects the same family, and this pins the native side.
+  // (The Vitest oracle pins the plugin side with the same specifier.)
+  ["@exam/db/repository/../sqlIdent", "ERR_INVALID_MODULE_SPECIFIER"],
 ];
 const negativeChild = spawnSync(
   process.execPath,

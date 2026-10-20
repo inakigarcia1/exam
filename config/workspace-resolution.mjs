@@ -35,8 +35,11 @@
 //
 //   UNKNOWN_WORKSPACE_PACKAGE — @exam/* name with no packages/ manifest
 //   NOT_EXPORTED              — package exists, subpath matches no key
-//   BAD_SPECIFIER_SHAPE       — suffixed capture (.js/.ts/.test/…) a
-//                               workspace import must never carry
+//   BAD_SPECIFIER_SHAPE       — a capture Node's exports resolution would
+//                               reject before file lookup: extension/test
+//                               markers (.js/.ts/.test/…), or ".", "..",
+//                               "node_modules", percent-encoded or backslash
+//                               path segments (grammar parity, probed live)
 //   MISSING_SOURCE            — exports key matches but the source file is
 //                               absent (stale-dist trap; declared ghost
 //                               entries inject this permanently for the
@@ -130,6 +133,39 @@ function patternKeyCompare(a, b) {
     return b.prefix.length - a.prefix.length;
   }
   return b.suffix.length - a.suffix.length;
+}
+
+// Grammar parity with Node's exports resolution (#794 round 3, probed live
+// on the toolchain Node): inside a pattern capture, ".", ".." and
+// "node_modules" segments — raw or percent-encoded in any case — are
+// rejected with ERR_INVALID_MODULE_SPECIFIER before any file lookup, as are
+// encoded path separators and backslashes. Empty segments and trailing
+// slashes are deprecated-but-allowed there and stay allowed here (they can
+// only normalize onto a declared file, same as Node). This check must run
+// BEFORE any path math: join() normalizes captures, so a rejected shape
+// like "repository/../sqlIdent" would otherwise resolve an existing
+// undeclared file (observed live: the plugin executed src/sqlIdent.ts while
+// both native Node and Vitest's default chain rejected the specifier).
+function isInvalidCaptureSegment(segment) {
+  const raw = segment.toLowerCase();
+  if (
+    raw === "." ||
+    raw === ".." ||
+    raw === "node_modules" ||
+    raw.includes("%2f") ||
+    raw.includes("%5c") ||
+    raw.includes("\\")
+  ) {
+    return true;
+  }
+  try {
+    const decoded = decodeURIComponent(segment).toLowerCase();
+    return decoded === "." || decoded === ".." || decoded === "node_modules";
+  } catch {
+    // Malformed percent-encoding is not a valid encoded subpath; rejecting
+    // it here is the fail-closed direction of the parity rule.
+    return true;
+  }
 }
 
 function validateDisjointPatterns(packageName, patterns) {
@@ -345,6 +381,22 @@ export function matchWorkspaceSource(table, specifier) {
         `not export "${subpath || "."}" (public API is the exports field ` +
         `of packages/${packageName}/package.json)`,
     };
+  }
+  if (entry.prefix !== null) {
+    // Pattern captures are validated as subpath shapes before any file
+    // math (grammar parity, see isInvalidCaptureSegment above).
+    const invalidSegment = capture.split("/").find(isInvalidCaptureSegment);
+    if (invalidSegment !== undefined) {
+      return {
+        status: "error",
+        classification: "BAD_SPECIFIER_SHAPE",
+        message:
+          `${specifier}: BAD_SPECIFIER_SHAPE — pattern captures may not ` +
+          `contain ".", "..", "node_modules", encoded-separator or ` +
+          `backslash path segments (Node exports parity); invalid segment ` +
+          `"${invalidSegment}" in capture "${capture}" of "@exam/${packageName}"`,
+      };
+    }
   }
   if (/\.(?:js|mjs|cjs|ts|tsx|jsx)$|\.(?:test|spec)$/i.test(capture)) {
     return {

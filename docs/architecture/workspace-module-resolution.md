@@ -62,7 +62,7 @@ error otherwise — the state machine:
 | Exported key + source missing (dist exists) | fail: `MISSING_SOURCE` |
 | Non-exported subpath | fail: `NOT_EXPORTED` |
 | Unknown `@exam/*` package | fail: `UNKNOWN_WORKSPACE_PACKAGE` |
-| Pattern match with suffixed capture (`.js`, `.test`, …) | fail: `BAD_SPECIFIER_SHAPE` |
+| Pattern match with a capture Node would reject (`.js`, `.test`, `..`/dot segments, `node_modules`, encoded separators, backslash) | fail: `BAD_SPECIFIER_SHAPE` |
 | Transitive workspace import | execute the source |
 | Third-party dependency | standard supported resolution (unmanaged) |
 | Production Node + exported key | execute the built artifact |
@@ -80,6 +80,19 @@ Vitest run, violation for `lint:arch`) instead of being silently handed to
 a different resolver. A manifest whose declared sources are missing fails
 the table load itself; a pattern capture whose specific source file is
 missing fails at resolve time with `MISSING_SOURCE`.
+
+**Capture grammar is Node-exact, not permissive.** Native Node rejects
+captures containing `.`, `..`, or `node_modules` path segments — raw or
+percent-encoded — and any encoded separator or backslash, with
+`ERR_INVALID_MODULE_SPECIFIER` before file lookup; the matcher rejects the
+same family (`BAD_SPECIFIER_SHAPE`) before any path math. This is not a
+style rule: `join()` normalizes paths, so an unvalidated dot-segment
+capture could resolve a file the exports field never declared (probed
+live: `@exam/db/repository/../sqlIdent` executed the undeclared
+`src/sqlIdent.ts` under the plugin while both plain Node and Vitest's
+default chain rejected the specifier). Every Vitest project pins the
+closed bypass with a permanent oracle probe; the production oracle pins
+Node's native rejection with the exact error code.
 
 **Why fail-closed is mandatory**: on the fall-through design, a missing
 source silently loaded stale dist behind the test's back (reproduced on an

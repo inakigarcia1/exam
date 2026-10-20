@@ -268,6 +268,13 @@ for (const configPath of await allCodeFiles("apps", [".ts", ".mjs", ".js"])) {
 // carry the main-process canary (review round 1, #794; negatives round 2).
 const ORACLE_ASSERTION =
   'expect(SOURCE_FIXTURE_MARKER).toBe("source-fixture:src:root")';
+// Dot-segment grammar probe each oracle must pin (review round 3, #794):
+// a capture with ".." used to join()-normalize onto files the exports
+// field never declared (live-bypassed: "@exam/db/repository/../sqlIdent"
+// executed src/sqlIdent.ts while native Node rejected the specifier).
+const FIXTURE_GRAMMAR_PROBE =
+  'dynamicImport("@exam/source-fixture/deep/../index")';
+const API_GRAMMAR_PROBE = 'dynamicImport("@exam/db/repository/../sqlIdent")';
 for (const entry of await readdir("packages", { withFileTypes: true })) {
   if (!entry.isDirectory()) continue;
   const pkgDir = join("packages", entry.name);
@@ -280,11 +287,12 @@ for (const entry of await readdir("packages", { withFileTypes: true })) {
   )
     continue;
   const oraclePath = join(pkgDir, "src/workspaceSourceResolution.test.ts");
-  await requireCompleteOracle(oraclePath);
+  await requireCompleteOracle(oraclePath, FIXTURE_GRAMMAR_PROBE);
 }
 for (const app of ["apps/api", "apps/web"]) {
   await requireCompleteOracle(
     join(app, "src/workspaceSourceResolution.test.ts"),
+    app === "apps/api" ? API_GRAMMAR_PROBE : FIXTURE_GRAMMAR_PROBE,
   );
 }
 const apiGlobalSetup = await readFile("apps/api/vitest.globalSetup.ts", "utf8");
@@ -298,7 +306,7 @@ if (
   );
 }
 
-async function requireCompleteOracle(oraclePath) {
+async function requireCompleteOracle(oraclePath, grammarProbe) {
   if (!existsSync(oraclePath)) {
     violations.push(
       `${oraclePath}: missing — every plugin-consuming project must pin both resolution rails with the fixture oracle (#794)`,
@@ -309,6 +317,11 @@ async function requireCompleteOracle(oraclePath) {
   if (!oracleText.includes(ORACLE_ASSERTION)) {
     violations.push(
       `${oraclePath}: does not assert the fixture src marker — execution provenance assertion missing (#794)`,
+    );
+  }
+  if (!oracleText.includes(grammarProbe)) {
+    violations.push(
+      `${oraclePath}: missing the dot-segment grammar probe (${grammarProbe}) — captures that escape the declared pattern family must be pinned (#794)`,
     );
   }
   // Assertion-shaped needles, not bare words (review round 2): the

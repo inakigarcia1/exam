@@ -82,4 +82,16 @@ describe("workspace source resolution oracle (api)", () => {
       dynamicImport("@exam/db/repository/examRepo.test"),
     ).rejects.toThrow(/BAD_SPECIFIER_SHAPE/);
   });
+
+  it("rejects dot-segment captures pointing at undeclared modules", async () => {
+    // Grammar parity with Node's exports resolution (probed live, #794):
+    // native Node rejects this specifier with ERR_INVALID_MODULE_SPECIFIER
+    // before any file lookup. The probed pre-fix behavior here was worse
+    // than a mere parity gap — join() normalized the capture and the
+    // plugin EXECUTED the undeclared src/sqlIdent.ts (no exports key
+    // declares "./sqlIdent"). This probe pins the closed bypass.
+    await expect(
+      dynamicImport("@exam/db/repository/../sqlIdent"),
+    ).rejects.toThrow(/BAD_SPECIFIER_SHAPE/);
+  });
 });
