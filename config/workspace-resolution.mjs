@@ -339,6 +339,72 @@ export function getWorkspaceResolutionTable() {
  *   { status: "error", classification, message }  — fail closed
  */
 export function matchWorkspaceSource(table, specifier) {
+  const parsed = parseWorkspaceExport(table, specifier);
+  if (parsed.status !== "matched") return parsed;
+  const { pkg, entry, capture } = parsed;
+  const relativeSource = entry.sourceTarget
+    .replace(/^\.\//, "")
+    .replace("*", capture);
+  const candidate = join(pkg.packageDir, relativeSource);
+  if (entry.negative) {
+    return {
+      status: "error",
+      classification: "MISSING_SOURCE",
+      message:
+        `${specifier}: MISSING_SOURCE — declared negative entry of ` +
+        `"@exam/${parsed.packageName}" (source ${relativeSource} is intentionally ` +
+        `absent; production loads ${entry.defaultTarget}, tests must fail ` +
+        `closed)`,
+    };
+  }
+  if (!existsSync(candidate)) {
+    return {
+      status: "error",
+      classification: "MISSING_SOURCE",
+      message:
+        `${specifier}: MISSING_SOURCE — exports key matches but source file ` +
+        `${relativeSource} does not exist (stale build? deleted or renamed ` +
+        `source?). Tests refuse to fall back to dist — rebuild the package.`,
+    };
+  }
+  return { status: "resolved", file: candidate };
+}
+
+/**
+ * Resolve a compiled `@exam/*` specifier to its PRODUCTION default-branch
+ * artifact — the file plain Node would load — without consulting the source
+ * tree. Consumers that audit built payloads (the deploy payload oracle)
+ * share this entry match instead of re-implementing it; source existence and
+ * negative entries are deliberately NOT checked here: a payload audit asks
+ * whether the built artifact exists where the payload should carry it.
+ * Returns one of:
+ *   { status: "unmanaged" }  — outside @exam/*
+ *   { status: "resolved", pkg, entry, capture, target } — target is absolute,
+ *     under the WORKSPACE package dir; payload-layout mapping is the caller's
+ *   { status: "error", classification, message }
+ */
+export function resolveProductionArtifact(table, specifier) {
+  const parsed = parseWorkspaceExport(table, specifier);
+  if (parsed.status !== "matched") return parsed;
+  const { packageName, pkg, entry, capture } = parsed;
+  const target = join(
+    pkg.packageDir,
+    entry.defaultTarget.replace(/^\.\//, "").replace("*", capture),
+  );
+  return {
+    status: "resolved",
+    pkg: `@exam/${packageName}`,
+    packageDir: pkg.packageDir,
+    entry,
+    capture,
+    target,
+  };
+}
+
+// Shared parse+match front half of the two resolvers above — the single
+// home of specifier grammar parity (trailing slash, captures, extensions)
+// and exports entry lookup. Never returns a load decision.
+function parseWorkspaceExport(table, specifier) {
   if (typeof specifier !== "string" || !specifier.startsWith("@exam/")) {
     return { status: "unmanaged" };
   }
@@ -440,32 +506,7 @@ export function matchWorkspaceSource(table, specifier) {
         )}" instead`,
     };
   }
-  const relativeSource = entry.sourceTarget
-    .replace(/^\.\//, "")
-    .replace("*", capture);
-  const candidate = join(entry.packageDir, relativeSource);
-  if (entry.negative) {
-    return {
-      status: "error",
-      classification: "MISSING_SOURCE",
-      message:
-        `${specifier}: MISSING_SOURCE — declared negative entry of ` +
-        `"@exam/${packageName}" (source ${relativeSource} is intentionally ` +
-        `absent; production loads ${entry.defaultTarget}, tests must fail ` +
-        `closed)`,
-    };
-  }
-  if (!existsSync(candidate)) {
-    return {
-      status: "error",
-      classification: "MISSING_SOURCE",
-      message:
-        `${specifier}: MISSING_SOURCE — exports key matches but source file ` +
-        `${relativeSource} does not exist (stale build? deleted or renamed ` +
-        `source?). Tests refuse to fall back to dist — rebuild the package.`,
-    };
-  }
-  return { status: "resolved", file: candidate };
+  return { status: "matched", packageName, pkg, entry, capture };
 }
 
 /**

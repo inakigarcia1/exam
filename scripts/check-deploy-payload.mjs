@@ -243,42 +243,19 @@ if (existsSync(apiDist)) {
       compiled.add(m[0]);
   }
   for (const spec of compiled) {
-    const [scope, name, ...rest] = spec.split("/");
-    const pkgName = `${scope}/${name}`;
-    const pkg = table.packages.get(pkgName);
-    if (!pkg) {
-      fail(`payload dist imports ${spec} — unknown governed workspace package`);
-      continue;
-    }
-    const subpath = rest.join("/");
-    const entry =
-      pkg.exact.get(subpath) ??
-      pkg.patterns.find(
-        (p) =>
-          subpath.length >= p.prefix.length + p.suffix.length &&
-          subpath.startsWith(p.prefix) &&
-          subpath.endsWith(p.suffix),
-      );
-    if (!entry) {
+    const resolved = authority.resolveProductionArtifact(table, spec);
+    if (resolved.status === "error") {
       fail(
-        `payload dist imports ${spec} — not exported under the production branch`,
+        `payload dist imports ${spec} — ${resolved.classification}: ${resolved.message}`,
       );
       continue;
     }
+    // The resolved target lives under the WORKSPACE package dir; the payload
+    // carries the same relative layout inside its @exam/* store copy.
     const phys =
-      EXAM_PHYS_DIRS.find((d) => d.endsWith(`${sep}${name}`)) ??
-      join(PAYLOAD, "node_modules", pkgName);
-    const capture =
-      entry.prefix === null
-        ? ""
-        : subpath.slice(
-            entry.prefix.length,
-            subpath.length - entry.suffix.length,
-          );
-    const target = join(
-      phys,
-      entry.defaultTarget.replace(/^\.\//, "").replace("*", capture),
-    );
+      EXAM_PHYS_DIRS.find((d) => d.endsWith(`${sep}${resolved.pkg}`)) ??
+      join(PAYLOAD, "node_modules", resolved.pkg);
+    const target = join(phys, relative(resolved.packageDir, resolved.target));
     if (!existsSync(target)) {
       fail(
         `payload dist imports ${spec} — production artifact missing: ${relative(PAYLOAD, target)}`,
