@@ -85,7 +85,7 @@ import { SOURCE_FIXTURE_MARKER } from "@exam/source-fixture";
 // #794 permanent canary for the MAIN-PROCESS resolution context. This file
 // is loaded by vitest's main-process module runner, which ignores Vite
 // condition plumbing (resolve/ssr.resolve.conditions) — the shared
-// workspace-source plugin (config/workspace-resolution.ts) is what routes
+// workspace-source plugin (config/workspace-resolution.mjs) is what routes
 // the import below to the fixture SOURCE. A regression to default
 // resolution yields the fixture's built marker instead; fail the whole run
 // before any test starts rather than testing against stale artifacts.
@@ -93,7 +93,7 @@ if (SOURCE_FIXTURE_MARKER !== "source-fixture:src:root") {
   throw new Error(
     `workspace source resolution broken in globalSetup context: observed ` +
       `"${SOURCE_FIXTURE_MARKER}", expected "source-fixture:src:root" ` +
-      `(see config/workspace-resolution.ts)`,
+      `(see config/workspace-resolution.mjs)`,
   );
 }
 

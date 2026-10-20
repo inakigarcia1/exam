@@ -94,6 +94,17 @@ function requireConditionString(conditions, condition, label) {
 function parseKey(rawKey, label) {
   if (rawKey === ".") return { key: "", prefix: null, suffix: null };
   const key = rawKey.replace(/^\.\//, "");
+  // INVARIANT (review round 2): an exact key must name a MODULE, not a
+  // file — workspace imports never carry extensions or test markers
+  // (BAD_SPECIFIER_SHAPE exists for exactly this family), so a manifest
+  // key like "./seed.js" or "./foo.test" would create a public API the
+  // specifier grammar promises never to serve.
+  if (/\.(?:js|mjs|cjs|ts|tsx|jsx)$|\.(?:test|spec)$/i.test(key)) {
+    throw new TypeError(
+      `${label}: exact keys must not carry file extensions or test markers — ` +
+        `declare the module specifier (e.g. "./seed") instead`,
+    );
+  }
   const stars = key.split("*").length - 1;
   if (stars > 1) {
     throw new TypeError(
@@ -139,9 +150,11 @@ function validateDisjointPatterns(packageName, patterns) {
 function sourceTargetExists(packageDir, sourceTarget) {
   const relative = sourceTarget.replace(/^\.\//, "");
   if (sourceTarget.includes("*")) {
-    // Pattern entries cannot name one file; the static parent directory
-    // must exist. Per-capture absence is the plugin's MISSING_SOURCE case.
-    const dir = join(packageDir, relative.split("*")[0], "..");
+    // Pattern entries cannot name one file; the directory that will hold
+    // the per-capture sources must exist (review round 2: without the
+    // trailing ".." this checked the parent and a deleted pattern source
+    // directory would only surface later, at resolve time).
+    const dir = join(packageDir, relative.split("*")[0]);
     return existsSync(dir);
   }
   return existsSync(join(packageDir, relative));

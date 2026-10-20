@@ -217,9 +217,13 @@ for (const dir of ["packages", "config", "scripts"]) {
   }
 }
 
-// 4. Every package that ships tests must have a vitest project consuming the
-// shared resolution plugin — a new workspace package cannot silently skip
-// source-fresh test execution (the exact #794 gap for @exam/db/@exam/auth).
+// 4. Every vitest config in the workspace — package/app main configs AND
+// app child harness configs (the api process tests' fixture runners) — must
+// consume the shared resolution plugin: any config that skips it would
+// resolve governed @exam/* imports to dist behind the test's back
+// (review round 2: the api slot-reuse/bootstrap-lifetime child configs were
+// exactly that gap). Package configs additionally must exist at all for
+// tested packages.
 for (const entry of await readdir("packages", { withFileTypes: true })) {
   if (!entry.isDirectory()) continue;
   const pkgDir = join("packages", entry.name);
@@ -241,12 +245,14 @@ for (const entry of await readdir("packages", { withFileTypes: true })) {
     );
   }
 }
-for (const app of ["apps/api", "apps/web"]) {
-  const configPath = join(app, "vitest.config.ts");
+for (const configPath of await allCodeFiles("apps", [".ts"])) {
+  if (!/(?:^|\/)vitest\.[\w.]*config\.(?:ts|mjs|js)$/.test(configPath)) {
+    continue;
+  }
   const configText = await readFile(configPath, "utf8");
   if (!configText.includes("workspaceSourceResolutionPlugin")) {
     violations.push(
-      `${configPath}: does not consume workspaceSourceResolutionPlugin (#794)`,
+      `${configPath}: does not consume workspaceSourceResolutionPlugin — every vitest config is a governed resolution context (#794)`,
     );
   }
 }
@@ -302,10 +308,19 @@ async function requireCompleteOracle(oraclePath) {
       `${oraclePath}: does not assert the fixture src marker — execution provenance assertion missing (#794)`,
     );
   }
+  // Assertion-shaped needles, not bare words (review round 2): the
+  // classification names also appear in the oracle docblock, so a textual
+  // scan for the word alone would pass with the rejection tests deleted.
+  // Whitespace/trailing-comma tolerant — Prettier reflows the toThrow call,
+  // and a needle pinned to one spelling breaks on every reformat (observed
+  // live when format split `.rejects.toThrow(\n  /CLASS/,\n)`).
   for (const classification of authority.RESOLUTION_FAILURE_CLASSIFICATIONS) {
-    if (!oracleText.includes(classification)) {
+    const rejectionShape = new RegExp(
+      `\\.rejects\\.toThrow\\(\\s*/${classification}/\\s*[),]`,
+    );
+    if (!rejectionShape.test(oracleText)) {
       violations.push(
-        `${oraclePath}: does not pin the fail-closed classification ${classification} (#794)`,
+        `${oraclePath}: does not pin the fail-closed classification ${classification} with an executable rejection (#794)`,
       );
     }
   }

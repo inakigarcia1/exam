@@ -262,25 +262,30 @@ if (negativeChild.status !== 0) {
 }
 
 // ---------------------------------------------------------------------------
-// Check 4: artifact hygiene over every building package's dist and the api
-// dist. Clean-before-compile (scripts/clean-dist.mjs in every build script)
-// makes dist the exact output of current sources, so BOTH properties are
-// hard assertions:
-//   - no compiled test artifacts (tests are excluded from build tsconfigs;
-//     a wildcard export can therefore never expose test code)
+// Check 4: artifact hygiene over every building package's dist AND the api
+// app dist (review round 2: the api image ships apps/api/dist, so harness
+// code compiled from src/testing used to sail into the artifact unwatched).
+// Clean-before-compile (scripts/clean-dist.mjs in every build script) makes
+// dist the exact output of current sources, so BOTH properties are hard
+// assertions:
+//   - no compiled test artifacts (tests and test-support harnesses are
+//     excluded from build tsconfigs; no exports entry or image layer can
+//     ever expose them)
 //   - no orphans (every emitted .js/.d.ts has a live src twin — deleted or
 //     renamed sources can no longer keep speaking as public API)
 
-for (const [packageName, pkg] of table.packages) {
-  const manifest = JSON.parse(
-    readFileSync(join(pkg.packageDir, "package.json"), "utf8"),
-  );
-  const srcDir = join(pkg.packageDir, "src");
-  const distDir = join(pkg.packageDir, "dist");
-  if (!manifest.scripts?.build) continue; // never-built fixtures: no dist
+// INVARIANT: "testing" is spelled out alongside "test"/"tests" — the api
+// harness directory is src/testing, and a bare tests?\/ alternation lets
+// exactly that directory sail through (observed live before this fix).
+const TEST_ARTIFACT_PATTERN =
+  /__tests__|(^|\/)tests?(?:ing)?\/|\.test\.|\.spec\.|\.testHelpers\.|\.mock\./;
+
+function assertArtifactHygiene(label, srcDir, distDir, skipMissing) {
   if (!existsSync(distDir)) {
-    fail(`${packageName}: dist missing — run pnpm build before this oracle`);
-    continue;
+    if (!skipMissing) {
+      fail(`${label}: dist missing — run pnpm build before this oracle`);
+    }
+    return;
   }
   const walkArtifacts = (dir, fn) => {
     for (const e of readdirSync(dir, { withFileTypes: true })) {
@@ -291,10 +296,10 @@ for (const [packageName, pkg] of table.packages) {
   };
   walkArtifacts(distDir, (file) => {
     const rel = relative(distDir, file);
-    if (/__tests__|\.test\.|\.spec\.|\.testHelpers\.|\.mock\./.test(rel)) {
+    if (TEST_ARTIFACT_PATTERN.test(rel)) {
       fail(
-        `${packageName}: dist contains compiled test artifact ${rel} — ` +
-          `build tsconfigs must exclude tests (#794 wildcard exposure)`,
+        `${label}: dist contains compiled test artifact ${rel} — ` +
+          `build tsconfigs must exclude tests and harnesses (#794)`,
       );
     }
     if (file.endsWith(".js") || file.endsWith(".d.ts")) {
@@ -304,12 +309,25 @@ for (const [packageName, pkg] of table.packages) {
       );
       if (!existsSync(srcTwin)) {
         fail(
-          `${packageName}: orphaned dist artifact ${rel} (no src twin) — ` +
+          `${label}: orphaned dist artifact ${rel} (no src twin) — ` +
             `stale build residue; the clean-build lifecycle must prevent this`,
         );
       }
     }
   });
+}
+
+for (const [packageName, pkg] of table.packages) {
+  const manifest = JSON.parse(
+    readFileSync(join(pkg.packageDir, "package.json"), "utf8"),
+  );
+  if (!manifest.scripts?.build) continue; // never-built fixtures: no dist
+  assertArtifactHygiene(
+    packageName,
+    join(pkg.packageDir, "src"),
+    join(pkg.packageDir, "dist"),
+    false,
+  );
   // Declared-entry completeness: every entry's production targets exist.
   for (const entry of [...pkg.exact.values(), ...pkg.patterns]) {
     if (entry.negative) continue;
@@ -341,6 +359,12 @@ for (const [packageName, pkg] of table.packages) {
     }
   }
 }
+assertArtifactHygiene(
+  "apps/api",
+  join(ROOT, "apps/api", "src"),
+  API_DIST,
+  true, // missing api dist is reported by the compiled-specifier check below
+);
 
 // Compiled-specifier completeness for the api bundle: every "@exam/*"
 // specifier in apps/api/dist/**/*.js resolves to an existing file under the
@@ -368,15 +392,10 @@ if (!existsSync(API_DIST)) {
     if (match.status !== "resolved" && match.status !== "error") continue;
     if (match.status === "error") {
       // A compiled api artifact importing a non-resolvable specifier is a
-      // real defect (the production boot would fail) — except test-marker
-      // shapes, which check 4 already pins at the artifact level.
-      if (
-        match.classification === "NOT_EXPORTED" ||
-        match.classification === "UNKNOWN_WORKSPACE_PACKAGE" ||
-        match.classification === "MISSING_SOURCE"
-      ) {
-        fail(`apps/api/dist imports ${spec} — ${match.message}`);
-      }
+      // real defect — production boot would die on it (review round 2: this
+      // includes BAD_SPECIFIER_SHAPE; a suffixed import compiled into the
+      // bundle used to be skipped silently here).
+      fail(`apps/api/dist imports ${spec} — ${match.message}`);
       continue;
     }
     // match.file points at the SOURCE (the authority is test-rail); derive

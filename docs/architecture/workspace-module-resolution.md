@@ -4,7 +4,8 @@
 execution context.** The controlling implementation is
 [`config/workspace-resolution.mjs`](../../config/workspace-resolution.mjs)
 (single plain-ESM module: table loader, matcher, Vitest plugin — imported by
-the nine Vitest configs, `lint:arch` and the production oracle alike, so
+every Vitest config (the nine projects plus the api test-harness child
+configs), `lint:arch` and the production oracle alike, so
 there is no second matcher), the package manifests' `exports` fields (the
 declared contract), the per-package `tsconfig.build.json` (artifact
 lifecycle) and `tsconfig.typecheck.json` (type authority). Enforced
@@ -35,7 +36,7 @@ exactly three conditions:
 | Production Node (API start, workers, CLI, Playwright) | none of ours | `default` → `dist/` |
 | Package builds (`tsc` emit) | `types` | `dist/*.d.ts` for cross-package types; own emit from `tsconfig.build.json` |
 | Production web bundle (`apps/web` `vite build`) | none of ours | `default` → `dist/` |
-| Vitest (all nine projects, node and jsdom, worker graphs **and** globalSetup) | `@exam/test-source`, activated by the shared plugin | `src/*.ts` |
+| Vitest (all governed configs — nine projects plus the api child-harness configs; node and jsdom, worker graphs **and** globalSetup) | `@exam/test-source`, activated by the shared plugin | `src/*.ts` |
 | Every typecheck entrypoint (`tsconfig.typecheck.json`) | `@exam/test-source` via `customConditions` | `src/*.ts` |
 
 The condition alone is not sufficient: Vitest's worker module graphs honour
@@ -88,9 +89,11 @@ every Vitest context, including globalSetup.
 
 ## Build artifacts: clean-before-compile
 
-Every buildable package builds with
+Every compiled package (the seven packages and `apps/api`) builds with
 `node ../../scripts/clean-dist.mjs . && tsc -p tsconfig.build.json`, so
-dist is always the exact output of the current sources + build config:
+dist is always the exact output of the current sources + build config.
+`apps/web/dist` is produced by `vite build`, whose default `emptyOutDir`
+provides the same clean-before-compile guarantee there:
 
 - `scripts/clean-dist.mjs` removes **only** `<packageDir>/dist` (refusing
   anything outside `packages/*` / `apps/*` build outputs) — the package
@@ -137,7 +140,7 @@ dist is always the exact output of the current sources + build config:
 | Layer | Rules | Owner | Dynamic proof |
 | --- | --- | --- | --- |
 | Package contract validation | exports shape, key grammar, disjoint patterns, source/target existence, negative-entry declarations, banned import forms | `lint:arch` (`scripts/check-architecture.mjs` via the authority loader) | table-load throw at every Vitest config load |
-| Test runtime resolution | source-fresh execution, fail-closed classifications in all nine projects + globalSetup | `config/workspace-resolution.mjs` plugin | positive marker oracles + per-classification rejection oracles + main-process canary |
+| Test runtime resolution | source-fresh execution, fail-closed classifications in every governed Vitest config (nine projects + api child harnesses) + globalSetup | `config/workspace-resolution.mjs` plugin | positive marker oracles + per-classification rejection oracles + main-process canary |
 | Production artifact validation | dist-only loading, built-marker polarity (incl. ghost), negative namespace rejection, orphan/test-free dist, entry completeness, compiled-specifier resolvability | `scripts/check-production-resolution.mjs` (wired after `pnpm build` in `pnpm verify` and CI) | child-process provenance hook + plain-Node probes |
 
 Static checks prevent configuration absence; the dynamic oracles prove

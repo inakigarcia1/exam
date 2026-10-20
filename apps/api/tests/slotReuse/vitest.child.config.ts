@@ -1,6 +1,10 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
+// #794: governed resolution contexts — the fixture children import
+// @exam/db test-infrastructure entries, so they route through the same
+// fail-closed source authority as every other Vitest project.
+import { workspaceSourceResolutionPlugin } from "../../../../config/workspace-resolution.mjs";
 import {
   TEST_RUNTIME_ENV,
   loadSupportedTestEnvFiles,
@@ -70,6 +74,7 @@ export default defineConfig(() => ({
   // #741: per-package implicit envDir admission is OFF (pinned by
   // scripts/check-env-surface.mjs).
   envDir: false,
+  plugins: [workspaceSourceResolutionPlugin()],
   test: {
     root: apiRoot,
     include: [`tests/slotReuse/stage${stage}.fixture.test.ts`],

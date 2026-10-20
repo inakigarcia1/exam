@@ -1,6 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["config/**"],
+  "globalDependencies": ["config/**", "scripts/clean-dist.mjs"],
   "tasks": {
     "dev": {
       "cache": false,
