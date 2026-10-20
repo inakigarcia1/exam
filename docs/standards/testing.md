@@ -656,7 +656,7 @@ pnpm --filter @exam/domain test
   no `APP_MODE`).
 - **Source-fresh test execution (#794)**: workspace packages resolve to
   `src/` in every Vitest project via the shared resolution plugin
-  (`config/workspace-resolution.ts`), so a direct `pnpm --filter <pkg> test`
+  (`config/workspace-resolution.mjs`), so a direct `pnpm --filter <pkg> test`
   after editing any `packages/*/src` file executes the edit immediately — no
   manual rebuild, no per-package aliases. Root, deep subpath, transitive, and
   globalSetup (main-process) contexts are all covered and pinned by permanent
@@ -668,9 +668,14 @@ pnpm --filter @exam/domain test
   every `pnpm build`. The full contract — exports shape, subpath design, the
   plugin, and the retired #689 alias/inline mechanisms — lives in
   [`docs/architecture/workspace-module-resolution.md`](../architecture/workspace-module-resolution.md).
-  Direct `tsc` typecheck in `@exam/api` is source-fresh the same way
-  (`tsconfig.typecheck.json` uses `customConditions`); other packages'
-  typecheck reads dist types under Turbo's `^build` guarantee.
+  Resolution fails closed: a governed `@exam/*` specifier whose source
+  is missing is a classified error (`MISSING_SOURCE`), never a silent
+  fallback to dist — the same contract pins `NOT_EXPORTED`,
+  `UNKNOWN_WORKSPACE_PACKAGE` and `BAD_SPECIFIER_SHAPE` rejections in
+  every project's oracle.
+  Direct typecheck is source-fresh the same way in every project
+  (`tsconfig.typecheck.json` uses `customConditions`), so type evidence
+  matches the code tests execute.
 
 ### 5.2 API Integration Tests
 

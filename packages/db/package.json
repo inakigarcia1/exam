@@ -56,16 +56,6 @@
       "types": "./dist/schema.d.ts",
       "default": "./dist/schema.js"
     },
-    "./schema/*": {
-      "@exam/test-source": "./src/schema/*.ts",
-      "types": "./dist/schema/*.d.ts",
-      "default": "./dist/schema/*.js"
-    },
-    "./scripts/*": {
-      "@exam/test-source": "./src/scripts/*.ts",
-      "types": "./dist/scripts/*.d.ts",
-      "default": "./dist/scripts/*.js"
-    },
     "./seed": {
       "@exam/test-source": "./src/seed.ts",
       "types": "./dist/seed.d.ts",
@@ -85,11 +75,6 @@
       "@exam/test-source": "./src/testDbBootstrap.ts",
       "types": "./dist/testDbBootstrap.d.ts",
       "default": "./dist/testDbBootstrap.js"
-    },
-    "./testHelpers/*": {
-      "@exam/test-source": "./src/testHelpers/*.ts",
-      "types": "./dist/testHelpers/*.d.ts",
-      "default": "./dist/testHelpers/*.js"
     },
     "./testInfraLock": {
       "@exam/test-source": "./src/testInfraLock.ts",
@@ -115,11 +100,26 @@
       "@exam/test-source": "./src/types.ts",
       "types": "./dist/types.d.ts",
       "default": "./dist/types.js"
+    },
+    "./schema/pg": {
+      "@exam/test-source": "./src/schema/pg.ts",
+      "types": "./dist/schema/pg.d.ts",
+      "default": "./dist/schema/pg.js"
+    },
+    "./scripts/destructiveDbNameGuard": {
+      "@exam/test-source": "./src/scripts/destructiveDbNameGuard.ts",
+      "types": "./dist/scripts/destructiveDbNameGuard.d.ts",
+      "default": "./dist/scripts/destructiveDbNameGuard.js"
+    },
+    "./testHelpers/auditLogTestRepo": {
+      "@exam/test-source": "./src/testHelpers/auditLogTestRepo.ts",
+      "types": "./dist/testHelpers/auditLogTestRepo.d.ts",
+      "default": "./dist/testHelpers/auditLogTestRepo.js"
     }
   },
   "scripts": {
-    "build": "tsc",
-    "typecheck": "tsc --noEmit",
+    "build": "node ../../scripts/clean-dist.mjs . && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.typecheck.json",
     "lint": "node ../../scripts/check-code-quality.mjs",
     "test": "vitest run",
     "coverage": "vitest run --coverage",

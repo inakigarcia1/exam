@@ -57,7 +57,7 @@ pnpm dev              # start API + Web dev servers
 After editing any `packages/*/src` file, run **direct** Vitest in any project
 without building first — workspace packages resolve to their **sources** in
 every Vitest project (node, jsdom, and globalSetup contexts) via the shared
-`config/workspace-resolution.ts` plugin:
+`config/workspace-resolution.mjs` plugin:
 
 ```bash
 pnpm --filter @exam/api exec vitest run src/routes/auth.test.ts
@@ -67,11 +67,10 @@ pnpm --filter @exam/authz test
 
 There is no "build the package first" hidden condition; permanent oracles
 (`src/workspaceSourceResolution.test.ts` per project) fail if any project
-ever regresses to stale-dist execution. Direct typecheck in `@exam/api` is
-source-fresh the same way (`tsconfig.typecheck.json` sets
-`customConditions`); other projects' typecheck reads dist types and is
-guaranteed fresh under the root `pnpm typecheck` / `pnpm verify` Turbo
-graph. Production resolution is intentionally unchanged: plain Node, builds,
+ever regresses to stale-dist execution. Governed `@exam/*` resolution
+fails closed in tests (a missing source is a classified error, never a
+silent dist fallback), and direct typecheck is source-fresh in every
+project (`tsconfig.typecheck.json` sets `customConditions`). Production resolution is intentionally unchanged: plain Node, builds,
 the web production bundle and Playwright load `dist/` through the packages'
 `exports`. The full contract lives in
 [`docs/architecture/workspace-module-resolution.md`](docs/architecture/workspace-module-resolution.md).

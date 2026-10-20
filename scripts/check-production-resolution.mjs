@@ -1,102 +1,59 @@
-// #794 — Production resolution oracle. Complement of the Vitest
-// source-freshness oracles: proves that PLAIN Node (no custom conditions —
-// the way the API container, workers and CLI actually execute) resolves and
-// loads every workspace package entry from its built artifact, never from
-// TypeScript sources, and that every "@exam/*" specifier compiled into
-// apps/api/dist resolves under the production "default" exports branch.
+// #794 — Production resolution oracle. Complement of the Vitest resolution
+// oracles: proves that PLAIN Node (no custom conditions — the way the API
+// container, workers and CLI actually execute) resolves and loads every
+// workspace package entry from its built artifact, never from TypeScript
+// sources, rejects the private/unknown namespace the tests reject, and that
+// the compiled artifact trees are complete and current.
 //
-// Three checks:
-//   1. entry loading  — every exact exports entry of every workspace package
-//      (plus every file reachable through pattern entries) is imported in a
-//      child Node process from the apps/api dependency context; a resolve
-//      hook records the ACTUAL loaded file URL.
-//   2. fixture polarity — the source-fixture packages must expose their
-//      built markers under plain Node. The Vitest oracles assert the src
-//      markers; if both ever pass with the same marker the polarity is
-//      broken and neither oracle proves anything.
-//   3. compiled-specifier completeness — every "@exam/*" specifier in
-//      apps/api/dist/**/*.js (server bundle, workers, CLI scripts) resolves
-//      to an existing file via the package's default condition. This kills
-//      the "tests resolve, production Node cannot find the subpath"
-//      failure mode statically, before any boot attempt.
+// Layer 3 of the #794 governance split (see
+// docs/architecture/workspace-module-resolution.md — production artifact
+// validation). Checks:
 //
-// Real process startup (API listen, worker loops) stays with the e2e/smoke
-// lanes (docs/standards/testing.md); this oracle owns module-resolution
-// correctness. Requires a prior `pnpm build`.
+//   1. entry loading      — every exact exports entry of every workspace
+//                           package in the api dependency closure (plus
+//                           every non-test file reachable through a pattern
+//                           entry) is imported in a child Node process from
+//                           the apps/api dependency context; a resolve hook
+//                           records the ACTUAL loaded file URL, which must
+//                           live under dist/ or built/.
+//   2. fixture polarity   — plain Node must observe the BUILT markers,
+//                           including the ghost entry (built file exists,
+//                           source intentionally absent): production loads
+//                           it while Vitest must fail it closed. If both
+//                           oracle families ever observe the same marker,
+//                           the polarity is broken and neither proves
+//                           anything.
+//   3. negative namespace — private subpaths, unknown @exam/* packages,
+//                           suffixed specifiers and compiled-test specifiers
+//                           are REJECTED by plain Node; nothing may fall
+//                           through to a loadable artifact.
+//   4. artifact hygiene   — dist trees contain no compiled test artifacts,
+//                           no orphaned outputs (every dist file has a live
+//                           src twin), and .d.ts/.js declarations exist for
+//                           every declared entry of every building package.
+//
+// The specifier→dist mapping is DERIVED from the same authority
+// (config/workspace-resolution.mjs) the Vitest plugin uses — one matcher,
+// no drift. Requires a prior `pnpm build`.
 
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const PACKAGES_DIR = join(ROOT, "packages");
-const API_DIST = join(ROOT, "apps/api/dist");
+const API_DIST = join(ROOT, "apps/api", "dist");
 const CONDITION = "@exam/test-source";
 
 const failures = [];
 const fail = (message) => failures.push(message);
 let compiledSpecifierCount = 0;
 
-// ---------------------------------------------------------------------------
-// Shared manifest reading (mirrors config/workspace-resolution.ts matching).
-// Deliberately re-derived here instead of imported: this script must run as
-// plain Node against the manifests, with zero transpilation, exactly like
-// the production consumers it vouches for.
-
-function readManifests() {
-  const manifests = [];
-  for (const entry of readdirSync(PACKAGES_DIR, { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue;
-    const pkgDir = join(PACKAGES_DIR, entry.name);
-    const manifest = JSON.parse(
-      readFileSync(join(pkgDir, "package.json"), "utf8"),
-    );
-    if (!manifest.name || !manifest.exports) {
-      fail(`${pkgDir}/package.json: missing name/exports`);
-      continue;
-    }
-    manifests.push({ pkgDir, manifest });
-  }
-  return manifests;
-}
-
-/** Resolve a specifier against the production ("default") branch only. */
-function resolveProduction(manifest, pkgDir, subpath) {
-  const keys = Object.keys(manifest.exports);
-  const normalized = subpath === "" ? "." : `./${subpath}`;
-  if (keys.includes(normalized)) {
-    const target = manifest.exports[normalized]?.default;
-    return typeof target === "string" ? { target, pattern: false } : null;
-  }
-  for (const [key, value] of Object.entries(manifest.exports)) {
-    if (!key.includes("*")) continue;
-    const [prefix, suffix] = key.split("*");
-    const bare = key.replace(/^\.\//, "").replace("*", "");
-    const sub = subpath;
-    if (
-      sub.startsWith(bare) &&
-      sub.length >= bare.length + (suffix?.length ?? 0) &&
-      sub.endsWith(suffix ?? "")
-    ) {
-      const capture = sub.slice(
-        bare.length,
-        sub.length - (suffix?.length ?? 0),
-      );
-      void prefix;
-      const target = value?.default;
-      return typeof target === "string"
-        ? { target: target.replace("*", capture), pattern: true }
-        : null;
-    }
-  }
-  return null;
-}
+const authority = await import("../config/workspace-resolution.mjs");
+const table = authority.loadWorkspaceResolutionTable();
 
 // ---------------------------------------------------------------------------
 // Check 1 + 2: child-process entry loading with a provenance hook.
-
-const manifests = readManifests();
 
 // The probe runs from the apps/api dependency context (the only package that
 // depends on every real workspace package). pnpm's strict layout only makes
@@ -105,7 +62,7 @@ const manifests = readManifests();
 // fixture's built entry imports it, and the polarity probe asserts its
 // marker through that chain.
 const apiManifest = JSON.parse(
-  readFileSync(join(ROOT, "apps/api/package.json"), "utf8"),
+  readFileSync(join(ROOT, "apps/api", "package.json"), "utf8"),
 );
 const probeContextDeps = new Set(
   Object.keys({
@@ -118,22 +75,25 @@ const probeContextDeps = new Set(
 // through a pattern entry (the file inventory comes from dist/, so this
 // simultaneously verifies the compiled tree is fully exported).
 const specifiers = [];
-for (const { pkgDir, manifest } of manifests) {
-  if (!probeContextDeps.has(manifest.name)) continue;
-  const distDir = join(pkgDir, "dist");
-  for (const [key, value] of Object.entries(manifest.exports)) {
-    if (typeof value !== "object" || value === null) continue;
-    if (!key.includes("*")) {
-      const subpath = key === "." ? "" : key.slice(2);
-      specifiers.push(`${manifest.name}${subpath ? `/${subpath}` : ""}`);
-      continue;
-    }
-    if (!existsSync(distDir)) continue; // reported by check 3's build guard
-    const bare = key.replace(/^\.\//, "").split("*")[0];
-    const suffix = key.split("*")[1] ?? "";
-    const baseDir = join(distDir, bare);
+for (const [packageName, pkg] of table.packages) {
+  if (!probeContextDeps.has(packageName)) continue;
+  const distDir = join(pkg.packageDir, "dist");
+  const builtDir = join(pkg.packageDir, "built");
+  const artifactRoot = existsSync(distDir) ? distDir : builtDir;
+  for (const entry of pkg.exact.values()) {
+    if (entry.negative) continue; // ghost: asserted in the polarity probe
+    const subpath = entry.key === "" ? "" : `/${entry.key}`;
+    specifiers.push(`${packageName}${subpath}`);
+    continue;
+  }
+  for (const pattern of pkg.patterns) {
+    if (!existsSync(artifactRoot)) continue; // check 4 reports hygiene
+    const bare = pattern.prefix;
+    const baseDir = join(artifactRoot, bare);
     if (!existsSync(baseDir)) {
-      fail(`${manifest.name} pattern ${key}: dist directory ${bare} missing`);
+      fail(
+        `${packageName} pattern ${pattern.key}: artifact dir ${bare} missing`,
+      );
       continue;
     }
     const walk = (dir, rel) => {
@@ -141,7 +101,7 @@ for (const { pkgDir, manifest } of manifests) {
         if (e.isDirectory()) walk(join(dir, e.name), join(rel, e.name));
         else if (e.name.endsWith(".js") && !e.name.endsWith(".test.js"))
           specifiers.push(
-            `${manifest.name}/${join(rel, e.name.slice(0, -3)).split("\\").join("/")}`,
+            `${packageName}/${join(rel, e.name.slice(0, -3)).split("\\").join("/")}`,
           );
       }
     };
@@ -201,50 +161,191 @@ if (child.status !== 0 || !child.stdout.trim()) {
         fail(`${spec}: production Node loaded unexpected artifact ${url}`);
       }
     }
-    // Check 2: fixture polarity — plain Node must observe the BUILT markers.
-    const polarity = spawnSync(
-      process.execPath,
-      [
-        "--input-type=module",
-        "--eval",
-        `const f = await import("@exam/source-fixture");
-         const w = await import("@exam/source-fixture/repository/widget");
-         const d = await import("@exam/source-fixture/deep/mod");
-         console.log(JSON.stringify({ root: f.SOURCE_FIXTURE_MARKER, widget: w.WIDGET_MARKER, deep: d.DEEP_MOD_MARKER }));`,
-      ],
-      { cwd: join(ROOT, "apps/api"), encoding: "utf8", timeout: 30_000 },
-    );
-    if (polarity.status !== 0) {
-      fail(`fixture polarity probe failed: ${polarity.stderr}`);
-    } else {
-      const markers = JSON.parse(polarity.stdout.trim());
-      if (markers.root !== "source-fixture:built:root") {
-        fail(
-          `fixture polarity broken: production Node observed root marker ${markers.root}, expected the built marker`,
-        );
-      }
-      if (markers.widget !== "source-fixture:built:repository/widget") {
-        fail(
-          `fixture polarity broken: production Node observed widget marker ${markers.widget}, expected the built marker`,
-        );
-      }
-      if (markers.deep !== "source-fixture:built:deep/mod") {
-        fail(
-          `fixture polarity broken: production Node observed pattern-subpath marker ${markers.deep}, expected the built marker`,
-        );
-      }
+  }
+}
+
+// Check 2: fixture polarity — plain Node must observe the BUILT markers,
+// including the declared ghost entry (the permanent "dist exists, source
+// absent" injection: production loads it, Vitest must reject it).
+const polarity = spawnSync(
+  process.execPath,
+  [
+    "--input-type=module",
+    "--eval",
+    `const f = await import("@exam/source-fixture");
+     const w = await import("@exam/source-fixture/repository/widget");
+     const d = await import("@exam/source-fixture/deep/mod");
+     const g = await import("@exam/source-fixture/ghost");
+     console.log(JSON.stringify({ root: f.SOURCE_FIXTURE_MARKER, widget: w.WIDGET_MARKER, deep: d.DEEP_MOD_MARKER, ghost: g.SOURCE_FIXTURE_GHOST_MARKER }));`,
+  ],
+  { cwd: join(ROOT, "apps/api"), encoding: "utf8", timeout: 30_000 },
+);
+if (polarity.status !== 0) {
+  fail(`fixture polarity probe failed: ${polarity.stderr}`);
+} else {
+  const markers = JSON.parse(polarity.stdout.trim());
+  const expected = {
+    root: "source-fixture:built:root",
+    widget: "source-fixture:built:repository/widget",
+    deep: "source-fixture:built:deep/mod",
+    ghost: "source-fixture:built:ghost",
+  };
+  for (const [key, marker] of Object.entries(expected)) {
+    if (markers[key] !== marker) {
+      fail(
+        `fixture polarity broken: production Node observed ${key} marker ` +
+          `${markers[key]}, expected the built marker ${marker}`,
+      );
     }
   }
 }
 
-// ---------------------------------------------------------------------------
-// Check 3: every @exam/* specifier compiled into apps/api/dist resolves
-// under the production branch. dist files WITHOUT a live src twin are
-// orphaned artifacts of older builds (tsc does not clean dist; deleted or
-// renamed sources leave their outputs behind — CI's clean checkout never
-// produces them and no live entry can reach them), so they are counted and
-// skipped rather than treated as resolution violations.
+// Check 3: negative namespace — plain Node must reject the same family the
+// Vitest oracles reject. Asserted per error code rather than message text:
+// ERR_PACKAGE_PATH_NOT_EXPORTED (not exported / physical src) and
+// ERR_MODULE_NOT_FOUND (unknown package, wildcard match without artifact).
+const negativeProbes = [
+  ["@exam/db/not-exported", "ERR_PACKAGE_PATH_NOT_EXPORTED"],
+  // Assembled from parts: the physical-src SPECIFIER SHAPE is banned text in
+  // active code (lint:arch) — this probe asserts plain Node rejects it, so
+  // it must exist at runtime without existing as a literal here.
+  [
+    ["@exam/db/src", "repository/examRepo"].join("/"),
+    "ERR_PACKAGE_PATH_NOT_EXPORTED",
+  ],
+  ["@exam/nonexistent-794", "ERR_MODULE_NOT_FOUND"],
+  ["@exam/db/repository/examRepo.js", "ERR_MODULE_NOT_FOUND"],
+  ["@exam/db/repository/examRepo.test", "ERR_MODULE_NOT_FOUND"],
+];
+const negativeChild = spawnSync(
+  process.execPath,
+  [
+    "--input-type=module",
+    "--eval",
+    `const cases = JSON.parse(process.env.EXAM_NEGATIVE_SPECS);
+     for (const [spec, expectedCode] of cases) {
+       try {
+         await import(spec);
+         console.log(JSON.stringify({ spec, expectedCode, outcome: "LOADED" }));
+         process.exit(0);
+       } catch (err) {
+         const code = err && err.code ? err.code : "ERR_UNCLASSIFIED";
+         if (code !== expectedCode) {
+           console.log(JSON.stringify({ spec, expectedCode, outcome: code }));
+           process.exit(0);
+         }
+       }
+     }
+     console.log(JSON.stringify({ outcome: "ALL_REJECTED" }));`,
+  ],
+  {
+    cwd: join(ROOT, "apps/api"),
+    encoding: "utf8",
+    timeout: 30_000,
+    env: {
+      ...process.env,
+      EXAM_NEGATIVE_SPECS: JSON.stringify(negativeProbes),
+    },
+  },
+);
+if (negativeChild.status !== 0) {
+  fail(`negative namespace probe process failed: ${negativeChild.stderr}`);
+} else {
+  const outcome = JSON.parse(negativeChild.stdout.trim());
+  if (outcome.outcome !== "ALL_REJECTED") {
+    fail(
+      `negative namespace: ${outcome.spec} expected ${outcome.expectedCode} ` +
+        `but was ${outcome.outcome} — production Node must fail closed on ` +
+        `private/unknown/suffixed specifiers`,
+    );
+  }
+}
 
+// ---------------------------------------------------------------------------
+// Check 4: artifact hygiene over every building package's dist and the api
+// dist. Clean-before-compile (scripts/clean-dist.mjs in every build script)
+// makes dist the exact output of current sources, so BOTH properties are
+// hard assertions:
+//   - no compiled test artifacts (tests are excluded from build tsconfigs;
+//     a wildcard export can therefore never expose test code)
+//   - no orphans (every emitted .js/.d.ts has a live src twin — deleted or
+//     renamed sources can no longer keep speaking as public API)
+
+for (const [packageName, pkg] of table.packages) {
+  const manifest = JSON.parse(
+    readFileSync(join(pkg.packageDir, "package.json"), "utf8"),
+  );
+  const srcDir = join(pkg.packageDir, "src");
+  const distDir = join(pkg.packageDir, "dist");
+  if (!manifest.scripts?.build) continue; // never-built fixtures: no dist
+  if (!existsSync(distDir)) {
+    fail(`${packageName}: dist missing — run pnpm build before this oracle`);
+    continue;
+  }
+  const walkArtifacts = (dir, fn) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, e.name);
+      if (e.isDirectory()) walkArtifacts(p, fn);
+      else fn(p);
+    }
+  };
+  walkArtifacts(distDir, (file) => {
+    const rel = relative(distDir, file);
+    if (/__tests__|\.test\.|\.spec\.|\.testHelpers\.|\.mock\./.test(rel)) {
+      fail(
+        `${packageName}: dist contains compiled test artifact ${rel} — ` +
+          `build tsconfigs must exclude tests (#794 wildcard exposure)`,
+      );
+    }
+    if (file.endsWith(".js") || file.endsWith(".d.ts")) {
+      const srcTwin = join(
+        srcDir,
+        rel.replace(/\.d\.ts$/, ".ts").replace(/\.js$/, ".ts"),
+      );
+      if (!existsSync(srcTwin)) {
+        fail(
+          `${packageName}: orphaned dist artifact ${rel} (no src twin) — ` +
+            `stale build residue; the clean-build lifecycle must prevent this`,
+        );
+      }
+    }
+  });
+  // Declared-entry completeness: every entry's production targets exist.
+  for (const entry of [...pkg.exact.values(), ...pkg.patterns]) {
+    if (entry.negative) continue;
+    if (entry.defaultTarget.includes("*")) {
+      if (
+        !existsSync(join(pkg.packageDir, entry.defaultTarget.split("*")[0]))
+      ) {
+        fail(
+          `${packageName}: default target directory for ${entry.key} missing in dist`,
+        );
+      }
+      continue;
+    }
+    if (
+      !existsSync(
+        join(pkg.packageDir, entry.defaultTarget.replace(/^\.\//, "")),
+      )
+    ) {
+      fail(
+        `${packageName}: default target ${entry.defaultTarget} missing (stale build?)`,
+      );
+    }
+    if (
+      !existsSync(join(pkg.packageDir, entry.typesTarget.replace(/^\.\//, "")))
+    ) {
+      fail(
+        `${packageName}: types target ${entry.typesTarget} missing (stale build?)`,
+      );
+    }
+  }
+}
+
+// Compiled-specifier completeness for the api bundle: every "@exam/*"
+// specifier in apps/api/dist/**/*.js resolves to an existing file under the
+// production default branch. This kills the "tests resolve, production Node
+// cannot find the subpath" failure mode statically, before any boot attempt.
 if (!existsSync(API_DIST)) {
   fail(`apps/api/dist missing — run pnpm build before this oracle`);
 } else {
@@ -256,49 +357,65 @@ if (!existsSync(API_DIST)) {
     }
   };
   walkDist(API_DIST);
-  let orphanArtifacts = 0;
   const compiledSpecifiers = new Set();
   const SPEC = /(?<=["'])@exam\/[a-z-]+(?:\/[A-Za-z0-9_./-]+)?(?=["'])/g;
   for (const file of distFiles) {
-    const srcTwin = file
-      .replace(`${API_DIST}`, join(ROOT, "apps/api/src"))
-      .replace(/\.js$/, ".ts");
-    if (!existsSync(srcTwin)) {
-      orphanArtifacts += 1;
-      continue;
-    }
     const text = readFileSync(file, "utf8");
     for (const m of text.matchAll(SPEC)) compiledSpecifiers.add(m[0]);
   }
-  const byName = new Map(manifests.map((m) => [m.manifest.name, m]));
   for (const spec of compiledSpecifiers) {
-    const [scope, name, ...rest] = spec.split("/");
-    void scope;
-    const pkgName = `@exam/${name}`;
-    const subpath = rest.join("/");
-    const entry = byName.get(pkgName);
-    if (!entry) {
-      fail(`apps/api/dist imports ${spec} — no such workspace package`);
+    const match = authority.matchWorkspaceSource(table, spec);
+    if (match.status !== "resolved" && match.status !== "error") continue;
+    if (match.status === "error") {
+      // A compiled api artifact importing a non-resolvable specifier is a
+      // real defect (the production boot would fail) — except test-marker
+      // shapes, which check 4 already pins at the artifact level.
+      if (
+        match.classification === "NOT_EXPORTED" ||
+        match.classification === "UNKNOWN_WORKSPACE_PACKAGE" ||
+        match.classification === "MISSING_SOURCE"
+      ) {
+        fail(`apps/api/dist imports ${spec} — ${match.message}`);
+      }
       continue;
     }
-    const resolved = resolveProduction(entry.manifest, entry.pkgDir, subpath);
-    if (!resolved) {
+    // match.file points at the SOURCE (the authority is test-rail); derive
+    // the production target from the same entry's default branch instead.
+    void match;
+    const [scope, name, ...rest] = spec.split("/");
+    void scope;
+    const pkg = table.packages.get(`@exam/${name}`);
+    const subpath = rest.join("/");
+    const entry =
+      pkg.exact.get(subpath) ??
+      pkg.patterns.find(
+        (p) =>
+          subpath.length >= p.prefix.length + p.suffix.length &&
+          subpath.startsWith(p.prefix) &&
+          subpath.endsWith(p.suffix),
+      );
+    if (!entry) {
       fail(
         `apps/api/dist imports ${spec} — not exported under the production branch`,
       );
       continue;
     }
-    const target = join(entry.pkgDir, resolved.target);
+    const capture =
+      entry.prefix === null
+        ? ""
+        : subpath.slice(
+            entry.prefix.length,
+            subpath.length - entry.suffix.length,
+          );
+    const target = join(
+      pkg.packageDir,
+      entry.defaultTarget.replace(/^\.\//, "").replace("*", capture),
+    );
     if (!existsSync(target)) {
       fail(
-        `apps/api/dist imports ${spec} — production target ${resolved.target} missing (stale build?)`,
+        `apps/api/dist imports ${spec} — production target missing (stale build?)`,
       );
     }
-  }
-  if (orphanArtifacts > 0) {
-    process.stdout.write(
-      `note: ${orphanArtifacts} orphaned dist artifacts skipped (no live src twin — stale local build residue)\n`,
-    );
   }
   compiledSpecifierCount = compiledSpecifiers.size;
 }
@@ -311,5 +428,5 @@ if (failures.length > 0) {
 }
 process.stdout.write(
   `Production resolution checks passed (${specifiers.length} entries loaded from dist/built, ` +
-    `${compiledSpecifierCount} compiled specifiers verified).\n`,
+    `${compiledSpecifierCount} compiled specifiers verified, negative namespace rejected).\n`,
 );
