@@ -244,6 +244,7 @@ if (existsSync(apiDist)) {
   }
   for (const spec of compiled) {
     const resolved = authority.resolveProductionArtifact(table, spec);
+    if (resolved.status === "unmanaged") continue; // not a governed specifier
     if (resolved.status === "error") {
       fail(
         `payload dist imports ${spec} — ${resolved.classification}: ${resolved.message}`,
