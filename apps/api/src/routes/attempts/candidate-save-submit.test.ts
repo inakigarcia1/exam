@@ -3,13 +3,13 @@ import { and, eq, sql } from "drizzle-orm";
 import { buildTestApp, uniquePrefix } from "../testHelpers.js";
 import examRoutes from "../exam.js";
 import attemptRoutes from "../attempts.js";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
-import { createEnrollmentRepo } from "@exam/db/src/repository/enrollmentRepo.js";
-import { createAttemptGradingEntryRepo } from "@exam/db/src/repository/attemptGradingEntryRepo.js";
+import { schema } from "@exam/db/schema/pg";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
+import { createEnrollmentRepo } from "@exam/db/repository/enrollmentRepo";
+import { createAttemptGradingEntryRepo } from "@exam/db/repository/attemptGradingEntryRepo";
 import { materializeGradingWorkset } from "@exam/exam-engine";
 import { createGradingWorksetRepoAdapter } from "../../adapters/repoAdapters.js";
-import { signJWT } from "@exam/auth/src/session.js";
+import { signJWT } from "@exam/auth/session";
 import { getSaveAnswerMessage } from "@exam/contracts";
 import { getRuntimeConfig } from "../../config/runtimeConfig.js";
 import {

@@ -56,16 +56,16 @@ import type {
   ForceSubmitRequestPayload,
   ForceSubmitResultPayload,
 } from "@exam/domain";
-import type { Database, TransactionDatabase } from "@exam/db/src/types.js";
-import { executeInTransaction } from "@exam/db/src/types.js";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
-import { createExamRepo } from "@exam/db/src/repository/examRepo.js";
-import { createEnrollmentRepo } from "@exam/db/src/repository/enrollmentRepo.js";
-import { createAttemptGradingEntryRepo } from "@exam/db/src/repository/attemptGradingEntryRepo.js";
-import { createAttemptInterruptionRepo } from "@exam/db/src/repository/attemptInterruptionRepo.js";
-import { createAttemptInterruptionEventRepo } from "@exam/db/src/repository/attemptInterruptionEventRepo.js";
-import { createAttemptCommandReceiptRepo } from "@exam/db/src/repository/attemptCommandReceiptRepo.js";
-import type { AttemptCommandReceiptRow } from "@exam/db/src/repository/attemptCommandReceiptRepo.js";
+import type { Database, TransactionDatabase } from "@exam/db/types";
+import { executeInTransaction } from "@exam/db/types";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
+import { createExamRepo } from "@exam/db/repository/examRepo";
+import { createEnrollmentRepo } from "@exam/db/repository/enrollmentRepo";
+import { createAttemptGradingEntryRepo } from "@exam/db/repository/attemptGradingEntryRepo";
+import { createAttemptInterruptionRepo } from "@exam/db/repository/attemptInterruptionRepo";
+import { createAttemptInterruptionEventRepo } from "@exam/db/repository/attemptInterruptionEventRepo";
+import { createAttemptCommandReceiptRepo } from "@exam/db/repository/attemptCommandReceiptRepo";
+import type { AttemptCommandReceiptRow } from "@exam/db/repository/attemptCommandReceiptRepo";
 import {
   gradeAttemptIdempotent,
   lockEnrollmentAndAttempt,

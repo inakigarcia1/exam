@@ -13,8 +13,8 @@ import {
   createCandidateViaApi,
   createExamViaApi,
 } from "./testHelpers.js";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { createClientEventRepo } from "@exam/db/src/repository/clientEventRepo.js";
+import { schema } from "@exam/db/schema/pg";
+import { createClientEventRepo } from "@exam/db/repository/clientEventRepo";
 
 /**
  * MAJOR-2 corrective: merged timeline pagination.

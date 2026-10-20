@@ -6,11 +6,11 @@ import type {
   RequestContext,
 } from "@exam/domain";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { getIsolatedTestDb } from "@exam/db/src/testDb.js";
-import { createEmailOutboxRepo } from "@exam/db/src/repository/emailOutboxRepo.js";
-import { emailOutbox } from "@exam/db/src/schema/pg.js";
-import { createOrganizationRepo } from "@exam/db/src/repository/organizationRepo.js";
-import type { Database } from "@exam/db/src/types.js";
+import { getIsolatedTestDb } from "@exam/db/testDb";
+import { createEmailOutboxRepo } from "@exam/db/repository/emailOutboxRepo";
+import { emailOutbox } from "@exam/db/schema/pg";
+import { createOrganizationRepo } from "@exam/db/repository/organizationRepo";
+import type { Database } from "@exam/db/types";
 import { FakeEmailSender } from "./senders.js";
 import { EmailOutboxService } from "./outboxService.js";
 import { sanitizeEmailError } from "./sanitizeError.js";

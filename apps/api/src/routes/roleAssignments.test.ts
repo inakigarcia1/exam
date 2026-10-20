@@ -10,10 +10,10 @@ import {
 import userRoutes from "./user.js";
 import roleAssignmentRoutes from "./roleAssignments.js";
 import { buildTestApp } from "./testHelpers.js";
-import { hashPassword } from "@exam/auth/src/password.js";
-import { schema } from "@exam/db/src/schema/pg.js";
+import { hashPassword } from "@exam/auth/password";
+import { schema } from "@exam/db/schema/pg";
 import { and, eq } from "drizzle-orm";
-import type { Database } from "@exam/db/src/types.js";
+import type { Database } from "@exam/db/types";
 import { ValidationError } from "@exam/domain";
 import * as adminInvariantModule from "../authz/adminInvariant.js";
 

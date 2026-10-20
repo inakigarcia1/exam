@@ -1,14 +1,14 @@
 import type { FastifyPluginAsync, FastifyInstance } from "fastify";
 import fp from "fastify-plugin";
 import type { Exam, ExamAttempt, RequestContext } from "@exam/domain";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
-import { createExamRepo } from "@exam/db/src/repository/examRepo.js";
-import { createEnrollmentRepo } from "@exam/db/src/repository/enrollmentRepo.js";
-import { createOrganizationRepo } from "@exam/db/src/repository/organizationRepo.js";
-import { createAttemptInterruptionRepo } from "@exam/db/src/repository/attemptInterruptionRepo.js";
-import { createAttemptInterruptionEventRepo } from "@exam/db/src/repository/attemptInterruptionEventRepo.js";
-import { executeInTransaction } from "@exam/db/src/types.js";
-import type { Database } from "@exam/db/src/types.js";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
+import { createExamRepo } from "@exam/db/repository/examRepo";
+import { createEnrollmentRepo } from "@exam/db/repository/enrollmentRepo";
+import { createOrganizationRepo } from "@exam/db/repository/organizationRepo";
+import { createAttemptInterruptionRepo } from "@exam/db/repository/attemptInterruptionRepo";
+import { createAttemptInterruptionEventRepo } from "@exam/db/repository/attemptInterruptionEventRepo";
+import { executeInTransaction } from "@exam/db/types";
+import type { Database } from "@exam/db/types";
 import {
   submitAttempt,
   gradeAttemptIdempotent,
@@ -17,7 +17,7 @@ import {
 } from "@exam/exam-engine";
 import type { SubmitInterruptionResolution } from "@exam/exam-engine";
 import { SYSTEM_ACTOR_IDS, createSystemRequestContext } from "@exam/authz";
-import { createAttemptGradingEntryRepo } from "@exam/db/src/repository/attemptGradingEntryRepo.js";
+import { createAttemptGradingEntryRepo } from "@exam/db/repository/attemptGradingEntryRepo";
 import {
   createExamEngineRepos,
   createGradingWorksetRepoAdapter,

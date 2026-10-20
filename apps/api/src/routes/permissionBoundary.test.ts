@@ -17,16 +17,16 @@ import userRoutes from "./user.js";
 import roleAssignmentRoutes from "./roleAssignments.js";
 import scoreRoutes from "./scores.js";
 import { exportRoutes } from "./export.js";
-import { createExamRepo } from "@exam/db/src/repository/examRepo.js";
-import { createCourseRepo } from "@exam/db/src/repository/courseRepo.js";
+import { createExamRepo } from "@exam/db/repository/examRepo";
+import { createCourseRepo } from "@exam/db/repository/courseRepo";
 import {
   createAuditLogRepo,
   type AuditLogListFilter,
-} from "@exam/db/src/repository/auditLogRepo.js";
-import { schema } from "@exam/db/src/schema/pg.js";
+} from "@exam/db/repository/auditLogRepo";
+import { schema } from "@exam/db/schema/pg";
 import { DEFAULT_CONTROL_FLAGS } from "./attempts/__tests__/attempts.testHelpers.js";
 import type { Exam } from "@exam/domain";
-import { hashPassword } from "@exam/auth/src/password.js";
+import { hashPassword } from "@exam/auth/password";
 import { eq } from "drizzle-orm";
 
 /**
@@ -943,7 +943,7 @@ describe("permission boundary", () => {
       // A JWT claiming any role (including System) for a non-existent
       // actorId is rejected before the capability gate. Exact 401 —
       // never 403, because the capability gate is never reached.
-      const { signJWT } = await import("@exam/auth/src/session.js");
+      const { signJWT } = await import("@exam/auth/session");
       const { getRuntimeConfig } = await import("../config/runtimeConfig.js");
       const systemToken = signJWT(
         {

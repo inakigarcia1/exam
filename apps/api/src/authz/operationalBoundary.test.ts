@@ -7,7 +7,7 @@ import {
 } from "../routes/testHelpers.js";
 import apiSurfacePlugin from "../routes/apiSurface.js";
 import type { TestContext } from "../routes/testHelpers.js";
-import { schema } from "@exam/db/src/schema/pg.js";
+import { schema } from "@exam/db/schema/pg";
 import { eq } from "drizzle-orm";
 
 /**

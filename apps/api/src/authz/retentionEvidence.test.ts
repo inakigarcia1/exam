@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
-import { getIsolatedTestDb } from "@exam/db/src/testDb.js";
-import { createRetentionEvidenceRepo } from "@exam/db/src/repository/retentionEvidenceRepo.js";
-import { organizations, retentionRuns } from "@exam/db/src/schema/pg.js";
-import type { Database, TenantContext } from "@exam/db/src/types.js";
+import { getIsolatedTestDb } from "@exam/db/testDb";
+import { createRetentionEvidenceRepo } from "@exam/db/repository/retentionEvidenceRepo";
+import { organizations, retentionRuns } from "@exam/db/schema/pg";
+import type { Database, TenantContext } from "@exam/db/types";
 
 /**
  * P7-CLOSE P7-3b — Host-side retention evidence ledger.

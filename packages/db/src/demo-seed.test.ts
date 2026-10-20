@@ -18,7 +18,7 @@ import {
 } from "./demo-seed.js";
 import { verifyDemoSeed } from "./demo-seed-verify.js";
 import { schema } from "./schema/pg.js";
-import { hashPassword, verifyPassword } from "@exam/auth/src/password.js";
+import { hashPassword, verifyPassword } from "@exam/auth/password";
 
 // Pre-computed argon2id hashes for demo-seed passwords. Generated once with
 // default parameters to avoid ~80ms/call hash computation during tests.

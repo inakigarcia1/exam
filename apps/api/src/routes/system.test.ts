@@ -5,11 +5,7 @@ import type { TestContext } from "./testHelpers.js";
 import { buildTestApp } from "./testHelpers.js";
 import systemRoutes from "./system.js";
 import { resetRuntimeConfigForTest } from "../config/runtimeConfig.js";
-import {
-  emailOutbox,
-  workerHeartbeats,
-  schema,
-} from "@exam/db/src/schema/pg.js";
+import { emailOutbox, workerHeartbeats, schema } from "@exam/db/schema/pg";
 import { eq, inArray } from "drizzle-orm";
 import { BOOTSTRAP_PENDING_MESSAGE } from "../workers/emailDeliveryWorker.js";
 

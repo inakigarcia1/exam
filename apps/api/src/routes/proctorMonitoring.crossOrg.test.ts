@@ -15,8 +15,8 @@ import {
   createExamViaApi,
   createFutureRoleUserForTest,
 } from "./testHelpers.js";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { createClientEventRepo } from "@exam/db/src/repository/clientEventRepo.js";
+import { schema } from "@exam/db/schema/pg";
+import { createClientEventRepo } from "@exam/db/repository/clientEventRepo";
 
 const combinedPlugin: FastifyPluginAsync = async (fastify) => {
   await fastify.register(courseRoutes);

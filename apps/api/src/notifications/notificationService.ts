@@ -1,7 +1,7 @@
-import type { Database, TenantContext } from "@exam/db/src/types.js";
-import { createNotificationRepo } from "@exam/db/src/repository/notificationRepo.js";
-import { createEmailOutboxRepo } from "@exam/db/src/repository/emailOutboxRepo.js";
-import type { NotificationRow } from "@exam/db/src/repository/notificationRepo.js";
+import type { Database, TenantContext } from "@exam/db/types";
+import { createNotificationRepo } from "@exam/db/repository/notificationRepo";
+import { createEmailOutboxRepo } from "@exam/db/repository/emailOutboxRepo";
+import type { NotificationRow } from "@exam/db/repository/notificationRepo";
 import {
   resolveEmailTypeForNotification,
   requiresInbox,

@@ -1,10 +1,10 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { eq, inArray } from "drizzle-orm";
-import type { Database } from "@exam/db/src/types.js";
-import { getIsolatedTestDb } from "@exam/db/src/testDb.js";
-import { seedDemo, DEMO_GRADED_ATTEMPT_KEYS } from "@exam/db/src/demo-seed.js";
-import { verifyDemoSeed } from "@exam/db/src/demo-seed-verify.js";
-import { schema } from "@exam/db/src/schema/pg.js";
+import type { Database } from "@exam/db/types";
+import { getIsolatedTestDb } from "@exam/db/testDb";
+import { seedDemo, DEMO_GRADED_ATTEMPT_KEYS } from "@exam/db/demo-seed";
+import { verifyDemoSeed } from "@exam/db/demo-seed-verify";
+import { schema } from "@exam/db/schema/pg";
 import { aggregateGradingEntries } from "@exam/exam-engine";
 import { createDemoSeedGrader } from "./demo-seed-grader.js";
 

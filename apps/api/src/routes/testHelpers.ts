@@ -13,28 +13,28 @@ import auditLifecyclePlugin from "../plugins/auditLifecycle.js";
 import type { AuditDrainResult } from "../plugins/auditLifecycle.js";
 import { setupErrorHandler } from "../plugins/errors.js";
 import setupSecurity from "../plugins/security.js";
-import { hashPassword } from "@exam/auth/src/password.js";
-import { createDatabase } from "@exam/db/src/database.js";
-import { migratePostgres } from "@exam/db/src/postgres.js";
-import { schema, type AssignableRole } from "@exam/db/src/schema/pg.js";
+import { hashPassword } from "@exam/auth/password";
+import { createDatabase } from "@exam/db/database";
+import { migratePostgres } from "@exam/db/postgres";
+import { schema, type AssignableRole } from "@exam/db/schema/pg";
 import { sql } from "drizzle-orm";
-import { resolveTestDbUrl } from "@exam/db/src/testDb.js";
-import { signJWT } from "@exam/auth/src/session.js";
+import { resolveTestDbUrl } from "@exam/db/testDb";
+import { signJWT } from "@exam/auth/session";
 import {
   getRuntimeConfig,
   resetRuntimeConfigForTest,
 } from "../config/runtimeConfig.js";
-import { seed } from "@exam/db/src/seed.js";
-import type { Database } from "@exam/db/src/types.js";
-import { createUserRepo } from "@exam/db/src/repository/userRepo.js";
+import { seed } from "@exam/db/seed";
+import type { Database } from "@exam/db/types";
+import { createUserRepo } from "@exam/db/repository/userRepo";
 import { eq } from "drizzle-orm";
 import type { Role } from "@exam/domain";
-import { createCandidateFieldRepo } from "@exam/db/src/repository/candidateFieldRepo.js";
+import { createCandidateFieldRepo } from "@exam/db/repository/candidateFieldRepo";
 import {
   setupIsolatedTestDb,
   isTestDbIsolationEnabled,
-} from "@exam/db/src/testIsolation.js";
-import { truncateBusinessTables } from "@exam/db/src/testWorkerDatabase.js";
+} from "@exam/db/testIsolation";
+import { truncateBusinessTables } from "@exam/db/testWorkerDatabase";
 import {
   setupApiTestDatabaseFromEnv,
   isWorkerDatabaseMode,

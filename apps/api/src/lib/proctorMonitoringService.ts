@@ -11,11 +11,11 @@ import {
   ProctorAttemptStatusEnum,
   ProctorAttemptEventSchema,
 } from "@exam/contracts";
-import type { Database } from "@exam/db/src/types.js";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
-import { createClientEventRepo } from "@exam/db/src/repository/clientEventRepo.js";
-import { createAuditLogRepo } from "@exam/db/src/repository/auditLogRepo.js";
-import type { ClientEventTimelineRow } from "@exam/db/src/repository/clientEventRepo.js";
+import type { Database } from "@exam/db/types";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
+import { createClientEventRepo } from "@exam/db/repository/clientEventRepo";
+import { createAuditLogRepo } from "@exam/db/repository/auditLogRepo";
+import type { ClientEventTimelineRow } from "@exam/db/repository/clientEventRepo";
 
 /**
  * Proctor monitoring aggregation.

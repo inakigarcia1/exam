@@ -1,9 +1,9 @@
 import type { Exam, ExamAttempt } from "@exam/domain";
-import type { Database, TenantContext } from "@exam/db/src/types.js";
-import { createEnrollmentRepo } from "@exam/db/src/repository/enrollmentRepo.js";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
-import { createCandidateRepo } from "@exam/db/src/repository/candidateRepo.js";
-import { createUserRepo } from "@exam/db/src/repository/userRepo.js";
+import type { Database, TenantContext } from "@exam/db/types";
+import { createEnrollmentRepo } from "@exam/db/repository/enrollmentRepo";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
+import { createCandidateRepo } from "@exam/db/repository/candidateRepo";
+import { createUserRepo } from "@exam/db/repository/userRepo";
 import { resolveCandidateResultVisibility } from "@exam/exam-engine";
 
 // Recipient composition for result_published fan-out.

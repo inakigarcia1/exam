@@ -20,9 +20,9 @@ import {
   buildProctorAttemptStatuses,
   buildProctorAttemptEventTimeline,
 } from "../lib/proctorMonitoringService.js";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
-import { createExamRepo } from "@exam/db/src/repository/examRepo.js";
-import { executeInTransaction } from "@exam/db/src/types.js";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
+import { createExamRepo } from "@exam/db/repository/examRepo";
+import { executeInTransaction } from "@exam/db/types";
 import { recordAtomicHttpAudit } from "../audit/auditWriter.js";
 
 /**

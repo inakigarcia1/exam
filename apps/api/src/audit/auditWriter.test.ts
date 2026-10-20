@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { executeInTransaction } from "@exam/db/src/types.js";
+import { schema } from "@exam/db/schema/pg";
+import { executeInTransaction } from "@exam/db/types";
 import { buildTestApp, type TestContext } from "../routes/testHelpers.js";
 import { ensureTargetOrg, getRequestContext } from "../routes/helpers.js";
 import { recordAtomicHttpAudit, recordBestEffortAudit } from "./auditWriter.js";

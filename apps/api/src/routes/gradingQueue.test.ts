@@ -1,13 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
-import { createEnrollmentRepo } from "@exam/db/src/repository/enrollmentRepo.js";
+import { schema } from "@exam/db/schema/pg";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
+import { createEnrollmentRepo } from "@exam/db/repository/enrollmentRepo";
 import {
   createAttemptGradingEntryRepo,
   toDomainEntry,
-} from "@exam/db/src/repository/attemptGradingEntryRepo.js";
-import { createAuditLogRepo } from "@exam/db/src/repository/auditLogRepo.js";
+} from "@exam/db/repository/attemptGradingEntryRepo";
+import { createAuditLogRepo } from "@exam/db/repository/auditLogRepo";
 import type { AnswerRecord, QuestionSnapshot } from "@exam/domain";
 import { gradeAnswers } from "@exam/domain";
 import type { TestContext } from "./testHelpers.js";

@@ -8,7 +8,7 @@ import {
   MarkAllReadResponseSchema,
   ErrorResponseSchema,
 } from "@exam/contracts";
-import { createNotificationRepo } from "@exam/db/src/repository/notificationRepo.js";
+import { createNotificationRepo } from "@exam/db/repository/notificationRepo";
 import { buildErrorResponse } from "../lib/errorResponse.js";
 import { getRequestContext } from "./helpers.js";
 
@@ -16,7 +16,7 @@ import { getRequestContext } from "./helpers.js";
 // is the domain tuple `NOTIFICATION_TYPES` (@exam/domain), surfaced through
 // NotificationTypeSchema — never enumerated here.
 //
-// Authority: `@exam/contracts/src/notification.ts` (the frozen V1 API surface).
+// Authority: `@exam/contracts` (notification surface) (the frozen V1 API surface).
 //
 // All four endpoints are authenticate-only (no requireCapability) — the
 // Inbox is the authenticated user's own. Scope derives from ctx

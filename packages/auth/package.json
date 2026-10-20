@@ -6,8 +6,26 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js",
-    "./src/*": "./dist/*"
+    ".": {
+      "@exam/test-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./password": {
+      "@exam/test-source": "./src/password.ts",
+      "types": "./dist/password.d.ts",
+      "default": "./dist/password.js"
+    },
+    "./session": {
+      "@exam/test-source": "./src/session.ts",
+      "types": "./dist/session.d.ts",
+      "default": "./dist/session.js"
+    },
+    "./tokens": {
+      "@exam/test-source": "./src/tokens.ts",
+      "types": "./dist/tokens.d.ts",
+      "default": "./dist/tokens.js"
+    }
   },
   "scripts": {
     "build": "tsc",
@@ -23,6 +41,7 @@
     "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
+    "@exam/source-fixture": "workspace:*",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^22.15.21",
     "typescript": "^5.8.3",

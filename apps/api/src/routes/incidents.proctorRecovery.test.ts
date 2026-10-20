@@ -23,8 +23,8 @@ import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { FastifyPluginAsync } from "fastify";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { cleanupOrganizationTestData } from "@exam/db/src/testCleanup.js";
+import { schema } from "@exam/db/schema/pg";
+import { cleanupOrganizationTestData } from "@exam/db/testCleanup";
 import { registerAdminIncidentRoutes } from "./incidents.admin.js";
 import {
   buildTestApp,

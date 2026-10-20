@@ -6,12 +6,12 @@ import { AuditAction } from "@exam/authz";
 import {
   createTeacherCourseAssignmentRepo,
   type TeacherCourseAssignmentRow,
-} from "@exam/db/src/repository/teacherCourseAssignmentRepo.js";
-import { createCourseRepo } from "@exam/db/src/repository/courseRepo.js";
-import { createUserRepo } from "@exam/db/src/repository/userRepo.js";
-import { createUserRoleAssignmentRepo } from "@exam/db/src/repository/userRoleAssignmentRepo.js";
+} from "@exam/db/repository/teacherCourseAssignmentRepo";
+import { createCourseRepo } from "@exam/db/repository/courseRepo";
+import { createUserRepo } from "@exam/db/repository/userRepo";
+import { createUserRoleAssignmentRepo } from "@exam/db/repository/userRoleAssignmentRepo";
 import { NotFoundError, ValidationError } from "@exam/domain";
-import { executeInTransaction } from "@exam/db/src/types.js";
+import { executeInTransaction } from "@exam/db/types";
 import { ensureTargetOrg, getRequestContext } from "./helpers.js";
 import { cookieAuth } from "./attempts.shared.js";
 import { recordAtomicHttpAudit } from "../audit/auditWriter.js";

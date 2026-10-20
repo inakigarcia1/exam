@@ -7,7 +7,7 @@ import {
   ErrorResponseSchema,
   normalizeInterruptionPolicyConfiguration,
 } from "@exam/contracts";
-import { createExamProfileRepo } from "@exam/db/src/repository/examProfileRepo.js";
+import { createExamProfileRepo } from "@exam/db/repository/examProfileRepo";
 import type { ExamProfile } from "@exam/domain";
 import { ValidationError } from "@exam/domain";
 import { Permission } from "@exam/authz";

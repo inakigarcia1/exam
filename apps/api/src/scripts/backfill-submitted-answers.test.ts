@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createDatabase, migratePostgres } from "@exam/db";
-import { resolveTestDbUrl } from "@exam/db/src/testDb.js";
-import type { Database } from "@exam/db/src/types.js";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { setupIsolatedTestDb } from "@exam/db/src/testIsolation.js";
+import { resolveTestDbUrl } from "@exam/db/testDb";
+import type { Database } from "@exam/db/types";
+import { schema } from "@exam/db/schema/pg";
+import { setupIsolatedTestDb } from "@exam/db/testIsolation";
 import { eq, sql } from "drizzle-orm";
 import type { AttemptStatus } from "@exam/domain";
 import {

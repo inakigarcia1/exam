@@ -39,8 +39,8 @@
  * resolver answers ONLY "may this actor see/start this exam at all".
  */
 import type { FastifyBaseLogger } from "fastify";
-import type { Database, TenantContext } from "@exam/db/src/types.js";
-import { createExamRepo } from "@exam/db/src/repository/examRepo.js";
+import type { Database, TenantContext } from "@exam/db/types";
+import { createExamRepo } from "@exam/db/repository/examRepo";
 import {
   Scope,
   type ResolverContext,

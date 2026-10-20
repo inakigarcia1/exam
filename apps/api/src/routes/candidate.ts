@@ -10,14 +10,14 @@ import {
   getErrorMessage,
 } from "@exam/contracts";
 import { PaginationParamsSchema } from "@exam/contracts";
-import { hashPassword } from "@exam/auth/src/password.js";
-import { createCandidateRepo } from "@exam/db/src/repository/candidateRepo.js";
-import type { CandidateListFilters } from "@exam/db/src/repository/candidateRepo.js";
-import { createUserRepo } from "@exam/db/src/repository/userRepo.js";
-import { createUserRoleAssignmentRepo } from "@exam/db/src/repository/userRoleAssignmentRepo.js";
-import { createCandidateFieldRepo } from "@exam/db/src/repository/candidateFieldRepo.js";
-import { createImportJobLogRepo } from "@exam/db/src/repository/importJobLogRepo.js";
-import { executeInTransaction } from "@exam/db/src/types.js";
+import { hashPassword } from "@exam/auth/password";
+import { createCandidateRepo } from "@exam/db/repository/candidateRepo";
+import type { CandidateListFilters } from "@exam/db/repository/candidateRepo";
+import { createUserRepo } from "@exam/db/repository/userRepo";
+import { createUserRoleAssignmentRepo } from "@exam/db/repository/userRoleAssignmentRepo";
+import { createCandidateFieldRepo } from "@exam/db/repository/candidateFieldRepo";
+import { createImportJobLogRepo } from "@exam/db/repository/importJobLogRepo";
+import { executeInTransaction } from "@exam/db/types";
 import { Permission } from "@exam/authz";
 import {
   CandidateIdentityConflictError,

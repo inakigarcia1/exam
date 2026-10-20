@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 let ownAttemptChain: Record<string, unknown> | null = null;
 let throwNext = false;
 
-vi.mock("@exam/db/src/repository/attemptRepo.js", () => ({
+vi.mock("@exam/db/repository/attemptRepo", () => ({
   createAttemptRepo: () => ({
     findOwnAttemptChain: async (_ctx: unknown, id: string) => {
       if (throwNext) throw new Error("db down");

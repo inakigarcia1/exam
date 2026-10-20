@@ -18,7 +18,7 @@ import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { FastifyPluginAsync } from "fastify";
 import { and, eq } from "drizzle-orm";
-import { schema } from "@exam/db/src/schema/pg.js";
+import { schema } from "@exam/db/schema/pg";
 import proctorMonitoringRoutes from "./proctorMonitoring.js";
 import { registerAdminAttemptRoutes } from "./attempts.admin.js";
 import { registerAdminIncidentRoutes } from "./incidents.admin.js";

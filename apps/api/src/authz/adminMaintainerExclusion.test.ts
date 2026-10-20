@@ -1,14 +1,14 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
-import { getIsolatedTestDb } from "@exam/db/src/testDb.js";
-import { createUserRepo } from "@exam/db/src/repository/userRepo.js";
-import { createUserRoleAssignmentRepo } from "@exam/db/src/repository/userRoleAssignmentRepo.js";
-import { schema } from "@exam/db/src/schema/pg.js";
-import type { Database, TenantContext } from "@exam/db/src/types.js";
-import { hashPassword } from "@exam/auth/src/password.js";
+import { getIsolatedTestDb } from "@exam/db/testDb";
+import { createUserRepo } from "@exam/db/repository/userRepo";
+import { createUserRoleAssignmentRepo } from "@exam/db/repository/userRoleAssignmentRepo";
+import { schema } from "@exam/db/schema/pg";
+import type { Database, TenantContext } from "@exam/db/types";
+import { hashPassword } from "@exam/auth/password";
 import { mutateWithAuthorityInvariants } from "./adminMaintainerExclusion.js";
 import { mutateWithEffectiveAdminPostcondition } from "./adminInvariant.js";
-import type { AssignableRole } from "@exam/db/src/schema/pg.js";
+import type { AssignableRole } from "@exam/db/schema/pg";
 
 /**
  * P7-E2A (ADR-017 D14) — ADMIN / MAINTAINER MUTUAL EXCLUSION.

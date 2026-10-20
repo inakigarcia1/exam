@@ -21,32 +21,29 @@ import {
  */
 const orgRepoHarness = vi.hoisted(() => ({ failure: null as Error | null }));
 
-vi.mock(
-  "@exam/db/src/repository/organizationRepo.js",
-  async (importOriginal) => {
-    const actual =
-      await importOriginal<
-        typeof import("@exam/db/src/repository/organizationRepo.js")
-      >();
-    return {
-      ...actual,
-      createOrganizationRepo: ((
-        db: Parameters<typeof actual.createOrganizationRepo>[0],
-      ) => {
-        const repo = actual.createOrganizationRepo(db);
-        return {
-          ...repo,
-          resolveBrandingTenant: async (
-            ...args: Parameters<typeof repo.resolveBrandingTenant>
-          ) => {
-            if (orgRepoHarness.failure) throw orgRepoHarness.failure;
-            return repo.resolveBrandingTenant(...args);
-          },
-        };
-      }) as typeof actual.createOrganizationRepo,
-    };
-  },
-);
+vi.mock("@exam/db/repository/organizationRepo", async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import("@exam/db/repository/organizationRepo")
+    >();
+  return {
+    ...actual,
+    createOrganizationRepo: ((
+      db: Parameters<typeof actual.createOrganizationRepo>[0],
+    ) => {
+      const repo = actual.createOrganizationRepo(db);
+      return {
+        ...repo,
+        resolveBrandingTenant: async (
+          ...args: Parameters<typeof repo.resolveBrandingTenant>
+        ) => {
+          if (orgRepoHarness.failure) throw orgRepoHarness.failure;
+          return repo.resolveBrandingTenant(...args);
+        },
+      };
+    }) as typeof actual.createOrganizationRepo,
+  };
+});
 
 import type { FastifyPluginAsync } from "fastify";
 import authRoutes from "./auth.js";

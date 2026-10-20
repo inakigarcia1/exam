@@ -8,9 +8,9 @@ import { randomUUID } from "node:crypto";
 import {
   dropDatabaseIfExists,
   withDatabaseName,
-} from "@exam/db/src/testWorkerDatabase.js";
-import { resolveTestDbUrl } from "@exam/db/src/testDb.js";
-import { resolveTestScope } from "@exam/db/src/testScope.js";
+} from "@exam/db/testWorkerDatabase";
+import { resolveTestDbUrl } from "@exam/db/testDb";
+import { resolveTestScope } from "@exam/db/testScope";
 
 /**
  * Round-3 slot-reuse isolation proof — PARENT orchestrator.

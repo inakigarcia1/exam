@@ -15,7 +15,7 @@ import { AuditAction, Permission, type AuditActionKey } from "@exam/authz";
 import {
   createAuditLogQueryRepo,
   type AuditLogRowWithActor,
-} from "@exam/db/src/repository/auditLogRepo.js";
+} from "@exam/db/repository/auditLogRepo";
 import { ensureTargetOrg, getRequestContext } from "./helpers.js";
 import { buildErrorResponse } from "../lib/errorResponse.js";
 import { generateCSV } from "@exam/import-export";

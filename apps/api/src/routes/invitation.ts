@@ -9,11 +9,11 @@ import {
 } from "@exam/contracts";
 import { Permission } from "@exam/authz";
 import { computeStaffInvitationStatus } from "@exam/domain";
-import { generateToken, hashToken } from "@exam/auth/src/tokens.js";
-import { createStaffInvitationRepo } from "@exam/db/src/repository/staffInvitationRepo.js";
-import type { StaffInvitationRow } from "@exam/db/src/repository/staffInvitationRepo.js";
-import { createEmailOutboxRepo } from "@exam/db/src/repository/emailOutboxRepo.js";
-import { executeInTransaction } from "@exam/db/src/types.js";
+import { generateToken, hashToken } from "@exam/auth/tokens";
+import { createStaffInvitationRepo } from "@exam/db/repository/staffInvitationRepo";
+import type { StaffInvitationRow } from "@exam/db/repository/staffInvitationRepo";
+import { createEmailOutboxRepo } from "@exam/db/repository/emailOutboxRepo";
+import { executeInTransaction } from "@exam/db/types";
 import { ensureTargetOrg, getRequestContext } from "./helpers.js";
 import { recordAtomicHttpAudit } from "../audit/auditWriter.js";
 import { buildErrorResponse } from "../lib/errorResponse.js";

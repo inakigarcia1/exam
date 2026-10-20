@@ -6,7 +6,7 @@ import {
   sanitizeClientEvent,
   type ClientEventBatchResponse,
 } from "@exam/contracts";
-import { createClientEventRepo } from "@exam/db/src/repository/clientEventRepo.js";
+import { createClientEventRepo } from "@exam/db/repository/clientEventRepo";
 import { normalizeClientEventReferences } from "../lib/clientEventReferenceNormalizer.js";
 import { getRequestContext } from "./helpers.js";
 

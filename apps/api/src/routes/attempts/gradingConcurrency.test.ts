@@ -1,18 +1,15 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { schema } from "@exam/db/src/schema/pg.js";
-import {
-  createPostgresDatabase,
-  migratePostgres,
-} from "@exam/db/src/postgres.js";
-import { setupIsolatedTestDb } from "@exam/db/src/testIsolation.js";
-import { resolveTestDbUrl } from "@exam/db/src/testDb.js";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
-import { createExamRepo } from "@exam/db/src/repository/examRepo.js";
-import { createEnrollmentRepo } from "@exam/db/src/repository/enrollmentRepo.js";
-import { createAttemptGradingEntryRepo } from "@exam/db/src/repository/attemptGradingEntryRepo.js";
-import { executeInTransaction } from "@exam/db/src/types.js";
-import type { Database } from "@exam/db/src/types.js";
+import { schema } from "@exam/db/schema/pg";
+import { createPostgresDatabase, migratePostgres } from "@exam/db/postgres";
+import { setupIsolatedTestDb } from "@exam/db/testIsolation";
+import { resolveTestDbUrl } from "@exam/db/testDb";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
+import { createExamRepo } from "@exam/db/repository/examRepo";
+import { createEnrollmentRepo } from "@exam/db/repository/enrollmentRepo";
+import { createAttemptGradingEntryRepo } from "@exam/db/repository/attemptGradingEntryRepo";
+import { executeInTransaction } from "@exam/db/types";
+import type { Database } from "@exam/db/types";
 import {
   computeGradingResult,
   finalizeGrading,
@@ -23,7 +20,7 @@ import {
   createGradingWorksetRepoAdapter,
 } from "../../adapters/repoAdapters.js";
 import type { EnrollmentRepository } from "@exam/exam-engine";
-import { hashPassword } from "@exam/auth/src/password.js";
+import { hashPassword } from "@exam/auth/password";
 import { createDeferred } from "../../testing/barrier.js";
 import type { Deferred } from "../../testing/barrier.js";
 import { collectConnectionEvidence } from "../../testing/operatorGrantConcurrencyHarness.js";

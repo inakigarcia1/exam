@@ -11,8 +11,8 @@ import {
   ROLE_PRESETS,
   type PermissionKey,
 } from "@exam/authz";
-import { createUserRepo } from "@exam/db/src/repository/userRepo.js";
-import { createUserRoleAssignmentRepo } from "@exam/db/src/repository/userRoleAssignmentRepo.js";
+import { createUserRepo } from "@exam/db/repository/userRepo";
+import { createUserRoleAssignmentRepo } from "@exam/db/repository/userRoleAssignmentRepo";
 import { deriveAssignmentAuthority } from "../authz/assignmentAuthority.js";
 import { ensureTargetOrg, getRequestContext } from "./helpers.js";
 import { buildErrorResponse } from "../lib/errorResponse.js";

@@ -3,11 +3,11 @@ import Fastify from "fastify";
 import type { RequestContext } from "@exam/domain";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq, sql } from "drizzle-orm";
-import { getIsolatedTestDb } from "@exam/db/src/testDb.js";
-import { createOrganizationRepo } from "@exam/db/src/repository/organizationRepo.js";
-import { createClientEventRepo } from "@exam/db/src/repository/clientEventRepo.js";
-import { schema } from "@exam/db/src/schema/pg.js";
-import type { Database } from "@exam/db/src/types.js";
+import { getIsolatedTestDb } from "@exam/db/testDb";
+import { createOrganizationRepo } from "@exam/db/repository/organizationRepo";
+import { createClientEventRepo } from "@exam/db/repository/clientEventRepo";
+import { schema } from "@exam/db/schema/pg";
+import type { Database } from "@exam/db/types";
 import {
   CLIENT_EVENT_RETENTION_DAYS,
   CLIENT_EVENT_RETENTION_SWEEP_INTERVAL_MS,

@@ -35,9 +35,9 @@ import {
   createQuestionResolver,
 } from "../authz/resolvers/courseResolver.js";
 import { createIncidentResolver } from "../authz/resolvers/incidentResolver.js";
-import { createProctorAssignmentRepo } from "@exam/db/src/repository/proctorAssignmentRepo.js";
-import { createTeacherCourseAssignmentRepo } from "@exam/db/src/repository/teacherCourseAssignmentRepo.js";
-import { createGraderExamAssignmentRepo } from "@exam/db/src/repository/graderExamAssignmentRepo.js";
+import { createProctorAssignmentRepo } from "@exam/db/repository/proctorAssignmentRepo";
+import { createTeacherCourseAssignmentRepo } from "@exam/db/repository/teacherCourseAssignmentRepo";
+import { createGraderExamAssignmentRepo } from "@exam/db/repository/graderExamAssignmentRepo";
 import { buildScoreCapabilityPreHandler } from "../authz/scoreCapability.js";
 import { buildCandidateContextCapabilityPreHandler } from "../authz/candidateContextCapability.js";
 import { buildExamEligibilityCapabilityPreHandler } from "../authz/examEligibilityCapability.js";

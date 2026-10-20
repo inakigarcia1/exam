@@ -11,7 +11,7 @@ import {
   uniquePrefix,
 } from "./testHelpers.js";
 import { getRuntimeConfig } from "../config/runtimeConfig.js";
-import { signJWT } from "@exam/auth/src/session.js";
+import { signJWT } from "@exam/auth/session";
 import authRoutes from "./auth.js";
 import examRoutes from "./exam.js";
 import courseRoutes from "./course.js";
@@ -20,8 +20,8 @@ import candidateRoutes from "./candidate.js";
 import candidateFieldRoutes from "./candidateField.js";
 import attemptRoutes from "./attempts.js";
 import { exportRoutes } from "./export.js";
-import { createAuditLogRepo } from "@exam/db/src/repository/auditLogRepo.js";
-import { schema } from "@exam/db/src/schema/pg.js";
+import { createAuditLogRepo } from "@exam/db/repository/auditLogRepo";
+import { schema } from "@exam/db/schema/pg";
 import { eq } from "drizzle-orm";
 
 describe("CSV export integration", () => {

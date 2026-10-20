@@ -14,14 +14,14 @@ import {
   createFutureRoleUserForTest,
   createUnassignedUserForTest,
 } from "./testHelpers.js";
-import { hashPassword } from "@exam/auth/src/password.js";
-import { schema } from "@exam/db/src/schema/pg.js";
+import { hashPassword } from "@exam/auth/password";
+import { schema } from "@exam/db/schema/pg";
 import { and, eq } from "drizzle-orm";
-import type { Database } from "@exam/db/src/types.js";
+import type { Database } from "@exam/db/types";
 import { ValidationError } from "@exam/domain";
 import { AssignableRoleSchema, type AssignableRole } from "@exam/contracts";
 import * as adminInvariantModule from "../authz/adminInvariant.js";
-import * as userRoleAssignmentRepoModule from "@exam/db/src/repository/userRoleAssignmentRepo.js";
+import * as userRoleAssignmentRepoModule from "@exam/db/repository/userRoleAssignmentRepo";
 
 async function createCandidateUser(
   db: Database,
@@ -825,7 +825,7 @@ describe("user routes", () => {
         cookies: { "auth-token": ctx.adminToken },
       });
 
-      const { verifyPassword } = await import("@exam/auth/src/password.js");
+      const { verifyPassword } = await import("@exam/auth/password");
       const updated = await ctx.db
         .select()
         .from(schema.users)

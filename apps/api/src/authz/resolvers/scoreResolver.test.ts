@@ -16,7 +16,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 let scoreChain: Record<string, unknown> | null = null;
 let shouldThrow = false;
 
-vi.mock("@exam/db/src/repository/attemptRepo.js", () => ({
+vi.mock("@exam/db/repository/attemptRepo", () => ({
   createAttemptRepo: () => ({
     findScoreOwnershipChain: async (_ctx: unknown, id: string) => {
       if (shouldThrow) {

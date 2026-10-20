@@ -4,7 +4,7 @@ import Fastify from "fastify";
 const createDatabaseMock = vi.fn();
 const sqlEndMock = vi.fn();
 
-vi.mock("@exam/db/src/database.js", () => ({
+vi.mock("@exam/db/database", () => ({
   createDatabase: (...args: unknown[]) => createDatabaseMock(...args),
 }));
 

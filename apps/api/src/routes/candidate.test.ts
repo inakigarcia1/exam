@@ -1,11 +1,11 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
-import { createCandidateFieldRepo } from "@exam/db/src/repository/candidateFieldRepo.js";
-import { createImportJobLogRepo } from "@exam/db/src/repository/importJobLogRepo.js";
+import { createCandidateFieldRepo } from "@exam/db/repository/candidateFieldRepo";
+import { createImportJobLogRepo } from "@exam/db/repository/importJobLogRepo";
 import { getErrorMessage } from "@exam/contracts";
-import { hashPassword } from "@exam/auth/src/password.js";
-import { signJWT } from "@exam/auth/src/session.js";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { cleanupOrganizationTestData } from "@exam/db/src/testCleanup.js";
+import { hashPassword } from "@exam/auth/password";
+import { signJWT } from "@exam/auth/session";
+import { schema } from "@exam/db/schema/pg";
+import { cleanupOrganizationTestData } from "@exam/db/testCleanup";
 import { eq, sql } from "drizzle-orm";
 import candidateRoutes from "./candidate.js";
 import { buildTestApp, createFutureRoleUserForTest } from "./testHelpers.js";

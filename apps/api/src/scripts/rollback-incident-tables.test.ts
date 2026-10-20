@@ -27,16 +27,16 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { resolveTestDbUrl } from "@exam/db/src/testDb.js";
+import { resolveTestDbUrl } from "@exam/db/testDb";
 import {
   addSearchPathToUrl,
   setupIsolatedTestDb,
-} from "@exam/db/src/testIsolation.js";
-import { createDatabase } from "@exam/db/src/database.js";
-import { createPostgresDatabase } from "@exam/db/src/postgres.js";
-import { migratePostgres } from "@exam/db/src/postgres.js";
-import { withTestInfraLifecycleLock } from "@exam/db/src/testInfraLock.js";
-import { schema } from "@exam/db/src/schema/pg.js";
+} from "@exam/db/testIsolation";
+import { createDatabase } from "@exam/db/database";
+import { createPostgresDatabase } from "@exam/db/postgres";
+import { migratePostgres } from "@exam/db/postgres";
+import { withTestInfraLifecycleLock } from "@exam/db/testInfraLock";
+import { schema } from "@exam/db/schema/pg";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SCRIPT_PATH = resolve(__dirname, "rollback-incident-tables.ts");
@@ -216,7 +216,7 @@ const recoveryMocks = vi.hoisted(() => ({
 vi.mock("@exam/db", async (importOriginal) => {
   const real =
     await importOriginal<
-      typeof import("@exam/db/src/scripts/destructiveDbNameGuard.js")
+      typeof import("@exam/db/scripts/destructiveDbNameGuard")
     >();
   return {
     createDatabase: (...args: unknown[]) =>

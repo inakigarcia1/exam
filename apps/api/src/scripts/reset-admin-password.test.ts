@@ -1,11 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createDatabase, migratePostgres } from "@exam/db";
-import { resolveTestDbUrl } from "@exam/db/src/testDb.js";
-import type { Database } from "@exam/db/src/types.js";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { setupIsolatedTestDb } from "@exam/db/src/testIsolation.js";
+import { resolveTestDbUrl } from "@exam/db/testDb";
+import type { Database } from "@exam/db/types";
+import { schema } from "@exam/db/schema/pg";
+import { setupIsolatedTestDb } from "@exam/db/testIsolation";
 import { eq } from "drizzle-orm";
-import { hashPassword, verifyPassword } from "@exam/auth/src/password.js";
+import { hashPassword, verifyPassword } from "@exam/auth/password";
 import { resetAdminPassword } from "./reset-admin-password.js";
 
 let _counter = 0;

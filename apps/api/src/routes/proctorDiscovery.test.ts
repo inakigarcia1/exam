@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { schema } from "@exam/db/src/schema/pg.js";
+import { schema } from "@exam/db/schema/pg";
 import type { ExamStatus, Role } from "@exam/domain";
 import proctorMonitoringRoutes from "./proctorMonitoring.js";
 import {

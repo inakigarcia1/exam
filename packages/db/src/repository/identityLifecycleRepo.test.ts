@@ -21,7 +21,7 @@ import {
 } from "./staffInvitationRepo.js";
 import { createPasswordResetTokenRepo } from "./passwordResetTokenRepo.js";
 import { createUserRepo } from "./userRepo.js";
-import { hashToken, generateToken } from "@exam/auth/src/tokens.js";
+import { hashToken, generateToken } from "@exam/auth/tokens";
 
 function createContext(orgId: string): RequestContext {
   return {

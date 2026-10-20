@@ -9,10 +9,10 @@ import {
   QuestionImportResultSchema,
   ErrorResponseSchema,
 } from "@exam/contracts";
-import { createQuestionRepo } from "@exam/db/src/repository/questionRepo.js";
-import { createCourseRepo } from "@exam/db/src/repository/courseRepo.js";
-import { createImportJobLogRepo } from "@exam/db/src/repository/importJobLogRepo.js";
-import { executeInTransaction } from "@exam/db/src/types.js";
+import { createQuestionRepo } from "@exam/db/repository/questionRepo";
+import { createCourseRepo } from "@exam/db/repository/courseRepo";
+import { createImportJobLogRepo } from "@exam/db/repository/importJobLogRepo";
+import { executeInTransaction } from "@exam/db/types";
 import { Permission } from "@exam/authz";
 import type { RequestContext } from "@exam/domain";
 import {

@@ -2,9 +2,9 @@ import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { randomUUID } from "node:crypto";
 import examProfileRoutes from "./examProfile.js";
 import { buildTestApp, uniquePrefix } from "./testHelpers.js";
-import { signJWT } from "@exam/auth/src/session.js";
-import { hashPassword } from "@exam/auth/src/password.js";
-import { schema } from "@exam/db/src/schema/pg.js";
+import { signJWT } from "@exam/auth/session";
+import { hashPassword } from "@exam/auth/password";
+import { schema } from "@exam/db/schema/pg";
 import { getRuntimeConfig } from "../config/runtimeConfig.js";
 
 const VALID_PROFILE = {

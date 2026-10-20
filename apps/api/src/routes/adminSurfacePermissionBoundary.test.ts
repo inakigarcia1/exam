@@ -26,12 +26,12 @@ import systemRoutes from "./system.js";
 import importLogRoutes from "./importLogs.js";
 import { emailRoutes } from "./email.js";
 import auditRoutes from "./audit.js";
-import { createAuditLogRepo } from "@exam/db/src/repository/auditLogRepo.js";
-import { createCandidateFieldRepo } from "@exam/db/src/repository/candidateFieldRepo.js";
-import { createCandidateRepo } from "@exam/db/src/repository/candidateRepo.js";
-import { createSettingsRepo } from "@exam/db/src/repository/settingsRepo.js";
-import { createUserRepo } from "@exam/db/src/repository/userRepo.js";
-import { schema } from "@exam/db/src/schema/pg.js";
+import { createAuditLogRepo } from "@exam/db/repository/auditLogRepo";
+import { createCandidateFieldRepo } from "@exam/db/repository/candidateFieldRepo";
+import { createCandidateRepo } from "@exam/db/repository/candidateRepo";
+import { createSettingsRepo } from "@exam/db/repository/settingsRepo";
+import { createUserRepo } from "@exam/db/repository/userRepo";
+import { schema } from "@exam/db/schema/pg";
 import { eq } from "drizzle-orm";
 
 function requireDefined<T>(

@@ -1,12 +1,13 @@
 import { defineConfig } from "vitest/config";
-import { DOMAIN_TEST_SOURCE_ALIAS } from "../../config/vitest.sourceAliases.js";
+import { workspaceSourceResolutionPlugin } from "../../config/workspace-resolution.js";
 
 export default defineConfig({
   // #741: per-package implicit envDir admission is OFF (pinned by
   // scripts/check-env-surface.mjs).
   envDir: false,
-  // #689: a direct vitest run must read fresh @exam/domain source, not stale dist.
-  resolve: { alias: [DOMAIN_TEST_SOURCE_ALIAS] },
+  // #794: workspace packages resolve to sources in tests (transitively
+  // included) — see config/workspace-resolution.ts.
+  plugins: [workspaceSourceResolutionPlugin()],
   test: {
     environment: "node",
     exclude: ["dist/**", "node_modules/**"],

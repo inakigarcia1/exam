@@ -6,14 +6,14 @@ import courseRoutes from "./course.js";
 import questionRoutes from "./question.js";
 import candidateRoutes from "./candidate.js";
 import { buildTestApp, uniquePrefix } from "./testHelpers.js";
-import { createOrganizationRepo } from "@exam/db/src/repository/organizationRepo.js";
-import { createUserRepo } from "@exam/db/src/repository/userRepo.js";
+import { createOrganizationRepo } from "@exam/db/repository/organizationRepo";
+import { createUserRepo } from "@exam/db/repository/userRepo";
 import {
   candidateProfiles,
   emailOutbox,
   examEnrollments,
   notifications,
-} from "@exam/db/src/schema/pg.js";
+} from "@exam/db/schema/pg";
 
 describe("exam enrollment routes", () => {
   let ctx: Awaited<ReturnType<typeof buildTestApp>>;

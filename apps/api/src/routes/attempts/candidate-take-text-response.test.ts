@@ -4,7 +4,7 @@ import { buildTestApp, type TestContext } from "../testHelpers.js";
 import examRoutes from "../exam.js";
 import attemptRoutes from "../attempts.js";
 import questionRoutes from "../question.js";
-import { schema } from "@exam/db/src/schema/pg.js";
+import { schema } from "@exam/db/schema/pg";
 import {
   buildExamPayload,
   enrollCandidateForExam,

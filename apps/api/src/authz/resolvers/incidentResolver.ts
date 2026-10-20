@@ -1,6 +1,6 @@
 import type { FastifyBaseLogger } from "fastify";
-import type { Database, TenantContext } from "@exam/db/src/types.js";
-import { createIncidentRepo } from "@exam/db/src/repository/incidentRepo.js";
+import type { Database, TenantContext } from "@exam/db/types";
+import { createIncidentRepo } from "@exam/db/repository/incidentRepo";
 import {
   Scope,
   type DeniedScope,

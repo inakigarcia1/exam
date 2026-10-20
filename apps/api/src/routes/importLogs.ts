@@ -4,7 +4,7 @@ import {
   ImportLogListResponseSchema,
 } from "@exam/contracts";
 import { ensureTargetOrg, getRequestContext } from "./helpers.js";
-import { createImportJobLogRepo } from "@exam/db/src/repository/importJobLogRepo.js";
+import { createImportJobLogRepo } from "@exam/db/repository/importJobLogRepo";
 import { Permission } from "@exam/authz";
 
 const cookieAuth = [{ cookieAuth: [] }] as const;

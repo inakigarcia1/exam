@@ -1,7 +1,7 @@
 import type { RequestContext, Exam } from "@exam/domain";
-import type { Database } from "@exam/db/src/types.js";
-import { executeInTransaction } from "@exam/db/src/types.js";
-import { createExamRepo } from "@exam/db/src/repository/examRepo.js";
+import type { Database } from "@exam/db/types";
+import { executeInTransaction } from "@exam/db/types";
+import { createExamRepo } from "@exam/db/repository/examRepo";
 import { checkAndUpdateExamStatus } from "@exam/exam-engine";
 import type { ExamRepository } from "@exam/exam-engine";
 import { createExamRepoAdapter } from "../adapters/repoAdapters.js";

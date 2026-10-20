@@ -6,7 +6,7 @@ import {
   buildTestApp,
   type TestContext,
 } from "../../src/routes/testHelpers.js";
-import { resolveTestScope } from "@exam/db/src/testScope.js";
+import { resolveTestScope } from "@exam/db/testScope";
 
 /**
  * Round-3 slot-reuse isolation proof — STAGE A (the predecessor file).

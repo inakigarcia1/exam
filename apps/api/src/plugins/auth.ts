@@ -1,9 +1,9 @@
 import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import fp from "fastify-plugin";
-import { verifyJWT, deriveSessionId } from "@exam/auth/src/session.js";
+import { verifyJWT, deriveSessionId } from "@exam/auth/session";
 import type { Role, Permission } from "@exam/domain";
 import { type PermissionKey } from "@exam/authz";
-import { createUserRepo } from "@exam/db/src/repository/userRepo.js";
+import { createUserRepo } from "@exam/db/repository/userRepo";
 import { buildErrorResponse } from "../lib/errorResponse.js";
 import { getRuntimeConfig } from "../config/runtimeConfig.js";
 import type { AuthzPreHandler } from "../types/fastify-auth.d.js";

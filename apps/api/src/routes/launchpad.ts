@@ -8,7 +8,7 @@ import {
 } from "@exam/contracts";
 import { AdminAlreadyExistsError } from "@exam/domain";
 import type { PublicBrandingContext } from "@exam/domain";
-import { createOrganizationRepo } from "@exam/db/src/repository/organizationRepo.js";
+import { createOrganizationRepo } from "@exam/db/repository/organizationRepo";
 import { bootstrapAdminOnFreshDb } from "../scripts/bootstrap-admin.js";
 import { getRuntimeConfig } from "../config/runtimeConfig.js";
 import { buildErrorResponse } from "../lib/errorResponse.js";

@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import type { RequestContext } from "@exam/domain";
 import { Role } from "@exam/authz";
-import { createGraderExamAssignmentRepo } from "@exam/db/src/repository/graderExamAssignmentRepo.js";
+import { createGraderExamAssignmentRepo } from "@exam/db/repository/graderExamAssignmentRepo";
 import type { RuntimeRequestContext } from "../types/requestContext.js";
 import { isOrgWideAdmin } from "./teacherScope.js";
 

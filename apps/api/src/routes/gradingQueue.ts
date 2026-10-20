@@ -11,12 +11,12 @@ import {
 import type { RequestContext } from "@exam/domain";
 import { NotFoundError } from "@exam/domain";
 import { gradeQuestion, lockEnrollmentAndAttempt } from "@exam/exam-engine";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
-import { createAttemptGradingEntryRepo } from "@exam/db/src/repository/attemptGradingEntryRepo.js";
-import { createEnrollmentRepo } from "@exam/db/src/repository/enrollmentRepo.js";
-import { createExamRepo } from "@exam/db/src/repository/examRepo.js";
-import { createGradingQueueRepo } from "@exam/db/src/repository/gradingQueueRepo.js";
-import { executeInTransaction } from "@exam/db/src/types.js";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
+import { createAttemptGradingEntryRepo } from "@exam/db/repository/attemptGradingEntryRepo";
+import { createEnrollmentRepo } from "@exam/db/repository/enrollmentRepo";
+import { createExamRepo } from "@exam/db/repository/examRepo";
+import { createGradingQueueRepo } from "@exam/db/repository/gradingQueueRepo";
+import { executeInTransaction } from "@exam/db/types";
 import {
   createExamEngineRepos,
   createGradingWorksetRepoAdapter,

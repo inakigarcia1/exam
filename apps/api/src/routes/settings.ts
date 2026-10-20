@@ -7,9 +7,9 @@ import {
   UpdateBrandingRequestSchema,
   ErrorResponseSchema,
 } from "@exam/contracts";
-import { createSettingsRepo } from "@exam/db/src/repository/settingsRepo.js";
-import { createOrganizationRepo } from "@exam/db/src/repository/organizationRepo.js";
-import type { Database } from "@exam/db/src/types.js";
+import { createSettingsRepo } from "@exam/db/repository/settingsRepo";
+import { createOrganizationRepo } from "@exam/db/repository/organizationRepo";
+import type { Database } from "@exam/db/types";
 import type { PublicBrandingContext } from "@exam/domain";
 import { ensureTargetOrg, getRequestContext } from "./helpers.js";
 import { recordBestEffortAudit } from "../audit/auditWriter.js";

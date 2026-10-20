@@ -281,7 +281,7 @@ if (isMain) {
     | undefined;
   try {
     const { createDatabase } = await import("./database.js");
-    const { hashPassword } = await import("@exam/auth/src/password.js");
+    const { hashPassword } = await import("@exam/auth/password");
 
     conn = await createDatabase();
     process.stdout.write("Seeding database...\n");

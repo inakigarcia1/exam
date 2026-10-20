@@ -34,13 +34,13 @@
  *     --organization-name 'My Organization'
  */
 
-import { executeInTransaction } from "@exam/db/src/types.js";
-import { hashPassword } from "@exam/auth/src/password.js";
+import { executeInTransaction } from "@exam/db/types";
+import { hashPassword } from "@exam/auth/password";
 import { createDatabase } from "@exam/db";
-import type { Database } from "@exam/db/src/types.js";
-import { schema } from "@exam/db/src/schema/pg.js";
-import { createUserRepo } from "@exam/db/src/repository/userRepo.js";
-import { createUserRoleAssignmentRepo } from "@exam/db/src/repository/userRoleAssignmentRepo.js";
+import type { Database } from "@exam/db/types";
+import { schema } from "@exam/db/schema/pg";
+import { createUserRepo } from "@exam/db/repository/userRepo";
+import { createUserRoleAssignmentRepo } from "@exam/db/repository/userRoleAssignmentRepo";
 import { AdminAlreadyExistsError } from "@exam/domain";
 import { recordAtomicSystemAudit } from "../audit/auditWriter.js";
 import { loadRootEnv } from "../config/loadRootEnv.js";
@@ -239,7 +239,7 @@ export async function resolveOrCreateDefaultOrganization(
  * SELECT and INSERT resolves to the existing row, preserving its identity).
  */
 async function resolveOrCreateDefaultOrganizationInTx(
-  db: Database | import("@exam/db/src/types.js").TransactionDatabase,
+  db: Database | import("@exam/db/types").TransactionDatabase,
   options: BootstrapAdminOrganizationOptions,
 ): Promise<BootstrapAdminResult["organization"]> {
   const name =

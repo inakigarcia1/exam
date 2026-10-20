@@ -1,14 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
 import postgres from "postgres";
-import {
-  createPostgresDatabase,
-  migratePostgres,
-} from "@exam/db/src/postgres.js";
-import { setupIsolatedTestDb } from "@exam/db/src/testIsolation.js";
-import { schema } from "@exam/db/src/schema/pg.js";
-import type { Database, TenantContext } from "@exam/db/src/types.js";
-import { createBackupEvidenceRepo } from "@exam/db/src/repository/backupEvidenceRepo.js";
+import { createPostgresDatabase, migratePostgres } from "@exam/db/postgres";
+import { setupIsolatedTestDb } from "@exam/db/testIsolation";
+import { schema } from "@exam/db/schema/pg";
+import type { Database, TenantContext } from "@exam/db/types";
+import { createBackupEvidenceRepo } from "@exam/db/repository/backupEvidenceRepo";
 import { waitForBackendBlocked } from "../testing/pgConcurrencyProbes.js";
 
 /**

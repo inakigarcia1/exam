@@ -1,15 +1,15 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
-import { getIsolatedTestDb } from "@exam/db/src/testDb.js";
+import { getIsolatedTestDb } from "@exam/db/testDb";
 import {
   createOperationalPolicyRepo,
   type OperationalPolicyRow,
-} from "@exam/db/src/repository/operationalPolicyRepo.js";
-import { createDatabase } from "@exam/db/src/database.js";
-import { isTestDbIsolationEnabled } from "@exam/db/src/testIsolation.js";
-import { organizations } from "@exam/db/src/schema/pg.js";
-import type { Database, TenantContext } from "@exam/db/src/types.js";
-import { executeInTransaction } from "@exam/db/src/types.js";
+} from "@exam/db/repository/operationalPolicyRepo";
+import { createDatabase } from "@exam/db/database";
+import { isTestDbIsolationEnabled } from "@exam/db/testIsolation";
+import { organizations } from "@exam/db/schema/pg";
+import type { Database, TenantContext } from "@exam/db/types";
+import { executeInTransaction } from "@exam/db/types";
 import { ValidationError } from "@exam/domain";
 
 /**
@@ -328,13 +328,13 @@ import {
 } from "vitest";
 import type { FastifyPluginAsync } from "fastify";
 import { eq } from "drizzle-orm";
-import { auditLogs } from "@exam/db/src/schema/pg.js";
+import { auditLogs } from "@exam/db/schema/pg";
 import {
   buildTestApp,
   createAssignedUserForTest,
 } from "../routes/testHelpers.js";
 import systemRoutes from "../routes/system.js";
-import { createBackupEvidenceRepo } from "@exam/db/src/repository/backupEvidenceRepo.js";
+import { createBackupEvidenceRepo } from "@exam/db/repository/backupEvidenceRepo";
 import type { TestContext } from "../routes/testHelpers.js";
 
 describe2("P7-E3 ops-policy API", () => {

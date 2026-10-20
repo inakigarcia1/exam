@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 let eligibilityChain: Record<string, unknown> | null = null;
 let throwNext = false;
 
-vi.mock("@exam/db/src/repository/examRepo.js", () => ({
+vi.mock("@exam/db/repository/examRepo", () => ({
   createExamRepo: () => ({
     findCandidateEligibilityChain: async (
       _ctx: unknown,

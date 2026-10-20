@@ -41,9 +41,9 @@ import {
   IncidentVersionConflictError,
   InvalidStateTransitionError,
 } from "@exam/domain";
-import type { Database, TransactionDatabase } from "@exam/db/src/types.js";
-import { executeInTransaction } from "@exam/db/src/types.js";
-import { createIncidentRepo } from "@exam/db/src/repository/incidentRepo.js";
+import type { Database, TransactionDatabase } from "@exam/db/types";
+import { executeInTransaction } from "@exam/db/types";
+import { createIncidentRepo } from "@exam/db/repository/incidentRepo";
 import { isMatchingCommittedOperation } from "@exam/exam-engine";
 import type { IncidentCommandResult } from "@exam/exam-engine";
 

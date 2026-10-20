@@ -6,13 +6,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 let courseChain: Record<string, unknown> | null = null;
 let questionChain: Record<string, unknown> | null = null;
 
-vi.mock("@exam/db/src/repository/courseRepo.js", () => ({
+vi.mock("@exam/db/repository/courseRepo", () => ({
   createCourseRepo: () => ({
     findAuthorizationChain: async (_ctx: unknown, id: string) =>
       courseChain && courseChain.courseId === id ? courseChain : null,
   }),
 }));
-vi.mock("@exam/db/src/repository/questionRepo.js", () => ({
+vi.mock("@exam/db/repository/questionRepo", () => ({
   createQuestionRepo: () => ({
     findAuthorizationChain: async (_ctx: unknown, id: string) =>
       questionChain && questionChain.questionId === id ? questionChain : null,

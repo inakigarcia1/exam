@@ -8,7 +8,7 @@ import attemptRoutes from "./attempts.js";
 import scoreRoutes from "./scores.js";
 import { exportRoutes } from "./export.js";
 import auditRoutes from "./audit.js";
-import { schema } from "@exam/db/src/schema/pg.js";
+import { schema } from "@exam/db/schema/pg";
 import {
   buildTestApp,
   uniquePrefix,

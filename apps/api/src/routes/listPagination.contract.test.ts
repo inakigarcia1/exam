@@ -9,7 +9,7 @@ import {
   uniquePrefix,
   type TestContext,
 } from "./testHelpers.js";
-import { schema } from "@exam/db/src/schema/pg.js";
+import { schema } from "@exam/db/schema/pg";
 import { and, eq, inArray, notInArray } from "drizzle-orm";
 
 /**

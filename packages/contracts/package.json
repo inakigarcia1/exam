@@ -17,8 +17,16 @@
     "zod": "^3.25.28"
   },
   "devDependencies": {
+    "@exam/source-fixture": "workspace:*",
     "@vitest/coverage-v8": "^4.1.7",
     "typescript": "^5.8.3",
     "vitest": "^4.1.7"
+  },
+  "exports": {
+    ".": {
+      "@exam/test-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
   }
 }

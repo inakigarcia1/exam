@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
-import { createDatabase } from "@exam/db/src/database.js";
-import type { Database } from "@exam/db/src/types.js";
+import { createDatabase } from "@exam/db/database";
+import type { Database } from "@exam/db/types";
 import { getRuntimeConfig } from "../config/runtimeConfig.js";
 import { AUDIT_DRAIN_TIMEOUT_MS } from "./auditLifecycle.js";
 import {

@@ -1,9 +1,9 @@
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { ErrorResponseSchema } from "@exam/contracts";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
-import { createExamRepo } from "@exam/db/src/repository/examRepo.js";
-import { createCandidateFieldRepo } from "@exam/db/src/repository/candidateFieldRepo.js";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
+import { createExamRepo } from "@exam/db/repository/examRepo";
+import { createCandidateFieldRepo } from "@exam/db/repository/candidateFieldRepo";
 import { ensureTargetOrg, getRequestContext } from "./helpers.js";
 import { generateCSV } from "@exam/import-export";
 import { Permission } from "@exam/authz";

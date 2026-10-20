@@ -11,7 +11,7 @@ import {
   uniquePrefix,
   createCandidateViaApi,
 } from "./testHelpers.js";
-import { schema } from "@exam/db/src/schema/pg.js";
+import { schema } from "@exam/db/schema/pg";
 
 const adminCookies = (token: string) => ({ "auth-token": token });
 

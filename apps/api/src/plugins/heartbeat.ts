@@ -1,12 +1,12 @@
 import type { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
 import type { RequestContext } from "@exam/domain";
-import { createAttemptRepo } from "@exam/db/src/repository/attemptRepo.js";
-import { createAttemptInterruptionRepo } from "@exam/db/src/repository/attemptInterruptionRepo.js";
-import { createAttemptInterruptionEventRepo } from "@exam/db/src/repository/attemptInterruptionEventRepo.js";
-import { createOrganizationRepo } from "@exam/db/src/repository/organizationRepo.js";
-import { executeInTransaction } from "@exam/db/src/types.js";
-import type { Database } from "@exam/db/src/types.js";
+import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
+import { createAttemptInterruptionRepo } from "@exam/db/repository/attemptInterruptionRepo";
+import { createAttemptInterruptionEventRepo } from "@exam/db/repository/attemptInterruptionEventRepo";
+import { createOrganizationRepo } from "@exam/db/repository/organizationRepo";
+import { executeInTransaction } from "@exam/db/types";
+import type { Database } from "@exam/db/types";
 import { markDisrupted } from "@exam/exam-engine";
 import { SYSTEM_ACTOR_IDS, createSystemRequestContext } from "@exam/authz";
 import {

@@ -32,7 +32,7 @@
  * answers ONLY "may this actor see/start this exam at all".
  */
 import type { FastifyBaseLogger, FastifyReply, FastifyRequest } from "fastify";
-import type { Database } from "@exam/db/src/types.js";
+import type { Database } from "@exam/db/types";
 import { buildErrorResponse } from "../lib/errorResponse.js";
 import { type PermissionKey, type ResolverContext } from "@exam/authz";
 import type { EligibilityDenialMode } from "../types/fastify-auth.d.js";

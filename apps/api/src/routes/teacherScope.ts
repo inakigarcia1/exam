@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import type { RequestContext } from "@exam/domain";
 import { Role } from "@exam/authz";
-import { createTeacherCourseAssignmentRepo } from "@exam/db/src/repository/teacherCourseAssignmentRepo.js";
+import { createTeacherCourseAssignmentRepo } from "@exam/db/repository/teacherCourseAssignmentRepo";
 import type { RuntimeRequestContext } from "../types/requestContext.js";
 
 /**

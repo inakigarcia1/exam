@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Fastify, { type FastifyInstance } from "fastify";
 import cookie from "@fastify/cookie";
-import { signJWT } from "@exam/auth/src/session.js";
+import { signJWT } from "@exam/auth/session";
 import { Permission, permissionsForRole, type RoleKey } from "@exam/authz";
 import { buildAuthPluginFp } from "./auth.js";
 import type { AssignmentAuthorityResult } from "../authz/assignmentAuthority.js";
@@ -9,7 +9,7 @@ import { resetRuntimeConfigForTest } from "../config/runtimeConfig.js";
 
 /** The role the mocked userRepo returns; override per-test. */
 let mockRole = "Admin";
-vi.mock("@exam/db/src/repository/userRepo.js", () => ({
+vi.mock("@exam/db/repository/userRepo", () => ({
   createUserRepo: () => ({
     findByOrganizationAndId: async () => ({
       id: "user-1",

@@ -10,18 +10,18 @@
  * Build entry: `node dist/workers/emailDeliveryWorker.js`
  * Package script: `pnpm --filter @exam/api worker:email`
  */
-import { createDatabase } from "@exam/db/src/database.js";
-import { createOrganizationRepo } from "@exam/db/src/repository/organizationRepo.js";
-import { createEmailOutboxRepo } from "@exam/db/src/repository/emailOutboxRepo.js";
+import { createDatabase } from "@exam/db/database";
+import { createOrganizationRepo } from "@exam/db/repository/organizationRepo";
+import { createEmailOutboxRepo } from "@exam/db/repository/emailOutboxRepo";
 import {
   createWorkerHeartbeatRepo,
   type WorkerHeartbeatRepo,
-} from "@exam/db/src/repository/workerHeartbeatRepo.js";
+} from "@exam/db/repository/workerHeartbeatRepo";
 import type { EmailSender, Organization } from "@exam/domain";
 import { createEmailSender } from "../email/senders.js";
 import { EmailOutboxService } from "../email/outboxService.js";
 import { getRuntimeConfig } from "../config/runtimeConfig.js";
-import { migratePostgres } from "@exam/db/src/postgres.js";
+import { migratePostgres } from "@exam/db/postgres";
 import { randomUUID } from "node:crypto";
 import { hostname } from "node:os";
 import { resolve } from "node:path";
