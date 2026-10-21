@@ -67,6 +67,23 @@ export const RESOLUTION_FAILURE_CLASSIFICATIONS = Object.freeze([
   "MISSING_SOURCE",
 ]);
 
+/**
+ * INVARIANT: "testing" is spelled out alongside "test"/"tests" — the api
+ * harness directory is src/testing, and a bare tests?\/ alternation lets
+ * exactly that directory sail through (observed live before this fix).
+ *
+ * The single compiled-test-artifact grammar for BOTH dist auditors
+ * (scripts/check-production-resolution.mjs over workspace dist trees,
+ * scripts/check-deploy-payload.mjs over the deployed payload). It must be
+ * applied to the path RELATIVE TO ITS DIST ROOT, never to a bare basename —
+ * a compiled harness under dist/testing/ has a perfectly clean basename.
+ * Declared once here because the two oracles drifted exactly this way
+ * (#798 review round 2); the host oracle already matched relative paths
+ * while the payload copy matched basenames.
+ */
+export const TEST_ARTIFACT_PATTERN =
+  /__tests__|(^|\/)tests?(?:ing)?\/|\.test\.|\.spec\.|\.testHelpers\.|\.mock\./;
+
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const DEFAULT_PACKAGES_DIR = join(REPO_ROOT, "packages");
 
@@ -339,6 +356,72 @@ export function getWorkspaceResolutionTable() {
  *   { status: "error", classification, message }  — fail closed
  */
 export function matchWorkspaceSource(table, specifier) {
+  const parsed = parseWorkspaceExport(table, specifier);
+  if (parsed.status !== "matched") return parsed;
+  const { pkg, entry, capture } = parsed;
+  const relativeSource = entry.sourceTarget
+    .replace(/^\.\//, "")
+    .replace("*", capture);
+  const candidate = join(pkg.packageDir, relativeSource);
+  if (entry.negative) {
+    return {
+      status: "error",
+      classification: "MISSING_SOURCE",
+      message:
+        `${specifier}: MISSING_SOURCE — declared negative entry of ` +
+        `"@exam/${parsed.packageName}" (source ${relativeSource} is intentionally ` +
+        `absent; production loads ${entry.defaultTarget}, tests must fail ` +
+        `closed)`,
+    };
+  }
+  if (!existsSync(candidate)) {
+    return {
+      status: "error",
+      classification: "MISSING_SOURCE",
+      message:
+        `${specifier}: MISSING_SOURCE — exports key matches but source file ` +
+        `${relativeSource} does not exist (stale build? deleted or renamed ` +
+        `source?). Tests refuse to fall back to dist — rebuild the package.`,
+    };
+  }
+  return { status: "resolved", file: candidate };
+}
+
+/**
+ * Resolve a compiled `@exam/*` specifier to its PRODUCTION default-branch
+ * artifact — the file plain Node would load — without consulting the source
+ * tree. Consumers that audit built payloads (the deploy payload oracle)
+ * share this entry match instead of re-implementing it; source existence and
+ * negative entries are deliberately NOT checked here: a payload audit asks
+ * whether the built artifact exists where the payload should carry it.
+ * Returns one of:
+ *   { status: "unmanaged" }  — outside @exam/*
+ *   { status: "resolved", pkg, entry, capture, target } — target is absolute,
+ *     under the WORKSPACE package dir; payload-layout mapping is the caller's
+ *   { status: "error", classification, message }
+ */
+export function resolveProductionArtifact(table, specifier) {
+  const parsed = parseWorkspaceExport(table, specifier);
+  if (parsed.status !== "matched") return parsed;
+  const { packageName, pkg, entry, capture } = parsed;
+  const target = join(
+    pkg.packageDir,
+    entry.defaultTarget.replace(/^\.\//, "").replace("*", capture),
+  );
+  return {
+    status: "resolved",
+    pkg: `@exam/${packageName}`,
+    packageDir: pkg.packageDir,
+    entry,
+    capture,
+    target,
+  };
+}
+
+// Shared parse+match front half of the two resolvers above — the single
+// home of specifier grammar parity (trailing slash, captures, extensions)
+// and exports entry lookup. Never returns a load decision.
+function parseWorkspaceExport(table, specifier) {
   if (typeof specifier !== "string" || !specifier.startsWith("@exam/")) {
     return { status: "unmanaged" };
   }
@@ -440,32 +523,7 @@ export function matchWorkspaceSource(table, specifier) {
         )}" instead`,
     };
   }
-  const relativeSource = entry.sourceTarget
-    .replace(/^\.\//, "")
-    .replace("*", capture);
-  const candidate = join(entry.packageDir, relativeSource);
-  if (entry.negative) {
-    return {
-      status: "error",
-      classification: "MISSING_SOURCE",
-      message:
-        `${specifier}: MISSING_SOURCE — declared negative entry of ` +
-        `"@exam/${packageName}" (source ${relativeSource} is intentionally ` +
-        `absent; production loads ${entry.defaultTarget}, tests must fail ` +
-        `closed)`,
-    };
-  }
-  if (!existsSync(candidate)) {
-    return {
-      status: "error",
-      classification: "MISSING_SOURCE",
-      message:
-        `${specifier}: MISSING_SOURCE — exports key matches but source file ` +
-        `${relativeSource} does not exist (stale build? deleted or renamed ` +
-        `source?). Tests refuse to fall back to dist — rebuild the package.`,
-    };
-  }
-  return { status: "resolved", file: candidate };
+  return { status: "matched", packageName, pkg, entry, capture };
 }
 
 /**
