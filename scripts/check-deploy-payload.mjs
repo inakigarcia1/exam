@@ -328,7 +328,7 @@ if (!argon2Dir) {
 
 const ROOT_ALLOW =
   /^(dist|node_modules|data|package\.json|docker-entrypoint\.sh)$/;
-const ROOT_ALLOW_META = /^(README(\..+)?|LICENSE|LICENCE(\..+)?)$/;
+const ROOT_ALLOW_META = /^(README(\..+)?|LICENSE(\..+)?|LICENCE(\..+)?)$/;
 for (const e of readdirSync(PAYLOAD, { withFileTypes: true })) {
   if (ROOT_ALLOW.test(e.name) || ROOT_ALLOW_META.test(e.name)) continue;
   fail(
@@ -434,7 +434,11 @@ for (const phys of EXAM_PHYS_DIRS) {
 // set (package.json / README* / LICENSE*) stays unconditionally legitimate,
 // mirroring the root allowlist.
 
-const METADATA_ALLOW = /^(package\.json|README(\..+)?|LICENSE|LICENCE(\..+)?)$/;
+// Metadata extensions are admitted uniformly (LICENSE.md exactly like
+// LICENCE.md): the npm always-include set is extension-agnostic and a legit
+// metadata file must never read as a policy violation.
+const METADATA_ALLOW =
+  /^(package\.json|README(\..+)?|LICENSE(\..+)?|LICENCE(\..+)?)$/;
 
 // Supported `files` grammar: literal paths (a bare name admits the file or,
 // if a directory, everything beneath it), `*` within a segment, `**` across
