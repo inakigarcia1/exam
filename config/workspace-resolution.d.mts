@@ -73,3 +73,9 @@ export declare function resolveProductionArtifact(
   table: WorkspaceResolutionTable,
   specifier: string,
 ): ProductionArtifactMatch;
+/**
+ * The single compiled-test-artifact grammar shared by both dist auditors
+ * (check-production-resolution.mjs, check-deploy-payload.mjs); must be
+ * applied to the path relative to the audited dist root.
+ */
+export declare const TEST_ARTIFACT_PATTERN: RegExp;

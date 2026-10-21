@@ -67,9 +67,19 @@ approved runtime files. Neither field may be used to bypass the other.
   specifier→artifact mapping has one authority. It additionally asserts
   negative closure: no sources, tests, coverage, tool configs, `.env*`
   files, or dev toolchain packages anywhere in the payload.
+- Negative closure is allowlist-based, not only name-based: every file in an
+  `@exam/*` store copy must be admitted by that package's own `files` field,
+  read from the deployed manifest (the same declaration `pnpm deploy` packs
+  by, so the oracle audits the policy without duplicating it), plus the
+  unconditional packlist metadata set (`package.json` / `README*` /
+  `LICENSE*`). A package copy without a `files` field fails outright.
 
-Inside `dist` the only content rule is the shared "no compiled test
-artifacts" pattern; declared entrypoints that merely resemble test support
-(e.g. `@exam/db`'s exported `dist/testHelpers`) and the #794-pinned
-incremental state file (`dist/tsconfig.build.tsbuildinfo`) are legitimate
-dist content.
+Inside `dist` the content rules are the shared "no compiled test artifacts"
+pattern — applied to the path relative to the dist root (the grammar is
+declared once in `config/workspace-resolution.mjs` beside the resolution
+matcher; a compiled harness under `dist/testing/` has an innocent basename)
+— and "no TypeScript sources": dist is tsc emit, so only declarations
+(`.d.ts`) are legitimate `.ts`-family files. Declared entrypoints that
+merely resemble test support (e.g. `@exam/db`'s exported `dist/testHelpers`)
+and the #794-pinned incremental state file
+(`dist/tsconfig.build.tsbuildinfo`) are legitimate dist content.

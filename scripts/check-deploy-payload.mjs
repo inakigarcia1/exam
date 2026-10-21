@@ -23,12 +23,23 @@
 //   negative — the payload carries nothing else:
 //     7. payload root entries are allowlisted (dist, node_modules,
 //        package.json, packlist metadata, the image entrypoint script)
-//     8. no TypeScript sources, tests, coverage, tool configs (.turbo,
-//        vitest*, tsconfig*, drizzle.config*) or compiled test artifacts in
-//        the app root or any @exam/* package copy
-//     9. no .env* files anywhere in the payload (path check only — values
+//     8. every file in an @exam/* store copy is admitted by THAT package's
+//        own `files` deployment policy — read from the deployed manifest,
+//        the same field pnpm deploy honors, so the oracle can never drift
+//        from the policy it audits — plus unconditional packlist metadata
+//        (package.json / README* / LICENSE*). The name-based scans below
+//        catch known leak classes; this closes the gap for anything whose
+//        NAME merely looks innocent (review round 2: `private-data.json`
+//        sailed through a denylist-only copy).
+//     9. no TypeScript sources anywhere (inside dist only declarations are
+//        legitimate), no tests/coverage/tool configs, and no compiled test
+//        artifacts — dist matching uses the path BELOW THE DIST ROOT with
+//        the authority module's single TEST_ARTIFACT_PATTERN grammar, so a
+//        harness at dist/testing/ghost.js cannot hide behind a clean
+//        basename (the same drift the host oracle never had)
+//    10. no .env* files anywhere in the payload (path check only — values
 //        are never read)
-//    10. no dev toolchain packages (tsx, typescript, vitest, vite, esbuild,
+//    11. no dev toolchain packages (tsx, typescript, vitest, vite, esbuild,
 //        drizzle-kit, @types/*, msw) in the dependency store
 //
 // The specifier→artifact mapping is DERIVED from the same authority
@@ -329,25 +340,38 @@ for (const e of readdirSync(PAYLOAD, { withFileTypes: true })) {
 // Negative 8: sources, tests, tool configs — app root and every @exam copy.
 
 const TS_SOURCE = /\.(ts|tsx|mts|cts)$/;
-const TEST_ARTIFACT =
-  /__tests__|(^|\/)tests?(?:ing)?\/|\.test\.|\.spec\.|\.testHelpers\.|\.mock\./;
+// Single compiled-test-artifact grammar, declared in the resolution
+// authority and shared with scripts/check-production-resolution.mjs so the
+// two dist auditors cannot drift (they did, on basename vs relative-path
+// application — #798 review round 2).
+const TEST_ARTIFACT = authority.TEST_ARTIFACT_PATTERN;
 const TOOL_CONFIG = /^(\.turbo|coverage|vitest\.|tsconfig|drizzle\.config)/;
 
-// Inside dist the only extra content rule is "no compiled test artifacts" —
-// the same single pattern the host oracle (check-production-resolution.mjs)
+// Inside dist the content rules are exactly two:
+//   1. no compiled test artifacts — matched against the path RELATIVE TO
+//      THE DIST ROOT (the host oracle's application semantics), because a
+//      compiled harness under dist/testing/ has an innocent basename;
+//   2. no TypeScript sources — dist is tsc emit, so only declarations
+//      (.d.ts) are legitimate .ts-family files.
+// The same single pattern the host oracle (check-production-resolution.mjs)
 // enforces over workspace dist trees. Directory-name bans (src/, tests/,
 // coverage/) do not apply there: dist deliberately carries compiled
 // entrypoints like @exam/db's dist/testHelpers (a declared export) and the
 // #794-pinned incremental state file dist/tsconfig.build.tsbuildinfo.
-function scanDistFiles(label, dir) {
+function scanDistFiles(label, distRoot, dir) {
   for (const e of readdirSync(dir, { withFileTypes: true })) {
     const p = join(dir, e.name);
     if (e.isDirectory()) {
-      scanDistFiles(label, p);
+      scanDistFiles(label, distRoot, p);
       continue;
     }
-    if (TEST_ARTIFACT.test(e.name)) {
-      fail(`${label}: compiled test artifact in dist: ${e.name}`);
+    const rel = relative(distRoot, p).split(sep).join("/");
+    if (TEST_ARTIFACT.test(rel)) {
+      fail(`${label}: compiled test artifact in dist: ${rel}`);
+      continue;
+    }
+    if (TS_SOURCE.test(e.name) && !e.name.endsWith(".d.ts")) {
+      fail(`${label}: TypeScript source in dist: ${rel}`);
     }
   }
 }
@@ -361,7 +385,8 @@ function scanForbidden(label, dir) {
     // copies instead of the linked view, so never descend into node_modules.
     if (e.name === "node_modules") continue;
     if (e.name === "dist" && e.isDirectory()) {
-      scanDistFiles(label, join(dir, e.name));
+      const distDir = join(dir, e.name);
+      scanDistFiles(label, distDir, distDir);
       continue;
     }
     if (TOOL_CONFIG.test(e.name) && !/\.tsbuildinfo$/.test(e.name)) {
@@ -397,7 +422,104 @@ for (const phys of EXAM_PHYS_DIRS) {
 }
 
 // ---------------------------------------------------------------------------
-// Negative 9: env files anywhere in the payload (paths only, never content).
+// Negative 9: per-package `files` deployment policy over the store copies.
+//
+// The name-based scans above catch KNOWN leak classes; a denylist can never
+// be exhaustive (review round 2: an extra `private-data.json` in a package
+// copy matches none of its patterns). This check enforces the declared
+// contract itself: every file inside an @exam/* physical copy must be
+// admitted by that package's own `files` field, read from the DEPLOYED
+// manifest — the same declaration pnpm deploy packs by — so there is no
+// second, independently drifting mapping authority. The packlist metadata
+// set (package.json / README* / LICENSE*) stays unconditionally legitimate,
+// mirroring the root allowlist.
+
+const METADATA_ALLOW = /^(package\.json|README(\..+)?|LICENSE|LICENCE(\..+)?)$/;
+
+// Supported `files` grammar: literal paths (a bare name admits the file or,
+// if a directory, everything beneath it), `*` within a segment, `**` across
+// segments, `?` for one character, `!` negation with last-match-wins
+// ordering. All production manifests declare bare directories today; the
+// glob forms exist so a future policy is enforced, not guessed at.
+function filesPatternToRegExp(rawPattern) {
+  const pattern = rawPattern.replace(/^\.\//, "").replace(/\/+$/, "");
+  let re = "";
+  let i = 0;
+  while (i < pattern.length) {
+    if (pattern[i] === "*" && pattern[i + 1] === "*") {
+      if (pattern[i + 2] === "/") {
+        re += "(?:[^/]+/)*";
+        i += 3;
+      } else {
+        re += ".*";
+        i += 2;
+      }
+    } else if (pattern[i] === "*") {
+      re += "[^/]*";
+      i += 1;
+    } else if (pattern[i] === "?") {
+      re += "[^/]";
+      i += 1;
+    } else {
+      re += pattern[i].replace(/[\\^$.+()|[\]{}]/g, "\\$&");
+      i += 1;
+    }
+  }
+  return new RegExp(`^${re}$`);
+}
+
+function matchFilesPattern(rawPattern, rel) {
+  const negated = rawPattern.startsWith("!");
+  const clean = (negated ? rawPattern.slice(1) : rawPattern)
+    .replace(/^\.\//, "")
+    .replace(/\/+$/, "");
+  const hit = /[*?]/.test(clean)
+    ? filesPatternToRegExp(clean).test(rel)
+    : rel === clean || rel.startsWith(`${clean}/`);
+  if (!hit) return null;
+  return negated ? "excluded" : "included";
+}
+
+function admitsPolicyPath(patterns, rel) {
+  let verdict = null;
+  for (const p of patterns) {
+    const v = matchFilesPattern(p, rel);
+    if (v !== null) verdict = v; // last matching pattern wins (npm order)
+  }
+  return verdict === "included";
+}
+
+for (const phys of EXAM_PHYS_DIRS) {
+  const label = relative(PAYLOAD, phys).split(sep).join("/");
+  const manifestFile = join(phys, "package.json");
+  const rawFiles = existsSync(manifestFile)
+    ? JSON.parse(readFileSync(manifestFile, "utf8")).files
+    : undefined;
+  const policy =
+    typeof rawFiles === "string"
+      ? [rawFiles]
+      : Array.isArray(rawFiles)
+        ? rawFiles
+        : null;
+  if (policy === null) {
+    fail(
+      `${label}: deployed copy declares no files deployment policy — ` +
+        `every @exam/* runtime package must pin its payload contract`,
+    );
+    continue;
+  }
+  walkFiles(phys, (f) => {
+    const rel = relative(phys, f).split(sep).join("/");
+    if (METADATA_ALLOW.test(rel)) return;
+    if (admitsPolicyPath(policy, rel)) return;
+    fail(
+      `${label}: file outside the declared files policy [${policy.join(", ")}]: ${rel}`,
+    );
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Negative 10: env files anywhere in the payload (paths only, never content).
 
 walkFiles(PAYLOAD, (f) => {
   const base = f.split(sep).pop();
@@ -407,7 +529,7 @@ walkFiles(PAYLOAD, (f) => {
 });
 
 // ---------------------------------------------------------------------------
-// Negative 10: dev toolchain packages in the dependency store.
+// Negative 11: dev toolchain packages in the dependency store.
 
 const DEV_TOOL_STORE =
   /^(tsx|typescript|vitest|vite|esbuild|drizzle-kit|msw)(@|$)|^@types\+|^@vitest\+/;

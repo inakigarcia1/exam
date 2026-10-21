@@ -278,11 +278,10 @@ if (negativeChild.status !== 0) {
 //   - no orphans (every emitted .js/.d.ts has a live src twin — deleted or
 //     renamed sources can no longer keep speaking as public API)
 
-// INVARIANT: "testing" is spelled out alongside "test"/"tests" — the api
-// harness directory is src/testing, and a bare tests?\/ alternation lets
-// exactly that directory sail through (observed live before this fix).
-const TEST_ARTIFACT_PATTERN =
-  /__tests__|(^|\/)tests?(?:ing)?\/|\.test\.|\.spec\.|\.testHelpers\.|\.mock\./;
+// The compiled-test-artifact grammar is the authority module's single
+// declaration (INVARIANT lives with the pattern): both dist auditors share
+// it so they cannot drift apart again (#798 review round 2).
+const TEST_ARTIFACT_PATTERN = authority.TEST_ARTIFACT_PATTERN;
 
 function assertArtifactHygiene(label, srcDir, distDir, skipMissing) {
   if (!existsSync(distDir)) {

@@ -67,6 +67,23 @@ export const RESOLUTION_FAILURE_CLASSIFICATIONS = Object.freeze([
   "MISSING_SOURCE",
 ]);
 
+/**
+ * INVARIANT: "testing" is spelled out alongside "test"/"tests" — the api
+ * harness directory is src/testing, and a bare tests?\/ alternation lets
+ * exactly that directory sail through (observed live before this fix).
+ *
+ * The single compiled-test-artifact grammar for BOTH dist auditors
+ * (scripts/check-production-resolution.mjs over workspace dist trees,
+ * scripts/check-deploy-payload.mjs over the deployed payload). It must be
+ * applied to the path RELATIVE TO ITS DIST ROOT, never to a bare basename —
+ * a compiled harness under dist/testing/ has a perfectly clean basename.
+ * Declared once here because the two oracles drifted exactly this way
+ * (#798 review round 2); the host oracle already matched relative paths
+ * while the payload copy matched basenames.
+ */
+export const TEST_ARTIFACT_PATTERN =
+  /__tests__|(^|\/)tests?(?:ing)?\/|\.test\.|\.spec\.|\.testHelpers\.|\.mock\./;
+
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const DEFAULT_PACKAGES_DIR = join(REPO_ROOT, "packages");
 
