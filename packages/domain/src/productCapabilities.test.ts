@@ -53,7 +53,11 @@ describe("ADR-022 Phase 1 — Standard product resolver", () => {
   });
 
   it("rejects unknown and future capabilities", () => {
-    const futureNames = ["admission.federated", "proctor.camera", "delivery.offline"];
+    const futureNames = [
+      "admission.federated",
+      "proctor.camera",
+      "delivery.offline",
+    ];
     for (const invalid of futureNames) {
       expect(() =>
         resolveDeploymentProductConfiguration({
