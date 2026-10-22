@@ -89,10 +89,7 @@ describe("ADR-022 Phase 1 — Standard product resolver", () => {
     expect(() =>
       resolveDeploymentProductConfiguration({
         ...STANDARD_PRODUCT_CONFIGURATION,
-        enabled: [
-          ...SUPPORTED_PRODUCT_CAPABILITIES,
-          "question.single_choice",
-        ],
+        enabled: [...SUPPORTED_PRODUCT_CAPABILITIES, "question.single_choice"],
       }),
     ).toThrow("Duplicate");
     expect(() => resolveDeploymentProductConfiguration(null)).toThrow();
