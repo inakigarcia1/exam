@@ -15,7 +15,7 @@
 
 | Requirement | Version | Notes |
 | --- | --- | --- |
-| Node.js | 24.15.x | `nvm use 24.15` or equivalent |
+| Node.js | 24.22.x | `nvm use 24.22` or equivalent |
 | pnpm | 11.x | `corepack enable && corepack prepare pnpm@11.1.2 --activate` |
 | Docker | ≥ 25.x | For PostgreSQL via `pnpm db:up` |
 | Docker Compose | v2 | Included with Docker Desktop |

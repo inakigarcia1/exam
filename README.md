@@ -125,7 +125,7 @@ Historical material — plans, audits, and phase history — lives under
 | Layer | Tech |
 | --- | --- |
 | Frontend | React 19 + Vite + TypeScript + shadcn/ui + TailwindCSS v4 |
-| Backend | Node.js 24.15 + Fastify + TypeScript + Zod validation |
+| Backend | Node.js 24.22 + Fastify + TypeScript + Zod validation |
 | Database | PostgreSQL 18.4 via Drizzle ORM |
 | Cache | Redis 7 — optional, shared rate limiting |
 | Auth | HTTP-only cookie + JWT, argon2 password hashing |

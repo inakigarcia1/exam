@@ -105,7 +105,7 @@ pnpm dev             # API :3000，Web :5173
 | 层 | 技术 |
 | --- | --- |
 | 前端 | React 19 + Vite + TypeScript + shadcn/ui + TailwindCSS v4 |
-| 后端 | Node.js 24.15 + Fastify + TypeScript + Zod 校验 |
+| 后端 | Node.js 24.22 + Fastify + TypeScript + Zod 校验 |
 | 数据库 | PostgreSQL 18.4 + Drizzle ORM |
 | 缓存 | Redis 7 — 可选，用于共享限流 |
 | 认证 | HTTP-only Cookie + JWT，argon2 密码哈希 |
