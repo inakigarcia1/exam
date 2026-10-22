@@ -11,7 +11,7 @@
 | --- | --- | --- |
 | Docker Engine | ≥ 25.x | Linux 主机或 Docker Desktop |
 | Docker Compose | v2 | Docker Desktop 已包含 |
-| Node.js | 24.15.x | 仅用于运行 `init-production-env.mjs` |
+| Node.js | 24.22.x | 仅用于运行 `init-production-env.mjs` |
 
 平台面向 **LAN / on-premise（本地部署）的单实例部署**。Windows 和 macOS 可通过 Docker Desktop 用于评估；生产环境推荐 Linux。
 

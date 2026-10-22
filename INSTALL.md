@@ -13,7 +13,7 @@ documentation.
 | --- | --- | --- |
 | Docker Engine | ≥ 25.x | Linux host or Docker Desktop |
 | Docker Compose | v2 | Included with Docker Desktop |
-| Node.js | 24.15.x | Only needed for `init-production-env.mjs` |
+| Node.js | 24.22.x | Only needed for `init-production-env.mjs` |
 
 The platform is designed for **LAN/on-premise single-instance**
 deployment. Windows and macOS via Docker Desktop are acceptable for

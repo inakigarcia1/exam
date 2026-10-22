@@ -12,7 +12,7 @@
 
 | 要求 | 版本 | 说明 |
 | --- | --- | --- |
-| Node.js | 24.15.x | `nvm use 24.15` 或等价方式 |
+| Node.js | 24.22.x | `nvm use 24.22` 或等价方式 |
 | pnpm | 11.x | `corepack enable && corepack prepare pnpm@11.1.2 --activate` |
 | Docker | ≥ 25.x | `pnpm db:up` 会通过 Docker 启动 PostgreSQL |
 | Docker Compose | v2 | Docker Desktop 已包含 |
