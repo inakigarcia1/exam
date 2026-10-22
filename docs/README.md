@@ -122,9 +122,20 @@ representability, and stored reserved values cannot silently redefine it.
 | [`adr/README.md`](adr/README.md) | ADR index — status, supersession, numbering |
 | [`adr/ADR-001-redis.md`](adr/ADR-001-redis.md) … [`ADR-022-product-capability-composition.md`](adr/ADR-022-product-capability-composition.md) | Formal architecture decisions |
 
-Adopted design not yet implemented: [`architecture/product-capability-composition.md`](architecture/product-capability-composition.md)
-— adopted by [ADR-022](adr/ADR-022-product-capability-composition.md), zero
-implementation at master, tracked by [#678](https://github.com/jnhu76/exam/issues/678).
+Product capability composition: [`architecture/product-capability-composition.md`](architecture/product-capability-composition.md)
+— adopted by [ADR-022](adr/ADR-022-product-capability-composition.md), tracked by
+[#678](https://github.com/jnhu76/exam/issues/678).
+
+- Phase 1 (implemented): closed Standard catalog, pure fail-closed resolver,
+  single server composition root, and read-only projection through
+  `GET /api/system/public-config`.
+- Phase 2 (not implemented): authoritative server-side write guards.
+- Phase 3 (not implemented): Minimal runtime.
+- Phase 4 (not implemented): persisted deployment configuration with
+  revision/CAS.
+
+The projection is deployment availability only; it does not grant actor
+Permissions, change exam policy, or revoke accepted obligations.
 
 Key recovery authority:
 

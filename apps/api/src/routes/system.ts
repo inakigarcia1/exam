@@ -15,6 +15,7 @@ import {
   RetentionReadinessResponseSchema,
   OpsPolicyResponseSchema,
   UpsertOpsPolicyRequestSchema,
+  PublicConfigResponseSchema,
   type ComplianceStatus,
 } from "@exam/contracts";
 import { executeInTransaction } from "@exam/db/types";
@@ -41,6 +42,7 @@ import { heartbeatMetrics } from "../plugins/heartbeat.js";
 import { deadlineScannerMetrics } from "../plugins/deadlineScanner.js";
 import { classifyLoopStall } from "../plugins/operabilityMonitor.js";
 import { Permission } from "@exam/authz";
+import { getProductCapabilityProjection } from "../product/compositionRoot.js";
 
 /** OpenAPI security definition for cookie-based authentication. */
 const cookieAuth = [{ cookieAuth: [] }] as const;
@@ -199,20 +201,6 @@ const systemInfoResponseSchema = z.object({
 });
 
 /**
- * Zod schema for the `GET /system/public-config` response.
- * Exposes non-sensitive deployment configuration to unauthenticated clients.
- */
-const publicConfigResponseSchema = z.object({
-  deploymentMode: z.string(),
-  features: z.object({ apiReference: z.boolean() }),
-  apiReference: z.object({
-    enabled: z.boolean(),
-    uiPath: z.string(),
-    specPath: z.string(),
-  }),
-});
-
-/**
  * Returns the aggregate CPU usage percentage across all cores as a
  * number between 0 and 100.
  *
@@ -277,17 +265,26 @@ const systemRoutes: FastifyPluginAsync = async (fastify) => {
    * GET /system/public-config
    *
    * Returns non-sensitive deployment configuration (mode, feature flags,
-   * API reference paths). Unauthenticated — safe for pre-login pages.
+   * API reference paths, and the deployment product capability projection).
+   * Unauthenticated — safe for pre-login pages.
+   *
+   * The product block is read from the single server composition root. This
+   * route MUST NOT rebuild or re-declare a capability list: the projection is
+   * deployment availability, not actor permission, exam policy, attempt state
+   * or an existing obligation.
    */
   fastify.get(
     "/system/public-config",
     {
       schema: {
-        response: { 200: publicConfigResponseSchema },
+        response: { 200: PublicConfigResponseSchema },
       },
     },
     async () => {
-      return buildPublicConfig();
+      return {
+        ...buildPublicConfig(),
+        product: getProductCapabilityProjection(),
+      };
     },
   );
 

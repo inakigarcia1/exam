@@ -1,10 +1,15 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
-import type { AttemptStatus, QuestionSnapshot } from "@exam/domain";
+import {
+  SUPPORTED_PRODUCT_CAPABILITIES,
+  type AttemptStatus,
+  type QuestionSnapshot,
+} from "@exam/domain";
 import type { TestContext } from "./testHelpers.js";
 import { buildTestApp } from "./testHelpers.js";
 import systemRoutes from "./system.js";
 import { resetRuntimeConfigForTest } from "../config/runtimeConfig.js";
+import { getProductCapabilityProjection } from "../product/compositionRoot.js";
 import { emailOutbox, workerHeartbeats, schema } from "@exam/db/schema/pg";
 import { eq, inArray } from "drizzle-orm";
 import { BOOTSTRAP_PENDING_MESSAGE } from "../workers/emailDeliveryWorker.js";
@@ -173,6 +178,43 @@ describe("system routes", () => {
       expect(body).toHaveProperty("apiReference");
       expect(body.apiReference).toHaveProperty("uiPath");
       expect(body.apiReference).toHaveProperty("specPath");
+    });
+
+    it("returns the canonical Standard product projection without authentication", async () => {
+      const res = await ctx.app.inject({
+        method: "GET",
+        url: "/api/system/public-config",
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = res.json();
+      // Equality with the composition root proves the route does not rebuild
+      // a second capability list.
+      expect(body.product).toEqual(getProductCapabilityProjection());
+      expect(body.product).toEqual({
+        revision: 1,
+        presentation: "standard",
+        enabled: [...SUPPORTED_PRODUCT_CAPABILITIES],
+      });
+      expect(Object.keys(body.product).sort()).toEqual([
+        "enabled",
+        "presentation",
+        "revision",
+      ]);
+    });
+
+    it("does not expose actor permission, exam policy or obligation state in the projection", async () => {
+      const res = await ctx.app.inject({
+        method: "GET",
+        url: "/api/system/public-config",
+      });
+
+      expect(res.statusCode).toBe(200);
+      const product = res.json().product;
+      expect(product).not.toHaveProperty("permissions");
+      expect(product).not.toHaveProperty("requireQueue");
+      expect(product).not.toHaveProperty("attemptStatus");
+      expect(product).not.toHaveProperty("pendingManual");
     });
 
     it("does not expose SuperAdmin / tenant switcher / multiTenant fields", async () => {

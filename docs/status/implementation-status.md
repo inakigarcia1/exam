@@ -240,6 +240,40 @@ notification onto the now-stable result-publication transaction (P5-N1).
   closed not planned / superseded; normal-submit correctness is owned by the
   pre-submit flush plus the server-side locked submit/freeze path.
 
+## Product capability composition (#678 / ADR-022): 🟡 PHASE 1 IMPLEMENTED
+
+Phase 1 is implemented: the closed Standard catalog and pure fail-closed
+resolver in `packages/domain/src/productCapabilities.ts`, one server
+composition root in `apps/api/src/product/compositionRoot.ts`, and the
+read-only projection on the public `GET /api/system/public-config` response
+(`PublicConfigResponseSchema` in `packages/contracts/src/system.ts`). Phase 2
+authoritative write guards, Phase 3 Minimal runtime and Phase 4 persisted
+configuration/CAS are **not implemented**.
+
+`enabled` means the deployment may make a **new** commitment. It does not
+grant actor Permissions, enable a per-exam policy, or prove that an obligation
+exists (pending manual grading, recovery, incidents, historical Rich content).
+
+| Capability | Canonical owner | Current support / verification | Future boundary |
+| --- | --- | --- | --- |
+| `question.single_choice` | `QuestionType.SingleChoice` (`packages/domain/src/enums.ts`); wire enum in `QuestionSchema` | Implemented; exact-match `gradeQuestion`; catalog oracle | — |
+| `question.multiple_choice` | `QuestionType.MultipleChoice`; `gradeQuestion` set comparison | Implemented; partial-scoring rule; catalog oracle | — |
+| `question.true_false` | `QuestionType.TrueFalse`; `gradeQuestion` exact match | Implemented; catalog oracle | — |
+| `question.fill_blank` | `QuestionType.FillBlank`; string matcher | Implemented; Plain-only, rich prompt rejected by `CreateQuestionRequestSchema`; catalog oracle | Structured fill_blank is a separate future issue |
+| `question.text_response` | `QuestionType.TextResponse`; manual workset | Implemented; `isManualGradedQuestion` / `requiresManualGrading` oracle | Manual completion is intrinsic to this type, not separately disableable |
+| `content.prompt.rich` | `Question.contentDocument` / `QuestionSnapshot.contentDocument` | Implemented; `classifyPersistedQuestionContent`; rich create-contract oracle | Math/Table/Code are content facets, not new types |
+| `content.option.rich` | `Option.contentDocument` / `OptionSnapshot.contentDocument` | Implemented; rich option write rule; rich create-contract oracle | Same |
+| `answer.text.rich` | `answerMode="rich"` for `text_response`; `validateAnswerForQuestion` | Implemented; `classifyPersistedRichAnswer`; answerMode contract oracle | Historical Rich answers remain readable if the capability is disabled |
+| `grading.manual` | `isManualGradedQuestion` / `requiresManualGrading`; manual queue/completion | Implemented; predicate oracle | Structured rubric / multi-grader are separate capabilities |
+| `admission.account` | Auth + Candidate Profile + Enrollment; `examEligibilityCapability` | Implemented; existing eligibility route tests | Roster/federation is #645 |
+| `admission.queue` | Durable admission queue; per-exam `controlFlags.requireQueue` (`attempts.candidate.ts`) | Implemented; existing admission durability tests | Deployment capability does not force a queue |
+| `result.publication` | `publishResults`, `candidateResultVisibility`, publication mode (`scores.ts`) | Implemented; existing publication/visibility tests | External result delivery is #645 |
+| `operator.monitoring` | Proctor monitoring routes gated by `Permission.ExamRoomView`; incident/recovery surfaces | Implemented; existing proctor/monitoring tests | Camera/AI proctoring is not supported |
+
+The catalog-to-production drift oracles live in
+`apps/api/src/product/capabilityEvidence.test.ts`; the HTTP projection is
+locked by `apps/api/src/routes/system.test.ts`.
+
 ## Phase 4 — Platformization and Integration: ⬜ NOT STARTED
 
 Pass-to-proceed API, service tokens / API keys, webhooks, optional multiTenant,
