@@ -7,7 +7,7 @@ import {
 } from "./productCapabilities.js";
 
 describe("ADR-022 Phase 1 — Standard product resolver", () => {
-  it("has exactly the shipped Standard families, with no future promises", () => {
+  it("enumerates the current Standard catalog without future promises", () => {
     expect(SUPPORTED_PRODUCT_CAPABILITIES).toEqual([
       "question.single_choice",
       "question.multiple_choice",
@@ -28,7 +28,7 @@ describe("ADR-022 Phase 1 — Standard product resolver", () => {
     expect(SUPPORTED_PRODUCT_CAPABILITIES).not.toContain("delivery.offline");
   });
 
-  it("preserves all current Standard capabilities and Plain subjective/manual grading", () => {
+  it("preserves Standard and Plain subjective/manual grading", () => {
     const resolved = resolveDeploymentProductConfiguration(
       STANDARD_PRODUCT_CONFIGURATION,
     );
@@ -38,7 +38,8 @@ describe("ADR-022 Phase 1 — Standard product resolver", () => {
     for (const capability of SUPPORTED_PRODUCT_CAPABILITIES) {
       expect(resolved.allows(capability)).toBe(true);
     }
-    expect(resolved.allows("proctor.camera" as ProductCapabilityId)).toBe(false);
+    const future = "proctor.camera" as ProductCapabilityId;
+    expect(resolved.allows(future)).toBe(false);
     expect(resolved.allows("question.text_response")).toBe(true);
     expect(resolved.allows("grading.manual")).toBe(true);
   });
@@ -51,8 +52,9 @@ describe("ADR-022 Phase 1 — Standard product resolver", () => {
     expect(reordered.enabled).toEqual(SUPPORTED_PRODUCT_CAPABILITIES);
   });
 
-  it("refuses unknown/reserved capabilities rather than intersecting silently", () => {
-    for (const invalid of ["admission.federated", "proctor.camera", "delivery.offline"]) {
+  it("rejects unknown and future capabilities", () => {
+    const futureNames = ["admission.federated", "proctor.camera", "delivery.offline"];
+    for (const invalid of futureNames) {
       expect(() =>
         resolveDeploymentProductConfiguration({
           ...STANDARD_PRODUCT_CONFIGURATION,
@@ -62,7 +64,7 @@ describe("ADR-022 Phase 1 — Standard product resolver", () => {
     }
   });
 
-  it("refuses partial disablement before Phase 2 authoritative guards exist", () => {
+  it("rejects partial configuration before guarded writes exist", () => {
     expect(() =>
       resolveDeploymentProductConfiguration({
         ...STANDARD_PRODUCT_CONFIGURATION,
@@ -99,7 +101,7 @@ describe("ADR-022 Phase 1 — Standard product resolver", () => {
     ).toThrow();
   });
 
-  it("keeps non-shipped presets, config revisions and unexpected fields closed", () => {
+  it("rejects unshipped presets, revisions and unknown fields", () => {
     for (const rejected of [
       { ...STANDARD_PRODUCT_CONFIGURATION, preset: "minimal" },
       { ...STANDARD_PRODUCT_CONFIGURATION, preset: "simple" },
@@ -111,7 +113,7 @@ describe("ADR-022 Phase 1 — Standard product resolver", () => {
     }
   });
 
-  it("does not expose writable configuration through the resolved result", () => {
+  it("returns immutable resolved configuration", () => {
     const resolved = resolveDeploymentProductConfiguration(
       STANDARD_PRODUCT_CONFIGURATION,
     );

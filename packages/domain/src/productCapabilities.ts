@@ -53,12 +53,7 @@ export const STANDARD_PRODUCT_CONFIGURATION = Object.freeze({
 } as const satisfies DeploymentProductConfiguration);
 
 const supported = new Set<string>(SUPPORTED_PRODUCT_CAPABILITIES);
-const configFields = new Set([
-  "preset",
-  "revision",
-  "presentation",
-  "enabled",
-]);
+const configFields = new Set(["preset", "revision", "presentation", "enabled"]);
 
 /**
  * Pure, deterministic, fail-closed resolver. It intentionally DOES NOT accept
