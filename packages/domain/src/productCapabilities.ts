@@ -29,19 +29,38 @@ export type ProductCapabilityId =
  * Phase 1 deliberately admits only the shipped Standard configuration.
  * Minimal is an ACCEPTED design preset, not a selectable runtime until
  * Phase 2's server write guards and Phase 3's UI/obligation proof exist.
+ *
+ * Every field is a closed literal so an internal TypeScript caller cannot
+ * construct a configuration the resolver would reject. External input stays
+ * `unknown` at the resolver boundary because JSON/config/deployment sources
+ * are not type-checked.
  */
-export interface DeploymentProductConfiguration {
-  readonly preset: string;
-  readonly revision: number;
-  readonly presentation: string;
-  readonly enabled: readonly string[];
-}
+export type DeploymentProductConfiguration = Readonly<{
+  preset: "standard";
+  revision: 1;
+  presentation: "standard";
+  enabled: readonly ProductCapabilityId[];
+}>;
 
 export interface ResolvedProductConfiguration {
+  /**
+   * Catalog/configuration FORMAT revision for the Phase 1 static Standard
+   * configuration. It is NOT a deployment-configuration state revision and
+   * MUST NOT be used as an optimistic-concurrency token; Phase 4 introduces
+   * transactional revisions when persisted configuration writes exist.
+   */
   readonly revision: 1;
   readonly presentation: "standard";
   readonly enabled: readonly ProductCapabilityId[];
-  /** Product availability only. Callers STILL need actor scope and policy. */
+  /**
+   * Product availability only: may this deployment make a NEW product
+   * commitment? `true` does NOT mean the actor has Permission, the current
+   * exam enabled the capability (for example `admission.queue` still depends
+   * on the frozen per-exam `requireQueue` policy), or an existing obligation
+   * (pending manual grading, historical Rich content, recovery/incident
+   * work) is present. Callers MUST still resolve actor scope, policy and
+   * lifecycle facts through their existing authorities.
+   */
   allows(capability: ProductCapabilityId): boolean;
 }
 

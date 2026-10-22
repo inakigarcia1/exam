@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  SUPPORTED_PRODUCT_CAPABILITIES,
+  type ProductCapabilityId,
+} from "@exam/domain";
 
 // ── System Health ────────────────────────────────────────────────
 
@@ -497,3 +501,77 @@ export const OpsPolicyResponseSchema = z.object({
 
 /** Type for the ops-policy response. */
 export type OpsPolicyResponse = z.infer<typeof OpsPolicyResponseSchema>;
+
+// ── Public deployment configuration ──────────────────────────────
+
+/**
+ * Closed deployment product capability vocabulary (ADR-022 / #678 Phase 1).
+ *
+ * Built from the domain catalog, never from a second list: the enum and
+ * {@link ProductCapabilityId} are asserted to be the same union below.
+ */
+export const ProductCapabilityIdSchema = z.enum(SUPPORTED_PRODUCT_CAPABILITIES);
+
+type AssertExact<A, B> = [A] extends [B]
+  ? [B] extends [A]
+    ? true
+    : false
+  : false;
+const _productCapabilityIdentity: AssertExact<
+  z.infer<typeof ProductCapabilityIdSchema>,
+  ProductCapabilityId
+> = true;
+void _productCapabilityIdentity;
+
+/**
+ * Read-only projection of the deployment's resolved product configuration.
+ *
+ * `enabled` answers only "may this deployment make a NEW commitment of this
+ * capability?". It is NOT:
+ * - actor authorization (Permissions and resource scope are separate);
+ * - current exam policy (`admission.queue` still depends on the frozen
+ *   per-exam `requireQueue`; `result.publication` still depends on the
+ *   exam's publication mode and result readiness);
+ * - an existing obligation (`grading.manual` does not mean an attempt has
+ *   pending manual work, and `operator.monitoring` does not mean continuous
+ *   monitoring or an incident exists);
+ * - a downgrade signal: accepted obligations and historical Rich content
+ *   remain readable/fulfillable regardless of this projection.
+ *
+ * UI consumers MUST NOT use this projection to hide correctness work
+ * (pending manual grading, recovery, incidents) or historical Rich data.
+ *
+ * `revision` is the catalog/configuration FORMAT revision, not a
+ * deployment-configuration state revision or CAS token. Phase 4 introduces
+ * transactional revisions with persisted configuration writes.
+ */
+export const ProductCapabilityProjectionSchema = z.object({
+  revision: z.literal(1),
+  presentation: z.literal("standard"),
+  enabled: z.array(ProductCapabilityIdSchema),
+});
+
+/** Type for the deployment product capability projection. */
+export type ProductCapabilityProjection = z.infer<
+  typeof ProductCapabilityProjectionSchema
+>;
+
+/**
+ * Schema for `GET /system/public-config`. Unauthenticated and non-sensitive:
+ * deployment mode, API-reference feature paths, and the deployment-level
+ * product capability projection. It carries no actor, exam, attempt, or
+ * secret data.
+ */
+export const PublicConfigResponseSchema = z.object({
+  deploymentMode: z.string(),
+  features: z.object({ apiReference: z.boolean() }),
+  apiReference: z.object({
+    enabled: z.boolean(),
+    uiPath: z.string(),
+    specPath: z.string(),
+  }),
+  product: ProductCapabilityProjectionSchema,
+});
+
+/** Type for the public-config response. */
+export type PublicConfigResponse = z.infer<typeof PublicConfigResponseSchema>;

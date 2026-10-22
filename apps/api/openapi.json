@@ -37911,9 +37911,50 @@
                       },
                       "required": ["enabled", "uiPath", "specPath"],
                       "additionalProperties": false
+                    },
+                    "product": {
+                      "type": "object",
+                      "properties": {
+                        "revision": {
+                          "type": "number",
+                          "enum": [1]
+                        },
+                        "presentation": {
+                          "type": "string",
+                          "enum": ["standard"]
+                        },
+                        "enabled": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "question.single_choice",
+                              "question.multiple_choice",
+                              "question.true_false",
+                              "question.fill_blank",
+                              "question.text_response",
+                              "content.prompt.rich",
+                              "content.option.rich",
+                              "answer.text.rich",
+                              "grading.manual",
+                              "admission.account",
+                              "admission.queue",
+                              "result.publication",
+                              "operator.monitoring"
+                            ]
+                          }
+                        }
+                      },
+                      "required": ["revision", "presentation", "enabled"],
+                      "additionalProperties": false
                     }
                   },
-                  "required": ["deploymentMode", "features", "apiReference"],
+                  "required": [
+                    "deploymentMode",
+                    "features",
+                    "apiReference",
+                    "product"
+                  ],
                   "additionalProperties": false
                 }
               }

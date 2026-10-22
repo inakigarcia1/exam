@@ -3,7 +3,6 @@ import {
   SUPPORTED_PRODUCT_CAPABILITIES,
   STANDARD_PRODUCT_CONFIGURATION,
   resolveDeploymentProductConfiguration,
-  type ProductCapabilityId,
 } from "./productCapabilities.js";
 
 describe("ADR-022 Phase 1 — Standard product resolver", () => {
@@ -38,8 +37,8 @@ describe("ADR-022 Phase 1 — Standard product resolver", () => {
     for (const capability of SUPPORTED_PRODUCT_CAPABILITIES) {
       expect(resolved.allows(capability)).toBe(true);
     }
-    const future = "proctor.camera" as ProductCapabilityId;
-    expect(resolved.allows(future)).toBe(false);
+    // Unknown/future names never enter the typed allows() seam. Rejection is
+    // proven through the resolver's `unknown` boundary below.
     expect(resolved.allows("question.text_response")).toBe(true);
     expect(resolved.allows("grading.manual")).toBe(true);
   });

@@ -8,6 +8,12 @@ import {
  *
  * One validated Standard instance for the entire process; no deployment
  * overrides or runtime disabling until Phase 2's authoritative write guards.
+ *
+ * The module-level resolution is the startup fail-closed gate: importing this
+ * module (the public-config route does) validates the catalog before the
+ * process can serve requests. There is no second capability definition and no
+ * runtime branch on the preset name.
+ *
  * Product availability is not actor authorization, and does not interpret
  * ExamPolicyProfile or persisted Exam/Attempt/Result facts.
  */
@@ -21,8 +27,13 @@ export function getResolvedProductConfiguration() {
 
 /**
  * Candidate/Admin-safe read projection, intentionally free of permissions,
- * secrets, dynamic host settings and per-Exam policy. A read adapter may
- * expose it later without creating another capability definition.
+ * secrets, dynamic host settings and per-Exam policy.
+ *
+ * Consumed by `GET /system/public-config`. `enabled` means the deployment may
+ * make a NEW commitment; it says nothing about the current actor, exam policy,
+ * attempt state, or existing obligations (pending manual grading, recovery,
+ * incidents, historical Rich content). `revision` is a catalog/format
+ * revision, not a CAS token.
  */
 export function getProductCapabilityProjection() {
   return {
