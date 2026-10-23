@@ -47,6 +47,22 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
 
+      - name: Resolve Playwright version from package manifest
+        id: playwright_version
+        # The build already gates both E2E jobs. Reuse it rather than adding
+        # a version-lookup job, extra install, or a second hardcoded pin.
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const pkg = JSON.parse(fs.readFileSync('apps/e2e/package.json', 'utf8'));
+          const version = pkg.devDependencies?.['@playwright/test'];
+          if (typeof version !== 'string' || !/^\\d+\\.\\d+\\.\\d+$/.test(version)) {
+            throw new Error('E2E requires an exact semver @playwright/test dependency');
+          }
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\n`);
+          console.log(`Playwright image version: ${version} (apps/e2e/package.json)`);
+          NODE
+
       - name: Restore Turbo cache
         uses: actions/cache@v5
         with:
@@ -67,6 +83,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: static
+    outputs:
+      # A single version authority: apps/e2e/package.json -> downstream image.
+      playwright_version: ${{ steps.playwright_version.outputs.version }}
 
     steps:
       - name: Checkout
@@ -286,11 +305,10 @@ jobs:
   e2e:
     name: E2E (shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
     runs-on: ubuntu-latest
-    # Playwright's pinned image already contains Chromium and Linux system
-    # libraries; a runner-local apt mirror must not dominate E2E time.
-    # Keep this in lockstep with apps/e2e/package.json (@playwright/test).
+    # The image tag is derived by verify-build from apps/e2e/package.json;
+    # Chromium and OS libraries are already present, no apt/browser installs.
     container:
-      image: mcr.microsoft.com/playwright:v1.61.0-noble
+      image: mcr.microsoft.com/playwright:v${{ needs.verify-build.outputs.playwright_version }}-noble
       options: --ipc=host
     timeout-minutes: 20
     needs: verify-build
@@ -361,11 +379,19 @@ jobs:
           path: .
 
       - name: Verify Playwright browser runtime
-        # Fail closed if the image tag or its browser payload drifts.
+        # The lockfile install and image must agree with the same manifest.
+        # Prove the executable is present rather than downloading it on demand.
         run: |
-          test "$(node -p "require('./apps/e2e/node_modules/@playwright/test/package.json').version")" = "1.61.0"
-          test -d /ms-playwright
-          pnpm --filter @exam/e2e exec playwright --version
+          node <<'NODE'
+          const fs = require('node:fs');
+          const wanted = require('./apps/e2e/package.json').devDependencies['@playwright/test'];
+          const installed = require('./apps/e2e/node_modules/@playwright/test/package.json').version;
+          const { chromium } = require('./apps/e2e/node_modules/@playwright/test');
+          if (wanted !== installed || !fs.existsSync(chromium.executablePath())) {
+            throw new Error(`Playwright mismatch or missing image Chromium: wanted=${wanted}, installed=${installed}, browser=${chromium.executablePath()}`);
+          }
+          console.log(`Playwright ${installed} browser ready: ${chromium.executablePath()}`);
+          NODE
 
       - name: Stage web assets for API static serving
         run: |
