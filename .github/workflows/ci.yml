@@ -521,20 +521,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Cache Playwright Chromium
-        id: playwright-cache
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-chromium-${{ hashFiles('apps/e2e/package.json', 'pnpm-lock.yaml') }}
-
-      - name: Install Playwright system dependencies
-        run: pnpm --filter @exam/e2e exec playwright install-deps chromium
-
-      - name: Install Playwright Chromium on cache miss
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: pnpm --filter @exam/e2e exec playwright install chromium
-
+      # Browser preparation is delegated to the same pinned Playwright image
+      # as the normal sharded E2E jobs. The host must remain Docker-capable to
+      # build and run the *real production* Compose topology below.
       - name: Build production images from this checkout
         run: |
           docker build --target runner -t exam-local:dev .
@@ -600,12 +589,25 @@ jobs:
           docker compose --env-file .env.production -f docker-compose.yml ps
 
       - name: Run production LAN HTTP transport spec
+        # The host still owns production Docker builds/Compose. Only the
+        # browser runs in the pinned Playwright image. Host networking keeps
+        # exam.test -> 127.0.0.1:18080 the real non-localhost HTTP origin.
         run: |
-          E2E_BASE_URL=${REHEARSAL_ORIGIN} \
-          E2E_HOST_MAP=exam.test=127.0.0.1 \
-          E2E_PROD_LAUNCHPAD_TOKEN=${REHEARSAL_TOKEN} \
-          E2E_TRACE=1 \
-          pnpm --filter @exam/e2e exec playwright test production-lan-http
+          docker run --rm --init --network host --ipc=host \
+            --user "$(id -u):$(id -g)" \
+            --volume "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
+            --workdir "$GITHUB_WORKSPACE/apps/e2e" \
+            --env CI=true \
+            --env E2E_BASE_URL="$REHEARSAL_ORIGIN" \
+            --env E2E_HOST_MAP=exam.test=127.0.0.1 \
+            --env E2E_PROD_LAUNCHPAD_TOKEN="$REHEARSAL_TOKEN" \
+            --env E2E_TRACE=1 \
+            mcr.microsoft.com/playwright:v1.61.0-noble \
+            sh -ec '
+              test -d /ms-playwright
+              test "$(node -p "require(\"./node_modules/@playwright/test/package.json\").version")" = "1.61.0"
+              exec node node_modules/@playwright/test/cli.js test production-lan-http
+            '
 
       - name: Capture stack logs on failure
         if: failure()
