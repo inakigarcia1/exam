@@ -1,0 +1,133 @@
+diff --git a/apps/api/src/adapters/repoAdapters.ts b/apps/api/src/adapters/repoAdapters.ts
+index b93d65c8..bc13f43a 100644
+--- a/apps/api/src/adapters/repoAdapters.ts
++++ b/apps/api/src/adapters/repoAdapters.ts
+@@ -42,6 +42,11 @@ export function createExamRepoAdapter(
+       (await repo.findById(ctx, examId)) as Exam | null,
+     findByIdForUpdate: async (examId) =>
+       (await repo.findByIdForUpdate(ctx, examId)) as Exam | null,
++    // EXAM-668 RESEARCH SEAM (not for production merge): shared-mode exam
++    // authority read used by the deadline-decision reader class when
++    // EXAM_668_LOCK_MODE=share.
++    findByIdForShare: async (examId) =>
++      (await repo.findByIdForShare(ctx, examId)) as Exam | null,
+     update: async (examId, data) =>
+       (await repo.update(
+         ctx,
+diff --git a/packages/db/src/repository/examRepo.ts b/packages/db/src/repository/examRepo.ts
+index 1b539c13..ace2ff7d 100644
+--- a/packages/db/src/repository/examRepo.ts
++++ b/packages/db/src/repository/examRepo.ts
+@@ -231,6 +231,25 @@ export function createExamRepo(db: Database) {
+         .where(and(eq(exams.organizationId, orgId), eq(exams.id, examId)));
+       return (rows[0] as ExamSelect | undefined) ?? null;
+     },
++    /**
++     * EXAM-668 RESEARCH SEAM (not for production merge): tenant-scoped
++     * `SELECT … FOR SHARE`. Same writer-conflict semantics as
++     * `findByIdForUpdate` (FOR SHARE conflicts with FOR UPDATE / FOR NO KEY
++     * UPDATE), while same-exam reader-decision transactions coexist instead
++     * of queueing. Never use on exam mutation paths.
++     */
++    async findByIdForShare(
++      ctx: TenantContext | RequestContext,
++      examId: string,
++    ): Promise<ExamSelect | null> {
++      const orgId = resolveOrganizationId(ctx);
++      const rows = await db
++        .select()
++        .from(exams)
++        .for("share")
++        .where(and(eq(exams.organizationId, orgId), eq(exams.id, examId)));
++      return (rows[0] as ExamSelect | undefined) ?? null;
++    },
+     /**
+      * Batch-loads candidate eligibility chains for multiple exam ids.
+      * Returns a Map<examId, { examId, candidateProfileId, ownerUserId, enrollmentId }>
+diff --git a/packages/exam-engine/src/deadlineReconciliation.ts b/packages/exam-engine/src/deadlineReconciliation.ts
+index 03bbb195..3b946380 100644
+--- a/packages/exam-engine/src/deadlineReconciliation.ts
++++ b/packages/exam-engine/src/deadlineReconciliation.ts
+@@ -1,4 +1,4 @@
+-import type { ExamAttempt } from "@exam/domain";
++import type { Exam, ExamAttempt } from "@exam/domain";
+ import {
+   GradingStatus,
+   InvalidStateTransitionError,
+@@ -34,6 +34,41 @@ const MUTATION_CONTEXT_BRAND: unique symbol = Symbol(
+   "ReconciledAttemptMutationContext",
+ );
+ 
++// ── EXAM-668 RESEARCH SEAM (not for production merge) ─────────────────────
++//
++// Selects the Exam-authority lock mode for the deadline-decision reader class:
++//   update (default) — canonical #558/#560 mechanism: FOR UPDATE
++//   share            — #667 candidate mechanism: FOR SHARE (writer conflict
++//                      semantics identical; same-exam readers coexist)
++//   none             — counterfactual negative control: plain MVCC read (the
++//                      pre-#558 defect shape; must fail the writer-first tests)
++// Read per call so a single research tree serves all experiment arms.
++type Exam668LockMode = "update" | "share" | "none";
++
++function exam668LockMode(): Exam668LockMode {
++  const raw = process.env.EXAM_668_LOCK_MODE;
++  return raw === "share" || raw === "none" ? raw : "update";
++}
++
++async function exam668ReadExamAuthority(
++  examRepo: ExamRepository,
++  examId: string,
++): Promise<Exam | null> {
++  const mode = exam668LockMode();
++  if (mode === "none") {
++    return examRepo.findById(examId);
++  }
++  if (mode === "share") {
++    if (!examRepo.findByIdForShare) {
++      throw new Error(
++        "EXAM_668_LOCK_MODE=share requires an ExamRepository with findByIdForShare",
++      );
++    }
++    return examRepo.findByIdForShare(examId);
++  }
++  return examRepo.findByIdForUpdate(examId);
++}
++
+ /**
+  * Narrow opaque evidence that the external preconditions required by a local
+  * Attempt mutation have been established by the canonical composition path.
+@@ -208,7 +243,7 @@ export async function ensureAttemptDeadlineReconciled(
+   // authority; a writer committing only after this lock queues behind it
+   // (candidate-wins linearization). Correctness must not rest on incidental
+   // FK/RI behavior. Lock order: Enrollment → Attempt → Exam.
+-  const exam = await examRepo.findByIdForUpdate(attempt.examId);
++  const exam = await exam668ReadExamAuthority(examRepo, attempt.examId);
+   if (!exam) {
+     throw new NotFoundError("Exam not found");
+   }
+@@ -372,7 +407,7 @@ export async function prepareReconciledAttemptMutation(
+   // This may re-lock the Exam row the reconciliation seam already locked; a
+   // same-tx re-lock of a held row is a no-op. Kept intentionally so the
+   // deadline decision always serializes on the locked Exam authority.
+-  const exam = await examRepo.findByIdForUpdate(attempt.examId);
++  const exam = await exam668ReadExamAuthority(examRepo, attempt.examId);
+   if (!exam) {
+     throw new NotFoundError("Exam not found");
+   }
+diff --git a/packages/exam-engine/src/examCommands.ts b/packages/exam-engine/src/examCommands.ts
+index 230ce330..96dff4ee 100644
+--- a/packages/exam-engine/src/examCommands.ts
++++ b/packages/exam-engine/src/examCommands.ts
+@@ -54,6 +54,12 @@ export interface ExamRepository {
+    * preserved; no Exam → Attempt path.
+    */
+   findByIdForUpdate(examId: string): Promise<Exam | null> | Exam | null;
++  /**
++   * EXAM-668 RESEARCH SEAM (not for production merge): shared (FOR SHARE)
++   * exam read for the deadline-decision reader class. Optional so research
++   * fakes need not implement it; the API adapter always provides it.
++   */
++  findByIdForShare?(examId: string): Promise<Exam | null> | Exam | null;
+   update(
+     examId: string,
+     data: Partial<Exam>,

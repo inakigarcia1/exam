@@ -46,14 +46,28 @@ function isEmptyOrPlaceholder(value: unknown): boolean {
 export interface ExamRepository {
   findById(examId: string): Promise<Exam | null> | Exam | null;
   /**
-   * Loads an exam under the caller's row lock (FOR UPDATE). Required by
-   * interruption restore/bounded-grace evaluation to serialize the
-   * authoritative `closeAt` read against exam-window changes, and by
-   * `publishResults` to serialize the write-once `resultsPublishedAt`
-   * decision. Lock order Enrollment → Attempt → Exam must be
-   * preserved; no Exam → Attempt path.
+   * Loads an exam under the caller's exclusive row lock (FOR UPDATE).
+   * Required by every path that mutates the Exam authority (interruption
+   * restore/bounded-grace evaluation, `publishResults`, exam lifecycle
+   * commands, scanner recheck, operator grants) to serialize the
+   * authoritative `closeAt` read against exam-window changes. Lock order
+   * Enrollment → Attempt → Exam must be preserved; no Exam → Attempt path.
    */
   findByIdForUpdate(examId: string): Promise<Exam | null> | Exam | null;
+  /**
+   * Loads an exam under a shared row lock (FOR SHARE) — the Candidate
+   * Deadline Reader authority read (#668). Same writer-conflict semantics as
+   * `findByIdForUpdate` (FOR SHARE conflicts with FOR UPDATE: a writer-first
+   * stale snapshot raises 40001; a candidate-first decision blocks
+   * conflicting writers), while same-exam reader transactions coexist
+   * instead of convoying.
+   *
+   * INVARIANT: a transaction that takes this shared read must never later
+   * upgrade to an Exam write lock in the same transaction — two concurrent
+   * shared holders upgrading would deadlock (40P01). Real Exam writes go
+   * through `findByIdForUpdate` only.
+   */
+  findByIdForShare(examId: string): Promise<Exam | null> | Exam | null;
   update(
     examId: string,
     data: Partial<Exam>,

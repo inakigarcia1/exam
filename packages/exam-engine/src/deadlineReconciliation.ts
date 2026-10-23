@@ -198,17 +198,28 @@ export async function ensureAttemptDeadlineReconciled(
     return attempt;
   }
 
-  // INVARIANT (EXAM-558): this is the deadline decision's serialization
-  // point. The Exam authority must be read under the row lock so an expired/
-  // not-expired decision can never be evaluated from a `closeAt` that a
-  // concurrently committed exam command has already replaced. Under
-  // REPEATABLE READ, a closeAt change committed after this transaction's
-  // snapshot raises 40001 here — BEFORE any freeze write — and
-  // `executeInTransaction` retries the whole transaction onto the new
-  // authority; a writer committing only after this lock queues behind it
-  // (candidate-wins linearization). Correctness must not rest on incidental
-  // FK/RI behavior. Lock order: Enrollment → Attempt → Exam.
-  const exam = await examRepo.findByIdForUpdate(attempt.examId);
+  // INVARIANT (EXAM-558; lock mode per #668): this is the deadline decision's
+  // serialization point. The Exam authority is read under a locking read so
+  // an expired/not-expired decision can never be evaluated from a `closeAt`
+  // that a concurrently committed exam command has already replaced. The lock
+  // is FOR SHARE (#668): same-exam deadline-reader transactions coexist
+  // (reader/reader compatible — no reader convoy), while Exam-authority
+  // writers keep full exclusion — under REPEATABLE READ, a closeAt change
+  // committed after this transaction's snapshot raises 40001 here — BEFORE
+  // any freeze write — and `executeInTransaction` retries the whole
+  // transaction onto the new authority; a writer committing only after this
+  // lock queues behind it (candidate-wins linearization). Correctness must
+  // not rest on incidental FK/RI behavior.
+  //
+  // INVARIANT (no upgrade): this seam is a terminal Exam-lock acquisition —
+  // the transaction must never acquire an Exam write lock after this shared
+  // read (two concurrent shared holders upgrading would deadlock, 40P01).
+  // Writer seams (operator grant, restore, scanner recheck, publish) read the
+  // Exam via their own exclusive read; when such a writer flows through this
+  // seam afterwards, the shared read is a same-tx re-read of a row it already
+  // holds exclusively — no upgrade, no behavior change.
+  // Lock order: Enrollment → Attempt → Exam.
+  const exam = await examRepo.findByIdForShare(attempt.examId);
   if (!exam) {
     throw new NotFoundError("Exam not found");
   }
@@ -355,24 +366,30 @@ export async function prepareReconciledAttemptMutation(
 
   // 3. Load the Exam state required for the canonical effective deadline.
   //
-  // INVARIANT (EXAM-543): this is the save mutation's deadline serialization
-  // point. The read is a locked read (Enrollment → Attempt → Exam, the same
-  // order as the deadline scanner and operator time grants) so the
-  // effective deadline cannot be evaluated from a stale `closeAt` that a
-  // concurrently committed exam command has already replaced. Under
-  // REPEATABLE READ, a closeAt change committed after this transaction's
-  // snapshot raises 40001 here; `executeInTransaction` retries the whole
-  // save transaction, which then re-runs reconciliation against the new
-  // authority. A closeAt change that commits only after this lock is
-  // acquired waits behind this transaction — the save-wins linearization
-  // (the request arrived while the pre-change authority was current).
-  // A plain read would let an in-flight save commit (or reconcile) against
-  // deadline authority that is no longer the committed one.
+  // INVARIANT (EXAM-543; lock mode per #668): this is the save mutation's
+  // deadline serialization point. The read is a locked read (Enrollment →
+  // Attempt → Exam, the same order as the deadline scanner and operator time
+  // grants) so the effective deadline cannot be evaluated from a stale
+  // `closeAt` that a concurrently committed exam command has already
+  // replaced. The lock is FOR SHARE (#668): same-exam save/save transactions
+  // coexist (different Attempts, shared exam row), while a closeAt change
+  // committed after this transaction's snapshot still raises 40001 here and
+  // `executeInTransaction` retries the whole save transaction, which then
+  // re-runs reconciliation against the new authority. A closeAt change that
+  // commits only after this lock is acquired waits behind this transaction —
+  // the save-wins linearization (the request arrived while the pre-change
+  // authority was current). A plain read would let an in-flight save commit
+  // (or reconcile) against deadline authority that is no longer the
+  // committed one.
   //
-  // This may re-lock the Exam row the reconciliation seam already locked; a
-  // same-tx re-lock of a held row is a no-op. Kept intentionally so the
-  // deadline decision always serializes on the locked Exam authority.
-  const exam = await examRepo.findByIdForUpdate(attempt.examId);
+  // This re-locks the Exam row the reconciliation seam already share-locked;
+  // a same-tx re-lock of a held row is a no-op. Kept intentionally so the
+  // deadline decision always serializes on the locked Exam authority. Like
+  // the reconciliation seam, this is a terminal Exam-lock acquisition — no
+  // Exam write lock may follow it in the same transaction (#668 no-upgrade
+  // invariant; writer seams hold their own exclusive read first, making this
+  // a same-tx re-read for them).
+  const exam = await examRepo.findByIdForShare(attempt.examId);
   if (!exam) {
     throw new NotFoundError("Exam not found");
   }

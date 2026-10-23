@@ -492,6 +492,7 @@ describe("attemptCommands", () => {
       const examRepo = {
         findById: () => exam,
         findByIdForUpdate: () => exam,
+        findByIdForShare: () => exam,
         update: () => exam,
       };
       const enrRepo = makeEnrollmentRepo([enrollment]);
@@ -525,6 +526,7 @@ describe("attemptCommands", () => {
       const examRepo = {
         findById: () => exam,
         findByIdForUpdate: () => exam,
+        findByIdForShare: () => exam,
         update: () => exam,
       };
       const enrRepo = makeEnrollmentRepo([enrollment]);
@@ -550,6 +552,7 @@ describe("attemptCommands", () => {
       const examRepo = {
         findById: () => exam,
         findByIdForUpdate: () => exam,
+        findByIdForShare: () => exam,
         update: () => exam,
       };
       const enrRepo = makeEnrollmentRepo([enrollment]);
@@ -575,6 +578,7 @@ describe("attemptCommands", () => {
       const examRepo = {
         findById: () => exam,
         findByIdForUpdate: () => exam,
+        findByIdForShare: () => exam,
         update: () => exam,
       };
       const enrRepo = makeEnrollmentRepo([enrollment]);
@@ -597,6 +601,7 @@ describe("attemptCommands", () => {
       const examRepo = {
         findById: () => exam,
         findByIdForUpdate: () => exam,
+        findByIdForShare: () => exam,
         update: () => exam,
       };
       const enrRepo = makeEnrollmentRepo();
@@ -622,6 +627,7 @@ describe("attemptCommands", () => {
       const examRepo = {
         findById: () => exam,
         findByIdForUpdate: () => exam,
+        findByIdForShare: () => exam,
         update: () => exam,
       };
       const enrRepo = makeEnrollmentRepo([enrollment]);
@@ -666,6 +672,7 @@ describe("attemptCommands", () => {
       const examRepo = {
         findById: () => exam,
         findByIdForUpdate: () => exam,
+        findByIdForShare: () => exam,
         update: () => exam,
       };
       const enrRepo = makeEnrollmentRepo([enrollment]);
@@ -769,6 +776,7 @@ describe("attemptCommands", () => {
       const examRepo = {
         findById: () => exam,
         findByIdForUpdate: () => exam,
+        findByIdForShare: () => exam,
         update: () => exam,
       };
       const enrRepo = makeEnrollmentRepo([enrollment]);
@@ -793,6 +801,7 @@ describe("attemptCommands", () => {
       const examRepo = {
         findById: () => exam,
         findByIdForUpdate: () => exam,
+        findByIdForShare: () => exam,
         update: () => exam,
       };
       const enrRepo = makeEnrollmentRepo();
@@ -816,6 +825,7 @@ describe("attemptCommands", () => {
       const examRepo = {
         findById: () => exam,
         findByIdForUpdate: () => exam,
+        findByIdForShare: () => exam,
         update: () => exam,
       };
       const enrRepo = makeEnrollmentRepo();
@@ -838,6 +848,7 @@ describe("attemptCommands", () => {
       const examRepo = {
         findById: () => null,
         findByIdForUpdate: () => null,
+        findByIdForShare: () => null,
         update: () => null,
       };
       const enrRepo = makeEnrollmentRepo();
@@ -864,6 +875,7 @@ describe("attemptCommands", () => {
       const examRepo = {
         findById: () => exam,
         findByIdForUpdate: () => exam,
+        findByIdForShare: () => exam,
         update: () => exam,
       };
       const enrRepo = makeEnrollmentRepo();
@@ -890,6 +902,7 @@ describe("attemptCommands", () => {
       const examRepo = {
         findById: () => exam,
         findByIdForUpdate: () => exam,
+        findByIdForShare: () => exam,
         update: () => exam,
       };
       const enrRepo = makeEnrollmentRepo();
@@ -919,6 +932,7 @@ describe("attemptCommands", () => {
       const examRepo = {
         findById: () => exam,
         findByIdForUpdate: () => exam,
+        findByIdForShare: () => exam,
         update: () => exam,
       };
       const enrRepo = makeEnrollmentRepo([enrollment]);
@@ -947,6 +961,7 @@ describe("attemptCommands", () => {
       const examRepo = {
         findById: () => exam,
         findByIdForUpdate: () => exam,
+        findByIdForShare: () => exam,
         update: () => exam,
       };
       const enrRepo = makeEnrollmentRepo([enrollment]);
@@ -990,6 +1005,7 @@ describe("attemptCommands", () => {
       const examRepo = {
         findById: () => exam,
         findByIdForUpdate: () => exam,
+        findByIdForShare: () => exam,
         update: () => exam,
       };
       const enrRepo = makeEnrollmentRepo([enrollment]);
@@ -1039,6 +1055,7 @@ describe("attemptCommands", () => {
       const examRepo = {
         findById: () => exam,
         findByIdForUpdate: () => exam,
+        findByIdForShare: () => exam,
         update: () => exam,
       };
       const attRepo = makeAttemptRepo();
@@ -1133,6 +1150,7 @@ describe("attemptCommands", () => {
       const examRepo = {
         findById: () => exam,
         findByIdForUpdate: () => exam,
+        findByIdForShare: () => exam,
         update: () => exam,
       };
 
@@ -1180,6 +1198,7 @@ describe("attemptCommands", () => {
       const examRepo = {
         findById: () => exam,
         findByIdForUpdate: () => exam,
+        findByIdForShare: () => exam,
         update: () => exam,
       };
 
@@ -1217,6 +1236,7 @@ describe("attemptCommands", () => {
       const examRepo = {
         findById: () => exam,
         findByIdForUpdate: () => exam,
+        findByIdForShare: () => exam,
         update: () => exam,
       };
 
@@ -1267,6 +1287,7 @@ describe("attemptCommands", () => {
       const examRepo = {
         findById: () => exam,
         findByIdForUpdate: () => exam,
+        findByIdForShare: () => exam,
         update: () => exam,
       };
 
@@ -1398,6 +1419,7 @@ describe("attemptCommands", () => {
         const examRepo = {
           findById: () => exam,
           findByIdForUpdate: () => exam,
+          findByIdForShare: () => exam,
           update: () => exam,
         };
 

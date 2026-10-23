@@ -191,6 +191,7 @@ describe("partial-score branch cannot mutate terminal score truth", () => {
     const examRepo: ExamRepository = {
       findById: () => exam,
       findByIdForUpdate: () => exam,
+      findByIdForShare: () => exam,
       update: () => exam,
     };
     const attemptRepo: AttemptRepository = {
@@ -292,6 +293,7 @@ describe("partial-score branch cannot mutate terminal score truth", () => {
     const examRepo: ExamRepository = {
       findById: () => exam,
       findByIdForUpdate: () => exam,
+      findByIdForShare: () => exam,
       update: () => exam,
     };
     const attemptRepo: AttemptRepository = {

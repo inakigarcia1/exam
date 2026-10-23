@@ -1,0 +1,352 @@
+{
+  "campaign": "EXAM-668 R7 native-linux validation (Fedora)",
+  "generatedAt": "2026-10-23T04:35:19.569Z",
+  "identity": {
+    "baseSha": "be5b717b",
+    "baselineStudySha": "158dc38d",
+    "rigPatchSha256": "ca41b56a49a7a16bf98794b32b86e6d2cb24af00a0e87c8f0295feb6864e7772",
+    "probeTestSha256": "c077ce2e852e59d65e9116803d8b9d71db3231b1354cce209f3cc6b5eeb83f75",
+    "burstV2Sha256": "caced55d4178eed7f45e0dcc496a7e1a3b67fef9f9d7e2768c8b87c8bd97443f",
+    "host": "E5 (jnhu@192.168.31.75)",
+    "os": "Fedora release 44",
+    "kernel": "7.2.9-201.fc44.x86_64",
+    "postgres": "PostgreSQL 18.4 (Debian 18.4-1.pgdg12+1) / postgres:18.4-bookworm",
+    "node": "v24.15.0",
+    "pnpm": "11.1.2",
+    "poolMax": 10
+  },
+  "admission": {
+    "environmentAdmission": "PASS",
+    "sluiceContention": "ABSENT"
+  },
+  "correctness": {
+    "update": "8/8",
+    "share": "8/8",
+    "none": "6/8 (T2/T3 red as predicted — rig bites)"
+  },
+  "aa": {
+    "runs": [
+      "NAT-AA1-update-S50",
+      "NAT-AA2-update-S50"
+    ],
+    "p99": [
+      589,
+      558
+    ],
+    "relativeDiffPct": 5.4,
+    "gate": "<=25% (R4 §4.1)",
+    "verdict": "PASS"
+  },
+  "requestAccounting": {
+    "plannedPerRun": "S",
+    "campaignRuns": 12,
+    "totalSubmits": 1400,
+    "successful": 1400,
+    "r6Erratum": "600 corrected to 1400 (see R7 §4)"
+  },
+  "runs": [
+    {
+      "label": "NAT-AB-R1-A50",
+      "mode": "update",
+      "S": 50,
+      "makespanMs": 2321,
+      "p50": 444,
+      "p95": 510,
+      "p99": 563,
+      "failures": 0,
+      "lockWaitMean": 7.58,
+      "lockWaitMax": 9,
+      "oracle": {
+        "attempts": 50,
+        "frozenAnswers": 50,
+        "gradingResultPresent": 50,
+        "terminalGrading": 50,
+        "submissionReasons": [
+          "manual"
+        ],
+        "worksetTotal": 50,
+        "worksetDistinctAttempts": 50
+      },
+      "host": "native linux (E5) — cross-host directional evidence"
+    },
+    {
+      "label": "NAT-AB-R1-B50",
+      "mode": "share",
+      "S": 50,
+      "makespanMs": 619,
+      "p50": 110,
+      "p95": 163,
+      "p99": 165,
+      "failures": 0,
+      "lockWaitMean": 0,
+      "lockWaitMax": 0,
+      "oracle": {
+        "attempts": 50,
+        "frozenAnswers": 50,
+        "gradingResultPresent": 50,
+        "terminalGrading": 50,
+        "submissionReasons": [
+          "manual"
+        ],
+        "worksetTotal": 50,
+        "worksetDistinctAttempts": 50
+      },
+      "host": "native linux (E5) — cross-host directional evidence"
+    },
+    {
+      "label": "NAT-AB-R1-B100",
+      "mode": "share",
+      "S": 100,
+      "makespanMs": 1177,
+      "p50": 106,
+      "p95": 196,
+      "p99": 198,
+      "failures": 0,
+      "lockWaitMean": 0,
+      "lockWaitMax": 0,
+      "oracle": {
+        "attempts": 100,
+        "frozenAnswers": 100,
+        "gradingResultPresent": 100,
+        "terminalGrading": 100,
+        "submissionReasons": [
+          "manual"
+        ],
+        "worksetTotal": 100,
+        "worksetDistinctAttempts": 100
+      },
+      "host": "native linux (E5) — cross-host directional evidence"
+    },
+    {
+      "label": "NAT-AB-R1-A100",
+      "mode": "update",
+      "S": 100,
+      "makespanMs": 4448,
+      "p50": 435,
+      "p95": 465,
+      "p99": 506,
+      "failures": 0,
+      "lockWaitMean": 8.06,
+      "lockWaitMax": 9,
+      "oracle": {
+        "attempts": 100,
+        "frozenAnswers": 100,
+        "gradingResultPresent": 100,
+        "terminalGrading": 100,
+        "submissionReasons": [
+          "manual"
+        ],
+        "worksetTotal": 100,
+        "worksetDistinctAttempts": 100
+      },
+      "host": "native linux (E5) — cross-host directional evidence"
+    },
+    {
+      "label": "NAT-AB-R1-A200",
+      "mode": "update",
+      "S": 200,
+      "makespanMs": 8772,
+      "p50": 446,
+      "p95": 497,
+      "p99": 506,
+      "failures": 0,
+      "lockWaitMean": 8.29,
+      "lockWaitMax": 9,
+      "oracle": {
+        "attempts": 200,
+        "frozenAnswers": 200,
+        "gradingResultPresent": 200,
+        "terminalGrading": 200,
+        "submissionReasons": [
+          "manual"
+        ],
+        "worksetTotal": 200,
+        "worksetDistinctAttempts": 200
+      },
+      "host": "native linux (E5) — cross-host directional evidence"
+    },
+    {
+      "label": "NAT-AB-R1-B200",
+      "mode": "share",
+      "S": 200,
+      "makespanMs": 2124,
+      "p50": 100,
+      "p95": 153,
+      "p99": 204,
+      "failures": 0,
+      "lockWaitMean": 0,
+      "lockWaitMax": 0,
+      "oracle": {
+        "attempts": 200,
+        "frozenAnswers": 200,
+        "gradingResultPresent": 200,
+        "terminalGrading": 200,
+        "submissionReasons": [
+          "manual"
+        ],
+        "worksetTotal": 200,
+        "worksetDistinctAttempts": 200
+      },
+      "host": "native linux (E5) — cross-host directional evidence"
+    },
+    {
+      "label": "NAT-AB-R2-B200",
+      "mode": "share",
+      "S": 200,
+      "makespanMs": 2066,
+      "p50": 99,
+      "p95": 139,
+      "p99": 171,
+      "failures": 0,
+      "lockWaitMean": 0,
+      "lockWaitMax": 0,
+      "oracle": {
+        "attempts": 200,
+        "frozenAnswers": 200,
+        "gradingResultPresent": 200,
+        "terminalGrading": 200,
+        "submissionReasons": [
+          "manual"
+        ],
+        "worksetTotal": 200,
+        "worksetDistinctAttempts": 200
+      },
+      "host": "native linux (E5) — cross-host directional evidence"
+    },
+    {
+      "label": "NAT-AB-R2-A200",
+      "mode": "update",
+      "S": 200,
+      "makespanMs": 8601,
+      "p50": 435,
+      "p95": 461,
+      "p99": 483,
+      "failures": 0,
+      "lockWaitMean": 8.35,
+      "lockWaitMax": 9,
+      "oracle": {
+        "attempts": 200,
+        "frozenAnswers": 200,
+        "gradingResultPresent": 200,
+        "terminalGrading": 200,
+        "submissionReasons": [
+          "manual"
+        ],
+        "worksetTotal": 200,
+        "worksetDistinctAttempts": 200
+      },
+      "host": "native linux (E5) — cross-host directional evidence"
+    },
+    {
+      "label": "NAT-AB-R2-A100",
+      "mode": "update",
+      "S": 100,
+      "makespanMs": 4385,
+      "p50": 447,
+      "p95": 473,
+      "p99": 490,
+      "failures": 0,
+      "lockWaitMean": 8.19,
+      "lockWaitMax": 9,
+      "oracle": {
+        "attempts": 100,
+        "frozenAnswers": 100,
+        "gradingResultPresent": 100,
+        "terminalGrading": 100,
+        "submissionReasons": [
+          "manual"
+        ],
+        "worksetTotal": 100,
+        "worksetDistinctAttempts": 100
+      },
+      "host": "native linux (E5) — cross-host directional evidence"
+    },
+    {
+      "label": "NAT-AB-R2-B100",
+      "mode": "share",
+      "S": 100,
+      "makespanMs": 1200,
+      "p50": 112,
+      "p95": 176,
+      "p99": 176,
+      "failures": 0,
+      "lockWaitMean": 0,
+      "lockWaitMax": 0,
+      "oracle": {
+        "attempts": 100,
+        "frozenAnswers": 100,
+        "gradingResultPresent": 100,
+        "terminalGrading": 100,
+        "submissionReasons": [
+          "manual"
+        ],
+        "worksetTotal": 100,
+        "worksetDistinctAttempts": 100
+      },
+      "host": "native linux (E5) — cross-host directional evidence"
+    },
+    {
+      "label": "NAT-AB-R2-B50",
+      "mode": "share",
+      "S": 50,
+      "makespanMs": 648,
+      "p50": 110,
+      "p95": 198,
+      "p99": 199,
+      "failures": 0,
+      "lockWaitMean": 0,
+      "lockWaitMax": 0,
+      "oracle": {
+        "attempts": 50,
+        "frozenAnswers": 50,
+        "gradingResultPresent": 50,
+        "terminalGrading": 50,
+        "submissionReasons": [
+          "manual"
+        ],
+        "worksetTotal": 50,
+        "worksetDistinctAttempts": 50
+      },
+      "host": "native linux (E5) — cross-host directional evidence"
+    },
+    {
+      "label": "NAT-AB-R2-A50",
+      "mode": "update",
+      "S": 50,
+      "makespanMs": 2306,
+      "p50": 447,
+      "p95": 481,
+      "p99": 562,
+      "failures": 0,
+      "lockWaitMean": 7.53,
+      "lockWaitMax": 9,
+      "oracle": {
+        "attempts": 50,
+        "frozenAnswers": 50,
+        "gradingResultPresent": 50,
+        "terminalGrading": 50,
+        "submissionReasons": [
+          "manual"
+        ],
+        "worksetTotal": 50,
+        "worksetDistinctAttempts": 50
+      },
+      "host": "native linux (E5) — cross-host directional evidence"
+    }
+  ],
+  "materiality": {
+    "criterion": "R4 §4.4 proposal (pre-registered)",
+    "verdict": "PASS",
+    "ownerProductThreshold": "NOT_YET_APPROVED"
+  },
+  "verdictBlock": "see ../R7-native-linux-validation.md §10",
+  "audit": {
+    "executedBy": "independent subagent (N8)",
+    "verdict": "PASS",
+    "p1": 0,
+    "p2": 1,
+    "p3": 5,
+    "report": "receipts/audit/n8-audit-report.md",
+    "dispositions": "all findings corrected/annotated in R7 §9"
+  }
+}

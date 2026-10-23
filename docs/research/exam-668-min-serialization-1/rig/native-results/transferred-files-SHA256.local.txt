@@ -1,0 +1,4 @@
+ca41b56a49a7a16bf98794b32b86e6d2cb24af00a0e87c8f0295feb6864e7772  rig/exam-668-min-serialization.patch
+c077ce2e852e59d65e9116803d8b9d71db3231b1354cce209f3cc6b5eeb83f75  rig/exam-668-serialization.research.test.ts
+247ca5a2449e984f8d37498ec44e2f436e93a1e944ebf9ceb60e6cf932ecba64  rig/native-results/rig-v2/exam-668-submit-burst.research.test.ts
+ca41b56a49a7a16bf98794b32b86e6d2cb24af00a0e87c8f0295feb6864e7772  rig/native-results/rig-v2/exam-668-min-serialization.patch
