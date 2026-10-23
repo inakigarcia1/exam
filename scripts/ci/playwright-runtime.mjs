@@ -18,8 +18,9 @@ const manifestUrl = new URL("../../apps/e2e/package.json", import.meta.url);
 const manifest = JSON.parse(readFileSync(manifestUrl, "utf8"));
 const version = manifest.devDependencies?.["@playwright/test"];
 
-if (typeof version !== "string" || !/^[0-9]+[.][0-9]+[.][0-9]+$/.test(version)) {
-  throw new Error("apps/e2e/package.json must pin an exact @playwright/test version");
+const exactVersion = /^[0-9]+[.][0-9]+[.][0-9]+$/;
+if (typeof version !== "string" || !exactVersion.test(version)) {
+  throw new Error("Exact @playwright/test version required");
 }
 
 const image = `mcr.microsoft.com/playwright:v${version}-noble`;
@@ -47,7 +48,7 @@ switch (command) {
     const { chromium } = requireFromE2e("@playwright/test");
     const browser = chromium.executablePath();
     if (!browser.startsWith("/ms-playwright/") || !existsSync(browser)) {
-      throw new Error(`Expected preinstalled Chromium from ${image}; got ${browser}`);
+      throw new Error(`Missing image Chromium for ${image}: ${browser}`);
     }
     process.stdout.write(`Verified Playwright ${version} and ${browser}\n`);
     break;
