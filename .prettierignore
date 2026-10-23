@@ -15,3 +15,9 @@ formal/
 apps/e2e/test-results-patrol/
 .tmp/
 gui-test-screenshots/
+# EXAM-668 research evidence (docs/research/exam-668-min-serialization-1/):
+# receipts, rig kits and manifests are hash-anchored identity artifacts
+# (native-results/SHA256SUMS + manifest.json pin exact bytes) — byte stability
+# outweighs formatting. Reports (*.md) are already covered by the global *.md
+# ignore; this entry covers the machine-generated companions.
+docs/research/exam-668-min-serialization-1/

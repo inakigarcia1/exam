@@ -232,6 +232,35 @@ export function createExamRepo(db: Database) {
       return (rows[0] as ExamSelect | undefined) ?? null;
     },
     /**
+     * Finds an exam by `id` with a `FOR SHARE` row lock, scoped to the tenant.
+     *
+     * The Candidate Deadline Reader lock (#668): deadline-decision reads that
+     * never mutate the exam row take this shared lock. Same-exam reader
+     * transactions coexist (FOR SHARE / FOR SHARE compatible — no reader
+     * convoy), while Exam-authority writers keep full mutual exclusion (FOR
+     * SHARE conflicts with FOR UPDATE, so a writer-first stale snapshot still
+     * raises 40001 under REPEATABLE READ and a candidate-first decision still
+     * blocks conflicting writers until commit).
+     *
+     * INVARIANT: a transaction that takes this shared read must never later
+     * acquire an Exam write lock in the same transaction — two concurrent
+     * shared holders upgrading would deadlock (40P01). Exam mutation paths
+     * (lifecycle transitions, extend, publish, scanner recheck, operator
+     * grants) must use `findByIdForUpdate`.
+     */
+    async findByIdForShare(
+      ctx: TenantContext | RequestContext,
+      examId: string,
+    ): Promise<ExamSelect | null> {
+      const orgId = resolveOrganizationId(ctx);
+      const rows = await db
+        .select()
+        .from(exams)
+        .for("share")
+        .where(and(eq(exams.organizationId, orgId), eq(exams.id, examId)));
+      return (rows[0] as ExamSelect | undefined) ?? null;
+    },
+    /**
      * Batch-loads candidate eligibility chains for multiple exam ids.
      * Returns a Map<examId, { examId, candidateProfileId, ownerUserId, enrollmentId }>
      * for exams where the actor has a valid enrollment. Missing or ineligible

@@ -140,6 +140,32 @@ function readProductionFile(relPath: string): string {
   return readFileSync(abs, "utf8");
 }
 
+/** Applies the per-line comment stripper to a whole source text. */
+function stripAllComments(text: string): string {
+  return text.split(/\r?\n/).map(stripComments).join("\n");
+}
+
+/**
+ * Extracts the source from a named function's declaration to the next
+ * top-level declaration (or EOF). Unlike {@link functionBody} this tolerates
+ * `Promise<{...}>`-style return annotations (whose type-literal braces would
+ * terminate a brace walk early), at the cost of possibly including trailing
+ * module text — so only use it for PRESENCE assertions, never exclusions.
+ */
+function functionSlice(relPath: string, name: string): string | null {
+  const text = readProductionFile(relPath);
+  const declRe = new RegExp(
+    `(?:export\\s+)?async\\s+function\\s+${name}\\s*\\(`,
+  );
+  const m = declRe.exec(text);
+  if (!m) return null;
+  const rest = text.slice(m.index);
+  const nextDecl = rest
+    .slice(1)
+    .search(/\n(?:export\s|async\s+function\s|function\s|const\s)/);
+  return nextDecl < 0 ? rest : rest.slice(0, nextDecl + 1);
+}
+
 /**
  * Extract the executable body of a named exported async function via a
  * brace-depth walker. Returns null if the function declaration is not found.
@@ -504,7 +530,7 @@ describe("EA lock-order structural closure", () => {
     expect(assertIdx).toBeGreaterThanOrEqual(0);
     const protectedOps = [
       "attemptRepo.findById(",
-      "examRepo.findByIdForUpdate(",
+      "examRepo.findByIdForShare(",
       "submitAttempt(",
       "readGradingSnapshot(",
       "finalizeGrading(",
@@ -520,7 +546,7 @@ describe("EA lock-order structural closure", () => {
     }
   });
 
-  it("ensureAttemptDeadlineReconciled serializes its Exam authority read (locked read, no plain exam read)", () => {
+  it("ensureAttemptDeadlineReconciled serializes its Exam authority read (shared lock, no plain exam read)", () => {
     const body = functionBody(
       "packages/exam-engine/src/deadlineReconciliation.ts",
       "ensureAttemptDeadlineReconciled",
@@ -529,11 +555,103 @@ describe("EA lock-order structural closure", () => {
       body,
       "ensureAttemptDeadlineReconciled body not found",
     ).not.toBeNull();
-    expect(body!).toMatch(/examRepo\.findByIdForUpdate\(/);
+    // #668: the candidate deadline reader acquires the Exam row lock in
+    // SHARED mode — same writer-conflict semantics as FOR UPDATE (writer-first
+    // stale snapshots raise 40001; candidate-first decisions block writers),
+    // while same-exam reader transactions coexist instead of convoying.
+    expect(body!).toMatch(/examRepo\.findByIdForShare\(/);
     // A plain `examRepo.findById(` in the seam body would reintroduce the
     // #558 stale-authority gap. The regex cannot match inside
-    // `findByIdForUpdate(` (the character after findById is F, not "(").
+    // `findByIdForShare(` (the character after findById is F, not "(").
     expect(body!).not.toMatch(/examRepo\.findById\(/);
+  });
+
+  // #668 no-upgrade invariant (structural half). The deadline reconciliation
+  // module is exclusively the candidate reader seam + its mutation-context
+  // mint — it has no Exam-writer duty, so the writer-lock method must not
+  // appear in it at all. A re-introduction would recreate the two-shared-
+  // holders upgrade deadlock (40P01) shape under concurrent readers. This is
+  // module-scoped by design: writer seams in other modules (restore,
+  // operator grant, publish, scanner) legitimately keep findByIdForUpdate.
+  it("deadlineReconciliation never acquires the Exam writer lock (no-upgrade invariant, #668)", () => {
+    const code = stripAllComments(
+      readProductionFile("packages/exam-engine/src/deadlineReconciliation.ts"),
+    );
+    expect(code).not.toMatch(/findByIdForUpdate/);
+  });
+
+  // prepareReconciledAttemptMutation composes reconciliation + the save-side
+  // authority read (EXAM-543). Both of its Exam accesses must stay shared-
+  // locked: affinity first, reconciliation, then the (re-)locked read.
+  it("prepareReconciledAttemptMutation asserts EA affinity before any protected repository work", () => {
+    const body = functionBody(
+      "packages/exam-engine/src/deadlineReconciliation.ts",
+      "prepareReconciledAttemptMutation",
+    );
+    expect(
+      body,
+      "prepareReconciledAttemptMutation body not found",
+    ).not.toBeNull();
+    const b = body!;
+    const assertIdx = b.indexOf("assertCapabilityFor(");
+    expect(assertIdx).toBeGreaterThanOrEqual(0);
+    const protectedOps = [
+      "ensureAttemptDeadlineReconciled(",
+      "examRepo.findByIdForShare(",
+    ];
+    for (const op of protectedOps) {
+      const opIdx = b.indexOf(op);
+      if (opIdx >= 0) {
+        expect(
+          opIdx,
+          `${op} must come AFTER assertCapabilityFor`,
+        ).toBeGreaterThan(assertIdx);
+      }
+    }
+  });
+
+  it("prepareReconciledAttemptMutation reads its Exam authority via the shared lock (#668)", () => {
+    const body = functionBody(
+      "packages/exam-engine/src/deadlineReconciliation.ts",
+      "prepareReconciledAttemptMutation",
+    );
+    expect(
+      body,
+      "prepareReconciledAttemptMutation body not found",
+    ).not.toBeNull();
+    expect(body!).toMatch(/examRepo\.findByIdForShare\(/);
+    expect(body!).not.toMatch(/examRepo\.findById\(/);
+    expect(body!).not.toMatch(/examRepo\.findByIdForUpdate\(/);
+  });
+
+  // #668 writer-lock retention inventory: the Exam-authority writer seams
+  // keep their exclusive reads. This is the inverse guardrail of the
+  // shared-reader cutover — it stops a future "share everywhere" drift from
+  // silently degrading writer serialization (single-winner publish, grant
+  // closeAt-ceiling decision, restore authority).
+  it("Exam writer seams retain their FOR UPDATE authority read", () => {
+    const writers: { file: string; fn: string }[] = [
+      {
+        file: "packages/exam-engine/src/restoreInterruption.ts",
+        fn: "restoreInterruptedAttempt",
+      },
+      {
+        file: "packages/exam-engine/src/operatorGrant.ts",
+        fn: "grantAttemptTime",
+      },
+      {
+        file: "packages/exam-engine/src/examCommands.ts",
+        fn: "publishResults",
+      },
+    ];
+    for (const w of writers) {
+      const slice = functionSlice(w.file, w.fn);
+      expect(
+        slice,
+        `${w.fn} declaration not found in ${w.file}`,
+      ).not.toBeNull();
+      expect(slice!).toMatch(/findByIdForUpdate\(/);
+    }
   });
 
   // The single-lock example (extendAttemptTime) was removed with

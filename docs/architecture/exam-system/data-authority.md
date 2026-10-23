@@ -170,9 +170,9 @@ The `packages/exam-engine/src/` layer contains **no explicit `db.transaction` ca
 | Exam close/unpublish/extend/cancel/archive | `executeInTransaction` → lock exam → reconcile → command | REPEATABLE READ | Atomic |
 | Exam create/update | Single repo call (no explicit tx) | N/A | Best-effort |
 | Attempt start | `executeInTransaction` → `startOrRestoreAttempt()` | READ COMMITTED | Best-effort |
-| Save answer | `executeInTransaction` → EA lock → reconcile (Exam FOR UPDATE in seam) → `saveAnswer()` | REPEATABLE READ | None |
-| Submit + grade | `executeInTransaction` → EA lock → reconcile (Exam FOR UPDATE in seam) → `submitAttempt()` → `finalizeGrading()` | REPEATABLE READ | Atomic |
-| Deadline reconciliation | `executeInTransaction` → EA lock → `ensureAttemptDeadlineReconciled()` → Exam FOR UPDATE (in-seam serialization point) → deadline decision | REPEATABLE READ | Atomic |
+| Save answer | `executeInTransaction` → EA lock → reconcile (Exam FOR SHARE in seam, #668) → `saveAnswer()` | REPEATABLE READ | None |
+| Submit + grade | `executeInTransaction` → EA lock → reconcile (Exam FOR SHARE in seam, #668) → `submitAttempt()` → `finalizeGrading()` | REPEATABLE READ | Atomic |
+| Deadline reconciliation | `executeInTransaction` → EA lock → `ensureAttemptDeadlineReconciled()` → Exam FOR SHARE (in-seam serialization point) → deadline decision | REPEATABLE READ | Atomic |
 | Manual grading | `executeInTransaction` → `gradeQuestion()` → `finalizeTerminalGrading()` | REPEATABLE READ | Atomic |
 | Force submit | `executeInTransaction` → EA lock → `submitAttempt()` → grade | REPEATABLE READ | Atomic |
 | Email claim | `executeInTransaction` → `claimDue()` (atomic CTE) | READ COMMITTED | None |
@@ -188,11 +188,14 @@ Enrollment → Attempt → Exam
 
 Deadline reconciliation is self-serializing (#558): `ensureAttemptDeadlineReconciled()` asserts the EA capability affinity (proving the Enrollment → Attempt locks in the same transaction) and then acquires the Exam row lock itself, before any deadline decision. Callers must not rely on having locked the Exam row themselves; a same-transaction re-lock of the already-held Exam row is a safe no-op. No path may acquire the Exam lock before the Attempt lock.
 
+Since #668 the candidate deadline reader acquires that Exam row lock in SHARED mode (`FOR SHARE`, `findByIdForShare`): same-exam deadline-reader transactions coexist (reader/reader compatible — the #586 reader convoy is structurally removed), while Exam-authority writers keep full exclusion (`FOR SHARE` conflicts with `FOR UPDATE`: a writer-first stale snapshot still raises 40001 under REPEATABLE READ and the whole transaction retries onto the new authority; a writer committing after the reader's lock still queues behind it — candidate-wins linearization unchanged). EXAM-558's deadline-authority correctness contract is therefore intact; only the reader/reader relation changed. INVARIANT: the shared read is a terminal Exam-lock acquisition — a transaction that takes it must never acquire an Exam write lock afterwards (two concurrent shared holders upgrading would deadlock, 40P01). Exam mutation paths keep `findByIdForUpdate`; when a writer seam (operator grant, restore, publish, scanner recheck) flows through the shared read afterwards, it is a same-transaction re-read of a row it already holds exclusively.
+
 ### 9.4 Row-lock acquisition methods
 
 | Repository | Method | Lock |
 |------------|--------|------|
-| `examRepo` | `findByIdForUpdate(ctx, examId)` | `FOR UPDATE` |
+| `examRepo` | `findByIdForUpdate(ctx, examId)` | `FOR UPDATE` (Exam-authority writers: lifecycle commands, extend, publish, scanner recheck, operator grants, restore) |
+| `examRepo` | `findByIdForShare(ctx, examId)` | `FOR SHARE` (Candidate Deadline Reader: take/save/submit deadline decisions, #668 — never on exam mutation paths, never followed by an exam write lock in the same transaction) |
 | `attemptRepo` | `findByIdForUpdate(ctx, attemptId)` | `FOR UPDATE` |
 | `enrollmentRepo` | `findByExamAndCandidateForUpdate(ctx, examId, candidateId)` | `FOR UPDATE` |
 | `emailOutboxRepo` | `claimDue()` | `FOR UPDATE SKIP LOCKED` |

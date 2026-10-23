@@ -250,6 +250,7 @@ function makeRepos(
   const examRepo: ExamRepository = {
     findById: (id) => examStore.find((e) => e.id === id) ?? null,
     findByIdForUpdate: (id) => examStore.find((e) => e.id === id) ?? null,
+    findByIdForShare: (id) => examStore.find((e) => e.id === id) ?? null,
     update: (id, data) => {
       const idx = examStore.findIndex((e) => e.id === id);
       if (idx === -1) return null;
@@ -696,6 +697,10 @@ describe("ensureAttemptDeadlineReconciled (EXAM-558 serialization contract)", ()
         calls.push("exam.findByIdForUpdate");
         return pairB.examRepo.findByIdForUpdate(id);
       },
+      findByIdForShare: (id) => {
+        calls.push("exam.findByIdForShare");
+        return pairB.examRepo.findByIdForShare(id);
+      },
     };
     const recordingEnrollmentRepo: EnrollmentRepository = {
       ...pairB.enrollmentRepo,
@@ -740,9 +745,16 @@ describe("ensureAttemptDeadlineReconciled (EXAM-558 serialization contract)", ()
         trace.push("exam.plainRead");
         return examRepo.findById(id);
       },
+      // The candidate deadline reader acquires the Exam row lock via the
+      // shared-mode authority read (#668). Tracing findByIdForUpdate too so a
+      // plain-read or writer-lock regression cannot satisfy "exam.lock".
       findByIdForUpdate: (id) => {
-        trace.push("exam.lock");
+        trace.push("exam.writerLock");
         return examRepo.findByIdForUpdate(id);
+      },
+      findByIdForShare: (id) => {
+        trace.push("exam.lock");
+        return examRepo.findByIdForShare(id);
       },
     };
     const tracingWorksetRepo: GradingWorksetRepository = {
@@ -785,9 +797,9 @@ describe("ensureAttemptDeadlineReconciled (EXAM-558 serialization contract)", ()
     const trace: string[] = [];
     const tracingExamRepo: ExamRepository = {
       ...examRepo,
-      findByIdForUpdate: (id) => {
+      findByIdForShare: (id) => {
         trace.push("exam.lock");
-        return examRepo.findByIdForUpdate(id);
+        return examRepo.findByIdForShare(id);
       },
     };
 
@@ -823,6 +835,9 @@ describe("ensureAttemptDeadlineReconciled (EXAM-558 serialization contract)", ()
     const tracingExamRepo: ExamRepository = {
       ...examRepo,
       findByIdForUpdate: () => {
+        throw new Error("Exam lock must not be acquired for a frozen attempt");
+      },
+      findByIdForShare: () => {
         throw new Error("Exam lock must not be acquired for a frozen attempt");
       },
     };

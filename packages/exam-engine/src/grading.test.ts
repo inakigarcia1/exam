@@ -144,6 +144,7 @@ function makeRepos(
   const examRepo: ExamRepository = {
     findById: () => exam,
     findByIdForUpdate: () => exam,
+    findByIdForShare: () => exam,
     update: () => exam,
   };
   const attemptRepo: AttemptRepository = {
@@ -350,6 +351,7 @@ describe("gradeAttemptIdempotent — auto command path", () => {
     const examRepo: ExamRepository = {
       findById: () => exam,
       findByIdForUpdate: () => exam,
+      findByIdForShare: () => exam,
       update: () => exam,
     };
     const attemptRepo: AttemptRepository = {
@@ -423,6 +425,7 @@ describe("gradeAttemptIdempotent — auto command path", () => {
     const examRepo: ExamRepository = {
       findById: () => exam,
       findByIdForUpdate: () => exam,
+      findByIdForShare: () => exam,
       update: () => exam,
     };
     const attemptRepo: AttemptRepository = {
@@ -657,6 +660,7 @@ function makeTransactionalRepos(
   const examRepo: ExamRepository = {
     findById: () => exam,
     findByIdForUpdate: () => exam,
+    findByIdForShare: () => exam,
     update: () => exam,
   };
 
@@ -903,6 +907,7 @@ describe("readGradingSnapshot", () => {
       {
         findById: () => makeExam(),
         findByIdForUpdate: () => makeExam(),
+        findByIdForShare: () => makeExam(),
         update: () => makeExam(),
       },
       {
