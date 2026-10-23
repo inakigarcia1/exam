@@ -598,7 +598,14 @@ jobs:
         # browser test runs in the same preinstalled Playwright image as E2E.
         # Non-localhost HTTP origin + DNS mapping remain a regression oracle.
         run: |
+          # Fail closed if the existing Build job's output drifts from the
+          # single manifest-derived image resolver used by both E2E paths.
+          EXPECTED_PLAYWRIGHT_IMAGE="$(node scripts/ci/playwright-runtime.mjs image)"
           test -n "$PLAYWRIGHT_IMAGE"
+          if [ "$PLAYWRIGHT_IMAGE" != "$EXPECTED_PLAYWRIGHT_IMAGE" ]; then
+            echo "::error::Build Playwright image differs from the common runtime contract" >&2
+            exit 1
+          fi
           docker run --rm --init --network host --ipc=host \
             --user "$(id -u):$(id -g)" \
             --volume "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
