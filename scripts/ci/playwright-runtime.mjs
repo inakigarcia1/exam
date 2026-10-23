@@ -33,7 +33,7 @@ switch (command) {
   }
   case "github-output": {
     if (!process.env.GITHUB_OUTPUT) {
-      throw new Error("GITHUB_OUTPUT is required to export the Playwright image");
+      throw new Error("Missing GITHUB_OUTPUT for Playwright image");
     }
     appendFileSync(process.env.GITHUB_OUTPUT, `image=${image}\n`);
     process.stdout.write(`Playwright runtime: ${image}\n`);
@@ -43,7 +43,7 @@ switch (command) {
     const requireFromE2e = createRequire(manifestUrl);
     const installed = requireFromE2e("@playwright/test/package.json").version;
     if (installed !== version) {
-      throw new Error(`Installed Playwright ${installed} != manifest ${version}`);
+      throw new Error(`Playwright ${installed} != ${version}`);
     }
     const { chromium } = requireFromE2e("@playwright/test");
     const browser = chromium.executablePath();
