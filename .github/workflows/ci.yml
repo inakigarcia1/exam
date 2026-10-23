@@ -67,6 +67,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: static
+    outputs:
+      # The same prebuilt browser image is consumed by normal and production E2E.
+      playwright_image: ${{ steps.playwright_runtime.outputs.image }}
 
     steps:
       - name: Checkout
@@ -83,6 +86,11 @@ jobs:
           node-version: "24.22.x"
           cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
+
+      - name: Resolve shared Playwright image
+        id: playwright_runtime
+        # apps/e2e/package.json is the sole version authority.
+        run: node scripts/ci/playwright-runtime.mjs github-output
 
       - name: Restore Turbo cache
         uses: actions/cache@v5
@@ -286,6 +294,11 @@ jobs:
   e2e:
     name: E2E (shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
     runs-on: ubuntu-latest
+    # The existing Build job exports one canonical browser image reference.
+    # Chromium and system libraries are preinstalled (no runtime apt/downloads).
+    container:
+      image: ${{ needs.verify-build.outputs.playwright_image }}
+      options: --ipc=host
     timeout-minutes: 20
     needs: verify-build
     strategy:
@@ -311,8 +324,8 @@ jobs:
           --health-retries=10
 
     env:
-      DATABASE_URL: postgresql://exam:exam@localhost:5432/exam_e2e
-      TEST_DATABASE_URL: postgresql://exam:exam@localhost:5432/exam_e2e
+      DATABASE_URL: postgresql://exam:exam@postgres:5432/exam_e2e
+      TEST_DATABASE_URL: postgresql://exam:exam@postgres:5432/exam_e2e
       JWT_SECRET: e2e-test-secret
       NODE_ENV: test
       APP_MODE: e2e
@@ -354,19 +367,9 @@ jobs:
           name: build-outputs-${{ github.run_id }}
           path: .
 
-      - name: Cache Playwright Chromium
-        id: playwright-cache
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-chromium-${{ hashFiles('apps/e2e/package.json', 'pnpm-lock.yaml') }}
-
-      - name: Install Playwright system dependencies
-        run: pnpm --filter @exam/e2e exec playwright install-deps chromium
-
-      - name: Install Playwright Chromium on cache miss
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: pnpm --filter @exam/e2e exec playwright install chromium
+      - name: Verify preinstalled Playwright browser
+        # The same fail-closed verifier also runs in the production browser job.
+        run: node scripts/ci/playwright-runtime.mjs verify
 
       - name: Stage web assets for API static serving
         run: |
