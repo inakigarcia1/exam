@@ -109,12 +109,26 @@ production deployment itself is the acceptance surface (§1.6).
 
 ### 1.7 E2E (Playwright)
 
+The only Playwright version authority is the exact `@playwright/test` version in
+`apps/e2e/package.json` (plus the frozen lockfile). The canonical runtime
+resolver/verifier is `scripts/ci/playwright-runtime.mjs`: `github-output`
+exports the official Playwright image reference once in `verify-build`;
+`verify` requires the installed test package and the image-provided browser
+to match. Both browser execution paths use this same image and verifier:
+sharded E2E runs in a GitHub job container; the production transport rehearsal
+must keep real Docker Compose running on the host, so only its browser test
+runs with `docker run`. There is no browser install, no APT install, and no
+whole-image `actions/cache` in either path. Image pulls on fresh GitHub-hosted
+runners remain an explicit startup cost, not a cached guarantee.
+
+
+
 | Field | Value |
 |-------|-------|
 | **Job** | `e2e` (matrix: `shardIndex: [1, 2]`, `shardTotal: [2]`) |
 | **Command** | `pnpm --filter @exam/e2e exec playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}` |
 | **Input build** | Downloads the current workflow's `verify-build` artifact; the shards do not run `pnpm build` independently. |
-| **Browser runtime** | Official Playwright Noble container; its image tag comes from the exact `@playwright/test` version in `apps/e2e/package.json` via the existing Build job output. Browser and system dependencies are preinstalled; no runtime APT/browser installation or browser cache. pnpm store remains cached. |
+| **Browser runtime** | Official Playwright Noble container; its image reference is resolved exactly once by `scripts/ci/playwright-runtime.mjs github-output` in the existing Build job and exported as `playwright_image`, from the exact `@playwright/test` version in `apps/e2e/package.json`. Browser and system dependencies are preinstalled; no runtime APT/browser installation or browser cache. pnpm store remains cached. |
 | **Services** | PostgreSQL (`exam_e2e` at `postgres:5432` inside the job container's GitHub service network) |
 | **Env vars** | `DATABASE_URL=postgresql://exam:exam@postgres:5432/exam_e2e`, `TEST_DATABASE_URL=postgresql://exam:exam@postgres:5432/exam_e2e`, `JWT_SECRET=e2e-test-secret`, `APP_MODE=e2e`, `NODE_ENV=test`, `DEPLOYMENT_MODE=singleTenant`, `E2E_BASE_URL=http://localhost:3000`, `E2E_SHARD_TOTAL=${{ matrix.shardTotal }}` (2), fast scanner intervals (`HEARTBEAT_TIMEOUT_MS=15000`, etc.), `RATE_LIMIT_MAX=1000`, `RATE_LIMIT_WINDOW_MS=60000` |
 | **Allowed resources** | PostgreSQL (`exam_e2e`), CPU, Chromium |
@@ -777,7 +791,7 @@ E2E_WORKERS=4 bash scripts/e2e/run.sh
 | `matrix.shardTotal` | `[2]` |
 | `fail-fast` | `true` |
 | `build input` | same-workflow `verify-build` artifact (`packages/*/dist`, `apps/api/dist`, `apps/web/dist`) |
-| `browser runtime` | Official prebuilt Noble image, tag sourced from `apps/e2e/package.json` through `verify-build` output; no browser/OS dependency download step |
+| `browser runtime` | Official prebuilt Noble image, common reference from `scripts/ci/playwright-runtime.mjs` via `verify-build.outputs.playwright_image`; verify executable with the same script; no browser/OS dependency download step |
 
 ### Failure Artifact Contract
 
