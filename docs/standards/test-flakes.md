@@ -2922,12 +2922,14 @@ HOST_OR_RUNNER_CONTEXT = CI runner（非本地）；trace.zip、error-context.md
 RELEVANT_OBSERVED_STATE = 失败时页面快照显示列表状态本身已正确恢复：URL 处于
   /admin/questions、搜索框含 KEYWORD（a3kwmvkqdt1b）、"共 21 条，显示 1-20 条"、
   "上一页" disabled（= 第 1 页）——即 Back 后 UI 正确，但未观测到新的列表 GET 响应
-RERUN_EVIDENCE = 尚未重跑（登记先于重跑）。对照证据：
+RERUN_EVIDENCE = 替换权威 run：同一 PR 分支追加登记 commit（6dbe2494，产品代码与
+  失败 run 5da7d695 完全一致，仅多本条登记文本）后 CI run 39928382598 全绿——
+  E2E shard 2/2（含本用例）与 shard 1/2 均 SUCCESS（2026-10-23）。对照证据：
   ① PR #808 CI run 39925426281（head 1a364ace：同一产品代码基线 b9b7fabb + 三个
      发布权威文件的纯文档 diff）同日更早时刻全绿，shard 2/2（含本用例）SUCCESS；
   ② 该用例在 PR #786/#787 的实现期 CI 与其合并后的 exact-head CI 中均通过
-NONDETERMINISM_CONFIRMED = PENDING（等待重跑；当前证据 = 同代码在对照 run 通过 +
-  本次失败，符合非确定性的一般形态，但按本册规则以重跑确认）
+NONDETERMINISM_CONFIRMED = YES（同产品代码 FAIL（39927162323）+ 同产品代码 PASS
+  （39928382598）；失败 run 结果保持 FAIL，两 run 并存）
 CURRENT_CHANGE_CAUSALITY = PLAUSIBLY_UNRELATED（对照 run ① 与失败 run 的产品代码
   完全相同，候选改动为纯 Markdown；但该对照是两个自然 run 的比较，非受控操纵实验，
   不写 PROVEN_UNRELATED）
