@@ -114,9 +114,9 @@ production deployment itself is the acceptance surface (§1.6).
 | **Job** | `e2e` (matrix: `shardIndex: [1, 2]`, `shardTotal: [2]`) |
 | **Command** | `pnpm --filter @exam/e2e exec playwright test --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}` |
 | **Input build** | Downloads the current workflow's `verify-build` artifact; the shards do not run `pnpm build` independently. |
-| **Browser cache** | `~/.cache/ms-playwright` is cached by OS + E2E package/lockfile state; system dependencies are still installed every shard. |
-| **Services** | PostgreSQL (`exam_e2e` on `localhost:5432`) |
-| **Env vars** | `DATABASE_URL=postgresql://exam:exam@localhost:5432/exam_e2e`, `TEST_DATABASE_URL=postgresql://exam:exam@localhost:5432/exam_e2e`, `JWT_SECRET=e2e-test-secret`, `APP_MODE=e2e`, `NODE_ENV=test`, `DEPLOYMENT_MODE=singleTenant`, `E2E_BASE_URL=http://localhost:3000`, `E2E_SHARD_TOTAL=${{ matrix.shardTotal }}` (2), fast scanner intervals (`HEARTBEAT_TIMEOUT_MS=15000`, etc.), `RATE_LIMIT_MAX=1000`, `RATE_LIMIT_WINDOW_MS=60000` |
+| **Browser runtime** | Official Playwright Noble container; its image tag comes from the exact `@playwright/test` version in `apps/e2e/package.json` via the existing Build job output. Browser and system dependencies are preinstalled; no runtime APT/browser installation or browser cache. pnpm store remains cached. |
+| **Services** | PostgreSQL (`exam_e2e` at `postgres:5432` inside the job container's GitHub service network) |
+| **Env vars** | `DATABASE_URL=postgresql://exam:exam@postgres:5432/exam_e2e`, `TEST_DATABASE_URL=postgresql://exam:exam@postgres:5432/exam_e2e`, `JWT_SECRET=e2e-test-secret`, `APP_MODE=e2e`, `NODE_ENV=test`, `DEPLOYMENT_MODE=singleTenant`, `E2E_BASE_URL=http://localhost:3000`, `E2E_SHARD_TOTAL=${{ matrix.shardTotal }}` (2), fast scanner intervals (`HEARTBEAT_TIMEOUT_MS=15000`, etc.), `RATE_LIMIT_MAX=1000`, `RATE_LIMIT_WINDOW_MS=60000` |
 | **Allowed resources** | PostgreSQL (`exam_e2e`), CPU, Chromium |
 | **Forbidden** | `exam` or `exam_test` databases, a host port that contradicts `DB_HOST_PORT` (default 5432) |
 | **Failure attribution** | Server startup → check `server.log`; test failure → check `test-results/`; shard-specific → check shard index |
@@ -559,9 +559,9 @@ dependencies (`docker-compose.dev.yml`).
 | **Cleanup ordering** | Strict: stop servers BEFORE `DROP DATABASE` (issue #256-A). DROP is loud (no `\|\| true`); failure surfaces DB name + PG error and escalates exit to sentinel 70 if tests passed |
 | **DB retention** | `E2E_KEEP_WORKER_DB_ON_FAILURE=1` retains `exam_e2e_w*` only on Playwright failure (success always cleans) |
 
-CI E2E (§6) uses GitHub Actions service containers plus a host Node/Playwright
-process — the same product contracts as the local runner, without a second
-repository-owned topology.
+CI E2E (§6) uses a GitHub Actions Playwright job container plus a PostgreSQL
+service container — the same product contracts as the local runner, without a
+second repository-owned application topology.
 
 ### 4.2 CI E2E Shard Rules
 
@@ -584,7 +584,7 @@ The shard still performs its real mutable/runtime work independently:
 
 1. install workspace dependencies;
 2. download the same-workflow build artifact;
-3. restore/install Chromium;
+3. verify that the manifest-versioned Playwright image contains Chromium (no install);
 4. migrate and seed its PostgreSQL service;
 5. start the API server;
 6. execute its Playwright shard.
@@ -777,7 +777,7 @@ E2E_WORKERS=4 bash scripts/e2e/run.sh
 | `matrix.shardTotal` | `[2]` |
 | `fail-fast` | `true` |
 | `build input` | same-workflow `verify-build` artifact (`packages/*/dist`, `apps/api/dist`, `apps/web/dist`) |
-| `browser cache` | `~/.cache/ms-playwright`, keyed by OS + E2E package/lockfile state |
+| `browser runtime` | Official prebuilt Noble image, tag sourced from `apps/e2e/package.json` through `verify-build` output; no browser/OS dependency download step |
 
 ### Failure Artifact Contract
 
