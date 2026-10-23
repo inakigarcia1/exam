@@ -501,6 +501,8 @@ jobs:
     needs: verify-build
 
     env:
+      # Both jobs consume one canonical image exported by the Build job.
+      PLAYWRIGHT_IMAGE: ${{ needs.verify-build.outputs.playwright_image }}
       REHEARSAL_PORT: 18080
       REHEARSAL_ORIGIN: http://exam.test:18080
       REHEARSAL_TOKEN: ci-production-transport-rehearsal
@@ -524,20 +526,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Cache Playwright Chromium
-        id: playwright-cache
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-chromium-${{ hashFiles('apps/e2e/package.json', 'pnpm-lock.yaml') }}
-
-      - name: Install Playwright system dependencies
-        run: pnpm --filter @exam/e2e exec playwright install-deps chromium
-
-      - name: Install Playwright Chromium on cache miss
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: pnpm --filter @exam/e2e exec playwright install chromium
-
+      # Browser preparation is delegated to the same pinned Playwright image
+      # as the normal sharded E2E jobs. The host must remain Docker-capable to
+      # build and run the *real production* Compose topology below.
       - name: Build production images from this checkout
         run: |
           docker build --target runner -t exam-local:dev .
@@ -603,12 +594,32 @@ jobs:
           docker compose --env-file .env.production -f docker-compose.yml ps
 
       - name: Run production LAN HTTP transport spec
+        # Keep the real production Compose topology host-native. Only the
+        # browser test runs in the same preinstalled Playwright image as E2E.
+        # Non-localhost HTTP origin + DNS mapping remain a regression oracle.
         run: |
-          E2E_BASE_URL=${REHEARSAL_ORIGIN} \
-          E2E_HOST_MAP=exam.test=127.0.0.1 \
-          E2E_PROD_LAUNCHPAD_TOKEN=${REHEARSAL_TOKEN} \
-          E2E_TRACE=1 \
-          pnpm --filter @exam/e2e exec playwright test production-lan-http
+          # Fail closed if the existing Build job's output drifts from the
+          # single manifest-derived image resolver used by both E2E paths.
+          EXPECTED_PLAYWRIGHT_IMAGE="$(node scripts/ci/playwright-runtime.mjs image)"
+          test -n "$PLAYWRIGHT_IMAGE"
+          if [ "$PLAYWRIGHT_IMAGE" != "$EXPECTED_PLAYWRIGHT_IMAGE" ]; then
+            echo "::error::Build Playwright image differs from the common runtime contract" >&2
+            exit 1
+          fi
+          docker run --rm --init --network host --ipc=host \
+            --user "$(id -u):$(id -g)" \
+            --volume "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
+            --workdir "$GITHUB_WORKSPACE/apps/e2e" \
+            --env CI=true \
+            --env E2E_BASE_URL="$REHEARSAL_ORIGIN" \
+            --env E2E_HOST_MAP=exam.test=127.0.0.1 \
+            --env E2E_PROD_LAUNCHPAD_TOKEN="$REHEARSAL_TOKEN" \
+            --env E2E_TRACE=1 \
+            "$PLAYWRIGHT_IMAGE" \
+            sh -ec '
+              node ../../scripts/ci/playwright-runtime.mjs verify
+              exec node node_modules/@playwright/test/cli.js test production-lan-http
+            '
 
       - name: Capture stack logs on failure
         if: failure()
