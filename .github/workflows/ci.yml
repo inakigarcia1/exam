@@ -47,22 +47,6 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
 
-      - name: Resolve Playwright version from package manifest
-        id: playwright_version
-        # The build already gates both E2E jobs. Reuse it rather than adding
-        # a version-lookup job, extra install, or a second hardcoded pin.
-        run: |
-          node <<'NODE'
-          const fs = require('node:fs');
-          const pkg = JSON.parse(fs.readFileSync('apps/e2e/package.json', 'utf8'));
-          const version = pkg.devDependencies?.['@playwright/test'];
-          if (typeof version !== 'string' || !/^\\d+\\.\\d+\\.\\d+$/.test(version)) {
-            throw new Error('E2E requires an exact semver @playwright/test dependency');
-          }
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\n`);
-          console.log(`Playwright image version: ${version} (apps/e2e/package.json)`);
-          NODE
-
       - name: Restore Turbo cache
         uses: actions/cache@v5
         with:
@@ -102,6 +86,22 @@ jobs:
           node-version: "24.22.x"
           cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
+
+      - name: Resolve Playwright version from package manifest
+        id: playwright_version
+        # The build already gates both E2E jobs. Reuse it rather than adding
+        # a version-lookup job, extra install, or a second hardcoded pin.
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const pkg = JSON.parse(fs.readFileSync('apps/e2e/package.json', 'utf8'));
+          const version = pkg.devDependencies?.['@playwright/test'];
+          if (typeof version !== 'string' || !/^[0-9]+[.][0-9]+[.][0-9]+$/.test(version)) {
+            throw new Error('E2E requires an exact semver @playwright/test dependency');
+          }
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\n`);
+          console.log(`Playwright image version: ${version} (apps/e2e/package.json)`);
+          NODE
 
       - name: Restore Turbo cache
         uses: actions/cache@v5
