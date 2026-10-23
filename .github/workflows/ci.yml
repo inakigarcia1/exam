@@ -68,8 +68,8 @@ jobs:
     timeout-minutes: 10
     needs: static
     outputs:
-      # A single version authority: apps/e2e/package.json -> downstream image.
-      playwright_version: ${{ steps.playwright_version.outputs.version }}
+      # The same prebuilt browser image is consumed by normal and production E2E.
+      playwright_image: ${{ steps.playwright_runtime.outputs.image }}
 
     steps:
       - name: Checkout
@@ -87,21 +87,10 @@ jobs:
           cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
 
-      - name: Resolve Playwright version from package manifest
-        id: playwright_version
-        # The build already gates both E2E jobs. Reuse it rather than adding
-        # a version-lookup job, extra install, or a second hardcoded pin.
-        run: |
-          node <<'NODE'
-          const fs = require('node:fs');
-          const pkg = JSON.parse(fs.readFileSync('apps/e2e/package.json', 'utf8'));
-          const version = pkg.devDependencies?.['@playwright/test'];
-          if (typeof version !== 'string' || !/^[0-9]+[.][0-9]+[.][0-9]+$/.test(version)) {
-            throw new Error('E2E requires an exact semver @playwright/test dependency');
-          }
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\n`);
-          console.log(`Playwright image version: ${version} (apps/e2e/package.json)`);
-          NODE
+      - name: Resolve shared Playwright image
+        id: playwright_runtime
+        # apps/e2e/package.json is the sole version authority.
+        run: node scripts/ci/playwright-runtime.mjs github-output
 
       - name: Restore Turbo cache
         uses: actions/cache@v5
@@ -305,10 +294,10 @@ jobs:
   e2e:
     name: E2E (shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
     runs-on: ubuntu-latest
-    # The image tag is derived by verify-build from apps/e2e/package.json;
-    # Chromium and OS libraries are already present, no apt/browser installs.
+    # The existing Build job exports one canonical browser image reference.
+    # Chromium and system libraries are preinstalled (no runtime apt/downloads).
     container:
-      image: mcr.microsoft.com/playwright:v${{ needs.verify-build.outputs.playwright_version }}-noble
+      image: ${{ needs.verify-build.outputs.playwright_image }}
       options: --ipc=host
     timeout-minutes: 20
     needs: verify-build
@@ -378,20 +367,9 @@ jobs:
           name: build-outputs-${{ github.run_id }}
           path: .
 
-      - name: Verify Playwright browser runtime
-        # The lockfile install and image must agree with the same manifest.
-        # Prove the executable is present rather than downloading it on demand.
-        run: |
-          node <<'NODE'
-          const fs = require('node:fs');
-          const wanted = require('./apps/e2e/package.json').devDependencies['@playwright/test'];
-          const installed = require('./apps/e2e/node_modules/@playwright/test/package.json').version;
-          const { chromium } = require('./apps/e2e/node_modules/@playwright/test');
-          if (wanted !== installed || !fs.existsSync(chromium.executablePath())) {
-            throw new Error(`Playwright mismatch or missing image Chromium: wanted=${wanted}, installed=${installed}, browser=${chromium.executablePath()}`);
-          }
-          console.log(`Playwright ${installed} browser ready: ${chromium.executablePath()}`);
-          NODE
+      - name: Verify preinstalled Playwright browser
+        # The same fail-closed verifier also runs in the production browser job.
+        run: node scripts/ci/playwright-runtime.mjs verify
 
       - name: Stage web assets for API static serving
         run: |
