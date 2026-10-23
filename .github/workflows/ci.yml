@@ -67,6 +67,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: static
+    outputs:
+      # The same prebuilt browser image is consumed by normal and production E2E.
+      playwright_image: ${{ steps.playwright_runtime.outputs.image }}
 
     steps:
       - name: Checkout
@@ -83,6 +86,11 @@ jobs:
           node-version: "24.22.x"
           cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
+
+      - name: Resolve shared Playwright image
+        id: playwright_runtime
+        # apps/e2e/package.json is the sole version authority.
+        run: node scripts/ci/playwright-runtime.mjs github-output
 
       - name: Restore Turbo cache
         uses: actions/cache@v5
@@ -286,6 +294,11 @@ jobs:
   e2e:
     name: E2E (shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
     runs-on: ubuntu-latest
+    # The existing Build job exports one canonical browser image reference.
+    # Chromium and system libraries are preinstalled (no runtime apt/downloads).
+    container:
+      image: ${{ needs.verify-build.outputs.playwright_image }}
+      options: --ipc=host
     timeout-minutes: 20
     needs: verify-build
     strategy:
@@ -311,8 +324,8 @@ jobs:
           --health-retries=10
 
     env:
-      DATABASE_URL: postgresql://exam:exam@localhost:5432/exam_e2e
-      TEST_DATABASE_URL: postgresql://exam:exam@localhost:5432/exam_e2e
+      DATABASE_URL: postgresql://exam:exam@postgres:5432/exam_e2e
+      TEST_DATABASE_URL: postgresql://exam:exam@postgres:5432/exam_e2e
       JWT_SECRET: e2e-test-secret
       NODE_ENV: test
       APP_MODE: e2e
@@ -354,19 +367,9 @@ jobs:
           name: build-outputs-${{ github.run_id }}
           path: .
 
-      - name: Cache Playwright Chromium
-        id: playwright-cache
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-chromium-${{ hashFiles('apps/e2e/package.json', 'pnpm-lock.yaml') }}
-
-      - name: Install Playwright system dependencies
-        run: pnpm --filter @exam/e2e exec playwright install-deps chromium
-
-      - name: Install Playwright Chromium on cache miss
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: pnpm --filter @exam/e2e exec playwright install chromium
+      - name: Verify preinstalled Playwright browser
+        # The same fail-closed verifier also runs in the production browser job.
+        run: node scripts/ci/playwright-runtime.mjs verify
 
       - name: Stage web assets for API static serving
         run: |
@@ -498,6 +501,8 @@ jobs:
     needs: verify-build
 
     env:
+      # Both jobs consume one canonical image exported by the Build job.
+      PLAYWRIGHT_IMAGE: ${{ needs.verify-build.outputs.playwright_image }}
       REHEARSAL_PORT: 18080
       REHEARSAL_ORIGIN: http://exam.test:18080
       REHEARSAL_TOKEN: ci-production-transport-rehearsal
@@ -589,20 +594,11 @@ jobs:
           docker compose --env-file .env.production -f docker-compose.yml ps
 
       - name: Run production LAN HTTP transport spec
-        # Production Docker/Compose remains host-owned. Chromium runs inside
-        # the image matching the exact @playwright/test version in the manifest.
-        # The mapped hostname must remain a non-localhost origin for the cookie oracle.
+        # Keep the real production Compose topology host-native. Only the
+        # browser test runs in the same preinstalled Playwright image as E2E.
+        # Non-localhost HTTP origin + DNS mapping remain a regression oracle.
         run: |
-          PLAYWRIGHT_VERSION="$(node -p "require('./apps/e2e/package.json').devDependencies['@playwright/test']")"
-          if ! [[ "$PLAYWRIGHT_VERSION" =~ ^[0-9]+[.][0-9]+[.][0-9]+$ ]]; then
-            echo "Playwright version must be an exact semver in apps/e2e/package.json" >&2
-            exit 1
-          fi
-          INSTALLED_VERSION="$(node -p "require('./apps/e2e/node_modules/@playwright/test/package.json').version")"
-          if [[ "$PLAYWRIGHT_VERSION" != "$INSTALLED_VERSION" ]]; then
-            echo "Playwright version mismatch: declared=$PLAYWRIGHT_VERSION installed=$INSTALLED_VERSION" >&2
-            exit 1
-          fi
+          test -n "$PLAYWRIGHT_IMAGE"
           docker run --rm --init --network host --ipc=host \
             --user "$(id -u):$(id -g)" \
             --volume "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
@@ -612,10 +608,9 @@ jobs:
             --env E2E_HOST_MAP=exam.test=127.0.0.1 \
             --env E2E_PROD_LAUNCHPAD_TOKEN="$REHEARSAL_TOKEN" \
             --env E2E_TRACE=1 \
-            "mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble" \
+            "$PLAYWRIGHT_IMAGE" \
             sh -ec '
-              test -d /ms-playwright
-              test -x "$(node -p "require(\"@playwright/test\").chromium.executablePath()")"
+              node ../../scripts/ci/playwright-runtime.mjs verify
               exec node node_modules/@playwright/test/cli.js test production-lan-http
             '
 
