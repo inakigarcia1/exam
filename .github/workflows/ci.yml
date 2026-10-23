@@ -589,10 +589,20 @@ jobs:
           docker compose --env-file .env.production -f docker-compose.yml ps
 
       - name: Run production LAN HTTP transport spec
-        # The host still owns production Docker builds/Compose. Only the
-        # browser runs in the pinned Playwright image. Host networking keeps
-        # exam.test -> 127.0.0.1:18080 the real non-localhost HTTP origin.
+        # Production Docker/Compose remains host-owned. Chromium runs inside
+        # the image matching the exact @playwright/test version in the manifest.
+        # The mapped hostname must remain a non-localhost origin for the cookie oracle.
         run: |
+          PLAYWRIGHT_VERSION="$(node -p "require('./apps/e2e/package.json').devDependencies['@playwright/test']")"
+          if ! [[ "$PLAYWRIGHT_VERSION" =~ ^[0-9]+[.][0-9]+[.][0-9]+$ ]]; then
+            echo "Playwright version must be an exact semver in apps/e2e/package.json" >&2
+            exit 1
+          fi
+          INSTALLED_VERSION="$(node -p "require('./apps/e2e/node_modules/@playwright/test/package.json').version")"
+          if [[ "$PLAYWRIGHT_VERSION" != "$INSTALLED_VERSION" ]]; then
+            echo "Playwright version mismatch: declared=$PLAYWRIGHT_VERSION installed=$INSTALLED_VERSION" >&2
+            exit 1
+          fi
           docker run --rm --init --network host --ipc=host \
             --user "$(id -u):$(id -g)" \
             --volume "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" \
@@ -602,10 +612,10 @@ jobs:
             --env E2E_HOST_MAP=exam.test=127.0.0.1 \
             --env E2E_PROD_LAUNCHPAD_TOKEN="$REHEARSAL_TOKEN" \
             --env E2E_TRACE=1 \
-            mcr.microsoft.com/playwright:v1.61.0-noble \
+            "mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-noble" \
             sh -ec '
               test -d /ms-playwright
-              test "$(node -p "require(\"./node_modules/@playwright/test/package.json\").version")" = "1.61.0"
+              test -x "$(node -p "require(\"@playwright/test\").chromium.executablePath()")"
               exec node node_modules/@playwright/test/cli.js test production-lan-http
             '
 
