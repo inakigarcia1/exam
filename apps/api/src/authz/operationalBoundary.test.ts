@@ -213,13 +213,7 @@ describe("Operational RBAC Boundary", () => {
     });
 
     it("all operational responses are free of secrets and host paths", async () => {
-      const urls = [
-        "/api/system/health",
-        "/api/system/diagnostics",
-        "/api/system/backups",
-        "/api/system/restore-readiness",
-        "/api/system/ops-policy",
-      ];
+      const urls = ["/api/system/health", "/api/system/diagnostics"];
       for (const url of urls) {
         const res = await asAdmin("GET", url);
         expect(res.statusCode, `GET ${url}`).toBe(200);
@@ -228,6 +222,28 @@ describe("Operational RBAC Boundary", () => {
           /postgresql:\/\/|PGPASSWORD|SMTP_PASSWORD|JWT_SECRET|REDIS_PASSWORD|\/var\/lib|\/mnt\//i,
         );
       }
+    });
+  });
+
+  describe("Removed backup-evidence surface (ADR-023)", () => {
+    // INVARIANT: the five backup-evidence routes are deleted from the route
+    // table, so even the most privileged role gets 404 (unregistered route) —
+    // a 403 here would mean a live route is still gated behind a deleted
+    // permission key.
+    it.each([
+      ["GET", "/api/system/backups"],
+      ["GET", "/api/system/restore-readiness"],
+      ["GET", "/api/system/retention-readiness"],
+      ["GET", "/api/system/ops-policy"],
+      ["PUT", "/api/system/ops-policy"],
+    ] as const)("%s %s → 404 for Admin (route deleted)", async (m, url) => {
+      const res = await asAdmin(m, url, m === "PUT" ? {} : undefined);
+      expect(res.statusCode, `${m} ${url}`).toBe(404);
+    });
+
+    it("the deleted surface is equally absent for Maintainer", async () => {
+      const res = await asMaintainer("GET", "/api/system/backups");
+      expect(res.statusCode).toBe(404);
     });
   });
 

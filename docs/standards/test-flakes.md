@@ -2836,6 +2836,11 @@ CASE_ID = UNASSIGNED（AGGREGATION_BASIS = NONE）
 v1 缓解（保留）：无代码改动（不调 timeout、不 skip）；重套件串行执行（既有约定）。
 后续动作：若串行执行下同签名复发 ≥3 次，升级；届时再评估 build 探针测试的调度隔离。
 
+2026-10-24 后续：同 R1 受害者同签名第 2 次复发（OBS-2026-10-24-001，coverage lane，
+api/web 叠栈）；机制解释与本次登记一致（跨套件并行饱和，jsdom+Tiptap 时序敏感用例
+最先受害）。缓解从操作约定固化为 turbo 排序（`@exam/web#coverage` dependsOn
+`@exam/api#coverage`）；升级条款未触发（两次复发均在并行 lane，非串行执行）。
+
 ---
 
 ### OBS-2026-10-23-001 — `recoveryRepo.test.ts` 单点 5s 超时（v0.0.10 发布审计本地 coverage；宿主 node 版本与 `.nvmrc` 偏差上下文）
@@ -3012,6 +3017,121 @@ OWNER_DISPOSITION = 登记 + 在本 PR 内重跑 CI 获取新权威 run（失败
      total、页范围、行内容），跨身份行集契约显式归于 L2 `queryState`
      套件（A08/A09/A16）——与上表 NOT_COVERED 行一致。
   根因结论 `ORACLE_DEFECT_CAUSALLY_PROVEN` 维持不变；merge 仍为人工门禁。
+
+---
+
+### OBS-2026-10-24-001 — `pnpm verify` coverage lane web 三用例失败 + prosemirror unhandled error（api/web 覆盖率叠栈；PR-B 门禁首次全量验证）
+
+```text
+OBSERVED_AT = 2026-10-24（PR-B remove/backup-evidence-subsystem 强门禁 `pnpm verify`
+  首次执行；原 run 完整流未持久，仅末段 120KB 保全。本机复现 run：同日
+  web:coverage Start at 23:46:26+08:00）
+GIT_SHA = 2064953eb74e93177b3512809af9bd67efc5c23d（分支头；工作树含 PR-B 未提交
+  改动与第一轮评审注释修复。失败 run 与复现 run 代码一致——复现发生在调度修复
+  之前）
+BRANCH = remove/backup-evidence-subsystem（turbo.json 此前无 @exam/web#coverage
+  排序条目）
+COMMAND = `pnpm verify`（= verify:static && TEST_DB_ISOLATION=worker-database
+  API_TEST_MAX_WORKERS=4 turbo coverage && build && lint:prod-resolution）
+EXECUTION_TOPOLOGY = 本地 8 逻辑核 WSL2；turbo coverage task 无跨套件排序 →
+  @exam/api#coverage（4 vitest worker，真实 PG + v8 插桩）与 @exam/web#coverage
+  （4 jsdom fork + v8 插桩）同时执行（16 coverage task，14 cached）
+FAILED_FILE = ① apps/web/src/components/exam/RichTextAnswerInput.readTrust.test.tsx
+  ② apps/web/src/pages/admin/CoursePage.test.tsx ③
+  apps/web/src/pages/admin/QuestionPage.queryState.test.tsx；另 1 条 unhandled
+  error 源自 src/components/shared/content/richContentEditor.editableSync.test.tsx
+FAILED_TEST = ① R1 positive control: a string on a plain-mode slot upgrades into
+  the editor（"editor not mounted"：vi.waitFor 1s 预算内 .ProseMirror 未挂载，
+  用例 1028ms 失败）② B03: search queries the server full set and survives page
+  flips（testTimeout 5000ms，实测 5462ms）③ A08: a late out-of-order response for
+  another page never renders（testTimeout 5000ms，实测 5070ms）
+FAILURE_PHASE = it 体
+FAILURE_CLASS = 时序敏感用例在跨套件 CPU 饱和下超预算（waitFor 1s ×1、
+  testTimeout 5s ×2）+ 测试结束后 prosemirror scrollIntoView→coordsAtPos 的
+  DOM 测量落在 jsdom 上下文之后抛 TypeError: target.getClientRects is not a
+  function（unhandled error，独立触发 run 失败）
+ERROR = Tests: 3 failed | 2488 passed (2491)；Test Files: 3 failed | 171 passed
+  (174)；Errors: 1 error
+ASSERTION_FAILURE = NO（三失败均为时序类，无断言失配）
+AUTHORITATIVE_RUN_RESULT = FAIL（门禁 run 与本机复现 run 均 FAIL，结果不可被
+  重跑改写）
+HOST_OR_RUNNER_CONTEXT = 本地 WSL2 开发机（8 逻辑核）；CI 未出现本签名（web
+  testTimeout 在 CI 为 10s 预算，apps/web/vitest.config.ts testTimeout 注释）
+RERUN_EVIDENCE =
+  ① 同代码隔离重跑四个文件（无 coverage、无跨套件并发）：69/69 PASS
+     （A08 962ms、B03 1395ms），EXIT=0；
+  ② 结构修复（turbo.json 增加 "@exam/web#coverage": dependsOn
+     ["^build", "@exam/api#coverage"]，沿用 db→api 重套件串行既有约定）后完整
+     `pnpm verify` EXIT=0（2026-10-25 00:06+08:00 完成）：coverage 16/16 task
+     成功；api 220 files / 2782 tests passed（4 skipped）；web 174 files /
+     2491 tests passed、0 error；调度序证：web:coverage 首输出行紧随
+     api:coverage 末行（复现日志行 10150/10151）；web coverage Duration
+     269.98s（叠栈）→ 127.64s（串行）≈2.1×，与 vitest.config.ts 注释
+     "1.5–2x slower" 量级一致
+NONDETERMINISM_CONFIRMED = YES（同代码叠栈 FAIL + 同代码串行 PASS）
+CURRENT_CHANGE_CAUSALITY = PLAUSIBLY_UNRELATED（PR-B diff 未触达四个受害文件与
+  web vitest 配置；但删除测试/生产文件改变模块图与 lane 负载，调度级间接通道
+  非零，判 PLAUSIBLY_UNRELATED 而非 PROVEN（#741 先例同判）；同签名先例
+  OBS-2026-10-08-003 与 OBS-2026-10-23-001（同 lane 5s 超时）均早于本分支存在
+  于 master）
+ROOT_CAUSE_CONFIDENCE = HYPOTHESIS（跨套件叠栈 → 宿主饱和 → jsdom 时序敏感用例
+  超预算；未做饱和资源级（CPU/IO）归因）
+ROOT_CAUSE_HYPOTHESIS = turbo coverage task 无跨套件排序，api（4 worker）+ web
+  （4 fork）= 8 个 v8 插桩重进程压满 8 逻辑核；受害面=编辑器挂载等待（waitFor
+  1s）、5s 边际用例、测试结束后仍排队的 DOM 测量（prosemirror 依赖 jsdom 未实现
+  的 Range.getClientRects）
+FIRST_CAUSAL_DIVERGENCE = UNKNOWN
+CASE_ID = UNASSIGNED（AGGREGATION_BASIS = 签名级：与 OBS-2026-10-08-003 同受害
+  文件同失败签名（第 2 次），但该次 COMMAND 为 pnpm test、本次为 coverage lane
+  且受害集合扩大到 3+1；10-08-003 的升级条款为"串行执行下复发 ≥3 次"，两次均
+  非串行执行，不触发建案）
+OWNER_DISPOSITION = 登记 + 门禁修复：turbo.json 将 @exam/web#coverage 排序到
+  @exam/api#coverage 之后（把 10-08-003 的"重套件串行执行"操作约定固化为 task
+  图约束）；不调 timeout、不 skip、不降 worker、不降断言。修复 witness 见
+  RERUN_EVIDENCE ②
+```
+
+---
+
+### OBS-2026-10-25-001 — `pnpm verify` API coverage 三用例 5s 超时（PR-B rebase 后门禁；外部宿主饱和：已死会话孤儿 busy-loop）
+
+```text
+OBSERVED_AT = 2026-10-25 10:41–10:58 +08:00（PR-B remove/backup-evidence-subsystem
+  rebase 后 `pnpm verify` 与同代码 `--filter @exam/api coverage` 复跑）
+GIT_SHA = b2d8fdd4（PR-B 分支头；两轮失败与通过轮代码一致）
+BRANCH = remove/backup-evidence-subsystem
+COMMAND = `pnpm verify`；复跑 `TEST_DB_ISOLATION=worker-database
+  API_TEST_MAX_WORKERS=4 pnpm --filter @exam/api coverage`
+EXECUTION_TOPOLOGY = 本地 8 逻辑核 WSL2；turbo 已按 OBS-2026-10-24-001 修复串行
+  api→web coverage（无跨套件叠栈）；宿主 load average ≈17（8 核），由一个已死
+  zcode 会话（sess_dwf-dwfrun-…）孤儿化的 10+ 个 `while :; do :; done` busy-loop
+  shell 各占 ~63% CPU（其宿主脚本自带的 kill 清理因外层测试挂起未执行，进程已
+  reparent 到 /init）
+FAILED_FILE = ① apps/api/src/routes/audit.test.ts ② apps/api/src/routes/auth.test.ts
+  ③ apps/api/src/routes/httpSurfaceAuthority.test.ts（复跑轮 1 失败，victim 漂移）
+FAILED_TEST = ① audit export row-cap 拒绝 ② non-e2e mode enforces the route-level
+  login limiter（与 OBS-2026-08-31-001 同签名 victim）③ spec path is derived from
+  the single UI path authority
+FAILURE_CLASS = testTimeout 5000ms ×3（复跑 ×1，受害面漂移），无断言失配
+AUTHORITATIVE_RUN_RESULT = FAIL（两轮失败结果如实保留；第二轮复跑的 1 失败用例
+  身份因日志管道过滤未保全，记 UNKNOWN）
+RERUN_EVIDENCE = 清理孤儿 busy-loop（kill 孤儿进程树；非本仓库代码变更）后同代码
+  完整 `pnpm verify` EXIT=0（2026-10-25 11:10–11:25）：api 220 files / 2788
+  passed / 11 skipped、Duration 256s（过载轮 586s/409s → 恢复轮 256s，约 2.3×），
+  web 174 files / 2491 passed，build + lint:prod-resolution 通过
+NONDETERMINISM_CONFIRMED = YES（同代码：宿主过载 FAIL ×2 → 宿主恢复后全量 PASS；
+  唯一变量为外部 CPU 负载）
+CURRENT_CHANGE_CAUSALITY = PROVEN_UNRELATED（CONTROLLED_EXCLUSION：受害文件均不在
+  PR-B diff；操纵变量是外部宿主负载而非 diff；受害面在两轮失败间漂移）
+ROOT_CAUSE_CONFIDENCE = PROVEN（外部宿主饱和：孤儿 busy-loop 进程实测各 ~63% CPU、
+  load 17 → 清理后 → 4；失败仅出现在过载窗口）
+FIRST_CAUSAL_DIVERGENCE = N/A（外部负载，非代码路径）
+CASE_ID = UNASSIGNED（AGGREGATION_BASIS = 签名级：与 OBS-2026-08-31-001 /
+  OBS-2026-10-23-001 同为"宿主负载型 5s 超时"家族；本次根因为明确的可移除外部
+  进程负载，不触发建案）
+OWNER_DISPOSITION = 登记 + 环境处置：清理孤儿进程，不改任何测试/配置/timeout。
+  本机重跑重套件门禁前应先确认 load average 回落到核数以内
+```
 
 ---
 
