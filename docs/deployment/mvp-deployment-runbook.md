@@ -1089,6 +1089,10 @@ config                            — heartbeatInterval / heartbeatTimeout / dea
 [ ] Read CHANGELOG / release notes for breaking changes (version-skip
     restrictions / db major bumps are always announced there).
 [ ] Back up the database: ./scripts/db-backup.sh backup <path>.dump
+[ ] ADR-023 deployments only: if the five backup-evidence tables hold
+    rows, complete the preservation gate (upgrade-and-uninstall.md §2.7)
+    BEFORE `up -d` — otherwise the app intentionally fails to start on
+    migration 0045's evidence-preservation gate.
 [ ] Pull the new code: git pull.
 [ ] Run pnpm verify:static locally.
 [ ] Re-pin the images: .env.production EXAM_IMAGE / EXAM_WEB_IMAGE follow
@@ -1183,3 +1187,198 @@ Schedule backups with cron/systemd on the Docker host and copy the dumps
 off-host; retention is operator policy. The platform ships no backup
 scheduler, catalog, or retention engine, and no filesystem-level, physical
 (`pg_basebackup`), or WAL-archive/PITR mechanism.
+
+### 17.1 Operator obligations (retained; ADR-023)
+
+The product no longer owns backup evidence, RPO/RTO projection, or an
+ops-policy record (ADR-023 removed the backup-evidence subsystem and PR-C
+dropped its tables). The following obligations stay with the operator and
+have no product representation — record the deployment's profile and the
+drill/audit trail in the operator's own documentation:
+
+- **Scheduling & retention**: backup cadence, off-host copy destination, and
+  the retention horizon are operator decisions, enforced by host tooling.
+- **Recovery verification**: verification means an **actual restore into a
+  scratch database** using the isolated one-off container drill (§17.2) —
+  `pg_dump` exit 0 or dump-file existence alone proves nothing.
+  `db-backup.sh restore` is **not** a drill tool: it resolves its target
+  from the running production db container and DROP + CREATEs that
+  production database (`scripts/db-backup.sh` is production-stack-bound by
+  design and has no disposable-target mode), so running it "as a drill"
+  destroys production data. Database-level and application-level restore
+  acceptance are separate checks with separate evidence lines (§17.2);
+  neither implies the other.
+- **Recurring restore drills**: run the §17.2 drill on a cadence the
+  deployment profile commits to (the operator sets the cadence; the
+  product neither stores nor renders it).
+- **Profile record**: write down the deployment's RPO, RTO, retention
+  horizon, and drill cadence, and measure the drills against that record.
+- **Evidence honesty**: historical backup/restore evidence must not be
+  rendered greener than reality; absence of a recent verified drill is
+  reported as such in operator documentation, not silently elided.
+
+### 17.2 Restore drill — isolated one-off container
+
+The drill restores a dump into a throwaway PostgreSQL container that has no
+connection to the production stack, runs database-level acceptance against
+it, then destroys the container. The script is **fail-closed**: any
+failing step — container startup, readiness, `pg_restore`, acceptance
+SQL, or a negative control — aborts with a nonzero exit before anything
+can be recorded as verified, and an EXIT trap removes the drill container
+on success and failure paths alike. A drill that cannot fail proves
+nothing: before trusting an operator adaptation of this procedure, run it
+once against a known-bad dump (a truncated or corrupted copy) and confirm
+it refuses to report success.
+
+Isolation is enforced by the boundary itself, not by after-the-fact
+checks: the drill container shares no network, volume, env file, or
+compose project with the production stack, publishes no ports, and every
+command targets it by name through its local socket. Two scripted
+negative controls are tripwires on top of that boundary; both must stay
+in any operator adaptation of this procedure:
+
+1. **In-target identity assertion** — before any `pg_restore`, assert
+   `SELECT current_database()` in the drill target equals `exam_drill`.
+   If the drill is ever rerouted to the production db container (e.g.
+   "simplified" into `docker compose exec db …`), the assertion fails and
+   the drill aborts before writing anything.
+2. **Production canary, before and after** — a read-only fingerprint of
+   the production database taken before the drill and re-checked after
+   the drill must be identical. This is a **limited detection signal,
+   not a proof that production was untouched** — equal counts do not
+   exclude writes that leave the counted values unchanged; the actual
+   guarantee is the container/connection/storage boundary above. The
+   canary catches gross accidents: a drill that restored over production
+   resets it to dump-time values and fails here. On a system taking
+   writes during the drill this check fails conservatively — rerun the
+   canary pair in a quiet window rather than weakening the check.
+
+```bash
+DUMP=/mnt/nas/exam-20261025.dump            # the dump under test
+DRILL=exam-drill-$(date +%Y%m%d%H%M%S)      # throwaway container name
+PROD="docker compose --env-file .env.production -f docker-compose.yml"
+
+# --- fail-closed harness: any failing step aborts before a pass can be
+#     recorded, and the drill container is removed on the way out either
+#     way (paste and run the block as a whole, in bash)
+set -Eeuo pipefail
+cleanup() { docker rm -fv "$DRILL" >/dev/null 2>&1 || true; }
+trap cleanup EXIT
+
+# --- negative control 2a: production canary BEFORE the drill (read-only)
+DRILL_PGUSER="$($PROD exec -T db printenv POSTGRES_USER < /dev/null)"
+DRILL_PGDB="$($PROD exec -T db printenv POSTGRES_DB < /dev/null)"
+canary() {
+  $PROD exec -T db psql -U "$DRILL_PGUSER" -d "$DRILL_PGDB" -tAc \
+    "SELECT count(*) FROM users"
+  $PROD exec -T db psql -U "$DRILL_PGUSER" -d "$DRILL_PGDB" -tAc \
+    "SELECT count(*) FROM exams"
+  $PROD exec -T db psql -U "$DRILL_PGUSER" -d "$DRILL_PGDB" -tAc \
+    "SELECT max(id) FROM audit_logs"
+}
+canary > /tmp/drill-canary-before.txt
+
+# --- start the isolated one-off container (no shared network, volume,
+#     env file, or compose project with the production stack; the image
+#     refuses to boot without POSTGRES_PASSWORD — throwaway value, the
+#     container publishes no ports and all drill commands run via its
+#     local socket)
+docker run --rm -d --name "$DRILL" \
+  -e POSTGRES_PASSWORD=drill-disposable postgres:18.4-bookworm
+# Wait for the SECOND "ready to accept connections" log line: the image's
+# first-boot entrypoint starts a temporary initdb server that also accepts
+# connections before shutting down — a pg_isready loop alone can race that
+# window and fail on the socket gap. The wait is bounded and watches the
+# container state: a container that exits during startup (bad image,
+# entrypoint crash) or never becomes ready is an abort, not a hang.
+deadline=$((SECONDS + 120))
+until [ "$(docker logs "$DRILL" 2>&1 | grep -c \
+  'database system is ready to accept connections')" -ge 2 ]; do
+  if ! docker inspect -f '{{.State.Running}}' "$DRILL" 2>/dev/null \
+      | grep -q true; then
+    # --rm has already reaped the exited container, so its logs are gone;
+    # to diagnose a startup crash, rerun `docker run` without --rm.
+    echo "ABORT: drill container exited during startup (logs not kept by --rm)" >&2
+    exit 1
+  fi
+  if [ "$SECONDS" -ge "$deadline" ]; then
+    echo "ABORT: drill container not ready within 120s" >&2
+    exit 1
+  fi
+  sleep 1
+done
+docker exec "$DRILL" createdb -U postgres exam_drill
+
+# --- negative control 1: identity assertion BEFORE any restore
+[ "$(docker exec "$DRILL" psql -U postgres -d exam_drill -tAc \
+     'SELECT current_database()')" = "exam_drill" ] || {
+  echo "ABORT: drill target is not exam_drill — isolation broken"
+  exit 1
+}
+
+# --- restore (stdin restore mirrors db-backup.sh; parallel restore -j>1
+#     would need the dump as a real file inside the container). A corrupt
+#     or truncated dump fails here and the drill aborts — nonzero exit,
+#     container removed by the trap, nothing recorded as verified.
+if ! docker exec -i "$DRILL" pg_restore -U postgres --no-owner -d exam_drill \
+  < "$DUMP"; then
+  echo "DRILL FAILED: pg_restore rejected the dump (corrupt, truncated, or not a custom-format archive?)" >&2
+  exit 1
+fi
+
+# --- database-level acceptance (ON_ERROR_STOP + set -e: a failing query
+#     aborts the drill instead of printing an empty result)
+docker exec "$DRILL" psql -U postgres -d exam_drill -v ON_ERROR_STOP=1 -tAc \
+  "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public'"
+docker exec "$DRILL" psql -U postgres -d exam_drill -v ON_ERROR_STOP=1 -tAc \
+  "SELECT count(*) FROM users"
+docker exec "$DRILL" psql -U postgres -d exam_drill -v ON_ERROR_STOP=1 -tAc \
+  "SELECT count(*) FROM exam_attempts"
+docker exec "$DRILL" psql -U postgres -d exam_drill -v ON_ERROR_STOP=1 -tAc \
+  "SELECT count(*) FROM pg_constraint WHERE connamespace = 'public'::regnamespace AND contype = 'f'"
+
+# --- teardown (also removes the anonymous data volume; the trap makes it
+#     idempotent on failure paths)
+docker rm -fv "$DRILL" >/dev/null
+
+# --- negative control 2b: production canary AFTER the drill — identical
+canary > /tmp/drill-canary-after.txt
+diff /tmp/drill-canary-before.txt /tmp/drill-canary-after.txt || {
+  echo "ABORT: production canary changed — the drill touched production"
+  exit 1
+}
+```
+
+Acceptance is recorded as two separate evidence lines; a pass on one line
+must never be recorded as the other. A drill that aborted at any step —
+container startup, readiness timeout, `pg_restore`, an acceptance query,
+or a negative control — is recorded as **FAILED with the failing step**;
+the abort message and nonzero exit are the failure evidence, and the run
+must not be softened into a partial pass.
+
+- **Database-level acceptance (every drill)**: `pg_restore` exit 0; the
+  restored `public` schema contains the table set of the release the dump
+  came from; the foreign-key count matches that release's schema;
+  spot-check tables (`users`, `exam_attempts`) hold the row counts
+  expected at dump time. `pg_restore` warnings about ownership or ACLs
+  are normal with `--no-owner`; errors are not.
+- **Application-level acceptance (separate, heavier, optional per
+  drill)**: start a throwaway app instance pointed at a drill-restored
+  copy — never the production app, and never a `DATABASE_URL` that names
+  the production database — and verify application startup, the
+  healthcheck (`/api/health`), and one critical business invariant (e.g.
+  an admin login against restored credentials, or an exam-attempt
+  read-back). A dump taken before a schema-changing release restores to
+  that release's schema; verifying an old dump with a newer app means
+  letting the throwaway instance migrate forward deliberately, and
+  recording that the acceptance covered the migrated state, not the
+  dumped state.
+
+Notes:
+
+- Match the drill image's major version to the production server
+  (`postgres:18.4-bookworm` in the shipped `docker-compose.yml`); a newer
+  major "restores" through an unsupported in-place upgrade and proves
+  less.
+- The drill reads no production secrets beyond the compose-level env the
+  canary queries already require; the dump file is its only data input.
