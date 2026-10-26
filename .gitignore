@@ -17,6 +17,7 @@ coverage/
 .claude/skills/
 apps/api/public/
 .claude/
+.cursor/
 .zcode/
 .mimocode/
 
@@ -37,6 +38,7 @@ mutation-campaign-results/
 
 # UI patrol / GUI-test artifacts (evidence dirs, never tracked)
 .tmp/
+.tmp-*/
 gui-test-screenshots/
 apps/e2e/test-results-patrol/
 .zcodeignore
