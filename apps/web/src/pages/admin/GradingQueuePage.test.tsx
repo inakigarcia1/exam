@@ -131,13 +131,13 @@ describe("GradingQueuePage", () => {
       pageSize: 20,
     });
     renderPage();
-    expect(await screen.findByText("暂无待评分的试卷")).toBeInTheDocument();
+    expect(await screen.findByText("No hay exámenes por calificar")).toBeInTheDocument();
   });
 
   it("shows error state on fetch failure", async () => {
     getMock.mockRejectedValue(new Error("Network error"));
     renderPage();
-    expect(await screen.findByText("加载评分队列失败")).toBeInTheDocument();
+    expect(await screen.findByText("No se pudo cargar la cola de calificación")).toBeInTheDocument();
   });
 
   it("clicking a row navigates to grading detail", async () => {
@@ -155,10 +155,10 @@ describe("GradingQueuePage", () => {
   it("retry button re-fetches data on error", async () => {
     getMock.mockRejectedValueOnce(new Error("fail"));
     renderPage();
-    await screen.findByText("加载评分队列失败");
+    await screen.findByText("No se pudo cargar la cola de calificación");
 
     getMock.mockResolvedValue(mockQueueData);
-    await userEvent.setup().click(screen.getByText("重试"));
+    await userEvent.setup().click(screen.getByText("Reintentar"));
     const table = await screen.findByRole("table");
     expect(within(table).getByText("张三")).toBeInTheDocument();
   });

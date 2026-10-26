@@ -274,7 +274,7 @@ function LockedOverlay({
  * does NOT duplicate role/aria-live on the outer div — a duplicate role would
  * cause some screen readers to announce the same alert region twice. The
  * retry button is auto-focused on mount so keyboard users land directly on
- * the primary recovery action without an extra Tab through "返回考试列表".
+ * the primary recovery action without an extra Tab through "Volver a los exámenes".
  */
 function RestoreFailedSurface({
   onRetry,
@@ -759,7 +759,7 @@ export function TakeExamPage() {
       // authoritative seam — disabled controls alone are NOT sufficient.
       if (!viewRef.current?.canSave) {
         // Nothing was sent — the answer stays UNACKNOWLEDGED. Resolve the
-        // chip (never leave 保存中 stuck), and reject so the save queue
+        // chip (never leave Guardando stuck), and reject so the save queue
         // records the question failed instead of silently marking it saved.
         setSaveState("idle");
         setTransientState((s) => transientReducer(s, { type: "RESET" }));
@@ -974,7 +974,7 @@ export function TakeExamPage() {
     await runSubmitFlush();
   }, [runSubmitFlush, attemptId]);
 
-  /** Cancels the submit confirmation dialog (继续答题 button). */
+  /** Cancels the submit confirmation dialog (Seguir respondiendo button). */
   const cancelSubmitDialog = useCallback(() => {
     if (!attemptId) return;
     trackExamEvent("submit_confirm_cancelled", {}, { attemptId });

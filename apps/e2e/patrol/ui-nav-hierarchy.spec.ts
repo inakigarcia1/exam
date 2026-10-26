@@ -8,8 +8,8 @@
  * routed descendants (new/detail/edit/scores/proctor/monitor/import/…) do not
  * make the shell "look like a different sidebar" or lose the current item.
  *
- * The questions import tile is the exactly-one negative control: 题目导入 is
- * current, 题目管理 is NOT (a naive prefix matcher would light both).
+ * The questions import tile is the exactly-one negative control: Importar preguntas is
+ * current, Gestión de preguntas is NOT (a naive prefix matcher would light both).
  *
  * Output: .tmp/ui-patrol/hier-<sha>-<ts>/ — sheets/NAV-HIERARCHY-*.png (+
  * -sidebars.png crops), comparison-sets.json, REVIEW-PROMPT.md, progress.log.
@@ -295,7 +295,7 @@ test.describe.serial("UI patrol — Set E navigation hierarchy", () => {
         reviewNotes: [
           `Every tile must keep "${set.destinationLabel}" current — a different current destination or a missing current is a defect.`,
           "A changed nav scrollTop is EXPECTED only when required to reveal the current item.",
-          "Questions stop 04: 题目导入 current and 题目管理 NOT current (exactly-one).",
+          "Questions stop 04: Importar preguntas current and Gestión de preguntas NOT current (exactly-one).",
         ],
         items,
       };

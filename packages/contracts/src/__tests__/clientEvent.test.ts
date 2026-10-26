@@ -64,7 +64,7 @@ describe("ClientEventSchema", () => {
 
   it("rejects a name with spaces / free-form prose", () => {
     const result = ClientEventSchema.safeParse(
-      baseEvent({ name: "刷新失败 提示" }),
+      baseEvent({ name: "刷新失败 Avisos" }),
     );
     expect(result.success).toBe(false);
   });

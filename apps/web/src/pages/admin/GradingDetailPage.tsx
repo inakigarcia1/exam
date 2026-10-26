@@ -109,8 +109,8 @@ function formatAnswer(answer: unknown): string {
 
 /**
  * Formats the frozen standardAnswer for the grader. A null/empty reference
- * answer renders as "未设置" (not set) — distinct from the candidate's
- * "未作答" (unanswered) label, because a missing reference answer is a
+ * answer renders as "Sin definir" (not set) — distinct from the candidate's
+ * "Sin responder" (unanswered) label, because a missing reference answer is a
  * question-authoring state, not a candidate omission.
  *
  * standardAnswer is typed `unknown` on the wire (z.unknown()). Production
@@ -270,7 +270,7 @@ export function GradingDetailPage() {
   }, [loadDetail]);
 
   /**
-   * Click handler for the "提交评分" button. Validates the raw score input and,
+   * Click handler for the "Enviar calificación" button. Validates the raw score input and,
    * on success, opens the confirmation dialog instead of POSTing directly. The
    * dialog's confirm action runs {@link submitScore}. On a validation error the
    * field-level error is set and no dialog/POST happens.

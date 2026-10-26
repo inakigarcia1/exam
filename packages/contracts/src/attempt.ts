@@ -1025,7 +1025,7 @@ export type ExamAdmissionsResponse = z.infer<
  * `durationMinutes` is nullable exactly like `ExamSchema` — it is
  * null for deadline and untimed modes (no personal time limit). The canonical
  * `timingMode` (same authority as `CandidateExamSummarySchema`) is exposed so
- * the client keys its "不限时"/countdown copy on the mode, never on a null
+ * the client keys its "Sin límite de tiempo"/countdown copy on the mode, never on a null
  * duration.
  */
 export const CandidateExamDetailResponseSchema = z.object({

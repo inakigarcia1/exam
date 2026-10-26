@@ -357,7 +357,7 @@ describe("#785 admin list pagination / search / status contracts (B01–B10)", (
       const createdIds: string[] = [];
       for (let i = 0; i < size; i++) {
         const { profileId } = await insertCandidate({
-          name: `B01 考生 ${String(i).padStart(2, "0")}`,
+          name: `B01 Alumno ${String(i).padStart(2, "0")}`,
           username: `b01-c-${uniquePrefix()}-${i}`,
           createdAt: new Date(BASE_TIME.getTime() + i * 60_000),
         });
@@ -552,7 +552,7 @@ describe("#785 admin list pagination / search / status contracts (B01–B10)", (
     await clearOrgData();
     for (let i = 0; i < 25; i++) {
       await insertCourse({
-        name: `bulk785 课程${i}`,
+        name: `bulk785 Comisión${i}`,
         code: `B785-${String(i).padStart(3, "0")}`,
         createdAt: new Date(BASE_TIME.getTime() + i * 60_000),
       });
@@ -735,7 +735,7 @@ describe("#785 admin list pagination / search / status contracts (B01–B10)", (
       courseId,
     });
     const candidate = await insertCandidate({
-      name: "B05 考生",
+      name: "B05 Alumno",
       username: `b05-${uniquePrefix()}`,
     });
     const enrollmentId = await insertEnrollment(

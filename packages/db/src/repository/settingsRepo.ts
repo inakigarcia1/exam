@@ -96,7 +96,7 @@ export function createSettingsRepo(db: Database) {
       const settings = settingsRows[0] ?? null;
 
       return {
-        productName: settings?.productName ?? "LAN Exam Platform",
+        productName: settings?.productName ?? "Aki",
         ...(settings?.productSubtitle
           ? { productSubtitle: settings.productSubtitle }
           : {}),

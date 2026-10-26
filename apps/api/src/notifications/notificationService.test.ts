@@ -492,7 +492,7 @@ describe("dispatchExamAssigned (transaction integration, #299)", () => {
     expect(outboxRows[0]!.recipientEmail).toBe("cand@example.com");
     expect(outboxRows[0]!.recipientUserId).toBe(recipientUserId);
     expect(outboxRows[0]!.dedupeKey).toBe(`exam_assigned:${enrollmentId}`);
-    expect(outboxRows[0]!.subject).toBe("考试已安排");
+    expect(outboxRows[0]!.subject).toBe("Te asignaron un examen");
     expect(outboxRows[0]!.bodyText).toContain("Assigned Exam");
     expect(outboxRows[0]!.bodyText).toContain(`${PUBLIC_WEB_ORIGIN}/exam/list`);
   });

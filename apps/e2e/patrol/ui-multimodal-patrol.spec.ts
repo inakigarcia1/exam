@@ -465,7 +465,7 @@ test.describe.serial("UI-MULTIMODAL-PATROL-1", () => {
     teacherFixture = await createTeacherViaApi(
       request as unknown as APIRequestContext,
       {
-        name: "Patrol教师",
+        name: "PatrolDocente",
         usernamePrefix: "patrol-teacher",
       },
     );

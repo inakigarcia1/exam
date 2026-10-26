@@ -2,7 +2,7 @@
 //
 // Pure formatter. Produces a concise, author-friendly one-line summary of a
 // profile (or any ExamProfilePolicyDefaults-shaped value), e.g.:
-//   "60 分钟 · 最晚进入 15 分钟 · 最多 2 次 · 取最高分 · 阅卷完成后公布 · 断线有限补时"
+//   "60 分钟 · 最晚进入 15 分钟 · 最多 2 次 · El puntaje más alto · 阅卷完成后公布 · 断线有限补时"
 //
 // Used by: profile list row, wizard resolved-policy preview, wizard review.
 // It carries NO policy authority — it only renders values that already exist.

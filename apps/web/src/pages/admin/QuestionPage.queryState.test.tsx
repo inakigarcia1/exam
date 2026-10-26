@@ -114,7 +114,7 @@ function mockPaginated(total: number, prefix = "第") {
       // the requested one — echoing the request would hide the case-folding
       // rule the page has to implement.
       const id = url.slice("/api/courses/".length).toLowerCase();
-      return { id, name: `课程${id}`, code: id.toUpperCase() };
+      return { id, name: `Comisión${id}`, code: id.toUpperCase() };
     }
     if (url.startsWith("/api/courses")) {
       return {
@@ -241,7 +241,7 @@ describe("QuestionPage URL query state (#784 A3)", () => {
       "/admin/questions?courseId=course-2&type=fill_blank&difficulty=3&page=3",
     );
 
-    await screen.findByText("题目管理");
+    await screen.findByText("Gestión de preguntas");
     // The request is exactly what the parameter table derives.
     await waitFor(() => {
       const last = questionsCalls().at(-1) ?? "";
@@ -256,11 +256,11 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     );
     expect(courseTrigger()).toHaveTextContent("课程二");
     expect(
-      screen.getByRole("combobox", { name: "按题型筛选" }),
-    ).toHaveTextContent("填空题");
+      screen.getByRole("combobox", { name: "Filtrar por tipo" }),
+    ).toHaveTextContent("Completar espacios");
     expect(
-      screen.getByRole("combobox", { name: "按难度筛选" }),
-    ).toHaveTextContent("难度 3");
+      screen.getByRole("combobox", { name: "Filtrar por dificultad" }),
+    ).toHaveTextContent("Dificultad 3");
     // ...and the URL still carries them.
     expect(urlSearch()).toContain("page=3");
     expect(urlSearch()).toContain("courseId=course-2");
@@ -273,7 +273,7 @@ describe("QuestionPage URL query state (#784 A3)", () => {
       "/admin/questions?tags=%E5%87%A0%E4%BD%95,%E4%BB%A3%E6%95%B0,%E4%BB%A3%E6%95%B0&search=%E5%AF%BC%E8%88%AA&page=2",
     );
 
-    await screen.findByText("题目管理");
+    await screen.findByText("Gestión de preguntas");
     await waitFor(() => {
       const last = questionsCalls().at(-1) ?? "";
       expect(last).toContain("page=2");
@@ -289,7 +289,7 @@ describe("QuestionPage URL query state (#784 A3)", () => {
       );
     });
     // The search box reflects the committed term.
-    expect(screen.getByLabelText("搜索题目")).toHaveValue("导航");
+    expect(screen.getByLabelText("Buscar preguntas")).toHaveValue("导航");
   });
 
   // ── A07 (L2) — illegal and repeated parameters never reach the API ──
@@ -297,7 +297,7 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     mockPaginated(61);
     renderPage("/admin/questions?page=abc");
 
-    await screen.findByText("题目管理");
+    await screen.findByText("Gestión de preguntas");
     await waitFor(() => {
       expect(within(desktopShell()).getByText("第1题")).toBeInTheDocument();
     });
@@ -312,7 +312,7 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     mockPaginated(61);
     renderPage("/admin/questions?type=bogus_type&difficulty=9");
 
-    await screen.findByText("题目管理");
+    await screen.findByText("Gestión de preguntas");
     await waitFor(() => {
       const last = questionsCalls().at(-1) ?? "";
       expect(last).toContain("/api/questions?page=1&pageSize=20");
@@ -328,7 +328,7 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     mockPaginated(61);
     renderPage("/admin/questions?page=0&page=2");
 
-    await screen.findByText("题目管理");
+    await screen.findByText("Gestión de preguntas");
     // Taking the LAST value would query page 2 and keep `page=2` in the URL.
     await waitFor(() => {
       const last = questionsCalls().at(-1) ?? "";
@@ -341,7 +341,7 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     mockPaginated(61);
     renderPage("/admin/questions?page=1&type=fill_blank");
 
-    await screen.findByText("题目管理");
+    await screen.findByText("Gestión de preguntas");
     await waitFor(() => expect(urlSearch()).not.toContain("page="));
     expect(urlSearch()).toContain("type=fill_blank");
   });
@@ -380,8 +380,8 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     );
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "下一页" }));
-    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await user.click(screen.getByRole("button", { name: "Página siguiente" }));
+    await user.click(screen.getByRole("button", { name: "Página siguiente" }));
     await waitFor(() => expect(pending).toHaveLength(3));
     const page2 = pending[1]!;
     const page3 = pending[2]!;
@@ -447,10 +447,10 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     // The new identity is in flight: no old row anywhere in the document, no
     // empty state, no actionable row control, and no stale row action.
     expect(screen.queryByText("第1题")).not.toBeInTheDocument();
-    expect(screen.queryByText("暂无题目")).not.toBeInTheDocument();
-    expect(screen.queryByText("未找到匹配的题目")).not.toBeInTheDocument();
+    expect(screen.queryByText("No hay preguntas")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ninguna pregunta coincide")).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "编辑题目" }),
+      screen.queryByRole("button", { name: "Editar pregunta" }),
     ).not.toBeInTheDocument();
 
     await act(async () => {
@@ -507,15 +507,15 @@ describe("QuestionPage URL query state (#784 A3)", () => {
 
     const user = userEvent.setup();
     // One settled turn so the effect re-measures through the stub.
-    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await user.click(screen.getByRole("button", { name: "Página siguiente" }));
     await waitFor(() =>
       expect(within(desktopShell()).getByText("第21题")).toBeInTheDocument(),
     );
 
     // A cross-identity change: the old rows are gone from the body, so only the
     // reservation can keep the region from collapsing.
-    await user.click(screen.getByRole("combobox", { name: "按难度筛选" }));
-    await user.click(await screen.findByRole("option", { name: "难度 3" }));
+    await user.click(screen.getByRole("combobox", { name: "Filtrar por dificultad" }));
+    await user.click(await screen.findByRole("option", { name: "Dificultad 3" }));
 
     await waitFor(() => expect(box.style.minHeight).toBe(`${measured}px`));
     expect(
@@ -526,7 +526,7 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     // Both representations render the copy (desktop table and mobile cards).
     await waitFor(() =>
       expect(
-        within(desktopShell()).getByText("未找到匹配的题目"),
+        within(desktopShell()).getByText("Ninguna pregunta coincide"),
       ).toBeInTheDocument(),
     );
     // Settled again: the reservation follows the new body, so a later page does
@@ -569,7 +569,7 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     );
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await user.click(screen.getByRole("button", { name: "Página siguiente" }));
 
     // Page turn: the previous slice stays, with the in-flight signal, and no
     // empty state — the shell must NOT be replaced by a loading placeholder.
@@ -577,8 +577,8 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     expect(
       desktopShell().querySelector('[aria-busy="true"]'),
     ).toBeInTheDocument();
-    expect(screen.queryByText("暂无题目")).not.toBeInTheDocument();
-    expect(screen.queryByText("未找到匹配的题目")).not.toBeInTheDocument();
+    expect(screen.queryByText("No hay preguntas")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ninguna pregunta coincide")).not.toBeInTheDocument();
 
     await act(async () => {
       resolvePage2(pagePayload(2, 41));
@@ -626,8 +626,8 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     expect(calls.map((c) => c.match(/page=(\d+)/)?.[1])).toEqual(["3", "2"]);
     // The URL now names the page that is actually rendered.
     expect(urlSearch()).toContain("page=2");
-    expect(screen.queryByText("未找到匹配的题目")).not.toBeInTheDocument();
-    expect(screen.queryByText("暂无题目")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ninguna pregunta coincide")).not.toBeInTheDocument();
+    expect(screen.queryByText("No hay preguntas")).not.toBeInTheDocument();
   });
 
   it("A10: an out-of-range page with no records at all recovers to page 1", async () => {
@@ -653,7 +653,7 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     renderPage("/admin/questions?page=4");
     await waitFor(() => expect(urlSearch()).not.toContain("page="));
     await waitFor(() =>
-      expect(within(desktopShell()).getByText("暂无题目")).toBeInTheDocument(),
+      expect(within(desktopShell()).getByText("No hay preguntas")).toBeInTheDocument(),
     );
   });
 
@@ -702,7 +702,7 @@ describe("QuestionPage URL query state (#784 A3)", () => {
       renderPage();
       await act(async () => {});
 
-      fireEvent.change(screen.getByLabelText("搜索题目"), {
+      fireEvent.change(screen.getByLabelText("Buscar preguntas"), {
         target: { value: "导航" },
       });
       // ONE act: the debounce deadline and the immediate page write land in the
@@ -712,7 +712,7 @@ describe("QuestionPage URL query state (#784 A3)", () => {
       // survives.
       await act(async () => {
         await vi.advanceTimersByTimeAsync(300);
-        fireEvent.click(screen.getByRole("button", { name: "下一页" }));
+        fireEvent.click(screen.getByRole("button", { name: "Página siguiente" }));
       });
 
       expect(urlSearch()).toContain("search=");
@@ -733,11 +733,11 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     await waitFor(() =>
       expect(within(desktopShell()).getByText("第1题")).toBeInTheDocument(),
     );
-    expect(screen.getByLabelText("搜索题目")).toHaveValue("abc");
+    expect(screen.getByLabelText("Buscar preguntas")).toHaveValue("abc");
 
     // Type, then navigate away BEFORE the debounce deadline. The draft belongs
     // to an entry the user has left, so it must neither land nor survive.
-    fireEvent.change(screen.getByLabelText("搜索题目"), {
+    fireEvent.change(screen.getByLabelText("Buscar preguntas"), {
       target: { value: "abcd" },
     });
     await act(async () => {
@@ -749,7 +749,7 @@ describe("QuestionPage URL query state (#784 A3)", () => {
       await new Promise((resolve) => setTimeout(resolve, 400));
     });
     expect(urlSearch()).not.toContain("search=");
-    expect(screen.getByLabelText("搜索题目")).toHaveValue("");
+    expect(screen.getByLabelText("Buscar preguntas")).toHaveValue("");
   });
 
   it("A12(d): a page-authored write does NOT cancel the draft the user typed", async () => {
@@ -765,7 +765,7 @@ describe("QuestionPage URL query state (#784 A3)", () => {
       await act(async () => {});
       await act(async () => {});
 
-      fireEvent.change(screen.getByLabelText("搜索题目"), {
+      fireEvent.change(screen.getByLabelText("Buscar preguntas"), {
         target: { value: "abcd" },
       });
       // An immediate write this page makes (a page turn) must not be mistaken
@@ -773,9 +773,9 @@ describe("QuestionPage URL query state (#784 A3)", () => {
       // to the committed term would also cancel the pending commit, so the term
       // the user typed would never land.
       await act(async () => {
-        fireEvent.click(screen.getByRole("button", { name: "下一页" }));
+        fireEvent.click(screen.getByRole("button", { name: "Página siguiente" }));
       });
-      expect(screen.getByLabelText("搜索题目")).toHaveValue("abcd");
+      expect(screen.getByLabelText("Buscar preguntas")).toHaveValue("abcd");
       expect(urlSearch()).toContain("page=2");
       expect(urlSearch()).toContain("search=abc");
 
@@ -784,7 +784,7 @@ describe("QuestionPage URL query state (#784 A3)", () => {
       await act(async () => {
         await vi.advanceTimersByTimeAsync(300);
       });
-      expect(screen.getByLabelText("搜索题目")).toHaveValue("abcd");
+      expect(screen.getByLabelText("Buscar preguntas")).toHaveValue("abcd");
       expect(urlSearch()).toContain("search=abcd");
       expect(questionsCalls().at(-1) ?? "").toContain("search=abcd");
     } finally {
@@ -920,7 +920,7 @@ describe("QuestionPage URL query state (#784 A3)", () => {
 
     failProbe = false;
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "重试" }));
+    await user.click(screen.getByRole("button", { name: "Reintentar" }));
     await waitFor(() => expect(courseTrigger()).toHaveTextContent("第九课程"));
     expect(questionsCalls().at(-1) ?? "").toContain("courseId=course-9");
   });
@@ -1095,14 +1095,14 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     // Start the delete, then move to page 2 while its confirmation is still in
     // flight.
     await user.click(
-      within(desktopShell()).getAllByRole("button", { name: "删除题目" })[0]!,
+      within(desktopShell()).getAllByRole("button", { name: "Eliminar pregunta" })[0]!,
     );
     await user.click(
       within(await screen.findByRole("alertdialog")).getByRole("button", {
-        name: "确认",
+        name: "Confirmar",
       }),
     );
-    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await user.click(screen.getByRole("button", { name: "Página siguiente" }));
     await waitFor(() => expect(urlSearch()).toContain("page=2"));
     await waitFor(() =>
       expect(within(desktopShell()).getByText("第21题")).toBeInTheDocument(),
@@ -1143,8 +1143,8 @@ describe("QuestionPage URL query state (#784 A3)", () => {
 
     renderPage();
     const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent("加载考生列表失败");
-    expect(screen.queryByText("加载中...")).not.toBeInTheDocument();
+    expect(alert).toHaveTextContent("No se pudo cargar la lista de alumnos");
+    expect(screen.queryByText("Cargando...")).not.toBeInTheDocument();
   });
 
   it("A16: a cross-identity failure takes over the page and drops the old rows", async () => {
@@ -1178,7 +1178,7 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     await user.click(courseTrigger());
     await user.click(await screen.findByRole("option", { name: "课程二" }));
     const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent("加载考生列表失败");
+    expect(alert).toHaveTextContent("No se pudo cargar la lista de alumnos");
     // The old identity's rows are not shown next to the error, and the shell
     // that could keep them is gone.
     expect(screen.queryByText("第1题")).not.toBeInTheDocument();
@@ -1193,7 +1193,7 @@ describe("QuestionPage URL query state (#784 A3)", () => {
         // Resolvable (so the filter survives normalization) but the LIST
         // request for it fails — the failure under test.
         const id = url.slice("/api/courses/".length);
-        return Promise.resolve({ id, name: `课程${id}`, code: "G" });
+        return Promise.resolve({ id, name: `Comisión${id}`, code: "G" });
       }
       if (url.startsWith("/api/courses")) {
         return Promise.resolve({
@@ -1214,7 +1214,7 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     // Entry 1 is the bare list; entry 2 (current) is the failing query.
     renderPage(["/admin/questions", "/admin/questions?courseId=ghost"]);
     const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent("加载考生列表失败");
+    expect(alert).toHaveTextContent("No se pudo cargar la lista de alumnos");
 
     await user.click(screen.getByRole("button", { name: "后退" }));
     await waitFor(() =>
@@ -1247,12 +1247,12 @@ describe("QuestionPage URL query state (#784 A3)", () => {
       expect(within(desktopShell()).getByText("第1题")).toBeInTheDocument(),
     );
 
-    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await user.click(screen.getByRole("button", { name: "Página siguiente" }));
     // The shell survives (no page-level takeover) and the body states the
     // failure — the page-level error path would unmount the toolbar.
     await waitFor(() =>
       expect(
-        within(desktopShell()).getByText("加载考生列表失败"),
+        within(desktopShell()).getByText("No se pudo cargar la lista de alumnos"),
       ).toBeInTheDocument(),
     );
     expect(screen.getByRole("toolbar")).toBeInTheDocument();
@@ -1284,10 +1284,10 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     await waitFor(() =>
       expect(within(desktopShell()).getByText("第1题")).toBeInTheDocument(),
     );
-    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await user.click(screen.getByRole("button", { name: "Página siguiente" }));
     await waitFor(() =>
       expect(
-        within(desktopShell()).getByText("加载考生列表失败"),
+        within(desktopShell()).getByText("No se pudo cargar la lista de alumnos"),
       ).toBeInTheDocument(),
     );
 
@@ -1296,10 +1296,10 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     // page-turn window again — asserting only the settled state would let an
     // implementation that keys `failed` on the identity keep the old error row
     // (and its missing busy signal) on screen for the whole request.
-    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await user.click(screen.getByRole("button", { name: "Página siguiente" }));
     await waitFor(() => expect(page3Held).toBe(true));
     expect(
-      within(desktopShell()).queryByText("加载考生列表失败"),
+      within(desktopShell()).queryByText("No se pudo cargar la lista de alumnos"),
     ).not.toBeInTheDocument();
     expect(
       within(desktopShell()).getByRole("table").querySelector("tbody"),
@@ -1310,7 +1310,7 @@ describe("QuestionPage URL query state (#784 A3)", () => {
       expect(within(desktopShell()).getByText("第41题")).toBeInTheDocument(),
     );
     expect(
-      within(desktopShell()).queryByText("加载考生列表失败"),
+      within(desktopShell()).queryByText("No se pudo cargar la lista de alumnos"),
     ).not.toBeInTheDocument();
   });
 
@@ -1355,8 +1355,8 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     // names, and no empty state may be rendered.
     await waitFor(() => expect(urlSearch()).toContain("page=4"));
     expect(within(desktopShell()).queryByText("第1题")).not.toBeInTheDocument();
-    expect(screen.queryByText("未找到匹配的题目")).not.toBeInTheDocument();
-    expect(screen.queryByText("暂无题目")).not.toBeInTheDocument();
+    expect(screen.queryByText("Ninguna pregunta coincide")).not.toBeInTheDocument();
+    expect(screen.queryByText("No hay preguntas")).not.toBeInTheDocument();
 
     releaseClamp();
     await waitFor(() =>
@@ -1389,8 +1389,8 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     // The recovery refetch fails: the page must leave the pending state and
     // state the failure rather than loading forever.
     const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent("加载考生列表失败");
-    expect(screen.queryByText("加载中...")).not.toBeInTheDocument();
+    expect(alert).toHaveTextContent("No se pudo cargar la lista de alumnos");
+    expect(screen.queryByText("Cargando...")).not.toBeInTheDocument();
   });
 
   // ── A18 — a selected tag outside the vocabulary stays observable ──
@@ -1415,12 +1415,12 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     renderPage(
       "/admin/questions?tags=%E4%BB%A3%E6%95%B0,%E9%99%88%E6%97%A7%E6%A0%87%E7%AD%BE",
     );
-    await screen.findByText("题目管理");
-    expect(screen.getByRole("button", { name: "标签筛选" })).toHaveTextContent(
+    await screen.findByText("Gestión de preguntas");
+    expect(screen.getByRole("button", { name: "Filtro de etiquetas" })).toHaveTextContent(
       "代数 +1",
     );
 
-    await user.click(screen.getByRole("button", { name: "标签筛选" }));
+    await user.click(screen.getByRole("button", { name: "Filtro de etiquetas" }));
     // The non-vocabulary tag is listed as a checked option...
     const stale = await screen.findByRole("checkbox", { name: "陈旧标签" });
     expect(stale).toBeChecked();
@@ -1444,7 +1444,7 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     );
 
     await user.click(
-      within(desktopShell()).getAllByRole("button", { name: "编辑题目" })[0]!,
+      within(desktopShell()).getAllByRole("button", { name: "Editar pregunta" })[0]!,
     );
     expect(await screen.findByText("编辑页")).toBeInTheDocument();
     // The list URL is CARRIED, not merely left behind: the exit needs it to

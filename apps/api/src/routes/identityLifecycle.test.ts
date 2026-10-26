@@ -231,7 +231,7 @@ describe("staff invitation flow (#297)", () => {
       payload: {
         token,
         username: "revoked-invitee",
-        name: "已撤销",
+        name: "Revocada",
         password: "Sup3rSecret!",
       },
     });

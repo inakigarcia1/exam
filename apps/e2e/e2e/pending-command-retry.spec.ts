@@ -86,13 +86,13 @@ test.describe("pending operator-command retry identity", () => {
 
     // ── Open the misconduct dialog from the candidate card. Default severity
     //    is warning; enter notes "A".
-    const flagBtn = page.getByRole("button", { name: "标记违规" });
+    const flagBtn = page.getByRole("button", { name: "Marcar irregularidad" });
     await expect(flagBtn.first()).toBeVisible({ timeout: 15_000 });
     await flagBtn.first().click();
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible({ timeout: 15_000 });
-    await dialog.getByLabel("违规说明").fill("A");
-    await dialog.getByRole("button", { name: "确认标记" }).click();
+    await dialog.getByLabel("Descripción").fill("A");
+    await dialog.getByRole("button", { name: "Confirmar" }).click();
 
     // ── Indeterminate: the dialog keeps the frozen command and the inputs
     //    become read-only (severity + notes must NOT drift under replay).
@@ -101,11 +101,11 @@ test.describe("pending operator-command retry identity", () => {
     });
 
     // (a) Severity Select is disabled — the frozen severity cannot change.
-    await expect(dialog.getByLabel("严重程度")).toBeDisabled();
+    await expect(dialog.getByLabel("Gravedad")).toBeDisabled();
 
     // (b) Notes Textarea is disabled AND still shows the frozen value "A" —
     //     read-only under the same operationId.
-    const notesInput = dialog.getByLabel("违规说明");
+    const notesInput = dialog.getByLabel("Descripción");
     await expect(notesInput).toBeDisabled();
     await expect(notesInput).toHaveValue("A");
 
@@ -134,8 +134,8 @@ test.describe("pending operator-command retry identity", () => {
     expect(storedBefore[0]!.value.command.attemptId).toBe(targetAttemptId);
 
     // ── Retry from the dialog: replays the frozen command verbatim.
-    await dialog.getByRole("button", { name: "重试违规标记" }).click();
-    await expect(page.getByText("已标记违规").first()).toBeVisible({
+    await dialog.getByRole("button", { name: "Reintentar la marca" }).click();
+    await expect(page.getByText("Irregularidad marcada").first()).toBeVisible({
       timeout: 15_000,
     });
 

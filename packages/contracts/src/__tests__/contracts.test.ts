@@ -59,7 +59,7 @@ describe("common contracts", () => {
     const result = ErrorResponseSchema.safeParse({
       error: {
         code: "RESOURCE_NOT_FOUND",
-        message: "资源不存在",
+        message: "No existe",
       },
     });
 
@@ -70,7 +70,7 @@ describe("common contracts", () => {
     const result = ErrorResponseSchema.parse({
       error: {
         code: "VALIDATION_ERROR",
-        message: "请求参数无效",
+        message: "Los datos no son válidos",
         details: {
           fields: [
             {
@@ -111,7 +111,7 @@ describe("message registry", () => {
 
   it("getErrorMessage returns the registry message for a valid code", () => {
     expect(getErrorMessage("AUTH_REQUIRED")).toBe(errorMessages.AUTH_REQUIRED);
-    expect(getErrorMessage("RATE_LIMITED")).toBe("请求过于频繁，请稍后重试");
+    expect(getErrorMessage("RATE_LIMITED")).toBe("Demasiados pedidos. Prueba de nuevo en un rato");
   });
 
   it("every ErrorCode key has a non-empty message", () => {
@@ -125,9 +125,9 @@ describe("message registry", () => {
 
   it("candidateFieldValidationMessages returns localized messages", () => {
     expect(candidateFieldValidationMessages.configurationInvalid).toBe(
-      "身份字段配置无效",
+      "La configuración de los campos de identidad no es válida",
     );
-    expect(candidateFieldValidationMessages.required("姓名")).toBe(
+    expect(candidateFieldValidationMessages.required("Nombre")).toBe(
       "姓名为必填项",
     );
     expect(candidateFieldValidationMessages.numberRequired("年龄")).toBe(
@@ -1130,7 +1130,7 @@ describe("SaveAnswerRejectedSchema (strict)", () => {
   const validRejected = {
     accepted: false as const,
     reason: "STALE_VERSION" as const,
-    message: "服务器上存在更新的答案版本",
+    message: "En el servidor hay una versión más nueva de la respuesta",
     serverVersion: 5,
     savedAt: "2026-06-12T08:00:00.000Z",
   };
@@ -1193,7 +1193,7 @@ describe("SaveAnswerResponseSchema (discriminated union)", () => {
     const result = SaveAnswerResponseSchema.safeParse({
       accepted: false,
       reason: "STALE_VERSION",
-      message: "服务器上存在更新的答案版本",
+      message: "En el servidor hay una versión más nueva de la respuesta",
       serverVersion: 5,
       savedAt: "2026-06-12T08:00:00.000Z",
     });
@@ -1561,7 +1561,7 @@ describe("grading detail contracts", () => {
     contentDocument: null,
     maxScore: 10,
     // P3-MOD-P1-1: frozen grading metadata projected from QuestionSnapshot.
-    standardAnswer: "参考答案：光反应与暗反应",
+    standardAnswer: "Respuesta de referencia：光反应与暗反应",
     rubric: "按逻辑完整性给分",
     candidateAnswer: "光合作用是植物利用光能...",
     entry: null,

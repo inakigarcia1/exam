@@ -271,7 +271,7 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
       const isSelf = id === ctx.actorId;
       if (isSelf && data.isActive === false) {
         // i18n-copy-allow: developer-diagnostic — thrown message never reaches the client; the error handler serializes the code only
-        throw new ValidationError("不能停用自己的账号", {
+        throw new ValidationError("No puedes desactivar tu propia cuenta", {
           reason: "CANNOT_DISABLE_SELF",
         });
       }

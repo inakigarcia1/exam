@@ -23,7 +23,7 @@ const codeDefaults: ExamProfilePolicyDefaults = {
 
 const profile: WizardProfileLike = {
   id: "p1",
-  name: "标准在线考试",
+  name: "Examen en línea estándar",
   defaults: {
     timingMode: "timed_window",
     durationMinutes: 90,
@@ -72,7 +72,7 @@ describe("buildWizardPolicyPreview — profile path", () => {
       codeDefaults,
     });
     expect(resolved).toEqual(profile.defaults);
-    expect(profileName).toBe("标准在线考试");
+    expect(profileName).toBe("Examen en línea estándar");
     expect(sources.durationMinutes).toBe("profile");
     expect(sources.retakePolicy).toBe("profile");
   });

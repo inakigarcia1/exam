@@ -351,7 +351,7 @@ describe("materializeGradingWorkset", () => {
     const attempt = makeAttempt({
       questionSnapshot: [
         textResponseSnapshot("q-text", 100, {
-          standardAnswer: "参考答案",
+          standardAnswer: "Respuesta de referencia",
         }),
       ],
       submittedAnswers: {
@@ -366,7 +366,7 @@ describe("materializeGradingWorkset", () => {
     const manual = created.find((e) => e.questionId === "q-text")!;
     expect(manual.gradingMode).toBe("manual");
     expect(manual.status).toBe("pending_manual");
-    expect(manual.standardAnswer).toBe("参考答案");
+    expect(manual.standardAnswer).toBe("Respuesta de referencia");
   });
 
   it("missing submitted answer for objective produces zero-score completed_auto", async () => {

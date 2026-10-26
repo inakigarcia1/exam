@@ -114,9 +114,9 @@ export async function loginViaUi(
       .then(() => "alert" as const)
       .catch(() => null);
 
-    await page.getByLabel(/用户名/).fill(username);
-    await page.getByLabel(/密码/).fill(password);
-    await page.getByRole("button", { name: /^登录$/ }).click();
+    await page.getByLabel(/Usuario/).fill(username);
+    await page.getByLabel(/Contraseña/).fill(password);
+    await page.getByRole("button", { name: /^Iniciar sesión$/ }).click();
 
     const firstSignal = await Promise.race([
       loginResponsePromise.then((res) => (res ? "response" : null)),

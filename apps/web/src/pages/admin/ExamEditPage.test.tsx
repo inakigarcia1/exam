@@ -136,7 +136,7 @@ describe("ExamEditPage", () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByDisplayValue("期末测评");
-    await user.click(screen.getByRole("button", { name: "保存" }));
+    await user.click(screen.getByRole("button", { name: "Guardar" }));
     await waitFor(() => {
       expect(apiPatch).toHaveBeenCalledWith(
         "/api/exams/exam-1",
@@ -144,7 +144,7 @@ describe("ExamEditPage", () => {
       );
     });
     await waitFor(() => {
-      expect(toast.success).toHaveBeenCalledWith("考试已更新");
+      expect(toast.success).toHaveBeenCalledWith("Examen actualizado");
     });
   });
 
@@ -152,7 +152,7 @@ describe("ExamEditPage", () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByDisplayValue("期末测评");
-    await user.click(screen.getByRole("button", { name: "保存" }));
+    await user.click(screen.getByRole("button", { name: "Guardar" }));
     await waitFor(() => {
       expect(screen.getByTestId("exam-detail")).toBeInTheDocument();
     });

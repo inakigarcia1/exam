@@ -31,7 +31,7 @@ export interface WizardProfileLike {
 
 /**
  * Where a resolved field's value came from. Used only for UI provenance
- * badges (来自模板 / 已自定义). NEVER persisted; NEVER submitted to the API.
+ * badges (来自模板 / Con cambios). NEVER persisted; NEVER submitted to the API.
  * `default` = no profile selected and no explicit override (code default).
  */
 export type WizardFieldSource = "profile" | "override" | "default";
@@ -135,7 +135,7 @@ export function buildExplicitOverridesPayload(
 /**
  * Whether a given field is explicitly overridden (present in `overrides`,
  * including explicit `null`). Use this to decide whether to show the
- * "恢复模板值" affordance.
+ * "Volver a la plantilla" affordance.
  */
 export function isOverridden(
   overrides: Partial<ExamProfilePolicyDefaults>,

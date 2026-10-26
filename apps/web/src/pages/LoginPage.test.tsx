@@ -76,9 +76,9 @@ describe("LoginPage smoke", () => {
   it("renders username and password fields and login button", () => {
     renderLogin();
 
-    expect(screen.getByLabelText("用户名")).toBeInTheDocument();
-    expect(screen.getByLabelText("密码")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "登录" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Usuario")).toBeInTheDocument();
+    expect(screen.getByLabelText("Contraseña")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Iniciar sesión" })).toBeInTheDocument();
   });
 
   it("does not show login submitting state during session restore", () => {
@@ -94,24 +94,24 @@ describe("LoginPage smoke", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole("button", { name: "登录" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Iniciar sesión" })).toBeEnabled();
     expect(
-      screen.queryByRole("button", { name: "登录中..." }),
+      screen.queryByRole("button", { name: "Ingresando..." }),
     ).not.toBeInTheDocument();
   });
 
   it("shows error message when login fails", async () => {
     const user = userEvent.setup();
-    apiPost.mockRejectedValueOnce(new Error("用户名或密码错误"));
+    apiPost.mockRejectedValueOnce(new Error("Usuario o contraseña incorrectos"));
 
     renderLogin();
 
-    await user.type(screen.getByLabelText("用户名"), "admin");
-    await user.type(screen.getByLabelText("密码"), "wrong");
-    await user.click(screen.getByRole("button", { name: "登录" }));
+    await user.type(screen.getByLabelText("Usuario"), "admin");
+    await user.type(screen.getByLabelText("Contraseña"), "wrong");
+    await user.click(screen.getByRole("button", { name: "Iniciar sesión" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent("用户名或密码错误");
+      expect(screen.getByRole("alert")).toHaveTextContent("Usuario o contraseña incorrectos");
     });
   });
 
@@ -124,11 +124,11 @@ describe("LoginPage smoke", () => {
 
     renderLogin();
 
-    await user.type(screen.getByLabelText("用户名"), "admin");
-    await user.type(screen.getByLabelText("密码"), "admin123");
-    await user.click(screen.getByRole("button", { name: "登录" }));
+    await user.type(screen.getByLabelText("Usuario"), "admin");
+    await user.type(screen.getByLabelText("Contraseña"), "admin123");
+    await user.click(screen.getByRole("button", { name: "Iniciar sesión" }));
 
-    expect(screen.getByRole("button", { name: "登录中..." })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Ingresando..." })).toBeDisabled();
 
     resolveLogin!({
       id: "u1",
@@ -154,9 +154,9 @@ describe("LoginPage smoke", () => {
 
     renderLogin();
 
-    await user.type(screen.getByLabelText("用户名"), "admin");
-    await user.type(screen.getByLabelText("密码"), "admin123");
-    await user.click(screen.getByRole("button", { name: "登录" }));
+    await user.type(screen.getByLabelText("Usuario"), "admin");
+    await user.type(screen.getByLabelText("Contraseña"), "admin123");
+    await user.click(screen.getByRole("button", { name: "Iniciar sesión" }));
 
     await waitFor(() => {
       expect(screen.getByTestId("current-path")).toHaveTextContent(
@@ -178,9 +178,9 @@ describe("LoginPage smoke", () => {
 
     renderLogin();
 
-    await user.type(screen.getByLabelText("用户名"), "candidate");
-    await user.type(screen.getByLabelText("密码"), "cand123");
-    await user.click(screen.getByRole("button", { name: "登录" }));
+    await user.type(screen.getByLabelText("Usuario"), "candidate");
+    await user.type(screen.getByLabelText("Contraseña"), "cand123");
+    await user.click(screen.getByRole("button", { name: "Iniciar sesión" }));
 
     await waitFor(() => {
       expect(screen.getByTestId("current-path")).toHaveTextContent(
@@ -193,14 +193,14 @@ describe("LoginPage smoke", () => {
     const user = userEvent.setup();
     renderLogin();
 
-    await user.click(screen.getByRole("button", { name: "登录" }));
-    expect(screen.getByText("请输入用户名")).toBeInTheDocument();
-    expect(screen.getByText("请输入密码")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Iniciar sesión" }));
+    expect(screen.getByText("Ingresa el usuario")).toBeInTheDocument();
+    expect(screen.getByText("Ingresa tu contraseña")).toBeInTheDocument();
 
-    await user.type(screen.getByLabelText("用户名"), "admin");
-    expect(screen.queryByText("请输入用户名")).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText("Usuario"), "admin");
+    expect(screen.queryByText("Ingresa el usuario")).not.toBeInTheDocument();
 
-    await user.type(screen.getByLabelText("密码"), "pass");
-    expect(screen.queryByText("请输入密码")).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText("Contraseña"), "pass");
+    expect(screen.queryByText("Ingresa tu contraseña")).not.toBeInTheDocument();
   });
 });

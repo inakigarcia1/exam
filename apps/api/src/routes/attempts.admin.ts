@@ -438,7 +438,7 @@ export async function registerAdminAttemptRoutes(fastify: FastifyInstance) {
    * applied by the spec builder's post-transform hook (`fixCsvContentTypes` in
    * openapi/swagger.ts, which patches this path). Audit event: attempt.exported.
    *
-   * The 考生答案 cell holds the CLASSIFIED semantic projection, and the
+   * The Respuesta del alumno cell holds the CLASSIFIED semantic projection, and the
    * appended 考生答案模式 / 考生答案状态 columns carry the frozen slot mode
    * and the §7 integrity state; raw evidence for non-projectable states stays
    * in the JSON export route. Existing columns keep their positions.
@@ -475,9 +475,9 @@ export async function registerAdminAttemptRoutes(fastify: FastifyInstance) {
       await recordExportAudit(fastify, ctx, request, attemptId, "csv");
 
       // i18n-copy-allow: data-format — CSV export header/value data contract
-      const correctLabel = "是";
+      const correctLabel = "Sí";
       // i18n-copy-allow: data-format — CSV export header/value data contract
-      const incorrectLabel = "否";
+      const incorrectLabel = "No";
       // The candidate answer cell is the CLASSIFIED projection: for
       // `unsupported_version` / `corrupt` the projection is null, so the cell
       // shows the not-applicable marker instead of the raw stored value — a
@@ -487,19 +487,19 @@ export async function registerAdminAttemptRoutes(fastify: FastifyInstance) {
         q.candidateAnswerProjection ?? (q.candidateAnswer == null ? "" : "—");
       const csvHeaders = [
         // i18n-copy-allow: data-format — CSV export header/value data contract
-        "题号",
+        "Número",
         // i18n-copy-allow: data-format — CSV export header/value data contract
-        "题型",
+        "Tipo",
         // i18n-copy-allow: data-format — CSV export header/value data contract
-        "题目内容",
+        "Enunciado",
         // i18n-copy-allow: data-format — CSV export header/value data contract
-        "考生答案",
+        "Respuesta del alumno",
         // i18n-copy-allow: data-format — CSV export header/value data contract
-        "标准答案",
+        "Respuesta correcta",
         // i18n-copy-allow: data-format — CSV export header/value data contract
-        "得分",
+        "Puntaje",
         // i18n-copy-allow: data-format — CSV export header/value data contract
-        "满分",
+        "Puntaje máximo",
         // i18n-copy-allow: data-format — CSV export header/value data contract
         "是否正确",
         // Appended after the frozen columns so positional consumers keep
@@ -511,13 +511,13 @@ export async function registerAdminAttemptRoutes(fastify: FastifyInstance) {
         "考生答案状态",
       ];
       const csvRows = exportData.questionResults.map((q) => ({
-        题号: q.order,
-        题型: q.type,
-        题目内容: q.content,
-        考生答案: csvAnswerCell(q),
-        标准答案: formatPlainExportValue(q.standardAnswer),
-        得分: q.score ?? "—",
-        满分: q.maxScore,
+        Número: q.order,
+        Tipo: q.type,
+        Enunciado: q.content,
+        Respuesta del alumno: csvAnswerCell(q),
+        Respuesta correcta: formatPlainExportValue(q.standardAnswer),
+        Puntaje: q.score ?? "—",
+        Puntaje máximo: q.maxScore,
         是否正确:
           q.correct == null ? "—" : q.correct ? correctLabel : incorrectLabel,
         考生答案模式: q.candidateAnswerMode,

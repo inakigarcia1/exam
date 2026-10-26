@@ -80,7 +80,7 @@ function examsPayload(page: number, total: number, status = "draft") {
   const count = Math.max(0, Math.min(size, total - start));
   return {
     items: Array.from({ length: count }, (_, i) =>
-      examRow(`e${start + i + 1}`, `考试${start + i + 1}`, status),
+      examRow(`e${start + i + 1}`, `Exámenes${start + i + 1}`, status),
     ),
     total,
     page,
@@ -144,7 +144,7 @@ function renderPage(initialEntry: string | string[] = "/admin/exams") {
         <BrandProvider>
           <Routes>
             <Route path="/admin/exams" element={<ExamPage />} />
-            <Route path="/admin/exams/:id" element={<div>考试详情</div>} />
+            <Route path="/admin/exams/:id" element={<div>Detalle del examen</div>} />
           </Routes>
           <LocationProbe />
           <HistoryNav />
@@ -179,11 +179,11 @@ describe("ExamPage URL query state (#784 A3)", () => {
     );
     // The control shows the applied filter, not the default.
     expect(
-      screen.getByRole("combobox", { name: "按状态筛选" }),
-    ).toHaveTextContent("已发布");
+      screen.getByRole("combobox", { name: "Filtrar por estado" }),
+    ).toHaveTextContent("Publicado");
     // ...and the rendered rows belong to page 2 of the filtered set.
     await waitFor(() =>
-      expect(screen.getByRole("table")).toHaveTextContent("考试21"),
+      expect(screen.getByRole("table")).toHaveTextContent("Exámenes21"),
     );
   });
 
@@ -209,8 +209,8 @@ describe("ExamPage URL query state (#784 A3)", () => {
     await waitFor(() => expect(urlSearch()).not.toContain("status="));
     expect(examCalls().at(-1)).not.toContain("statuses=");
     expect(
-      screen.getByRole("combobox", { name: "按状态筛选" }),
-    ).toHaveTextContent("全部状态");
+      screen.getByRole("combobox", { name: "Filtrar por estado" }),
+    ).toHaveTextContent("Todos los estados");
   });
 
   it("A17: an illegal page is normalized away and page=1 is never written", async () => {
@@ -224,10 +224,10 @@ describe("ExamPage URL query state (#784 A3)", () => {
     await waitFor(() => expect(urlSearch()).not.toContain("page="));
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await user.click(screen.getByRole("button", { name: "Página siguiente" }));
     await waitFor(() => expect(urlSearch()).toContain("page=2"));
     // Back to the first page: the parameter is removed, not set to 1.
-    await user.click(screen.getByRole("button", { name: "上一页" }));
+    await user.click(screen.getByRole("button", { name: "Página anterior" }));
     await waitFor(() => expect(urlSearch()).not.toContain("page="));
   });
 
@@ -254,7 +254,7 @@ describe("ExamPage URL query state (#784 A3)", () => {
 
     // The next write must start from the URL the user is ON, not from the
     // filter they navigated away from.
-    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await user.click(screen.getByRole("button", { name: "Página siguiente" }));
     await waitFor(() => expect(urlSearch()).toContain("page=2"));
     expect(urlSearch()).not.toContain("status=");
     expect(examCalls().at(-1)).not.toContain("statuses=");
@@ -281,8 +281,8 @@ describe("ExamPage URL query state (#784 A3)", () => {
     await user.click(screen.getByRole("button", { name: "前进" }));
     await waitFor(() => expect(urlSearch()).toContain("status=published"));
     expect(
-      screen.getByRole("combobox", { name: "按状态筛选" }),
-    ).toHaveTextContent("已发布");
+      screen.getByRole("combobox", { name: "Filtrar por estado" }),
+    ).toHaveTextContent("Publicado");
   });
 
   // ── page changes PUSH: Back walks the pages the user visited ──
@@ -294,12 +294,12 @@ describe("ExamPage URL query state (#784 A3)", () => {
 
     const user = userEvent.setup();
     renderPage();
-    await within(await screen.findByRole("table")).findByText("考试1");
+    await within(await screen.findByRole("table")).findByText("Exámenes1");
 
-    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await user.click(screen.getByRole("button", { name: "Página siguiente" }));
     await waitFor(() =>
       expect(
-        within(screen.getByRole("table")).getByText("考试21"),
+        within(screen.getByRole("table")).getByText("Exámenes21"),
       ).toBeInTheDocument(),
     );
 
@@ -307,7 +307,7 @@ describe("ExamPage URL query state (#784 A3)", () => {
     await waitFor(() => expect(urlSearch()).not.toContain("page="));
     await waitFor(() =>
       expect(
-        within(screen.getByRole("table")).getByText("考试1"),
+        within(screen.getByRole("table")).getByText("Exámenes1"),
       ).toBeInTheDocument(),
     );
   });
@@ -325,14 +325,14 @@ describe("ExamPage URL query state (#784 A3)", () => {
     renderPage("/admin/exams?page=3");
 
     await waitFor(() =>
-      expect(screen.getByRole("table")).toHaveTextContent("考试21"),
+      expect(screen.getByRole("table")).toHaveTextContent("Exámenes21"),
     );
     expect(urlSearch()).toContain("page=2");
     expect(examCalls().map((c) => c.match(/page=(\d+)/)?.[1])).toEqual([
       "3",
       "2",
     ]);
-    expect(screen.queryByText("暂无考试")).not.toBeInTheDocument();
+    expect(screen.queryByText("No hay exámenes")).not.toBeInTheDocument();
   });
 
   // ── OD3 — a pending identity offers no page numbers from the old total ──
@@ -349,17 +349,17 @@ describe("ExamPage URL query state (#784 A3)", () => {
 
     const user = userEvent.setup();
     renderPage();
-    await within(await screen.findByRole("table")).findByText("考试1");
+    await within(await screen.findByRole("table")).findByText("Exámenes1");
     // The loaded query's own count is on screen.
     expect(screen.getByText(/共 61 条/)).toBeInTheDocument();
 
-    await user.click(screen.getByRole("combobox", { name: "按状态筛选" }));
-    await user.click(await screen.findByRole("option", { name: "已发布" }));
+    await user.click(screen.getByRole("combobox", { name: "Filtrar por estado" }));
+    await user.click(await screen.findByRole("option", { name: "Publicado" }));
 
     // Pending: the previous query's total must not produce page numbers for
     // the new one, so neither the count nor the page links are offered.
     expect(screen.queryByText(/共 61 条/)).not.toBeInTheDocument();
-    expect(screen.getByText("正在查询…")).toBeInTheDocument();
+    expect(screen.getByText("Buscando…")).toBeInTheDocument();
     expect(
       screen.queryByRole("link", { name: "第 2 页" }),
     ).not.toBeInTheDocument();
@@ -386,20 +386,20 @@ describe("ExamPage URL query state (#784 A3)", () => {
 
     const user = userEvent.setup();
     renderPage();
-    await within(await screen.findByRole("table")).findByText("考试1");
+    await within(await screen.findByRole("table")).findByText("Exámenes1");
 
-    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await user.click(screen.getByRole("button", { name: "Página siguiente" }));
     // Same query, different page: the count still describes this result set,
     // so the footer keeps stating it (and the page links stay meaningful).
     expect(screen.getByText(/共 61 条/)).toBeInTheDocument();
-    expect(screen.queryByText("正在查询…")).not.toBeInTheDocument();
+    expect(screen.queryByText("Buscando…")).not.toBeInTheDocument();
 
     await act(async () => {
       resolvePage2(examsPayload(2, 61));
     });
     await waitFor(() =>
       expect(
-        within(screen.getByRole("table")).getByText("考试21"),
+        within(screen.getByRole("table")).getByText("Exámenes21"),
       ).toBeInTheDocument(),
     );
   });
@@ -409,8 +409,8 @@ describe("ExamPage URL query state (#784 A3)", () => {
     apiGet.mockRejectedValue(new Error("boom"));
     renderPage();
     const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent("加载考试列表失败");
-    expect(screen.queryByText("加载中...")).not.toBeInTheDocument();
+    expect(alert).toHaveTextContent("No se pudo cargar la lista de exámenes");
+    expect(screen.queryByText("Cargando...")).not.toBeInTheDocument();
   });
 
   it("A16: retry leaves the error presentation and reports the attempt it started", async () => {
@@ -430,7 +430,7 @@ describe("ExamPage URL query state (#784 A3)", () => {
 
     failing = false;
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "重试" }));
+    await user.click(screen.getByRole("button", { name: "Reintentar" }));
 
     // Retry is a NEW attempt, not a re-render of the failure: while its request
     // is in flight the error must be gone and the page must show that it is
@@ -439,7 +439,7 @@ describe("ExamPage URL query state (#784 A3)", () => {
     await waitFor(() =>
       expect(screen.queryByRole("alert")).not.toBeInTheDocument(),
     );
-    expect(screen.getByText("加载中...")).toBeInTheDocument();
+    expect(screen.getByText("Cargando...")).toBeInTheDocument();
 
     releaseRetry();
     await waitFor(() => expect(screen.getByRole("table")).toBeInTheDocument());
@@ -460,12 +460,12 @@ describe("ExamPage URL query state (#784 A3)", () => {
     // Entry 1 is the bare list; entry 2 (current) fails on load.
     renderPage(["/admin/exams", "/admin/exams?page=2"]);
     const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent("加载考试列表失败");
+    expect(alert).toHaveTextContent("No se pudo cargar la lista de exámenes");
 
     failAll = false;
     await user.click(screen.getByRole("button", { name: "后退" }));
     await waitFor(() =>
-      expect(screen.getByRole("table")).toHaveTextContent("考试1"),
+      expect(screen.getByRole("table")).toHaveTextContent("Exámenes1"),
     );
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
@@ -484,16 +484,16 @@ describe("ExamPage URL query state (#784 A3)", () => {
     const user = userEvent.setup();
     renderPage("/admin/exams?status=published&page=2");
     await waitFor(() =>
-      expect(screen.getByRole("table")).toHaveTextContent("考试21"),
+      expect(screen.getByRole("table")).toHaveTextContent("Exámenes21"),
     );
 
     const row = screen
       .getAllByRole("row")
-      .find((r) => r.textContent?.includes("考试21"));
+      .find((r) => r.textContent?.includes("Exámenes21"));
     await user.click(
-      within(row as HTMLElement).getByRole("button", { name: "查看详情" }),
+      within(row as HTMLElement).getByRole("button", { name: "Ver detalle" }),
     );
-    expect(await screen.findByText("考试详情")).toBeInTheDocument();
+    expect(await screen.findByText("Detalle del examen")).toBeInTheDocument();
     expect(screen.getByTestId("location-state")).toHaveTextContent(
       JSON.stringify({ from: "/admin/exams?status=published&page=2" }),
     );

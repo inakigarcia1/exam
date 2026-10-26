@@ -26,10 +26,10 @@ describe("ErrorBoundary", () => {
         <ThrowingComponent shouldThrow={true} />
       </ErrorBoundary>,
     );
-    expect(screen.getByText("系统错误")).toBeInTheDocument();
-    expect(screen.getByText("应用程序遇到了一个意外错误")).toBeInTheDocument();
+    expect(screen.getByText("Error del sistema")).toBeInTheDocument();
+    expect(screen.getByText("Ocurrió un error inesperado.")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /重新加载/ }),
+      screen.getByRole("button", { name: /Volver a cargar/ }),
     ).toBeInTheDocument();
     vi.restoreAllMocks();
   });
@@ -42,7 +42,7 @@ describe("ErrorBoundary", () => {
         <ThrowingComponent shouldThrow={true} />
       </ErrorBoundary>,
     );
-    expect(screen.getByText("系统错误")).toBeInTheDocument();
+    expect(screen.getByText("Error del sistema")).toBeInTheDocument();
     expect(screen.queryByText("Test error message")).not.toBeInTheDocument();
     vi.restoreAllMocks();
     vi.unstubAllEnvs();
@@ -72,7 +72,7 @@ describe("ErrorBoundary", () => {
         <BadComponent />
       </ErrorBoundary>,
     );
-    expect(screen.getByText("系统错误")).toBeInTheDocument();
+    expect(screen.getByText("Error del sistema")).toBeInTheDocument();
     vi.restoreAllMocks();
   });
 
@@ -93,7 +93,7 @@ describe("ErrorBoundary", () => {
       </ErrorBoundary>,
     );
 
-    const button = screen.getByRole("button", { name: /重新加载/ });
+    const button = screen.getByRole("button", { name: /Volver a cargar/ });
     button.click();
 
     expect(reloadSpy).toHaveBeenCalled();

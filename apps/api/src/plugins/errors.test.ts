@@ -68,7 +68,7 @@ describe("error handler", () => {
     const body = res.json();
     expect(body.error).toMatchObject({
       code: "VALIDATION_ERROR",
-      message: "请求参数无效",
+      message: "Los datos no son válidos",
     });
     expect(body.error.requestId).toEqual(expect.any(String));
     expect(body.error.requestId).not.toBe("");
@@ -88,7 +88,7 @@ describe("error handler", () => {
     const body = res.json();
     expect(body.error).toMatchObject({
       code: "VALIDATION_ERROR",
-      message: "请求参数无效",
+      message: "Los datos no son válidos",
     });
     expect(body.error.requestId).toEqual(expect.any(String));
     await app.close();
@@ -106,7 +106,7 @@ describe("error handler", () => {
     const body = res.json();
     expect(body.error).toMatchObject({
       code: "VALIDATION_ERROR",
-      message: "请求参数无效",
+      message: "Los datos no son válidos",
     });
     expect(body.error.requestId).toEqual(expect.any(String));
     await app.close();
@@ -121,7 +121,7 @@ describe("error handler", () => {
     expect(res.statusCode).toBe(500);
     const body = res.json();
     expect(body.error.code).toBe("INTERNAL_ERROR");
-    expect(body.error.message).toBe("服务器内部错误");
+    expect(body.error.message).toBe("Error interno del servidor");
     expect(body.error.requestId).toEqual(expect.any(String));
     expect(JSON.stringify(body)).not.toContain("something broke");
     await app.close();
@@ -138,7 +138,7 @@ describe("error handler", () => {
     expect(res.json()).toMatchObject({
       error: {
         code: "VALIDATION_ERROR",
-        message: "请求参数无效",
+        message: "Los datos no son válidos",
         details: {
           fields: [
             {
@@ -165,7 +165,7 @@ describe("error handler", () => {
     expect(res.json()).toMatchObject({
       error: {
         code: "RESOURCE_NOT_FOUND",
-        message: "资源不存在",
+        message: "No existe",
         requestId: expect.any(String),
       },
     });

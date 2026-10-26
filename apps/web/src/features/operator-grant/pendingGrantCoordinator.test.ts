@@ -27,7 +27,7 @@ const COMMAND: PendingGrantCommand = {
   operationId: "op-1",
   addedSeconds: 600,
   reasonCode: "technical_incident",
-  reasonText: "网络中断",
+  reasonText: "Corte de red",
 };
 
 const COMMAND_DIFF_ATTEMPT: PendingGrantCommand = {
@@ -286,7 +286,7 @@ describe("PendingGrantCoordinator", () => {
     expect(current.authority!.command.attemptId).toBe("att-1");
     expect(current.authority!.command.addedSeconds).toBe(600);
     expect(current.authority!.command.reasonCode).toBe("technical_incident");
-    expect(current.authority!.command.reasonText).toBe("网络中断");
+    expect(current.authority!.command.reasonText).toBe("Corte de red");
     expect(current.authority!.revision).toBe(1);
   });
 

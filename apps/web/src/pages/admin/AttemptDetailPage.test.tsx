@@ -119,7 +119,7 @@ describe("AttemptDetailPage", () => {
     apiGet.mockResolvedValue(mockGradedResult);
     renderPage();
 
-    await screen.findByText("成绩概览");
+    await screen.findByText("Resumen de la calificación");
 
     const earnedScoreEl = screen.getByTestId("earned-score");
     expect(earnedScoreEl).toHaveTextContent("15");
@@ -130,7 +130,7 @@ describe("AttemptDetailPage", () => {
   it("shows green for passed, red for failed", async () => {
     apiGet.mockResolvedValue({ ...mockGradedResult, passed: true });
     renderPage();
-    await screen.findByText("成绩概览");
+    await screen.findByText("Resumen de la calificación");
 
     const earnedScoreEl = screen.getByTestId("earned-score");
     // The status color lives on an inner span (the type-metric recipe owns
@@ -140,26 +140,26 @@ describe("AttemptDetailPage", () => {
       "text-success",
     );
 
-    expect(screen.getByText("及格")).toBeInTheDocument();
+    expect(screen.getByText("Aprobado")).toBeInTheDocument();
   });
 
   it("shows destructive color for failed attempt", async () => {
     apiGet.mockResolvedValue({ ...mockGradedResult, passed: false });
     renderPage();
-    await screen.findByText("成绩概览");
+    await screen.findByText("Resumen de la calificación");
 
     const earnedScoreEl = screen.getByTestId("earned-score");
     expect(earnedScoreEl.querySelector("span")!.className).toContain(
       "text-destructive",
     );
 
-    expect(screen.getByText("不及格")).toBeInTheDocument();
+    expect(screen.getByText("No aprobado")).toBeInTheDocument();
   });
 
   it("shows passing score", async () => {
     apiGet.mockResolvedValue(mockGradedResult);
     renderPage();
-    await screen.findByText("成绩概览");
+    await screen.findByText("Resumen de la calificación");
     expect(screen.getByText("60")).toBeInTheDocument();
   });
 
@@ -172,7 +172,7 @@ describe("AttemptDetailPage", () => {
     });
     renderPage();
     expect(
-      await screen.findByText("该尝试已提交，等待评分"),
+      await screen.findByText("Este intento ya se entregó. Falta la corrección."),
     ).toBeInTheDocument();
   });
 
@@ -185,7 +185,7 @@ describe("AttemptDetailPage", () => {
     });
     renderPage();
     expect(
-      await screen.findByText("该尝试已评分，但成绩尚未公布"),
+      await screen.findByText("Este intento ya está corregido, pero la calificación todavía no está publicada."),
     ).toBeInTheDocument();
   });
 
@@ -198,13 +198,13 @@ describe("AttemptDetailPage", () => {
   it("shows error state on API failure", async () => {
     apiGet.mockRejectedValue(new Error("fail"));
     renderPage();
-    expect(await screen.findByText("加载尝试详情失败")).toBeInTheDocument();
+    expect(await screen.findByText("No se pudo cargar el detalle del intento")).toBeInTheDocument();
   });
 
   it("renders question results table", async () => {
     apiGet.mockResolvedValue(mockGradedResult);
     renderPage();
-    await screen.findByText("答题详情");
+    await screen.findByText("Detalle de las respuestas");
     expect(screen.getByText("Question 1")).toBeInTheDocument();
     expect(screen.getByText("Question 2")).toBeInTheDocument();
     expect(screen.getAllByText("A").length).toBeGreaterThanOrEqual(1);
@@ -230,9 +230,9 @@ describe("AttemptDetailPage", () => {
       ],
     });
     renderPage();
-    await screen.findByText("答题详情");
-    expect(screen.getAllByText("单选").length).toBe(2);
-    expect(screen.getByText("填空")).toBeInTheDocument();
+    await screen.findByText("Detalle de las respuestas");
+    expect(screen.getAllByText("Opción única").length).toBe(2);
+    expect(screen.getByText("Completar")).toBeInTheDocument();
   });
 
   // --- Timeline section (P2E-J2) ---
@@ -283,10 +283,10 @@ describe("AttemptDetailPage", () => {
   it("renders the timeline section with human-readable event labels", async () => {
     mockTimelineResult(mockGradedResult, mockTimelineEvents);
     renderPage();
-    await screen.findByText("答卷时间线");
-    // attempt.start -> 开始答题, attempt.forceSubmit -> 管理员强制交卷
-    expect(await screen.findByText("开始答题")).toBeInTheDocument();
-    expect(screen.getByText("管理员强制交卷")).toBeInTheDocument();
+    await screen.findByText("Línea de tiempo del intento");
+    // attempt.start -> Empezar a responder, attempt.forceSubmit -> Entrega forzada por un administrador
+    expect(await screen.findByText("Empezar a responder")).toBeInTheDocument();
+    expect(screen.getByText("Entrega forzada por un administrador")).toBeInTheDocument();
   });
 
   it("renders grant_time timeline event with a Chinese label, not the raw key", async () => {
@@ -307,17 +307,17 @@ describe("AttemptDetailPage", () => {
       ],
     });
     renderPage();
-    await screen.findByText("答卷时间线");
+    await screen.findByText("Línea de tiempo del intento");
     // The localized label is rendered, never the raw action key.
-    expect(await screen.findByText("授予考试时间")).toBeInTheDocument();
+    expect(await screen.findByText("Otorgar tiempo de examen")).toBeInTheDocument();
     expect(screen.queryByText("grant_time")).not.toBeInTheDocument();
   });
 
   it("shows empty state when timeline has no events", async () => {
     mockTimelineResult(mockGradedResult, { events: [] });
     renderPage();
-    await screen.findByText("答卷时间线");
-    expect(await screen.findByText("暂无时间线事件")).toBeInTheDocument();
+    await screen.findByText("Línea de tiempo del intento");
+    expect(await screen.findByText("Todavía no hay eventos")).toBeInTheDocument();
   });
 
   it("shows timeline error fallback when timeline fetch rejects", async () => {
@@ -328,14 +328,14 @@ describe("AttemptDetailPage", () => {
       return mockGradedResult;
     });
     renderPage();
-    expect(await screen.findByText("加载时间线失败")).toBeInTheDocument();
+    expect(await screen.findByText("No se pudo cargar la línea de tiempo")).toBeInTheDocument();
   });
 
   it("expands event metadata when an event row is clicked", async () => {
     mockTimelineResult(mockGradedResult, mockTimelineEvents);
     renderPage();
-    await screen.findByText("答卷时间线");
-    const startLabel = await screen.findByText("开始答题");
+    await screen.findByText("Línea de tiempo del intento");
+    const startLabel = await screen.findByText("Empezar a responder");
     fireEvent.click(startLabel);
     // metadata JSON for the start event contains "source".
     expect(await screen.findByText(/source/)).toBeInTheDocument();
@@ -387,10 +387,10 @@ describe("AttemptDetailPage", () => {
     });
     renderPage();
 
-    await screen.findByText("成绩概览");
+    await screen.findByText("Resumen de la calificación");
     // Admin aggregate score + pass render (candidate publication is irrelevant
     // to the admin view — the DTO gate is the page's only input).
-    expect(screen.getByText("及格")).toBeInTheDocument();
+    expect(screen.getByText("Aprobado")).toBeInTheDocument();
     expect(screen.getByText("P3-3 objective prompt")).toBeInTheDocument();
     expect(screen.getByText("P3-3 essay prompt")).toBeInTheDocument();
     // The objective frozen standardAnswer is rendered for the admin (the server
@@ -426,21 +426,21 @@ describe("AttemptDetailPage", () => {
   async function renderLiveView() {
     mockLiveView();
     renderPage();
-    await screen.findByText("尝试状态");
+    await screen.findByText("Estado del intento");
   }
 
   async function submitFlag(notes = "考生查看手机") {
-    fireEvent.click(screen.getByRole("button", { name: "标记违规" }));
-    fireEvent.change(screen.getByLabelText("违规说明"), {
+    fireEvent.click(screen.getByRole("button", { name: "Marcar irregularidad" }));
+    fireEvent.change(screen.getByLabelText("Descripción"), {
       target: { value: notes },
     });
-    fireEvent.click(screen.getByRole("button", { name: "确认标记" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar" }));
     await waitFor(() => expect(apiPost).toHaveBeenCalled());
   }
 
   async function waitSubmitSettled() {
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "确认标记" })).toBeEnabled(),
+      expect(screen.getByRole("button", { name: "Confirmar" })).toBeEnabled(),
     );
   }
 
@@ -471,7 +471,7 @@ describe("AttemptDetailPage", () => {
 
     // The failure keeps the dialog open; the retry is the SAME logical
     // command and must replay the SAME identity.
-    fireEvent.click(screen.getByRole("button", { name: "确认标记" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar" }));
     await waitFor(() => expect(apiPost).toHaveBeenCalledTimes(2));
 
     expect(postedBody(0).operationId).toMatch(UUID_RE);
@@ -484,12 +484,12 @@ describe("AttemptDetailPage", () => {
     await submitFlag();
     await waitSubmitSettled();
 
-    fireEvent.click(screen.getByRole("button", { name: "取消" }));
-    fireEvent.click(screen.getByRole("button", { name: "标记违规" }));
-    fireEvent.change(screen.getByLabelText("违规说明"), {
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Marcar irregularidad" }));
+    fireEvent.change(screen.getByLabelText("Descripción"), {
       target: { value: "第二次标记" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "确认标记" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar" }));
     await waitFor(() => expect(apiPost).toHaveBeenCalledTimes(2));
 
     expect(postedBody(0).operationId).toMatch(UUID_RE);
@@ -540,8 +540,8 @@ describe("AttemptDetailPage", () => {
     renderPage("attempt-1", proctorActor);
 
     // The timeline surface (the legitimate base page) renders with events.
-    expect(await screen.findByText("答卷时间线")).toBeInTheDocument();
-    expect(await screen.findByText("开始答题")).toBeInTheDocument();
+    expect(await screen.findByText("Línea de tiempo del intento")).toBeInTheDocument();
+    expect(await screen.findByText("Empezar a responder")).toBeInTheDocument();
 
     // The result fetch was never issued — page reachability must not mint a
     // guaranteed-403 request.
@@ -555,16 +555,16 @@ describe("AttemptDetailPage", () => {
 
     // Privileged affordances are absent alongside their requests.
     expect(
-      screen.queryByRole("button", { name: "导出CSV" }),
+      screen.queryByRole("button", { name: "Exportar CSV" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "导出JSON" }),
+      screen.queryByRole("button", { name: "Exportar JSON" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "标记违规" }),
+      screen.queryByRole("button", { name: "Marcar irregularidad" }),
     ).not.toBeInTheDocument();
     // The shell keeps navigation (and is not stuck on the result loading state).
-    expect(screen.getByRole("button", { name: "返回" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Volver" })).toBeInTheDocument();
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
@@ -586,7 +586,7 @@ describe("AttemptDetailPage", () => {
 
     // Score-capable caller: the live status view renders (the authorized
     // request WAS issued and composed).
-    expect(await screen.findByText("尝试状态")).toBeInTheDocument();
+    expect(await screen.findByText("Estado del intento")).toBeInTheDocument();
     await waitFor(() => {
       expect(apiGet).toHaveBeenCalledWith(
         "/api/admin/attempts/attempt-1/result",
@@ -595,10 +595,10 @@ describe("AttemptDetailPage", () => {
 
     // The un-held sub-features stay absent.
     expect(
-      screen.queryByRole("button", { name: "导出CSV" }),
+      screen.queryByRole("button", { name: "Exportar CSV" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "标记违规" }),
+      screen.queryByRole("button", { name: "Marcar irregularidad" }),
     ).not.toBeInTheDocument();
   });
 
@@ -606,13 +606,13 @@ describe("AttemptDetailPage", () => {
     mockTimelineResult(mockLiveResult, { events: [] });
     renderPage();
 
-    expect(await screen.findByText("尝试状态")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "导出CSV" })).toBeInTheDocument();
+    expect(await screen.findByText("Estado del intento")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Exportar CSV" })).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "导出JSON" }),
+      screen.getByRole("button", { name: "Exportar JSON" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "标记违规" }),
+      screen.getByRole("button", { name: "Marcar irregularidad" }),
     ).toBeInTheDocument();
   });
 });

@@ -108,11 +108,11 @@ describe("ScoreListPage", () => {
 
   it("renders score stats cards", async () => {
     renderPage();
-    expect(await screen.findByText("平均分")).toBeInTheDocument();
-    expect(screen.getByText("最高分")).toBeInTheDocument();
-    expect(screen.getByText("最低分")).toBeInTheDocument();
-    expect(screen.getByText("及格率")).toBeInTheDocument();
-    expect(screen.getByText("已评分")).toBeInTheDocument();
+    expect(await screen.findByText("Promedio")).toBeInTheDocument();
+    expect(screen.getByText("Más alto")).toBeInTheDocument();
+    expect(screen.getByText("Más bajo")).toBeInTheDocument();
+    expect(screen.getByText("Porcentaje de aprobación")).toBeInTheDocument();
+    expect(screen.getByText("Calificado")).toBeInTheDocument();
   });
 
   it("renders score table with candidate data", async () => {
@@ -122,7 +122,7 @@ describe("ScoreListPage", () => {
     const table = await screen.findByRole("table");
     expect(within(table).getByText("张三")).toBeInTheDocument();
     expect(within(table).getByText("85")).toBeInTheDocument();
-    expect(within(table).getAllByText("及格").length).toBeGreaterThanOrEqual(1);
+    expect(within(table).getAllByText("Aprobado").length).toBeGreaterThanOrEqual(1);
   });
 
   it("export calls authenticated downloadFile with the scores export path", async () => {
@@ -130,7 +130,7 @@ describe("ScoreListPage", () => {
     await screen.findByRole("table");
 
     const user = userEvent.setup();
-    await user.click(screen.getByText("导出CSV"));
+    await user.click(screen.getByText("Exportar CSV"));
 
     await waitFor(() => {
       expect(downloadFileSpy).toHaveBeenCalledTimes(1);
@@ -154,10 +154,10 @@ describe("ScoreListPage", () => {
     // The page itself loads through the course-scoped ScoreAllView grant…
     const table = await screen.findByRole("table");
     expect(within(table).getByText("张三")).toBeInTheDocument();
-    expect(screen.getByText("及格率")).toBeInTheDocument();
+    expect(screen.getByText("Porcentaje de aprobación")).toBeInTheDocument();
     // …but the export action is not rendered and never fires.
     expect(
-      screen.queryByRole("button", { name: "导出CSV" }),
+      screen.queryByRole("button", { name: "Exportar CSV" }),
     ).not.toBeInTheDocument();
     expect(downloadFileSpy).not.toHaveBeenCalled();
   });
@@ -170,11 +170,11 @@ describe("ScoreListPage", () => {
     );
     await screen.findByRole("table");
     expect(
-      screen.queryByRole("button", { name: "导出CSV" }),
+      screen.queryByRole("button", { name: "Exportar CSV" }),
     ).not.toBeInTheDocument();
     // The neighboring Back action stays unaffected.
     expect(
-      screen.getByRole("button", { name: "返回考试详情" }),
+      screen.getByRole("button", { name: "Volver al examen" }),
     ).toBeInTheDocument();
     expect(downloadFileSpy).not.toHaveBeenCalled();
   });
@@ -190,11 +190,11 @@ describe("ScoreListPage", () => {
     downloadFileSpy.mockRejectedValueOnce(new Error("401"));
 
     const user = userEvent.setup();
-    await user.click(screen.getByText("导出CSV"));
+    await user.click(screen.getByText("Exportar CSV"));
 
     await waitFor(() => {
       expect(toastErrorSpy).toHaveBeenCalledWith(
-        expect.stringContaining("导出失败"),
+        expect.stringContaining("No se pudo exportar"),
       );
     });
     toastErrorSpy.mockRestore();
@@ -203,12 +203,12 @@ describe("ScoreListPage", () => {
   it("shows pass filter tabs without dead search input", async () => {
     renderPage();
     expect(
-      await screen.findByRole("tab", { name: "全部" }),
+      await screen.findByRole("tab", { name: "Todos" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "及格" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "不及格" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Aprobado" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "No aprobado" })).toBeInTheDocument();
     expect(
-      screen.queryByPlaceholderText("搜索考生..."),
+      screen.queryByPlaceholderText("Buscar alumnos..."),
     ).not.toBeInTheDocument();
   });
 
@@ -226,13 +226,13 @@ describe("ScoreListPage", () => {
     });
     renderPage();
     // The empty fact renders in both representations.
-    const empties = await screen.findAllByText("暂无成绩");
+    const empties = await screen.findAllByText("Sin calificaciones");
     expect(empties.length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders each score metric through the StatsCard authority", async () => {
     renderPage();
-    const avg = await screen.findByText("平均分");
+    const avg = await screen.findByText("Promedio");
     const card = avg.closest("[data-slot='stats-card']");
     expect(card).toBeInTheDocument();
     expect(card).toHaveTextContent("85");
@@ -247,7 +247,7 @@ describe("ScoreListPage", () => {
     getMock.mockResolvedValue(null);
     renderPage();
     expect(
-      await screen.findByText("成绩数据加载异常，请重试"),
+      await screen.findByText("Las calificaciones no cargaron bien. Intentá de nuevo."),
     ).toBeInTheDocument();
   });
 });

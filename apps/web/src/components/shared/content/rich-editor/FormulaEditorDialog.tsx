@@ -15,7 +15,7 @@ import { MathFormulaField } from "./MathFormulaField";
 
 /**
  * The ONE candidate formula surface (#679, contract §5). Opens from the
- * toolbar 公式 command (insert) and from clicking/Enter-activating an existing
+ * toolbar Fórmula command (insert) and from clicking/Enter-activating an existing
  * formula atom (re-edit); both paths converge on the same canonical latex
  * value inside the existing math nodes.
  *
@@ -29,7 +29,7 @@ import { MathFormulaField } from "./MathFormulaField";
 /**
  * Pure decision of the no-op policy; exported for the policy regressions.
  * `userEdited` must reflect genuine user interaction with the field.
- * A mode flip (行内 ↔ 独立显示) is a semantic edit even when the latex text
+ * A mode flip (En línea ↔ En bloque) is a semantic edit even when the latex text
  * is unchanged; for an insert, anything non-blank applies.
  */
 export function shouldApplyFormulaEdit(
@@ -47,7 +47,7 @@ export function shouldApplyFormulaEdit(
 export interface FormulaDialogTarget {
   /** The atom's current latex; "" for an insert. */
   latex: string;
-  /** True when editing a blockMath (独立显示) atom. */
+  /** True when editing a blockMath (En bloque) atom. */
   display: boolean;
   /** Document position of the targeted atom (re-edit); absent for inserts. */
   pos?: number;
@@ -61,7 +61,7 @@ export interface FormulaEditorDialogProps {
   /** null → insert a new formula; otherwise re-edit the targeted atom. */
   target: FormulaDialogTarget | null;
   /**
-   * Whether the 独立显示 mode persists in the current context. Inside list
+   * Whether the En bloque mode persists in the current context. Inside list
    * items / table cells the canonical adapter downgrades blockMath to
    * inlineMath (#673 C14), so the choice must be disabled there instead of
    * silently downgrading on save.
@@ -114,7 +114,7 @@ export function FormulaEditorDialog({
   function confirm() {
     // Policy gate: an unedited open closes without any editor transaction.
     // The RAW display choice is what defines "no change" — clamping it to the
-    // blockAllowed context here would read a 独立显示 atom opened in a
+    // blockAllowed context here would read a En bloque atom opened in a
     // downgrade context as "mode flipped" and mutate it on a zero-edit
     // confirm (review U-R1). applyFormulaEdit re-derives the context at
     // confirm time and coerces the persisted mode when a real edit applies.

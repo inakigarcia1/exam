@@ -42,15 +42,15 @@ export interface PasswordResetEmailPayload {
  */
 export const STAFF_ROLE_LABELS_ZH: Record<StaffInvitationRole, string> = {
   // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-  Admin: "考试管理员",
+  Admin: "Administrador de exámenes",
   // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-  Teacher: "教师",
+  Teacher: "Docente",
   // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-  Proctor: "监考员",
+  Proctor: "Supervisor",
   // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-  Grader: "阅卷员",
+  Grader: "Corrector",
   // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-  Maintainer: "系统运维",
+  Maintainer: "Operaciones del sistema",
 };
 
 /** Renders the staff-invitation Email content. */
@@ -60,22 +60,22 @@ export function renderStaffInvitationEmail(
   const roleLabel = STAFF_ROLE_LABELS_ZH[payload.role];
   const link = payload.acceptUrl;
   // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-  const subject = "账号邀请";
+  const subject = "Invitación a Aki";
   const bodyText =
     // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-    `您收到加入考试平台的邀请，角色：${roleLabel}。\n` +
+    `Te invitaron a Aki. Rol: ${roleLabel}.\n` +
     // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-    `请点击以下链接设置账号并激活（${payload.expiresInDays} 天内有效，仅可使用一次）：\n` +
+    `Abre este enlace para activar la cuenta (${payload.expiresInDays} días, un solo uso):\n` +
     `${link}\n\n` +
     // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-    `若您未期待此邮件，请忽略本邮件。`;
+    `Si no esperabas este mensaje, ignóralo.`;
   const bodyHtml =
     // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-    `<p>您收到加入考试平台的邀请，角色：<strong>${escapeEmailHtml(roleLabel)}</strong>。</p>` +
+    `<p>Te invitaron a Aki. Rol: <strong>${escapeEmailHtml(roleLabel)}</strong>.</p>` +
     // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-    `<p><a href="${escapeEmailHtml(link)}">点击激活账号</a>（${payload.expiresInDays} 天内有效，仅可使用一次）</p>` +
+    `<p><a href="${escapeEmailHtml(link)}">Activar la cuenta</a> (${payload.expiresInDays} días, un solo uso)</p>` +
     // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-    `<p style="color:#888;font-size:12px;">若您未期待此邮件，请忽略本邮件。</p>`;
+    `<p style="color:#888;font-size:12px;">Si no esperabas este mensaje, ignóralo.</p>`;
   return { subject, bodyText, bodyHtml };
 }
 
@@ -85,21 +85,21 @@ export function renderPasswordResetEmail(
 ): RenderedEmailContent {
   const link = payload.resetUrl;
   // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-  const subject = "重置密码";
+  const subject = "Restablecer contraseña";
   const bodyText =
     // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-    `您申请了重置登录密码。\n` +
+    `Pediste restablecer la contraseña.\n` +
     // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-    `请点击以下链接设置新密码（${payload.expiresInMinutes} 分钟内有效，仅可使用一次）：\n` +
+    `Abre este enlace para elegir una nueva (${payload.expiresInMinutes} minutos, un solo uso):\n` +
     `${link}\n\n` +
     // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-    `若您没有申请重置密码，请忽略本邮件，您的账号不会受影响。`;
+    `Si no pediste esto, ignora el mensaje. La cuenta no cambia.`;
   const bodyHtml =
     // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-    `<p>您申请了重置登录密码。</p>` +
+    `<p>Pediste restablecer la contraseña.</p>` +
     // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-    `<p><a href="${escapeEmailHtml(link)}">点击设置新密码</a>（${payload.expiresInMinutes} 分钟内有效，仅可使用一次）</p>` +
+    `<p><a href="${escapeEmailHtml(link)}">Elegir una contraseña nueva</a> (${payload.expiresInMinutes} minutos, un solo uso)</p>` +
     // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-    `<p style="color:#888;font-size:12px;">若您没有申请重置密码，请忽略本邮件，您的账号不会受影响。</p>`;
+    `<p style="color:#888;font-size:12px;">Si no pediste esto, ignora el mensaje. La cuenta no cambia.</p>`;
   return { subject, bodyText, bodyHtml };
 }

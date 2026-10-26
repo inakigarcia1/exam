@@ -354,7 +354,7 @@ describe("attempt export — Rich answer integrity (D4 / F-05)", () => {
     csv: { rows: Array<Record<string, string>> },
     content: string,
   ): Record<string, string> {
-    const row = csv.rows.find((r) => r["题目内容"] === content);
+    const row = csv.rows.find((r) => r["Enunciado"] === content);
     expect(row, `CSV row for "${content}"`).toBeDefined();
     return row!;
   }
@@ -371,7 +371,7 @@ describe("attempt export — Rich answer integrity (D4 / F-05)", () => {
 
     const csv = await exportCsv(attemptId);
     const row = csvRowFor(csv, RICH_PROMPT);
-    expect(row["考生答案"]).toBe("");
+    expect(row["Respuesta del alumno"]).toBe("");
     expect(row["考生答案状态"]).toBe("empty");
   });
 
@@ -392,7 +392,7 @@ describe("attempt export — Rich answer integrity (D4 / F-05)", () => {
     const csv = await exportCsv(attemptId);
     expect(csv.raw).not.toContain(LEGACY_LOOKING_STRING);
     const row = csvRowFor(csv, RICH_PROMPT);
-    expect(row["考生答案"]).toBe(NOT_APPLICABLE_CELL);
+    expect(row["Respuesta del alumno"]).toBe(NOT_APPLICABLE_CELL);
     expect(row["考生答案模式"]).toBe("rich");
     expect(row["考生答案状态"]).toBe("corrupt");
   });
@@ -416,8 +416,8 @@ describe("attempt export — Rich answer integrity (D4 / F-05)", () => {
     expect(choice.candidateAnswerProjection).toBe("a; b");
 
     const csv = await exportCsv(attemptId);
-    expect(csvRowFor(csv, PLAIN_PROMPT)["考生答案"]).toBe("hello");
-    expect(csvRowFor(csv, CHOICE_PROMPT)["考生答案"]).toBe("a; b");
+    expect(csvRowFor(csv, PLAIN_PROMPT)["Respuesta del alumno"]).toBe("hello");
+    expect(csvRowFor(csv, CHOICE_PROMPT)["Respuesta del alumno"]).toBe("a; b");
   });
 
   it("R4: canonical Rich preserves raw evidence and labels its derived projection", async () => {
@@ -433,7 +433,7 @@ describe("attempt export — Rich answer integrity (D4 / F-05)", () => {
 
     const csv = await exportCsv(attemptId);
     const row = csvRowFor(csv, RICH_PROMPT);
-    expect(row["考生答案"]).toBe("canonical answer");
+    expect(row["Respuesta del alumno"]).toBe("canonical answer");
     expect(row["考生答案状态"]).toBe("rich_valid");
   });
 
@@ -450,7 +450,7 @@ describe("attempt export — Rich answer integrity (D4 / F-05)", () => {
 
     const csv = await exportCsv(attemptId);
     const row = csvRowFor(csv, RICH_PROMPT);
-    expect(row["考生答案"]).toBe("答案");
+    expect(row["Respuesta del alumno"]).toBe("答案");
     expect(row["考生答案状态"]).toBe("rich_noncanonical");
 
     // Read-only export: the persisted value is returned as-is, unrepaired.
@@ -473,7 +473,7 @@ describe("attempt export — Rich answer integrity (D4 / F-05)", () => {
     const csv = await exportCsv(attemptId);
     expect(csv.raw).not.toContain("docVersion");
     const row = csvRowFor(csv, RICH_PROMPT);
-    expect(row["考生答案"]).toBe(NOT_APPLICABLE_CELL);
+    expect(row["Respuesta del alumno"]).toBe(NOT_APPLICABLE_CELL);
     expect(row["考生答案模式"]).toBe("rich");
     expect(row["考生答案状态"]).toBe("unsupported_version");
   });
@@ -492,7 +492,7 @@ describe("attempt export — Rich answer integrity (D4 / F-05)", () => {
     const csv = await exportCsv(attemptId);
     expect(csv.raw).not.toContain("mysteryInline");
     const row = csvRowFor(csv, RICH_PROMPT);
-    expect(row["考生答案"]).toBe(NOT_APPLICABLE_CELL);
+    expect(row["Respuesta del alumno"]).toBe(NOT_APPLICABLE_CELL);
     expect(row["考生答案状态"]).toBe("corrupt");
   });
 

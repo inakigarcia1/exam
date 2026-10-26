@@ -31,16 +31,16 @@ describe("DataTableContract", () => {
         />
         <thead>
           <tr>
-            <DataTableHead role="primary-text">考试名称</DataTableHead>
-            <DataTableHead role="duration">时长</DataTableHead>
-            <DataTableHead role="actions">操作</DataTableHead>
+            <DataTableHead role="primary-text">Nombre del examen</DataTableHead>
+            <DataTableHead role="duration">Duración</DataTableHead>
+            <DataTableHead role="actions">Acciones</DataTableHead>
           </tr>
         </thead>
         <tbody>
           <tr>
             <DataTableCell role="primary-text">安全培训考试</DataTableCell>
             <DataTableCell role="duration">90分钟</DataTableCell>
-            <DataTableCell role="actions">查看</DataTableCell>
+            <DataTableCell role="actions">Ver</DataTableCell>
           </tr>
         </tbody>
       </table>,
@@ -54,7 +54,7 @@ describe("DataTableContract", () => {
       "data-column-overflow",
       "nowrap",
     );
-    expect(screen.getByText("查看")).toHaveAttribute(
+    expect(screen.getByText("Ver")).toHaveAttribute(
       "data-column-overflow",
       "nowrap",
     );
@@ -158,14 +158,14 @@ describe("DataTableContract", () => {
         <tbody>
           <tr>
             <DataTableCell role="actions">
-              <button type="button">编辑</button>
+              <button type="button">Editar</button>
             </DataTableCell>
           </tr>
         </tbody>
       </table>,
     );
 
-    const cell = screen.getByRole("button", { name: "编辑" })
+    const cell = screen.getByRole("button", { name: "Editar" })
       .parentElement as HTMLElement;
     stubCellBox(cell, { clientWidth: 96, scrollWidth: 140 });
 

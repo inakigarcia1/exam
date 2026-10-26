@@ -104,7 +104,7 @@ async function expectIntegrityState(
   callsAllowed = 0,
 ) {
   const notice = await screen.findByTestId("rich-answer-integrity-error");
-  expect(notice.textContent).toContain("此作答内容无法安全加载编辑");
+  expect(notice.textContent).toContain("Esta respuesta no se puede abrir para editarla");
   // Fail closed: the editor never mounts, so no transaction — and no
   // synthetic onChange/autosave — can arise from this value.
   expect(document.querySelector(".ProseMirror")).toBeNull();

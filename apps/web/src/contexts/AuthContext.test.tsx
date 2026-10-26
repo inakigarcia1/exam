@@ -10,7 +10,7 @@ import { AuthProvider, useAuthContext } from "./AuthContext";
 const adminUser: MeResponse = {
   id: "admin",
   username: "admin",
-  name: "管理员",
+  name: "Administrador",
   role: Role.Admin,
   organizationId: "org",
   capabilities: [...permissionsForRole("Admin")],
@@ -20,7 +20,7 @@ const teacherUser: MeResponse = {
   ...adminUser,
   id: "teacher",
   username: "teacher",
-  name: "教师",
+  name: "Docente",
   role: Role.Teacher,
   capabilities: [...permissionsForRole("Teacher")],
 };
@@ -29,7 +29,7 @@ const graderUser: MeResponse = {
   ...adminUser,
   id: "grader",
   username: "grader",
-  name: "评分员",
+  name: "Corrector",
   role: Role.Grader,
   capabilities: [...permissionsForRole("Grader")],
 };
@@ -38,7 +38,7 @@ const proctorUser: MeResponse = {
   ...adminUser,
   id: "proctor",
   username: "proctor",
-  name: "监考员",
+  name: "Supervisor",
   role: Role.Proctor,
   capabilities: [...permissionsForRole("Proctor")],
 };
@@ -121,7 +121,7 @@ describe("AuthContext", () => {
         await userEvent.click(screen.getByText("login"));
       });
 
-      expect(screen.getByTestId("user-name")).toHaveTextContent("管理员");
+      expect(screen.getByTestId("user-name")).toHaveTextContent("Administrador");
     });
 
     it("sets isLoading to true during login", async () => {
@@ -211,7 +211,7 @@ describe("AuthContext", () => {
         await userEvent.click(screen.getByText("login"));
       });
 
-      expect(screen.getByTestId("user-name")).toHaveTextContent("管理员");
+      expect(screen.getByTestId("user-name")).toHaveTextContent("Administrador");
 
       vi.stubGlobal(
         "fetch",
@@ -312,7 +312,7 @@ describe("AuthContext", () => {
             JSON.stringify({
               error: {
                 code: "AUTH_INVALID_CREDENTIALS",
-                message: "用户名或密码错误",
+                message: "Usuario o contraseña incorrectos",
                 requestId: "req-login",
               },
             }),
@@ -330,7 +330,7 @@ describe("AuthContext", () => {
         await userEvent.click(screen.getByText("login"));
       });
 
-      expect(screen.getByTestId("error")).toHaveTextContent("用户名或密码错误");
+      expect(screen.getByTestId("error")).toHaveTextContent("Usuario o contraseña incorrectos");
       expect(screen.getByTestId("user-name")).toHaveTextContent("未登录");
     });
 
@@ -342,7 +342,7 @@ describe("AuthContext", () => {
             JSON.stringify({
               error: {
                 code: "AUTH_INVALID_CREDENTIALS",
-                message: "用户名或密码错误",
+                message: "Usuario o contraseña incorrectos",
                 requestId: "req-login",
               },
             }),
@@ -360,7 +360,7 @@ describe("AuthContext", () => {
         await userEvent.click(screen.getByText("login"));
       });
 
-      expect(screen.getByTestId("error")).toHaveTextContent("用户名或密码错误");
+      expect(screen.getByTestId("error")).toHaveTextContent("Usuario o contraseña incorrectos");
 
       vi.stubGlobal(
         "fetch",

@@ -199,7 +199,7 @@ describe("recover-legacy-grading-workset — operator protocol integration", () 
     const { enrollmentId } = await seedLegacyResidue(db, orgId, {
       id,
       questionSnapshot: manualSnapshot("m1"),
-      answers: draftAnswer("m1", "考生作答"),
+      answers: draftAnswer("m1", "Respuesta del alumno"),
     });
     await rewindGradingToSubmitted(db, id);
     await runBackfill(db);
@@ -224,8 +224,8 @@ describe("recover-legacy-grading-workset — operator protocol integration", () 
     expect(entries[0]!.gradingMode).toBe("manual");
     expect(entries[0]!.status).toBe("pending_manual");
     expect(entries[0]!.earnedScore).toBeNull();
-    expect(entries[0]!.candidateAnswer).toBe("考生作答");
-    expect(entries[0]!.standardAnswer).toBe("参考答案");
+    expect(entries[0]!.candidateAnswer).toBe("Respuesta del alumno");
+    expect(entries[0]!.standardAnswer).toBe("Respuesta de referencia");
 
     const held = await gradeViaCandidateResubmit(
       db,

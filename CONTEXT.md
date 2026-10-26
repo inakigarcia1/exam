@@ -1,3 +1,176 @@
-# Aki
+# Exam Platform — Domain Language
 
-La interfaz está en español. El código está en inglés. Los nombres y las relaciones están en [docs/domain/entities.md](docs/domain/entities.md).
+> **Role: navigational glossary for agents, not a normative authority.**
+> Definitions here paraphrase the owning authorities; when any entry
+> disagrees with its owner (SPEC, Accepted ADRs, `packages/domain`,
+> `packages/contracts`), the owner wins and this file must be reconciled.
+> Do not cite this file as the authority for a domain fact.
+
+Configurable LAN/on-premise exam and assessment platform. Single-tenant,
+multi-user; core-path roles Admin + Candidate with delivered Phase 3
+collaboration roles (Teacher / Proctor / Grader / Maintainer — see SPEC §2.4.1).
+
+## Question Types
+
+**QuestionType**: The kind of question — what the examinee is asked to do.
+_Avoid_: question kind, question category
+
+- `single_choice` — pick one option from a list
+- `multiple_choice` — pick one or more options from a list
+- `true_false` — select true or false
+- `fill_blank` — complete a short text blank; auto-graded, single-line input, standardAnswer required
+- `text_response` — constructed free-text response; manual-graded, standardAnswer optional; inputMode is always multi_line in MVP; future short-answer variants require responseConfig or a separate QuestionType
+
+**InputMode**: How the frontend renders the answer input control. Derived from QuestionType via `getInputMode(type)` at the API layer; not stored in DB.
+_Avoid_: render mode, display type
+
+- `choice` — radio/checkbox selection (single_choice, multiple_choice)
+- `boolean` — true/false toggle (true_false)
+- `single_line` — single-line text input (fill_blank)
+- `multi_line` — multi-line textarea (text_response)
+
+**GradingMode**: How the answer is scored. Determined by QuestionType (objective types are exact-match; `text_response` is manual). Not a question column; each materialized grading work item persists its mode on `attempt_grading_entries.grading_mode` (`pg.ts`), which is the manual-queue predicate's truth source.
+_Avoid_: scoring mode
+
+- `auto` — system grades by comparing against standardAnswer (single_choice, multiple_choice, true_false, fill_blank)
+- `manual` — human grader enters score (text_response)
+
+**standardAnswer**: The correct or reference answer for a question. Required for auto-graded questions. Optional (may be null) for text_response. Not a subjectivity marker.
+_Avoid_: answer key, correct answer (use standardAnswer), solution
+
+**rubric**: A scoring guide for manual grading. Phase 1 MVP stores it as plain text; no rubric builder UI. Required for text_response questions at publish time (rubric must be non-empty; standardAnswer is optional). Two-layer storage: `questions.rubric` is the authoring/editing source; `QuestionSnapshot.rubric` is the frozen grading source, built into `exam.questionSnapshot` by `publishExam` at publish time. Attempt start copies that already-frozen exam snapshot (`startOrRestoreAttempt`); it never re-reads live questions. Grading views must read from snapshot, never JOIN live questions table.
+_Avoid_: marking scheme, scoring rubric (use rubric)
+
+**Snapshot timing**: The question snapshot (including rubric and standardAnswer) is frozen once from live questions at exam publish (`publishExam` → `buildQuestionSnapshot` → `exam.questionSnapshot`). Attempt start copies that frozen snapshot into the attempt; it is not re-derived from live questions. Post-publish question-bank edits do not affect the published exam's snapshot or any attempt.
+
+**Publish validation**: Auto-graded questions (single_choice, multiple_choice, true_false, fill_blank) require a non-empty standardAnswer. text_response requires a non-empty rubric at publish time; standardAnswer is optional. Empty strings like "暂无" do not count as valid.
+
+## Exam Lifecycle
+
+**ExamStatus**: The lifecycle state of an exam (the container), independent of any candidate's attempt. 6 values; Phase 2 has implemented the full state and all transitions.
+_Avoid_: exam state, exam phase, exam stage
+
+- `draft` — teacher/admin editing; candidates cannot see the exam or start attempts
+- `published` — released; candidates can see the exam and start attempts, but `now < openAt` (not yet auto-opened)
+- `open` — `now >= openAt`; candidates can start attempts
+- `closed` — normal end (`now >= closeAt` or admin close); no new attempts; existing attempts finish their own lifecycle independently
+- `canceled` — **abnormal cancellation, NOT equivalent to `closed`**; results/exports carry a cancellation marker (full Phase 3 semantics)
+- `archived` — terminal archive; reachable only from `closed` or `canceled`
+
+**Transitions** (authoritative; mirrors `examStateMachine.ts`):
+
+```
+draft      → [published]
+published  → [draft, open, canceled, archived]
+open       → [closed, canceled]
+closed     → [archived]
+canceled   → [archived]
+archived   → []  (terminal)
+```
+
+**Critical rules**:
+- `published` and `open` are distinct and must not be collapsed. Both allow attempt start; they differ only by whether `now >= openAt`.
+- `canceled` ≠ `closed`: `closed` is a normal end; `canceled` is an abnormal cancellation requiring a cancellation marker on results/exports.
+- `archived` is the sole terminal state, reachable only from `closed` or `canceled`.
+
+**Candidate attempt boundary**: Candidates may start attempts only when `ExamStatus` is `published` or `open` (`OPEN_STATUSES = { published, open }` in `attemptCommands.ts`). `draft`, `closed`, `canceled`, and `archived` reject attempt start.
+
+**Command functions**: All status changes go through centralized command functions (`packages/exam-engine/src/examCommands.ts`); mutating `status` directly in a route is forbidden.
+
+- `publishExam` — draft → published (builds QuestionSnapshot; guards: ≥1 question, valid schedule, authoring timing mode (`timed_window`/`deadline`/`untimed`; `timed_sync` rejected by the publish gate — reserved capability, not currently supported, EXSEM-019), manual selection, valid retake policy, score totals)
+- `openExam` — published → open
+- `closeExam` — open → closed (idempotent: already-closed returns unchanged)
+- `cancelExam` — published|open → canceled (NOT idempotent; does not void/force-submit attempts — that guard is route-layer)
+- `unpublishExam` — published → draft (route reconciles by-now first; a `published` exam past openAt is rejected; open→draft is never accepted)
+- `extendExam` — open → open (extends `closeAt` only; positive integer minutes; preserves remaining-window semantics)
+- `archiveExam` — closed|canceled → archived
+- `publishResults` — NOT a state transition; sets `resultsPublishedAt` (drives resultVisibility → visible)
+- `checkAndUpdateExamStatus` — lazy reconcile-by-now (published→open when `now >= openAt`; open→closed when `now >= closeAt`); called at admin operations and candidate entry points
+
+_Avoid_ (command names): `reopen` (use `open`/`openExam`), `delete` (use `archive`/`archiveExam`).
+
+## Exam Attempt Lifecycle
+
+**AttemptStatus**: The **current** lifecycle state of a candidate's exam attempt. 7 values; the API also returns derived capability fields.
+_Avoid_: attempt state, attempt phase
+
+- `not_started` — enrolled but not yet started
+- `queued` — reserved vocabulary, no write path; batch admission is modeled by `exam_admissions` (#292)
+- `in_progress` — candidate is actively taking the exam; `answers` is writable
+- `disrupted` — heartbeat timeout; candidate disconnected
+- `submitted` — candidate submitted; `submitted_answers` frozen; `gradingStatus` may be `pending_manual` if manual grading is needed
+- `graded` — all scoring complete (both auto and manual); result visibility depends on visibility policy
+- `voided` — terminal override; may or may not have `submitted_answers`
+
+> **Historical persisted compatibility boundary (#542)**: older production code briefly used `status='grading'` as a durable intermediate during automatic grading (`submitted → grading → graded`). That value is **not** part of the current `AttemptStatus`, current API/wire vocabulary, or current transition graph. However, an older deployment could have crashed after persisting `grading` and before terminal closure, so a historical database may still contain such a row. Treat it as a legacy persisted state that requires explicit recovery/disposition during upgrade; do not silently coerce it and do not reintroduce it as a current runtime state merely for compatibility.
+
+**GradingStatus**: The scoring lifecycle dimension, independent of AttemptStatus.
+_Avoid_: score status, grading phase
+
+- `auto_graded` — scored entirely by the auto-grading engine (set at submit freeze for pure-objective attempts)
+- `pending_manual` — manual grading needed (text_response questions exist)
+- `fully_graded` — all scoring complete
+
+> The historical `pending_auto` value has been removed; it is not in the current enum (`packages/domain/src/enums.ts`). Pure-objective attempts are set to `auto_graded` at the submit freeze barrier.
+
+**Critical rule**: The manual grading queue's work truth source is the materialized `attempt_grading_entries` (predicate: `grading_mode='manual' AND status='pending_manual'`), NOT `gradingStatus` and NOT an `attemptStatus = 'grading'` query. `gradingStatus` describes the attempt-level scoring lifecycle/display state but cannot manufacture or rebuild queue work items; `gradingStatus = 'pending_manual'` without a matching pending entry does not appear in the queue (ghost-attempt guard). Historical `status='grading'` rows are upgrade/recovery concerns only and are not current manual- or auto-grading workflow states.
+
+**State machine discipline**: All current lifecycle state changes go through canonical command functions (`submitAttempt`, `restoreInterruptedAttempt` — the disruption-restore entry, `markDisrupted`, `gradeQuestion`; `voidAttempt` is reserved vocabulary with no production writer), each executed inside a database transaction with row lock or conditional update and explicit status/business guards. The transition table (`attemptStateMachine.ts`) is the lifecycle contract, **not a single chokepoint every command funnels through**: submit/terminal-grading transitions use the shared `transition()` seam, while disruption/restore enforce their transitions directly under the canonical lock with explicit status preconditions (direct `attemptRepo.update` of the status field). DB is the fact source; domain state machine defines allowed current transitions; API returns derived capabilities; frontend consumes derived capabilities, not raw DB state. Historical persisted values are handled by explicit migration/recovery logic rather than by widening the current state machine.
+
+> The historical `completeManualGrading` command does not exist in current production code; the one-way pending-only manual completion command is `gradeQuestion` (`packages/exam-engine/src/manualGrading.ts`).
+
+**Derived attempt capabilities**: API returns these alongside raw `attemptStatus`; frontend consumes these, not raw status.
+_Avoid_: computed permissions
+
+- `isEditable` — can the candidate save answers now; `isEditable = attemptStatus === 'in_progress' && serverNow < effectiveDeadline`; computed server-side, never by frontend
+- `canStart` — can the candidate begin this attempt
+- `canResume` — can the candidate resume a disrupted attempt
+- `canSave` — can the candidate save answers (subset of isEditable)
+- `canSubmit` — can the candidate submit
+- `lockReason` — why the UI is locked (e.g. `'deadline'`, `'submitted'`, `'voided'`); present when `isEditable=false`
+
+**answers** (column): The candidate's editable work-in-progress answers. Mutated by saveAnswer. Server-side save guards reject `voided`/`submitted`/`graded` and past-deadline saves; other non-terminal statuses (including `disrupted`) are protocol-acceptable server-side — UI editability is governed separately by `isEditable`. Read by the candidate during the exam.
+_Avoid_: working answers, draft column
+
+**submitted_answers** (column): The frozen snapshot of answers at submit time. Written once in the submit transaction as a clean `SubmittedAnswersSnapshot` (no clientSeq/baseVersion). Immutable after submit. Used exclusively by grading and result computation.
+_Avoid_: final answers, locked answers, grading answers
+
+**SubmittedAnswersSnapshot**: The shape of `submitted_answers`: `{ schemaVersion: 1, answers: { questionId: string, value: unknown }[] }`. Derived from draft answers by normalizing against the attempt's frozen question snapshot and stripping protocol metadata.
+
+**submitted_answers_hash**: NOT a DB column, and no hash utility exists in current code. Idempotency is guaranteed by transactions + status guards + submitted_answers immutability, not by hash comparison.
+
+**submit freeze barrier**: The single-transaction operation that reads `answers`, normalizes them to `SubmittedAnswersSnapshot`, writes to `submitted_answers`, transitions attempt to `submitted`, and rejects any concurrent saveAnswer. Defined in ADR-008.
+_Avoid_: submit lock, answer lock
+
+**Deadline reconciliation**: The server-side semantic that reconciles an active attempt once `serverNow >= effectiveDeadline` before candidate take/save/submit/resume semantics proceed. After reconciliation, the expired attempt cannot accept new answer mutations. The transaction, locking, grading, audit, and idempotency protocol is owned by `docs/architecture/exam-runtime.md` and the relevant Accepted ADR, not by this glossary.
+
+**effectiveDeadline**: `min(exam deadline, attempt deadline, extension-adjusted deadline)` — the authoritative deadline derived from existing timing fields; it is not a separate deadline model.
+
+## Result Visibility
+
+**resultVisibility**: Whether the candidate can see their score/pass status after grading.
+_Avoid_: score visibility, result release mode
+
+- `hidden` — not yet released
+- `visible` — released to candidate
+
+**answerVisibility**: Whether the candidate can see standardAnswer/rubric after grading. Independent of resultVisibility.
+_Aavoid_: standard answer visibility, answer release
+
+- `hidden` — standardAnswer/rubric not shown
+- `visible` — standardAnswer/rubric shown
+
+## DTO Boundaries
+
+**CandidateTakeSnapshot**: The unified response from `GET /candidate/attempts/:attemptId/take`. Contains attempt metadata, derived capabilities (`attemptStatus`, `isEditable`, `canSave`, `canSubmit`, `resultVisibility`, `answerVisibility`, `submittedAt`, `serverRevision`), server time fields (`serverNow`, `effectiveDeadline`), safe questions with `answerValue` (the single answer view for the current state), and `answerSource: 'draft' | 'submitted' | 'none'`. Never contains standardAnswer, rubric, gradingMode, correctOption, teacher notes, or unreleased scores. This is the business truth source for the frontend; the frontend derives its view from this snapshot via a pure function, not from local state.
+_Avoid_: take-exam response, candidate exam DTO
+
+**GradingQuestionDTO**: The question shape returned to the grader during manual scoring (`GradingDetailsQuestionSchema` in `packages/contracts/src/score.ts`). Contains standardAnswer, rubric, and `candidateAnswer` (from `submitted_answers`, not draft), plus the frozen `contentDocument` / `answerMode` for rich prompts.
+_Avoid_: grading detail DTO, score question DTO
+
+**ResultDTO**: The result shape returned to the candidate after result release. Contains score and pass status; standardAnswer only if answerVisibility allows.
+_Avoid_: score DTO, exam result DTO
+
+## Aki
+
+The product name is Aki. The interface is Spanish. Code and tables stay English. The entity map — Subject, Commission, CommissionSubject, Registration, ExamCommissionSubject — is in [docs/domain/entities.md](docs/domain/entities.md). `Registration` is a student taking a subject in a commission. It is not `ExamEnrollment`.

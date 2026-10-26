@@ -15,7 +15,7 @@ const server = setupServer(
     return HttpResponse.json({
       id: "user-1",
       username: "admin",
-      name: "管理员",
+      name: "Administrador",
       role: "Admin",
       organizationId: "org-1",
       capabilities: [...permissionsForRole("Admin")],
@@ -31,7 +31,7 @@ describe("考试管理请求状态", () => {
           initialUser={{
             id: "user-1",
             username: "admin",
-            name: "管理员",
+            name: "Administrador",
             role: "Admin",
             organizationId: "org-1",
             capabilities: [...permissionsForRole("Admin")],
@@ -67,7 +67,7 @@ describe("考试管理请求状态", () => {
 
     await waitFor(
       () => {
-        expect(screen.getByText(/暂无考试/)).toBeInTheDocument();
+        expect(screen.getByText(/No hay exámenes/)).toBeInTheDocument();
       },
       { timeout: 3000 },
     );
@@ -143,7 +143,7 @@ describe("考试管理请求状态", () => {
 
     await waitFor(
       () => {
-        expect(screen.getByText(/加载考试列表失败/)).toBeInTheDocument();
+        expect(screen.getByText(/No se pudo cargar la lista de exámenes/)).toBeInTheDocument();
       },
       { timeout: 3000 },
     );

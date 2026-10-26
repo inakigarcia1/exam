@@ -123,7 +123,7 @@ export function ExamDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  // Localized value labels for the 考试配置 block. Raw enum values (e.g.
+  // Localized value labels for the Configuración del examen block. Raw enum values (e.g.
   // "timed_window", "unlimited") must never reach the admin UI; unknown
   // values fall back to the raw value so a future enum addition degrades
   // gracefully instead of rendering an i18n key.

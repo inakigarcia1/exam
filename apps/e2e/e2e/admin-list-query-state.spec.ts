@@ -41,7 +41,7 @@ const KEYWORD = `a3kw${STAMP}`;
 /** The published set must span at least three pages (A15 step ④). */
 const PUBLISHED_EXAMS = Array.from(
   { length: 41 },
-  (_, i) => `A3Q${STAMP} 考试 ${String(i + 1).padStart(2, "0")}`,
+  (_, i) => `A3Q${STAMP} Exámenes ${String(i + 1).padStart(2, "0")}`,
 );
 /** Enough matching questions to make the keyword query span two pages. */
 const KEYWORD_QUESTIONS = 21;
@@ -98,7 +98,7 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
     expect(premise.ok(), await premise.text()).toBe(true);
 
     const course = await adminPost(request, adminToken, "/api/courses", {
-      name: `A3Q 课程 ${STAMP}`,
+      name: `A3Q Comisión ${STAMP}`,
       code: `A3Q-${STAMP}`,
       description: "",
     });
@@ -110,7 +110,7 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
     const first = await adminPost(request, adminToken, "/api/questions", {
       courseId,
       type: "true_false",
-      content: `${KEYWORD} 题目 01`,
+      content: `${KEYWORD} Pregunta 01`,
       standardAnswer: true,
       score: 10,
       difficulty: 2,
@@ -122,7 +122,7 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
       const res = await adminPost(request, adminToken, "/api/questions", {
         courseId,
         type: "true_false",
-        content: `${KEYWORD} 题目 ${String(i).padStart(2, "0")}`,
+        content: `${KEYWORD} Pregunta ${String(i).padStart(2, "0")}`,
         standardAnswer: true,
         score: 10,
         difficulty: 2,
@@ -179,8 +179,8 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
     const filterUrl = new URL(
       await (async () => {
         const pending = nextListResponse(page, EXAMS_LIST);
-        await page.getByRole("combobox", { name: "按状态筛选" }).click();
-        await page.getByRole("option", { name: "已发布" }).click();
+        await page.getByRole("combobox", { name: "Filtrar por estado" }).click();
+        await page.getByRole("option", { name: "Publicado" }).click();
         return pending;
       })(),
     );
@@ -197,7 +197,7 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
       const turnUrl = new URL(
         await (async () => {
           const pending = nextListResponse(page, EXAMS_LIST);
-          await page.getByRole("button", { name: "下一页" }).click();
+          await page.getByRole("button", { name: "Página siguiente" }).click();
           return pending;
         })(),
       );
@@ -215,7 +215,7 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
     // ④ enter the detail from a row on page 3 — PUSH, carrying the list URL.
     await page
       .getByRole("table")
-      .getByRole("button", { name: "查看详情" })
+      .getByRole("button", { name: "Ver detalle" })
       .first()
       .click();
     await expect(page).toHaveURL(/\/admin\/exams\/[^/]+$/);
@@ -225,7 +225,7 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
     const returnUrl = new URL(
       await (async () => {
         const pending = nextListResponse(page, EXAMS_LIST);
-        await page.getByRole("button", { name: "返回列表" }).click();
+        await page.getByRole("button", { name: "Volver a la lista" }).click();
         return pending;
       })(),
     );
@@ -239,8 +239,8 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
     );
     // The status control and the footer agree with the URL, not with a
     // remembered value.
-    await expect(page.getByRole("combobox", { name: "按状态筛选" })).toHaveText(
-      "已发布",
+    await expect(page.getByRole("combobox", { name: "Filtrar por estado" })).toHaveText(
+      "Publicado",
     );
     await expect(page.getByText(/显示 41-/)).toBeVisible();
 
@@ -314,7 +314,7 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
     const turnUrl = new URL(
       await (async () => {
         const pending = nextListResponse(page, QUESTIONS_LIST);
-        await page.getByRole("button", { name: "下一页" }).click();
+        await page.getByRole("button", { name: "Página siguiente" }).click();
         return pending;
       })(),
     );
@@ -337,7 +337,7 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
         url.searchParams.get("search") === KEYWORD &&
         url.searchParams.get("page") === null,
     );
-    await expect(page.getByLabel("搜索题目")).toHaveValue(KEYWORD);
+    await expect(page.getByLabel("Buscar preguntas")).toHaveValue(KEYWORD);
     await expect(page.getByText(/显示 1-/)).toBeVisible();
 
     // ④ a NEW filter commit after Back. If the write were based on a stale
@@ -359,8 +359,8 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
               r.url().includes(`search=${KEYWORD}`) &&
               r.url().includes("difficulty=2"),
           );
-          await page.getByRole("combobox", { name: "按难度筛选" }).click();
-          await page.getByRole("option", { name: "难度 2" }).click();
+          await page.getByRole("combobox", { name: "Filtrar por dificultad" }).click();
+          await page.getByRole("option", { name: "Dificultad 2" }).click();
           return pending;
         })()
       ).url(),
@@ -375,7 +375,7 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
         url.searchParams.get("difficulty") === "2" &&
         url.searchParams.get("page") === null,
     );
-    await expect(page.getByLabel("搜索题目")).toHaveValue(KEYWORD);
+    await expect(page.getByLabel("Buscar preguntas")).toHaveValue(KEYWORD);
     await expect(page.getByText(/共 21 条/)).toBeVisible();
 
     // ⑤ A04: entering a row's editor is a PUSH, so Back returns to the query the
@@ -396,7 +396,7 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
     //    queryState suite (A08/A09/A16), not here.
     await page
       .getByRole("table")
-      .getByRole("button", { name: "编辑题目" })
+      .getByRole("button", { name: "Editar pregunta" })
       .first()
       .click();
     await expect(page).toHaveURL(/\/admin\/questions\/[^/]+\/edit$/);
@@ -409,16 +409,16 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
         url.searchParams.get("difficulty") === "2" &&
         url.searchParams.get("page") === null,
     );
-    await expect(page.getByLabel("搜索题目")).toHaveValue(KEYWORD);
+    await expect(page.getByLabel("Buscar preguntas")).toHaveValue(KEYWORD);
     await expect(
-      page.getByRole("combobox", { name: "按难度筛选" }),
-    ).toContainText("难度 2");
+      page.getByRole("combobox", { name: "Filtrar por dificultad" }),
+    ).toContainText("Dificultad 2");
     await expect(page.getByText(/共 21 条/)).toBeVisible();
     await expect(page.getByText(/显示 1-20 条/)).toBeVisible();
     await expect(
-      page.getByRole("table").getByText(`${KEYWORD} 题目 01`, { exact: true }),
+      page.getByRole("table").getByText(`${KEYWORD} Pregunta 01`, { exact: true }),
     ).toBeVisible();
-    await expect(page.getByRole("button", { name: "上一页" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Página anterior" })).toBeDisabled();
 
     // ⑥ Back from the committed state LEAVES the list. A filter commit is a
     //    history REPLACEMENT, so the query the user committed over is not an
@@ -457,15 +457,15 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
   }) => {
     await loginAsAdmin(page);
 
-    // (i) a header entry point (新建题目) → cancel returns to the query URL.
+    // (i) a header entry point (Nueva pregunta) → cancel returns to the query URL.
     await page.goto(`/admin/questions?search=${KEYWORD}&page=2`);
     await expect(page.getByRole("table")).toBeVisible();
-    await page.getByRole("button", { name: "新增题目" }).click();
+    await page.getByRole("button", { name: "Nueva pregunta" }).click();
     await expect(page).toHaveURL(/\/admin\/questions\/new$/);
     const cancelUrl = new URL(
       await (async () => {
         const pending = nextListResponse(page, QUESTIONS_LIST);
-        await page.getByRole("button", { name: "取消" }).click();
+        await page.getByRole("button", { name: "Cancelar" }).click();
         return pending;
       })(),
     );
@@ -483,16 +483,16 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
     //      preserve it → the internal return still restores the query.
     await page
       .getByRole("table")
-      .getByRole("button", { name: "编辑题目" })
+      .getByRole("button", { name: "Editar pregunta" })
       .first()
       .click();
     await expect(page).toHaveURL(/\/admin\/questions\/[^/]+\/edit$/);
     await page.reload();
-    await expect(page.getByRole("button", { name: "取消" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Cancelar" })).toBeVisible();
     const reloadUrl = new URL(
       await (async () => {
         const pending = nextListResponse(page, QUESTIONS_LIST);
-        await page.getByRole("button", { name: "取消" }).click();
+        await page.getByRole("button", { name: "Cancelar" }).click();
         return pending;
       })(),
     );
@@ -519,7 +519,7 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
     for (const hostile of hostileTargets) {
       await page
         .getByRole("table")
-        .getByRole("button", { name: "编辑题目" })
+        .getByRole("button", { name: "Editar pregunta" })
         .first()
         .click();
       await expect(page).toHaveURL(/\/admin\/questions\/[^/]+\/edit$/);
@@ -528,8 +528,8 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
         window.history.replaceState({ ...state, usr: { from } }, "");
       }, hostile);
       await page.reload();
-      await expect(page.getByRole("button", { name: "取消" })).toBeVisible();
-      await page.getByRole("button", { name: "取消" }).click();
+      await expect(page.getByRole("button", { name: "Cancelar" })).toBeVisible();
+      await page.getByRole("button", { name: "Cancelar" }).click();
       await expect(page).toHaveURL(`${origin}/admin/questions`);
       expect(new URL(page.url()).origin).toBe(origin);
       // Back to the query list for the next hostile value.
@@ -597,16 +597,16 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
     const pendingRequest = page.waitForRequest(
       (r) => r.method() === "GET" && listRoute.test(r.url()),
     );
-    await page.getByRole("button", { name: "清除搜索" }).click();
+    await page.getByRole("button", { name: "Borrar búsqueda" }).click();
     await pendingRequest;
 
     // The pending window must not show the old identity's rows and must not
     // show an empty state — while the list region keeps its height.
     await expect(
-      page.getByRole("table").getByText(`${KEYWORD} 题目 01`, { exact: true }),
+      page.getByRole("table").getByText(`${KEYWORD} Pregunta 01`, { exact: true }),
     ).toHaveCount(0);
-    await expect(page.getByText("未找到匹配的题目")).toHaveCount(0);
-    await expect(page.getByText("暂无题目")).toHaveCount(0);
+    await expect(page.getByText("Ninguna pregunta coincide")).toHaveCount(0);
+    await expect(page.getByText("No hay preguntas")).toHaveCount(0);
 
     const post = await page.evaluate(() => ({
       scrollHeight: document.documentElement.scrollHeight,
@@ -648,6 +648,6 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
 
     // The pending window ends in the real result, not in a stuck loader.
     await expect(page.getByText(/共 \d+ 条/)).toBeVisible();
-    await expect(page.getByText("暂无题目")).toHaveCount(0);
+    await expect(page.getByText("No hay preguntas")).toHaveCount(0);
   });
 });

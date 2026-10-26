@@ -190,7 +190,7 @@ describe("QuestionPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    expect(await screen.findByText("题目管理")).toBeInTheDocument();
+    expect(await screen.findByText("Gestión de preguntas")).toBeInTheDocument();
     // The DataWorkbench renders a single continuous shell whose toolbar,
     // desktop table, and footer are regions of one surface. The desktop table
     // (hidden below lg) and mobile card list (hidden at lg+) are separate
@@ -222,11 +222,11 @@ describe("QuestionPage", () => {
     const pendingQuestions = new Promise(() => {});
     apiGet.mockImplementationOnce(() => pendingQuestions);
 
-    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await user.click(screen.getByRole("button", { name: "Página siguiente" }));
 
-    expect(screen.getByText("题目管理")).toBeInTheDocument();
+    expect(screen.getByText("Gestión de preguntas")).toBeInTheDocument();
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
-    expect(screen.getByText("加载中…")).toBeInTheDocument();
+    expect(screen.getByText("Cargando…")).toBeInTheDocument();
 
     apiGet.mockImplementation((path: string) => {
       if (path.startsWith("/api/courses")) {
@@ -266,23 +266,23 @@ describe("QuestionPage", () => {
       });
     });
 
-    fireEvent.change(screen.getByLabelText("搜索题目"), {
-      target: { value: "题目" },
+    fireEvent.change(screen.getByLabelText("Buscar preguntas"), {
+      target: { value: "Pregunta" },
     });
     // Select one tag through the structured filter, then clear all filters.
-    await user.click(screen.getByRole("button", { name: "标签筛选" }));
+    await user.click(screen.getByRole("button", { name: "Filtro de etiquetas" }));
     await user.click(await screen.findByRole("checkbox", { name: "代数" }));
-    await user.click(screen.getByRole("button", { name: "清空筛选" }));
+    await user.click(screen.getByRole("button", { name: "Limpiar filtros" }));
 
     await waitFor(() => {
       // The tag filter trigger is back to its empty placeholder state and
       // the free-text search box is empty again.
       expect(
-        within(screen.getByRole("button", { name: "标签筛选" })).getByText(
-          "标签",
+        within(screen.getByRole("button", { name: "Filtro de etiquetas" })).getByText(
+          "Etiqueta",
         ),
       ).toBeInTheDocument();
-      expect(screen.getByLabelText("搜索题目")).toHaveValue("");
+      expect(screen.getByLabelText("Buscar preguntas")).toHaveValue("");
       expect(screen.getByText(/共 21 条/)).toBeInTheDocument();
     });
   });
@@ -290,9 +290,9 @@ describe("QuestionPage", () => {
   it("filters tags via the structured multi-select with AND semantics", async () => {
     const user = userEvent.setup();
     renderPage();
-    await screen.findByText("题目管理");
+    await screen.findByText("Gestión de preguntas");
 
-    await user.click(screen.getByRole("button", { name: "标签筛选" }));
+    await user.click(screen.getByRole("button", { name: "Filtro de etiquetas" }));
     await user.click(await screen.findByRole("checkbox", { name: "代数" }));
     await user.click(screen.getByRole("checkbox", { name: "几何" }));
 
@@ -301,16 +301,16 @@ describe("QuestionPage", () => {
       expect(decodeURIComponent(last)).toContain("tags=代数,几何");
     });
     // AND hint is visible so the multi-tag behavior is not a guess.
-    expect(screen.getByText("多标签为同时包含")).toBeInTheDocument();
+    expect(screen.getByText("Si eliges varias, la pregunta debe incluir todas")).toBeInTheDocument();
   });
 
   it("narrows the tag vocabulary by search inside the dropdown", async () => {
     const user = userEvent.setup();
     renderPage();
-    await screen.findByText("题目管理");
+    await screen.findByText("Gestión de preguntas");
 
-    await user.click(screen.getByRole("button", { name: "标签筛选" }));
-    await user.type(await screen.findByLabelText("搜索标签"), "概率");
+    await user.click(screen.getByRole("button", { name: "Filtro de etiquetas" }));
+    await user.type(await screen.findByLabelText("Buscar etiquetas"), "概率");
     expect(screen.getByRole("checkbox", { name: "概率" })).toBeInTheDocument();
     expect(
       screen.queryByRole("checkbox", { name: "代数" }),
@@ -320,9 +320,9 @@ describe("QuestionPage", () => {
   it("removes a single tag without clearing the others", async () => {
     const user = userEvent.setup();
     renderPage();
-    await screen.findByText("题目管理");
+    await screen.findByText("Gestión de preguntas");
 
-    await user.click(screen.getByRole("button", { name: "标签筛选" }));
+    await user.click(screen.getByRole("button", { name: "Filtro de etiquetas" }));
     await user.click(await screen.findByRole("checkbox", { name: "代数" }));
     await user.click(screen.getByRole("checkbox", { name: "几何" }));
     await user.click(screen.getByRole("checkbox", { name: "几何" }));
@@ -337,11 +337,11 @@ describe("QuestionPage", () => {
   it("clears all selected tags from the dropdown footer", async () => {
     const user = userEvent.setup();
     renderPage();
-    await screen.findByText("题目管理");
+    await screen.findByText("Gestión de preguntas");
 
-    await user.click(screen.getByRole("button", { name: "标签筛选" }));
+    await user.click(screen.getByRole("button", { name: "Filtro de etiquetas" }));
     await user.click(await screen.findByRole("checkbox", { name: "代数" }));
-    await user.click(screen.getByRole("button", { name: "清除已选" }));
+    await user.click(screen.getByRole("button", { name: "Quitar selección" }));
 
     await waitFor(() => {
       const last = questionsCalls().at(-1) ?? "";
@@ -352,9 +352,9 @@ describe("QuestionPage", () => {
   it("supports keyboard operation of the tag filter", async () => {
     const user = userEvent.setup();
     renderPage();
-    await screen.findByText("题目管理");
+    await screen.findByText("Gestión de preguntas");
 
-    const trigger = screen.getByRole("button", { name: "标签筛选" });
+    const trigger = screen.getByRole("button", { name: "Filtro de etiquetas" });
     trigger.focus();
     await user.keyboard("{Enter}");
     const checkbox = await screen.findByRole("checkbox", { name: "代数" });
@@ -373,7 +373,7 @@ describe("QuestionPage", () => {
   it("ignores a stale tag-filter response that resolves after the newer one", async () => {
     const user = userEvent.setup();
     renderPage();
-    await screen.findByText("题目管理");
+    await screen.findByText("Gestión de preguntas");
     await waitFor(() =>
       expect(
         within(desktopShell()).getByText("题目一内容"),
@@ -383,7 +383,7 @@ describe("QuestionPage", () => {
     const staleA = deferredQuestions();
     const newerAB = deferredQuestions();
 
-    await user.click(screen.getByRole("button", { name: "标签筛选" }));
+    await user.click(screen.getByRole("button", { name: "Filtro de etiquetas" }));
     // 1. select A — request 1 (tags=代数) stays pending
     apiGet.mockImplementationOnce(() => staleA.promise);
     await user.click(await screen.findByRole("checkbox", { name: "代数" }));
@@ -414,14 +414,14 @@ describe("QuestionPage", () => {
     expect(screen.getByText(/共 5 条/)).toBeInTheDocument();
     expect(screen.queryByText(/共 7 条/)).not.toBeInTheDocument();
     // loading is owned by the newest request and already settled
-    expect(screen.getByText("加载中…")).toHaveAttribute("aria-hidden", "true");
-    expect(screen.queryByText("加载考生列表失败")).not.toBeInTheDocument();
+    expect(screen.getByText("Cargando…")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.queryByText("No se pudo cargar la lista de alumnos")).not.toBeInTheDocument();
   });
 
   it("ignores a stale tag-filter request that rejects after a newer one resolved", async () => {
     const user = userEvent.setup();
     renderPage();
-    await screen.findByText("题目管理");
+    await screen.findByText("Gestión de preguntas");
     await waitFor(() =>
       expect(
         within(desktopShell()).getByText("题目一内容"),
@@ -431,7 +431,7 @@ describe("QuestionPage", () => {
     const staleA = deferredQuestions();
     const newerAB = deferredQuestions();
 
-    await user.click(screen.getByRole("button", { name: "标签筛选" }));
+    await user.click(screen.getByRole("button", { name: "Filtro de etiquetas" }));
     apiGet.mockImplementationOnce(() => staleA.promise);
     await user.click(await screen.findByRole("checkbox", { name: "代数" }));
     apiGet.mockImplementationOnce(() => newerAB.promise);
@@ -454,8 +454,8 @@ describe("QuestionPage", () => {
       within(desktopShell()).getByText("A+B 结果题目"),
     ).toBeInTheDocument();
     expect(screen.getByText(/共 5 条/)).toBeInTheDocument();
-    expect(screen.getByText("加载中…")).toHaveAttribute("aria-hidden", "true");
-    expect(screen.queryByText("加载考生列表失败")).not.toBeInTheDocument();
+    expect(screen.getByText("Cargando…")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.queryByText("No se pudo cargar la lista de alumnos")).not.toBeInTheDocument();
   });
 
   // Issue 457 C4 audit: the derived card must keep the field assignment the
@@ -463,7 +463,7 @@ describe("QuestionPage", () => {
   // course/score/difficulty render as labeled meta lines, tags stay off.
   it("renders the derived mobile card with the audited field slots", async () => {
     renderPage();
-    await screen.findByText("题目管理");
+    await screen.findByText("Gestión de preguntas");
     await waitFor(() =>
       expect(
         within(desktopShell()).getByText("题目一内容"),
@@ -471,22 +471,22 @@ describe("QuestionPage", () => {
     );
     const mobile = mobileRegion();
     // header cluster: the type badge.
-    expect(within(mobile).getByText("单选")).toBeInTheDocument();
+    expect(within(mobile).getByText("Opción única")).toBeInTheDocument();
     // primary area: the question content.
     expect(within(mobile).getByText("题目一内容")).toBeInTheDocument();
     // meta line: labeled course/score/difficulty (score is NOT a bare
     // header value — the score column carries priority "normal").
-    expect(within(mobile).getByText("所属课程: 课程一")).toBeInTheDocument();
-    expect(within(mobile).getByText("分值: 10")).toBeInTheDocument();
-    expect(within(mobile).getByText("难度: 1")).toBeInTheDocument();
+    expect(within(mobile).getByText("Comisión: 课程一")).toBeInTheDocument();
+    expect(within(mobile).getByText("Puntaje: 10")).toBeInTheDocument();
+    expect(within(mobile).getByText("Dificultad: 1")).toBeInTheDocument();
     // tag-list defaults low: tags stay off the card.
     expect(within(mobile).queryByText("tag1")).not.toBeInTheDocument();
     // actions slot: the RowActions edit/delete pair.
     expect(
-      within(mobile).getByRole("button", { name: "编辑题目" }),
+      within(mobile).getByRole("button", { name: "Editar pregunta" }),
     ).toBeInTheDocument();
     expect(
-      within(mobile).getByRole("button", { name: "删除题目" }),
+      within(mobile).getByRole("button", { name: "Eliminar pregunta" }),
     ).toBeInTheDocument();
   });
 });

@@ -90,16 +90,16 @@ test.describe("cross-tab pending grant coordination", () => {
    * Assumes the page is already logged in as admin and on the proctor page.
    */
   async function submitTenMinuteGrant(page: import("@playwright/test").Page) {
-    const extendBtn = page.getByRole("button", { name: "延长时间" });
+    const extendBtn = page.getByRole("button", { name: "Extender el plazo" });
     await expect(extendBtn.first()).toBeVisible({ timeout: 15_000 });
     await extendBtn.first().click();
     // Dialog title appears once the coordinator's getCurrent resolves.
-    await expect(page.getByText("延长考试时间").first()).toBeVisible({
+    await expect(page.getByText("Extender el tiempo del examen").first()).toBeVisible({
       timeout: 15_000,
     });
     // 10 minutes is the default; fill the reason and confirm.
-    const reason = page.getByPlaceholder("请说明延长原因");
-    await reason.fill("网络中断");
+    const reason = page.getByPlaceholder("Explicá por qué se suma tiempo");
+    await reason.fill("Corte de red");
     const confirm = page.getByRole("button", { name: "延长 10 分钟" });
     await confirm.click();
   }
@@ -198,23 +198,23 @@ test.describe("cross-tab pending grant coordination", () => {
 
     // ── Tab B: open the SAME attempt's grant dialog. The production
     //    coordinator's getCurrent must restore the frozen command
-    //    (dialog shows the indeterminate banner + 重试同一加时 button).
-    const extendBtnB = pageB.getByRole("button", { name: "延长时间" });
+    //    (dialog shows the indeterminate banner + Reintentar este tiempo extra button).
+    const extendBtnB = pageB.getByRole("button", { name: "Extender el plazo" });
     await expect(extendBtnB.first()).toBeVisible({ timeout: 15_000 });
     await extendBtnB.first().click();
-    await expect(pageB.getByText("延长考试时间").first()).toBeVisible({
+    await expect(pageB.getByText("Extender el tiempo del examen").first()).toBeVisible({
       timeout: 15_000,
     });
     // The dialog restored to indeterminate (retry affordance visible).
     await expect(
-      pageB.getByRole("button", { name: "重试同一加时" }),
+      pageB.getByRole("button", { name: "Reintentar este tiempo extra" }),
     ).toBeVisible({ timeout: 15_000 });
 
     // ── Tab B retries the frozen command. The server already committed
     //    (from Tab A's route.fetch), so this MUST be idempotent_replay.
-    await pageB.getByRole("button", { name: "重试同一加时" }).click();
+    await pageB.getByRole("button", { name: "Reintentar este tiempo extra" }).click();
     await expect(
-      pageB.getByText("该加时已处理，未重复延长").first(),
+      pageB.getByText("Ese tiempo extra ya estaba hecho. No se sumó de nuevo.").first(),
     ).toBeVisible({ timeout: 15_000 });
 
     // The coordinator must have cleared the authority (compare-and-clear on
@@ -359,13 +359,13 @@ test.describe("cross-tab pending grant coordination", () => {
     for (const p of [pageB, pageC]) {
       await p.goto(`/admin/exams/${seeded3.examId}/proctor`);
       await p.waitForURL("**/proctor**", { timeout: 15_000 });
-      const btn = p.getByRole("button", { name: "延长时间" });
+      const btn = p.getByRole("button", { name: "Extender el plazo" });
       await expect(btn.first()).toBeVisible({ timeout: 15_000 });
       await btn.first().click();
-      await expect(p.getByText("延长考试时间").first()).toBeVisible({
+      await expect(p.getByText("Extender el tiempo del examen").first()).toBeVisible({
         timeout: 15_000,
       });
-      await expect(p.getByRole("button", { name: "重试同一加时" })).toBeVisible(
+      await expect(p.getByRole("button", { name: "Reintentar este tiempo extra" })).toBeVisible(
         { timeout: 15_000 },
       );
     }
@@ -396,7 +396,7 @@ test.describe("cross-tab pending grant coordination", () => {
     });
 
     // Start Tab B's retry (claimForSend → POST, gated open).
-    await pageB.getByRole("button", { name: "重试同一加时" }).click();
+    await pageB.getByRole("button", { name: "Reintentar este tiempo extra" }).click();
 
     // Observable barrier: wait until Tab B's POST has been issued (the page is
     // now in `submitting`, holding the active lease). This is the point at which
@@ -416,7 +416,7 @@ test.describe("cross-tab pending grant coordination", () => {
         "Tab C must not POST a time-grant while Tab B holds the active lease",
       );
     });
-    await pageC.getByRole("button", { name: "重试同一加时" }).click();
+    await pageC.getByRole("button", { name: "Reintentar este tiempo extra" }).click();
     await expect(pageC.getByText("另一个标签页正在处理").first()).toBeVisible({
       timeout: 15_000,
     });
@@ -433,7 +433,7 @@ test.describe("cross-tab pending grant coordination", () => {
     //    → the page clears the authority and surfaces the replay toast.
     releaseGate();
     await expect(
-      pageB.getByText("该加时已处理，未重复延长").first(),
+      pageB.getByText("Ese tiempo extra ya estaba hecho. No se sumó de nuevo.").first(),
     ).toBeVisible({
       timeout: 15_000,
     });

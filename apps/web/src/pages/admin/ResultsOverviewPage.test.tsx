@@ -20,7 +20,7 @@ const { apiGet } = vi.hoisted(() => ({
         totalScore: 100,
         gradedAttemptCount: 2,
         canViewScores: false,
-        scoreViewDisabledReason: "考试尚未结束，暂不能查看成绩",
+        scoreViewDisabledReason: "El examen todavía no termina，暂不能查看成绩",
       },
       {
         id: "exam-empty",
@@ -32,7 +32,7 @@ const { apiGet } = vi.hoisted(() => ({
         totalScore: 100,
         gradedAttemptCount: 0,
         canViewScores: false,
-        scoreViewDisabledReason: "暂无成绩数据",
+        scoreViewDisabledReason: "No hay datos de calificaciones",
       },
       {
         id: "exam-graded",
@@ -109,13 +109,13 @@ describe("ResultsOverviewPage", () => {
   it("disables score viewing for ineligible exams and keeps graded exams clickable", async () => {
     renderPage();
 
-    expect(await screen.findByText("成绩查询")).toBeInTheDocument();
+    expect(await screen.findByText("Calificaciones")).toBeInTheDocument();
 
     // Row actions render twice by design (desktop table + mobile cards);
     // scope to the desktop table representation.
     const table = await screen.findByRole("table");
     const buttons = await within(table).findAllByRole("button", {
-      name: "查看成绩",
+      name: "Ver calificación",
     });
     expect(buttons).toHaveLength(3);
     expect(buttons[0]).toBeDisabled();
@@ -155,7 +155,7 @@ describe("ResultsOverviewPage #785 server status set and pagination (BDD L2)", (
       gradedAttemptCount: 0,
       canViewScores: false,
       scoreViewDisabledReasonCode: "EXAM_NOT_FINISHED",
-      scoreViewDisabledReason: "考试尚未结束，暂不能查看成绩",
+      scoreViewDisabledReason: "El examen todavía no termina，暂不能查看成绩",
       ...overrides,
     };
   }
@@ -205,7 +205,7 @@ describe("ResultsOverviewPage #785 server status set and pagination (BDD L2)", (
       expect(params.get("statuses")).toBe(OVERVIEW_STATUSES);
     }
 
-    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await user.click(screen.getByRole("button", { name: "Página siguiente" }));
     await waitFor(() => {
       const [lastUrl] = apiGet.mock.lastCall!;
       const params = new URLSearchParams(String(lastUrl).split("?")[1]);
@@ -226,7 +226,7 @@ describe("ResultsOverviewPage #785 server status set and pagination (BDD L2)", (
             examRow("e2", "已关闭无成绩考试", {
               status: "closed",
               scoreViewDisabledReasonCode: "NO_GRADED_ATTEMPTS",
-              scoreViewDisabledReason: "暂无成绩数据",
+              scoreViewDisabledReason: "No hay datos de calificaciones",
             }),
             examRow("e3", "已归档可查考试", {
               status: "archived",
@@ -248,12 +248,12 @@ describe("ResultsOverviewPage #785 server status set and pagination (BDD L2)", (
     renderPage();
     const table = await screen.findByRole("table");
     // Status labels render as server facts.
-    expect(within(table).getAllByText("开放中").length).toBeGreaterThan(0);
-    expect(within(table).getAllByText("已关闭").length).toBeGreaterThan(0);
-    expect(within(table).getAllByText("已归档").length).toBeGreaterThan(0);
+    expect(within(table).getAllByText("Abierto").length).toBeGreaterThan(0);
+    expect(within(table).getAllByText("Cerrado").length).toBeGreaterThan(0);
+    expect(within(table).getAllByText("Archivado").length).toBeGreaterThan(0);
     // Score-view availability follows canViewScores, never status.
     const buttons = await within(table).findAllByRole("button", {
-      name: "查看成绩",
+      name: "Ver calificación",
     });
     expect(buttons).toHaveLength(3);
     expect(buttons[0]).toBeDisabled();

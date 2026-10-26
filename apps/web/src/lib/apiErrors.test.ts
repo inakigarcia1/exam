@@ -51,12 +51,12 @@ describe("getApiErrorMessage (Web i18n authority)", () => {
     // The Web catalog deliberately does not echo the contracts registry
     // wording for VALIDATION_ERROR; asserting the exact Web copy pins Zone A
     // authority at the copy level, not just the key level.
-    const error = new ApiError(400, "请求参数无效", "VALIDATION_ERROR");
-    expect(getApiErrorMessage(error, t)).toBe("输入内容有误，请检查后重试");
+    const error = new ApiError(400, "Los datos no son válidos", "VALIDATION_ERROR");
+    expect(getApiErrorMessage(error, t)).toBe("Hay datos incorrectos. Revísalos e inténtalo de nuevo.");
   });
 
   it("T2: known reason resolves to specific Web copy with wire params", () => {
-    const error = new ApiError(409, "资源状态冲突", "RESOURCE_CONFLICT", {
+    const error = new ApiError(409, "El estado del recurso cambió", "RESOURCE_CONFLICT", {
       reason: "COURSE_HAS_QUESTIONS",
       params: { questionCount: 3 },
     });
@@ -66,43 +66,43 @@ describe("getApiErrorMessage (Web i18n authority)", () => {
   });
 
   it("T2: COURSE_CODE_EXISTS yields the specific course-code copy", () => {
-    const error = new ApiError(409, "资源状态冲突", "RESOURCE_CONFLICT", {
+    const error = new ApiError(409, "El estado del recurso cambió", "RESOURCE_CONFLICT", {
       reason: "COURSE_CODE_EXISTS",
       params: { courseCode: "CS101" },
     });
-    expect(getApiErrorMessage(error, t)).toBe("课程代码已存在");
+    expect(getApiErrorMessage(error, t)).toBe("Ese código de comisión ya existe");
   });
 
-  it("T2/T7: C1 user-management reasons resolve to specific copy instead of 请求参数无效", () => {
+  it("T2/T7: C1 user-management reasons resolve to specific copy instead of Los datos no son válidos", () => {
     const cases: Array<[string, string]> = [
-      ["CANNOT_DISABLE_SELF", "不能停用自己的账号"],
-      ["TARGET_USER_INACTIVE", "目标用户已被停用"],
-      ["TARGET_NOT_TEACHER", "目标用户不具有教师角色"],
-      ["TARGET_NOT_GRADER", "目标用户不具有阅卷员角色"],
-      ["ADMIN_MAINTAINER_EXCLUSION", "同一账号不能同时拥有管理员与运维身份"],
+      ["CANNOT_DISABLE_SELF", "No puedes desactivar tu propia cuenta"],
+      ["TARGET_USER_INACTIVE", "Ese usuario está desactivado"],
+      ["TARGET_NOT_TEACHER", "Ese usuario no es docente"],
+      ["TARGET_NOT_GRADER", "Ese usuario no es corrector"],
+      ["ADMIN_MAINTAINER_EXCLUSION", "La misma cuenta no puede ser administrador y de operaciones"],
     ];
     for (const [reason, expected] of cases) {
-      const error = new ApiError(400, "请求参数无效", "VALIDATION_ERROR", {
+      const error = new ApiError(400, "Los datos no son válidos", "VALIDATION_ERROR", {
         reason,
       });
       expect(getApiErrorMessage(error, t)).toBe(expected);
     }
   });
 
-  it("T2/T8: score-path reasons resolve to specific copy instead of 资源状态冲突", () => {
+  it("T2/T8: score-path reasons resolve to specific copy instead of El estado del recurso cambió", () => {
     expect(
       getApiErrorMessage(
-        new ApiError(409, "资源状态冲突", "RESOURCE_CONFLICT", {
+        new ApiError(409, "El estado del recurso cambió", "RESOURCE_CONFLICT", {
           reason: "EXAM_NOT_FINISHED",
         }),
         t,
       ),
-    ).toBe("考试尚未结束");
+    ).toBe("El examen todavía no termina");
     // Real brownfield wire shape (scores/export routes): the dynamic fact is
     // flat on details, NOT inside details.params.
     expect(
       getApiErrorMessage(
-        new ApiError(409, "资源状态冲突", "RESOURCE_CONFLICT", {
+        new ApiError(409, "El estado del recurso cambió", "RESOURCE_CONFLICT", {
           reason: "UNRESOLVED_ATTEMPTS_EXIST",
           activeAttemptCount: 2,
         }),
@@ -113,7 +113,7 @@ describe("getApiErrorMessage (Web i18n authority)", () => {
 
   it("T3: known code + unknown reason falls back to code-level Web copy", () => {
     const { t: recordingT, calls } = makeRecordingT();
-    const error = new ApiError(409, "资源状态冲突", "RESOURCE_CONFLICT", {
+    const error = new ApiError(409, "El estado del recurso cambió", "RESOURCE_CONFLICT", {
       reason: "FUTURE_CONFLICT_REASON",
     });
     expect(getApiErrorMessage(error, recordingT)).toBe(
@@ -183,7 +183,7 @@ describe("getApiErrorMessage (Web i18n authority)", () => {
         }),
         t,
       ),
-    ).toBe("考试当前状态不允许关闭");
+    ).toBe("En este estado no se puede cerrar el examen");
     expect(
       getApiErrorMessage(
         new ApiError(409, "x", "EXAM_CANCEL_NOT_ALLOWED", {
@@ -192,7 +192,7 @@ describe("getApiErrorMessage (Web i18n authority)", () => {
         }),
         t,
       ),
-    ).toBe("考试当前状态不能取消");
+    ).toBe("En este estado no se puede cancelar el examen");
   });
 
   it("T11/M5 guard: known semantics flow through the injected translator, never contracts copy", () => {
@@ -200,7 +200,7 @@ describe("getApiErrorMessage (Web i18n authority)", () => {
     // (server compatibility catalog text), no Web key would be
     // recorded and this assertion fails (mutation M5).
     const { t: recordingT, calls } = makeRecordingT();
-    const error = new ApiError(401, "请先登录", "AUTH_REQUIRED");
+    const error = new ApiError(401, "Inicia sesión", "AUTH_REQUIRED");
     expect(getApiErrorMessage(error, recordingT)).toBe(
       "T(errors.codes.authRequired)",
     );
@@ -242,7 +242,7 @@ describe("resolveFieldError — C2 field violation protocol", () => {
         params: { minimum: 0 },
         message: "SERVER WORDING",
       }),
-    ).toBe("该字段未满足最小限制");
+    ).toBe("Este campo no cumple el mínimo permitido");
     expect(
       resolveFieldError({
         field: "durationMinutes",
@@ -250,7 +250,7 @@ describe("resolveFieldError — C2 field violation protocol", () => {
         params: { maximum: 1440 },
         message: "SERVER WORDING",
       }),
-    ).toBe("该字段未满足最大限制");
+    ).toBe("Este campo no cumple el máximo permitido");
   });
 
   it("renders a non-numeric TOO_SMALL (string min) without numeric inequality wording (T-R2)", () => {
@@ -261,7 +261,7 @@ describe("resolveFieldError — C2 field violation protocol", () => {
         params: { minimum: 1 },
         message: "SERVER WORDING",
       }),
-    ).toBe("该字段未满足最小限制");
+    ).toBe("Este campo no cumple el mínimo permitido");
   });
 
   it("localizes the referenced resource from the resource param (T8)", () => {
@@ -300,7 +300,7 @@ describe("resolveFieldError — C2 field violation protocol", () => {
         code: "FUTURE_NEW_FIELD_ERROR",
         message: "",
       }),
-    ).toBe("该字段填写有误，请检查后重试");
+    ).toBe("Revisa este campo e inténtalo de nuevo.");
   });
 
   it("treats a missing code as unknown for legacy payloads", () => {

@@ -102,7 +102,7 @@ async function resolveAssignmentTargets(
   }
   if (!user.isActive) {
     // i18n-copy-allow: developer-diagnostic — thrown message never reaches the client; the error handler serializes the code only
-    throw new ValidationError("目标用户已被停用", {
+    throw new ValidationError("Ese usuario está desactivado", {
       reason: "TARGET_USER_INACTIVE",
     });
   }
@@ -111,7 +111,7 @@ async function resolveAssignmentTargets(
   ).listActiveForUser(ctx, teacherUserId);
   if (!roleAssignments.some((a) => a.role === "Teacher")) {
     // i18n-copy-allow: developer-diagnostic — thrown message never reaches the client; the error handler serializes the code only
-    throw new ValidationError("目标用户不具有教师角色", {
+    throw new ValidationError("Ese usuario no es docente", {
       reason: "TARGET_NOT_TEACHER",
     });
   }

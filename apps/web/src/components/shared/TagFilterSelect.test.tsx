@@ -35,7 +35,7 @@ describe("TagFilterSelect", () => {
     expect(before).not.toContain("w-auto");
     expect(before).not.toContain("lg:");
 
-    await user.click(screen.getByRole("button", { name: "标签" }));
+    await user.click(screen.getByRole("button", { name: "Etiqueta" }));
     await user.click(await screen.findByRole("checkbox", { name: "代数" }));
 
     // After selection the label changed but the width styling must not.

@@ -207,7 +207,7 @@ describe("canSeeManagement is capability-derived", () => {
   // UserView/AuditLogView/SettingsView/CandidateFieldView. P7-RBAC-REMEDIATION
   // F-08: SystemHealthView was removed from this set — it is an OPERATIONAL
   // capability held by BOTH Admin and Maintainer, so including it leaked the
-  // 管理 nav group to Maintainer. Operational surfaces belong to the 运维 group.
+  // Administración nav group to Maintainer. Operational surfaces belong to the Operaciones group.
   it("Admin sees management (holds UserView + the full management set)", () => {
     expect(canSeeManagement(user("Admin"))).toBe(true);
   });

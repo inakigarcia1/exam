@@ -202,7 +202,7 @@ export function ExamCreatePage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [questionDialogOpen, setQuestionDialogOpen] = useState(false);
   const [manualTotalScore, setManualTotalScore] = useState(false);
-  // The 及格分 default (60) follows the auto-calculated 总分 until the user
+  // The Puntaje de aprobación default (60) follows the auto-calculated Puntaje total until the user
   // edits it explicitly (see the auto-calc effect below).
   const [passingScoreTouched, setPassingScoreTouched] = useState(false);
 
@@ -419,7 +419,7 @@ export function ExamCreatePage() {
       if (s.totalScore !== computedTotal) {
         next = { ...next, totalScore: computedTotal };
       }
-      // While the 及格分 has not been explicitly edited, it tracks the auto
+      // While the Puntaje de aprobación has not been explicitly edited, it tracks the auto
       // total at the 60% convention (like the default for a 100-point exam).
       // Without this, the untouched default (60) can exceed a small total and
       // leave step 3 born in an error state; explicit user edits are never

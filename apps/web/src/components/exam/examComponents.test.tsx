@@ -50,8 +50,8 @@ describe("QuestionRenderer", () => {
         onChange={() => {}}
       />,
     );
-    expect(screen.getByText("正确")).toBeInTheDocument();
-    expect(screen.getByText("错误")).toBeInTheDocument();
+    expect(screen.getByText("Correcto")).toBeInTheDocument();
+    expect(screen.getByText("Incorrecto")).toBeInTheDocument();
   });
 });
 
@@ -60,21 +60,21 @@ describe("TrueFalseInput", () => {
     const onChange = vi.fn();
     render(<TrueFalseInput value={undefined} onChange={onChange} />);
 
-    await userEvent.click(screen.getByRole("radio", { name: "正确" }));
+    await userEvent.click(screen.getByRole("radio", { name: "Correcto" }));
     expect(onChange).toHaveBeenCalledWith(true);
   });
 
   it("highlights selected option", () => {
     const onChange = vi.fn();
     render(<TrueFalseInput value={true} onChange={onChange} />);
-    const correctRadio = screen.getByRole("radio", { name: "正确" });
+    const correctRadio = screen.getByRole("radio", { name: "Correcto" });
     expect(correctRadio).toBeChecked();
   });
 
   it("highlights false option when selected", () => {
     const onChange = vi.fn();
     render(<TrueFalseInput value={false} onChange={onChange} />);
-    const wrongRadio = screen.getByRole("radio", { name: "错误" });
+    const wrongRadio = screen.getByRole("radio", { name: "Incorrecto" });
     expect(wrongRadio).toBeChecked();
   });
 });
@@ -110,8 +110,8 @@ describe("ExamTimer", () => {
       <ExamTimer deadlineAt="2026-06-01T00:30:00Z" onTimeout={() => {}} />,
     );
 
-    // The label ("剩余时间") is present as a distinct element.
-    expect(screen.getByText("剩余时间")).toBeInTheDocument();
+    // The label ("Tiempo restante") is present as a distinct element.
+    expect(screen.getByText("Tiempo restante")).toBeInTheDocument();
     // The numeric value is zero-padded to 30:00 (30 min exactly).
     expect(screen.getByText("30:00")).toBeInTheDocument();
   });
@@ -133,7 +133,7 @@ describe("ExamTimer", () => {
       <ExamTimer deadlineAt="2026-06-01T00:30:00Z" onTimeout={() => {}} />,
     );
 
-    const label = screen.getByText("剩余时间");
+    const label = screen.getByText("Tiempo restante");
     const value = screen.getByText("30:00");
     // Single-line layout (#675): label and value are sibling inline spans in
     // one row, preserving the numeric/label hierarchy — the label is the
@@ -222,14 +222,14 @@ describe("QuestionNavigator", () => {
     );
 
     expect(
-      screen.getByRole("button", { name: "第 1 题，未作答，当前题" }),
+      screen.getByRole("button", { name: "第 1 题，Sin responder，当前题" }),
     ).toHaveAttribute("aria-current", "true");
     await userEvent.click(
-      screen.getByRole("button", { name: "第 2 题，已作答" }),
+      screen.getByRole("button", { name: "第 2 题，Respondida" }),
     );
     expect(onSelect).toHaveBeenCalledWith("q2");
     expect(
-      screen.getByRole("button", { name: "第 3 题，已标记" }),
+      screen.getByRole("button", { name: "第 3 题，Marcada" }),
     ).toBeInTheDocument();
   });
 
@@ -242,11 +242,11 @@ describe("QuestionNavigator", () => {
       />,
     );
 
-    expect(screen.getByText("未作答")).toBeInTheDocument();
-    expect(screen.getByText("已作答")).toBeInTheDocument();
-    expect(screen.getByText("已标记")).toBeInTheDocument();
+    expect(screen.getByText("Sin responder")).toBeInTheDocument();
+    expect(screen.getByText("Respondida")).toBeInTheDocument();
+    expect(screen.getByText("Marcada")).toBeInTheDocument();
 
-    const legend = screen.getByText("未作答").closest("div")!.parentElement!;
+    const legend = screen.getByText("Sin responder").closest("div")!.parentElement!;
     const swatches = legend.querySelectorAll("span.inline-block");
     expect(swatches.length).toBe(3);
   });
@@ -263,9 +263,9 @@ describe("SubjectiveAnswerInput", () => {
       />,
     );
 
-    expect(screen.getByLabelText("主观题答案")).toHaveValue("已有答案");
+    expect(screen.getByLabelText("Respuesta abierta")).toHaveValue("已有答案");
     expect(screen.getByText("4 / 100")).toBeInTheDocument();
-    await userEvent.type(screen.getByLabelText("主观题答案"), "补充");
+    await userEvent.type(screen.getByLabelText("Respuesta abierta"), "补充");
     expect(onChange).toHaveBeenCalled();
   });
 
@@ -279,14 +279,14 @@ describe("SubjectiveAnswerInput", () => {
       />,
     );
 
-    expect(screen.getByLabelText("主观题答案")).toHaveAttribute("readonly");
+    expect(screen.getByLabelText("Respuesta abierta")).toHaveAttribute("readonly");
     expect(screen.getByText("答案不能为空")).toBeInTheDocument();
   });
 
   it("treats nullish values as an empty controlled textarea", () => {
     render(<SubjectiveAnswerInput value={null} onChange={() => {}} />);
 
-    expect(screen.getByLabelText("主观题答案")).toHaveValue("");
+    expect(screen.getByLabelText("Respuesta abierta")).toHaveValue("");
     expect(screen.getByText("0 字")).toBeInTheDocument();
   });
 
@@ -327,7 +327,7 @@ describe("SubjectiveAnswerInput", () => {
       <SubjectiveAnswerInput value="" onChange={() => {}} />,
     );
 
-    const textarea = screen.getByLabelText("主观题答案");
+    const textarea = screen.getByLabelText("Respuesta abierta");
     // No error → no programmatic association, and no orphan error node.
     expect(textarea).not.toHaveAttribute("aria-describedby");
     expect(textarea).not.toHaveAttribute("aria-invalid");
@@ -343,7 +343,7 @@ describe("SubjectiveAnswerInput", () => {
       />,
     );
 
-    const textarea = screen.getByLabelText("主观题答案");
+    const textarea = screen.getByLabelText("Respuesta abierta");
     const describedById = textarea.getAttribute("aria-describedby");
     expect(describedById).toBeTruthy();
     // The referenced id must resolve to the concrete error node.

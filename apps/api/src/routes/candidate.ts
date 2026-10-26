@@ -576,7 +576,7 @@ const candidateRoutes: FastifyPluginAsync = async (fastify) => {
               row: i + 1,
               code: "MISSING_REQUIRED_FIELD",
               // i18n-copy-allow: wire-compat — non-authoritative import-row compatibility message persisted for logs; row code is the contract
-              message: "缺少用户名或姓名",
+              message: "Falta el legajo o el nombre",
             });
             continue;
           }

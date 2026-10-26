@@ -27,7 +27,7 @@ function createEditor(withFormulaActivation = false): {
       withFormulaActivation
         ? {
             onFormulaActivate: (a) => activations.push(a),
-            formulaAtomLabel: (latex) => `公式 ${latex}`,
+            formulaAtomLabel: (latex) => `Fórmula ${latex}`,
           }
         : {},
     ),
@@ -198,7 +198,7 @@ describe("formula activation seam (#679 re-edit)", () => {
       type: "inlineMath",
       attrs: { latex: "E=mc^2" },
     });
-    const atomEl = editor.view.dom.querySelector("[aria-label^='公式']");
+    const atomEl = editor.view.dom.querySelector("[aria-label^='Fórmula']");
     expect(atomEl).not.toBeNull();
     expect(atomEl?.getAttribute("aria-label")).toContain("E=mc^2");
   });

@@ -85,17 +85,17 @@ function toAuditLogResponse(row: AuditLogRowWithActor) {
  */
 const EXPORT_HEADERS = [
   // i18n-copy-allow: data-format — CSV export header/value data contract
-  "时间",
+  "Fecha",
   // i18n-copy-allow: data-format — CSV export header/value data contract
-  "操作",
+  "Acciones",
   // i18n-copy-allow: data-format — CSV export header/value data contract
-  "操作者",
+  "Usuario",
   // i18n-copy-allow: data-format — CSV export header/value data contract
-  "操作者ID",
+  "UsuarioID",
   // i18n-copy-allow: data-format — CSV export header/value data contract
   "对象类型",
   // i18n-copy-allow: data-format — CSV export header/value data contract
-  "对象ID",
+  "ObjetoID",
   // i18n-copy-allow: data-format — CSV export header/value data contract
   "IP地址",
   // i18n-copy-allow: data-format — CSV export header/value data contract
@@ -105,12 +105,12 @@ const EXPORT_HEADERS = [
 function toExportRow(row: AuditLogRowWithActor): Record<string, unknown> {
   const metadata = row.auditLog.metadata ?? {};
   return {
-    时间: row.auditLog.createdAt.toISOString(),
-    操作: row.auditLog.action,
-    操作者: row.actorName ?? "",
-    操作者ID: row.auditLog.actorId,
+    Fecha: row.auditLog.createdAt.toISOString(),
+    Acciones: row.auditLog.action,
+    Usuario: row.actorName ?? "",
+    UsuarioID: row.auditLog.actorId,
     对象类型: row.auditLog.targetType,
-    对象ID: row.auditLog.targetId,
+    ObjetoID: row.auditLog.targetId,
     IP地址: row.auditLog.ipAddress ?? "",
     请求ID: typeof metadata.requestId === "string" ? metadata.requestId : "",
   };

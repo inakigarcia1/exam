@@ -485,7 +485,7 @@ export function AppSidebar({
         // Viewport-constrained desktop sidebar: sticky + h-screen keeps the
         // aside attached to the viewport while the main page scrolls;
         // self-start prevents the row flex parent from stretching it to the
-        // full page height (which would push 管理/logout below the fold and
+        // full page height (which would push Administración/logout below the fold and
         // make the whole page scroll). min-h-0 lets the nav region shrink so
         // overflow-y-auto engages as a real scroll region.
         "sticky top-0 hidden h-screen min-h-0 shrink-0 self-start flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] lg:flex",

@@ -121,7 +121,7 @@ export function setInterruptionPolicyOverride(
 
 /**
  * Remove an explicit override so the field inherits the selected profile (or
- * code default) again. This is the "恢复模板值" affordance.
+ * code default) again. This is the "Volver a la plantilla" affordance.
  */
 export function clearOverride(
   state: WizardState,

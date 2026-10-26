@@ -821,7 +821,7 @@ describe("audit log baseline (S06-lite)", () => {
       const text = response.body;
       // UTF-8 BOM + formula-injection-safe CSV.
       expect(text.startsWith("\uFEFF")).toBe(true);
-      expect(text).toContain("时间");
+      expect(text).toContain("Fecha");
       expect(text).toContain("export.marker");
       expect(text).toContain("req-123");
       // The export itself is audited under audit_log.exported, org-scoped.

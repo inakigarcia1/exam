@@ -42,20 +42,20 @@ export function renderGradeNotificationEmail(
   const examTitle = payload.examTitle;
   const link = payload.actionPath;
   // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-  const subject = "考试结果已发布";
+  const subject = "Ya están las calificaciones";
   const bodyText =
     // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-    `您参加的考试「${examTitle}」的结果已发布。\n` +
+    `Ya se publicaron las calificaciones de «${examTitle}».\n` +
     // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-    `请登录考试平台查看：${link}\n\n` +
+    `Míralas en Aki: ${link}\n\n` +
     // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-    `（本邮件由系统自动发送，请勿直接回复。）`;
+    `(Mensaje automático. No respondas.)`;
   const bodyHtml =
     // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-    `<p>您参加的考试「${escapeEmailHtml(examTitle)}」的结果已发布。</p>` +
+    `<p>Ya se publicaron las calificaciones de «${escapeEmailHtml(examTitle)}».</p>` +
     // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-    `<p><a href="${escapeEmailHtml(link)}">点击查看考试结果</a></p>` +
+    `<p><a href="${escapeEmailHtml(link)}">Ver el resultado</a></p>` +
     // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-    `<p style="color:#888;font-size:12px;">本邮件由系统自动发送，请勿直接回复。</p>`;
+    `<p style="color:#888;font-size:12px;">Mensaje automático. No respondas.</p>`;
   return { subject, bodyText, bodyHtml };
 }

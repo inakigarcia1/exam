@@ -323,9 +323,9 @@ describe("authoritative snapshot read path", () => {
     await screen.findByText("选择一项");
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "交卷" }));
+    await user.click(screen.getByRole("button", { name: "Entregar" }));
     const dialog = await screen.findByRole("dialog");
-    const confirm = within(dialog).getByRole("button", { name: "确认交卷" });
+    const confirm = within(dialog).getByRole("button", { name: "Confirmar entrega" });
     await user.click(confirm);
 
     // Rapidly click again — must not issue a second /submit.
@@ -380,7 +380,7 @@ describe("authoritative snapshot read path", () => {
     // not become spuriously disabled, and no locally-reconstructed lock state
     // may appear. The attempt is still editable per the snapshot, so the
     // submit button and an enabled radio remain visible.
-    expect(screen.getByRole("button", { name: "交卷" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Entregar" })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "A" })).not.toBeDisabled();
     // No locked-overlay introduced by frontend state.
     expect(screen.queryByTestId("deadline-overlay")).not.toBeInTheDocument();
@@ -401,10 +401,10 @@ describe("TakeExamPage behaviors over the snapshot read path", () => {
     await screen.findByText("选择一项");
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "交卷" }));
+    await user.click(screen.getByRole("button", { name: "Entregar" }));
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByText(/题未作答/)).toBeInTheDocument();
-    await user.click(within(dialog).getByRole("button", { name: "确认交卷" }));
+    await user.click(within(dialog).getByRole("button", { name: "Confirmar entrega" }));
 
     await waitFor(() => {
       expect(screen.getByTestId("current-path")).toHaveTextContent("/result");
@@ -418,7 +418,7 @@ describe("TakeExamPage behaviors over the snapshot read path", () => {
         {
           id: "q1",
           type: "fill_blank",
-          prompt: "填空题",
+          prompt: "Completar espacios",
           promptDocument: null,
           answerMode: "plain" as const,
           options: [],
@@ -435,7 +435,7 @@ describe("TakeExamPage behaviors over the snapshot read path", () => {
         return {
           accepted: false,
           reason: "ATTEMPT_ALREADY_SUBMITTED",
-          message: "已提交",
+          message: "Enviado",
           serverVersion: 0,
           savedAt: NOW,
         };
@@ -451,7 +451,7 @@ describe("TakeExamPage behaviors over the snapshot read path", () => {
     expect(
       await screen.findByTestId("save-rejection-alert", {}, { timeout: 3000 }),
     ).toBeInTheDocument();
-    expect(screen.getByText("考试已结束")).toBeInTheDocument();
+    expect(screen.getByText("El examen ya terminó")).toBeInTheDocument();
   });
 
   it("shows error state and a retry button when the snapshot endpoint fails", async () => {
@@ -459,9 +459,9 @@ describe("TakeExamPage behaviors over the snapshot read path", () => {
     renderPage();
 
     expect(
-      await screen.findByText("无法加载答题记录，请检查连接后重试"),
+      await screen.findByText("No se pudieron cargar las respuestas. Revisa la conexión e inténtalo de nuevo."),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "重试" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reintentar" })).toBeInTheDocument();
   });
 
   it("deadline auto-submit fires when effectiveDeadline has passed", async () => {
@@ -502,7 +502,7 @@ describe("TakeExamPage behaviors over the snapshot read path", () => {
         {
           id: "q1",
           type: "multiple_choice",
-          prompt: "多选",
+          prompt: "Opción múltiple",
           promptDocument: null,
           answerMode: "plain" as const,
           options: [
@@ -571,7 +571,7 @@ describe("TakeExamPage behaviors over the snapshot read path", () => {
     await user.click(flagBtn);
 
     expect(
-      within(section).getByRole("button", { name: /取消标记/ }),
+      within(section).getByRole("button", { name: /Quitar marca/ }),
     ).toBeInTheDocument();
   });
 
@@ -581,7 +581,7 @@ describe("TakeExamPage behaviors over the snapshot read path", () => {
         {
           id: "q1",
           type: "fill_blank",
-          prompt: "填空",
+          prompt: "Completar",
           promptDocument: null,
           answerMode: "plain" as const,
           options: [],
@@ -607,16 +607,16 @@ describe("TakeExamPage behaviors over the snapshot read path", () => {
     const input = await screen.findByLabelText("第1空答案");
     const user = userEvent.setup();
     await user.type(input, "x");
-    await user.click(screen.getByRole("button", { name: "交卷" }));
+    await user.click(screen.getByRole("button", { name: "Entregar" }));
 
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText(/保存中/)).toBeInTheDocument();
-    const confirm = within(dialog).getByRole("button", { name: "确认交卷" });
+    expect(within(dialog).getByText(/Guardando/)).toBeInTheDocument();
+    const confirm = within(dialog).getByRole("button", { name: "Confirmar entrega" });
     expect(confirm).toBeDisabled();
 
     resolveSave({ accepted: true, serverVersion: 1, savedAt: NOW });
     await waitFor(() => {
-      expect(within(dialog).queryByText(/保存中/)).not.toBeInTheDocument();
+      expect(within(dialog).queryByText(/Guardando/)).not.toBeInTheDocument();
     });
     expect(confirm).toBeEnabled();
   });
@@ -636,9 +636,9 @@ describe("TakeExamPage behaviors over the snapshot read path", () => {
     await user.click(radio);
 
     expect(
-      await screen.findByText("连接异常", {}, { timeout: 3000 }),
+      await screen.findByText("Conexión con problemas", {}, { timeout: 3000 }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "交卷" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Entregar" })).toBeInTheDocument();
   });
 });
 describe("submit-freeze UI proof", () => {

@@ -60,7 +60,7 @@ function renderPage() {
 const standardProfile: ExamProfileDTO = {
   id: "p-std",
   organizationId: "00000000-0000-0000-0000-000000000001",
-  name: "标准在线考试",
+  name: "Examen en línea estándar",
   description: "常规在线考试模板",
   timingMode: "timed_window" as const,
   durationMinutes: 60,
@@ -80,7 +80,7 @@ const standardProfile: ExamProfileDTO = {
 const basicProfile: ExamProfileDTO = {
   id: "p-basic",
   organizationId: "00000000-0000-0000-0000-000000000001",
-  name: "基础测验",
+  name: "Prueba básica",
   description: "",
   timingMode: "untimed" as const,
   durationMinutes: null,
@@ -114,8 +114,8 @@ describe("ExamProfilePage (list)", () => {
     // Row content renders twice by design (desktop table + mobile cards);
     // scope to the desktop table representation.
     const table = await screen.findByRole("table");
-    expect(within(table).getByText("标准在线考试")).toBeInTheDocument();
-    expect(within(table).getByText("基础测验")).toBeInTheDocument();
+    expect(within(table).getByText("Examen en línea estándar")).toBeInTheDocument();
+    expect(within(table).getByText("Prueba básica")).toBeInTheDocument();
   });
 
   it("renders a human-readable summary, not raw enum codes", async () => {
@@ -124,7 +124,7 @@ describe("ExamProfilePage (list)", () => {
       renderPage();
     });
     const table = await screen.findByRole("table");
-    const row = within(table).getByText("标准在线考试");
+    const row = within(table).getByText("Examen en línea estándar");
     // Summary should contain human labels, not raw enum values.
     const summary = row.closest("tr")?.textContent ?? "";
     expect(summary).toContain("60");
@@ -138,7 +138,7 @@ describe("ExamProfilePage (list)", () => {
     await act(async () => {
       renderPage();
     });
-    expect(await screen.findByText("暂无策略模板")).toBeInTheDocument();
+    expect(await screen.findByText("No hay plantillas de política")).toBeInTheDocument();
   });
 
   it("shows COPY-ON-APPLY wording in the delete confirm dialog", async () => {
@@ -148,7 +148,7 @@ describe("ExamProfilePage (list)", () => {
     });
     const table = await screen.findByRole("table");
     const deleteBtn = within(table).getByRole("button", {
-      name: "删除",
+      name: "Eliminar",
     });
     await userEvent.click(deleteBtn);
     const dialog = await screen.findByRole("alertdialog");
@@ -165,10 +165,10 @@ describe("ExamProfilePage (list)", () => {
       renderPage();
     });
     const table = await screen.findByRole("table");
-    await userEvent.click(within(table).getByRole("button", { name: "删除" }));
+    await userEvent.click(within(table).getByRole("button", { name: "Eliminar" }));
     const dialog = await screen.findByRole("alertdialog");
     await userEvent.click(
-      within(dialog).getByRole("button", { name: "确认删除" }),
+      within(dialog).getByRole("button", { name: "Confirmar eliminación" }),
     );
     expect(api.delete).toHaveBeenCalledWith("/api/exam-profiles/p-std");
     // The list reloads after deletion (second GET on /api/exam-profiles) and
@@ -177,7 +177,7 @@ describe("ExamProfilePage (list)", () => {
       expect(api.get).toHaveBeenCalledTimes(2);
       expect(api.get).toHaveBeenLastCalledWith("/api/exam-profiles");
     });
-    expect(await screen.findByText("暂无策略模板")).toBeInTheDocument();
+    expect(await screen.findByText("No hay plantillas de política")).toBeInTheDocument();
   });
 
   it("shows an error state when the list fails to load", async () => {
@@ -186,6 +186,6 @@ describe("ExamProfilePage (list)", () => {
     await act(async () => {
       renderPage();
     });
-    expect(await screen.findByText("加载策略模板失败")).toBeInTheDocument();
+    expect(await screen.findByText("No se pudieron cargar las plantillas de política")).toBeInTheDocument();
   });
 });

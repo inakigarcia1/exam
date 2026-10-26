@@ -46,7 +46,7 @@ describe("examDisabledReasons", () => {
       expect(copy.length).toBeGreaterThan(0);
     }
     expect(i18n.t(deleteDisabledReasonKey("EXAM_NOT_DRAFT")!)).toBe(
-      "仅草稿状态的考试可删除",
+      "Solo se pueden eliminar exámenes en borrador",
     );
   });
 

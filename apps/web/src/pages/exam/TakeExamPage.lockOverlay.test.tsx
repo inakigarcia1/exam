@@ -172,17 +172,17 @@ describe("locked-state presentation matrix", () => {
 
     const overlay = await screen.findByTestId("deadline-overlay");
     expect(overlay).toHaveAttribute("data-lock-reason", "disrupted");
-    expect(within(overlay).getByText("连接已中断")).toBeInTheDocument();
+    expect(within(overlay).getByText("Se cortó la conexión")).toBeInTheDocument();
     expect(
-      within(overlay).getByText("请返回考试列表，点击「继续考试」恢复作答。"),
+      within(overlay).getByText("Vuelve a la lista de exámenes y elige «Continuar examen» para retomar."),
     ).toBeInTheDocument();
     expect(
-      within(overlay).queryByText("考试时间已到，答题已结束"),
+      within(overlay).queryByText("Se acabó el tiempo. El examen terminó."),
     ).not.toBeInTheDocument();
     expect(
-      within(overlay).queryByText("系统正在自动提交您的答案..."),
+      within(overlay).queryByText("Enviando tus respuestas..."),
     ).not.toBeInTheDocument();
-    expect(within(overlay).queryByText("正在恢复考试")).not.toBeInTheDocument();
+    expect(within(overlay).queryByText("Retomando el examen")).not.toBeInTheDocument();
     expect(screen.getByTestId("lock-back-to-list-btn")).toBeInTheDocument();
   });
 
@@ -211,13 +211,13 @@ describe("locked-state presentation matrix", () => {
     const overlay = await screen.findByTestId("deadline-overlay");
     expect(overlay).toHaveAttribute("data-lock-reason", "deadline");
     expect(
-      within(overlay).getByText("考试时间已到，答题已结束"),
+      within(overlay).getByText("Se acabó el tiempo. El examen terminó."),
     ).toBeInTheDocument();
     expect(
-      within(overlay).getByText("本次考试已结束，感谢作答。"),
+      within(overlay).getByText("El examen terminó. Gracias por responder."),
     ).toBeInTheDocument();
     expect(
-      within(overlay).queryByText("系统正在自动提交您的答案..."),
+      within(overlay).queryByText("Enviando tus respuestas..."),
     ).not.toBeInTheDocument();
   });
 
@@ -227,13 +227,13 @@ describe("locked-state presentation matrix", () => {
 
     const overlay = await screen.findByTestId("deadline-overlay");
     expect(overlay).toHaveAttribute("data-lock-reason", "submitted");
-    expect(within(overlay).getByText("考试已结束")).toBeInTheDocument();
-    expect(within(overlay).getByText("您的答案已提交。")).toBeInTheDocument();
+    expect(within(overlay).getByText("El examen ya terminó")).toBeInTheDocument();
+    expect(within(overlay).getByText("Tus respuestas ya se enviaron.")).toBeInTheDocument();
     expect(
-      within(overlay).queryByText("系统正在自动提交您的答案..."),
+      within(overlay).queryByText("Enviando tus respuestas..."),
     ).not.toBeInTheDocument();
     expect(
-      within(overlay).queryByText("考试时间已到，答题已结束"),
+      within(overlay).queryByText("Se acabó el tiempo. El examen terminó."),
     ).not.toBeInTheDocument();
   });
 
@@ -243,7 +243,7 @@ describe("locked-state presentation matrix", () => {
 
     const overlay = await screen.findByTestId("deadline-overlay");
     expect(overlay).toHaveAttribute("data-lock-reason", "voided");
-    expect(within(overlay).getByText("考试已作废")).toBeInTheDocument();
+    expect(within(overlay).getByText("Examen anulado")).toBeInTheDocument();
   });
 
   it("disrupted back-to-list navigates to the exam list", async () => {

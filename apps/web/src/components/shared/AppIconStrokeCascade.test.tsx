@@ -312,7 +312,7 @@ describe("AppIcon stroke ownership vs primitive ancestry (issue #601)", () => {
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="a">选项 A</SelectItem>
+          <SelectItem value="a">Opción A</SelectItem>
         </SelectContent>
       </Select>,
     );
@@ -345,7 +345,7 @@ describe("AppIcon stroke ownership vs primitive ancestry (issue #601)", () => {
   it("real opened DropdownMenu still thins primitive-owned icons the primitive itself renders", () => {
     render(
       <DropdownMenu open>
-        <DropdownMenuTrigger>操作</DropdownMenuTrigger>
+        <DropdownMenuTrigger>Acciones</DropdownMenuTrigger>
         <DropdownMenuContent>
           <DropdownMenuItem>菜单项</DropdownMenuItem>
         </DropdownMenuContent>

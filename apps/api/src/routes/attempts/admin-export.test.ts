@@ -320,13 +320,13 @@ describe("attempt routes", () => {
       expect(res.headers["content-type"]).toContain("text/csv");
       expect(res.headers["content-disposition"]).toContain("attachment");
       const body = res.body;
-      expect(body).toContain("题号");
-      expect(body).toContain("题型");
-      expect(body).toContain("题目内容");
-      expect(body).toContain("考生答案");
-      expect(body).toContain("标准答案");
-      expect(body).toContain("得分");
-      expect(body).toContain("满分");
+      expect(body).toContain("Número");
+      expect(body).toContain("Tipo");
+      expect(body).toContain("Enunciado");
+      expect(body).toContain("Respuesta del alumno");
+      expect(body).toContain("Respuesta correcta");
+      expect(body).toContain("Puntaje");
+      expect(body).toContain("Puntaje máximo");
       expect(body).toContain("是否正确");
       expect(body).toContain("single_choice");
       expect(body).toContain("What is 1+1?");
@@ -581,8 +581,8 @@ describe("attempt routes", () => {
 
         expect(res.statusCode).toBe(200);
         // Fixture fields are comma-free, so the data row splits cleanly. The
-        // first eight columns are the frozen positional contract (题号,题型,
-        // 题目内容,考生答案,标准答案,得分,满分,是否正确); D4 appended 考生答案模式
+        // first eight columns are the frozen positional contract (Número,Tipo,
+        // Enunciado,Respuesta del alumno,Respuesta correcta,Puntaje,Puntaje máximo,是否正确); D4 appended 考生答案模式
         // and 考生答案状态 after them, so index 3 still holds the answer.
         const dataRow = res.body.trimEnd().split("\n")[1]!.split(",");
         expect(dataRow[3]).toBe("b");

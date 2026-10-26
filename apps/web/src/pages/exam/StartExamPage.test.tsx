@@ -121,12 +121,12 @@ describe("StartExamPage", () => {
 
     renderPage();
 
-    expect(await screen.findByText("继续考试")).toBeInTheDocument();
+    expect(await screen.findByText("Continuar examen")).toBeInTheDocument();
     expect(
-      screen.getByText("检测到未完成的考试记录，将继续上次进度。"),
+      screen.getByText("Hay un intento sin terminar. Se retoma desde donde quedó."),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "继续考试" }));
+    await user.click(screen.getByRole("button", { name: "Continuar examen" }));
 
     await waitFor(() => {
       expect(screen.getByTestId("current-path")).toHaveTextContent(
@@ -167,10 +167,10 @@ describe("StartExamPage", () => {
     renderPage();
 
     expect(
-      await screen.findByText("已达到最大考试次数，无法再次开始考试。"),
+      await screen.findByText("Alcanzaste el máximo de intentos. No puedes comenzar el examen de nuevo."),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "查看成绩" }),
+      screen.getByRole("button", { name: "Ver calificación" }),
     ).toBeInTheDocument();
   });
 
@@ -205,7 +205,7 @@ describe("StartExamPage", () => {
     renderPage();
 
     expect(
-      await screen.findByText("已达到最大考试次数，无法再次开始考试。"),
+      await screen.findByText("Alcanzaste el máximo de intentos. No puedes comenzar el examen de nuevo."),
     ).toBeInTheDocument();
   });
 
@@ -245,7 +245,7 @@ describe("StartExamPage", () => {
     renderPage();
 
     expect(await screen.findByText("Open Exam")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "开始考试" }));
+    await user.click(screen.getByRole("button", { name: "Comenzar examen" }));
 
     await waitFor(() => {
       expect(apiPost).toHaveBeenCalledWith("/api/attempts/exam-1/start");
@@ -328,7 +328,7 @@ describe("StartExamPage", () => {
 
     renderPage();
 
-    expect(await screen.findByText("加载考试信息失败")).toBeInTheDocument();
+    expect(await screen.findByText("No se pudo cargar la información del examen")).toBeInTheDocument();
   });
 
   it("shows max-attempt message from error code not message text", async () => {
@@ -364,11 +364,11 @@ describe("StartExamPage", () => {
 
     renderPage();
     await screen.findByText("Test");
-    await user.click(screen.getByRole("button", { name: "开始考试" }));
+    await user.click(screen.getByRole("button", { name: "Comenzar examen" }));
 
     await waitFor(() => {
       expect(
-        screen.getByText("已达到最大考试次数，无法再次开始考试。"),
+        screen.getByText("Alcanzaste el máximo de intentos. No puedes comenzar el examen de nuevo."),
       ).toBeInTheDocument();
     });
   });
@@ -406,11 +406,11 @@ describe("StartExamPage", () => {
 
     renderPage();
     await screen.findByText("Test");
-    await user.click(screen.getByRole("button", { name: "再次考试" }));
+    await user.click(screen.getByRole("button", { name: "Rendir de nuevo" }));
 
     await waitFor(() => {
       expect(
-        screen.getByText("本场考试已通过，无需再次参加。"),
+        screen.getByText("Ya aprobaste este examen. No necesitas rendirlo de nuevo."),
       ).toBeInTheDocument();
     });
   });
@@ -443,15 +443,15 @@ describe("StartExamPage", () => {
       primaryAction: "start",
     });
     apiPost.mockRejectedValueOnce(
-      new ApiError(409, "考试尚未开放", "EXAM_NOT_OPEN"),
+      new ApiError(409, "El examen todavía no está abierto", "EXAM_NOT_OPEN"),
     );
 
     renderPage();
     await screen.findByText("Test");
-    await user.click(screen.getByRole("button", { name: "开始考试" }));
+    await user.click(screen.getByRole("button", { name: "Comenzar examen" }));
 
     await waitFor(() => {
-      expect(screen.getByText("考试当前不在开放时间内。")).toBeInTheDocument();
+      expect(screen.getByText("El examen no está abierto en este momento.")).toBeInTheDocument();
     });
   });
 
@@ -488,7 +488,7 @@ describe("StartExamPage", () => {
 
     renderPage();
     await screen.findByText("Test");
-    await user.click(screen.getByRole("button", { name: "开始考试" }));
+    await user.click(screen.getByRole("button", { name: "Comenzar examen" }));
 
     await waitFor(() => {
       expect(screen.getByText("请等待队列准入")).toBeInTheDocument();
@@ -545,7 +545,7 @@ describe("StartExamPage", () => {
     await act(async () => {});
     expect(screen.getByText("Test")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "开始考试" }));
+    fireEvent.click(screen.getByRole("button", { name: "Comenzar examen" }));
     await act(async () => {});
 
     // While waiting: the queue panel renders and no start POST is sent yet.
@@ -667,9 +667,9 @@ describe("StartExamPage", () => {
     renderPage();
 
     expect(await screen.findByText("Exhausted Exam")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "查看成绩" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Ver calificación" })).toBeVisible();
     expect(
-      screen.queryByRole("button", { name: /开始考试|再次考试/ }),
+      screen.queryByRole("button", { name: /Comenzar examen|Rendir de nuevo/ }),
     ).not.toBeInTheDocument();
   });
 });
@@ -735,13 +735,13 @@ describe("StartExamPage timing modes (A2 corrective)", () => {
     renderPage();
 
     expect(await screen.findByText("Deadline Exam")).toBeInTheDocument();
-    expect(screen.getByText("截止时间制")).toBeInTheDocument();
+    expect(screen.getByText("Con hora límite")).toBeInTheDocument();
     expect(
       screen.queryByText(/null分钟|0分钟|undefined/),
     ).not.toBeInTheDocument();
   });
 
-  it("untimed shows 不限时 and never a fabricated duration", async () => {
+  it("untimed shows Sin límite de tiempo and never a fabricated duration", async () => {
     apiGet.mockResolvedValueOnce(
       makeDetail({
         title: "Untimed Exam",
@@ -753,7 +753,7 @@ describe("StartExamPage timing modes (A2 corrective)", () => {
     renderPage();
 
     expect(await screen.findByText("Untimed Exam")).toBeInTheDocument();
-    expect(screen.getByText("不限时")).toBeInTheDocument();
+    expect(screen.getByText("Sin límite de tiempo")).toBeInTheDocument();
     expect(
       screen.queryByText(/null分钟|0分钟|undefined/),
     ).not.toBeInTheDocument();

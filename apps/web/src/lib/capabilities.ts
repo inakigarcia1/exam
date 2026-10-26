@@ -86,7 +86,7 @@ export function canAccessExamRuntime(
  * nav to Teacher. The permissions below are that surface.
  *
  * Operational capabilities (e.g. SystemHealthView, held by Admin AND Maintainer)
- * are deliberately NOT in this set: they gate the "运维" group
+ * are deliberately NOT in this set: they gate the "Operaciones" group
  * (canSeeOperations), not business management. Keep the two surfaces separate —
  * the group gate and the per-item filters must not drift apart.
  */

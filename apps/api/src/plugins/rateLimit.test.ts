@@ -52,7 +52,7 @@ describe("rate limit plugin", () => {
       expect(second.json()).toMatchObject({
         error: {
           code: "RATE_LIMITED",
-          message: "请求过于频繁，请稍后重试",
+          message: "Demasiados pedidos. Prueba de nuevo en un rato",
           requestId: expect.any(String),
         },
       });

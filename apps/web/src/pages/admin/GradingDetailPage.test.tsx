@@ -124,17 +124,17 @@ function renderPage(attemptId = "att-1") {
 }
 
 /**
- * Drives the full submit flow for the first question: clicks "提交评分", then
- * clicks "确认提交" in the confirmation dialog. Returns once the confirm
+ * Drives the full submit flow for the first question: clicks "Enviar calificación", then
+ * clicks "Confirmar envío" in the confirmation dialog. Returns once the confirm
  * action has fired. Used by tests that need the POST to actually be sent.
  */
 async function confirmSubmitFirstQuestion(
   user: ReturnType<typeof userEvent.setup>,
 ) {
-  const submitButtons = screen.getAllByText("提交评分");
+  const submitButtons = screen.getAllByText("Enviar calificación");
   await user.click(submitButtons[0]!);
   const confirmBtn = await screen.findByRole("button", {
-    name: "确认提交",
+    name: "Confirmar envío",
   });
   await user.click(confirmBtn);
 }
@@ -195,7 +195,7 @@ describe("GradingDetailPage", () => {
     expect(screen.getByDisplayValue("0")).toBeInTheDocument();
   });
 
-  it("rejects an empty score with a field-level '请输入分数' error and does not POST", async () => {
+  it("rejects an empty score with a field-level 'Ingresa el puntaje' error and does not POST", async () => {
     // Slice 1: clearing/never-entering a score must block submission. The old
     // behavior POSTed score 0 because Number("") === 0.
     const user = userEvent.setup();
@@ -204,13 +204,13 @@ describe("GradingDetailPage", () => {
 
     // q1 starts empty (pending). Clicking the submit button must not POST and
     // must not open the confirmation dialog (validation fails first).
-    const submitButtons = screen.getAllByText("提交评分");
+    const submitButtons = screen.getAllByText("Enviar calificación");
     await user.click(submitButtons[0]!);
 
-    expect(screen.getByText("请输入分数")).toBeInTheDocument();
+    expect(screen.getByText("Ingresa el puntaje")).toBeInTheDocument();
     expect(postMock).not.toHaveBeenCalled();
     expect(
-      screen.queryByRole("button", { name: "确认提交" }),
+      screen.queryByRole("button", { name: "Confirmar envío" }),
     ).not.toBeInTheDocument();
   });
 
@@ -244,14 +244,14 @@ describe("GradingDetailPage", () => {
     await user.clear(firstInput);
     await user.type(firstInput, "15");
 
-    const submitButtons = screen.getAllByText("提交评分");
+    const submitButtons = screen.getAllByText("Enviar calificación");
     await user.click(submitButtons[0]!);
 
     expect(screen.getByText("分数不能超过满分 (10)")).toBeInTheDocument();
     expect(postMock).not.toHaveBeenCalled();
     // Validation failure must not open the confirmation dialog.
     expect(
-      screen.queryByRole("button", { name: "确认提交" }),
+      screen.queryByRole("button", { name: "Confirmar envío" }),
     ).not.toBeInTheDocument();
   });
 
@@ -271,7 +271,7 @@ describe("GradingDetailPage", () => {
     // Trigger a validation failure on q1.
     await user.clear(firstInput);
     await user.type(firstInput, "15");
-    await user.click(screen.getAllByText("提交评分")[0]!);
+    await user.click(screen.getAllByText("Enviar calificación")[0]!);
     expect(screen.getByText("分数不能超过满分 (10)")).toBeInTheDocument();
 
     // Correct the score and submit successfully (submit + confirm).
@@ -300,7 +300,7 @@ describe("GradingDetailPage", () => {
     await user.clear(firstInput);
     await user.type(firstInput, "15");
 
-    const submitButtons = screen.getAllByText("提交评分");
+    const submitButtons = screen.getAllByText("Enviar calificación");
     await user.click(submitButtons[0]!);
 
     // q1 (maxScore 10) over-max → exactly one field-error text node present.
@@ -342,7 +342,7 @@ describe("GradingDetailPage", () => {
     await confirmSubmitFirstQuestion(user);
 
     await vi.waitFor(() => {
-      expect(toast.success).toHaveBeenCalledWith("评分已保存");
+      expect(toast.success).toHaveBeenCalledWith("Calificación guardada");
     });
   });
 
@@ -361,20 +361,20 @@ describe("GradingDetailPage", () => {
     await confirmSubmitFirstQuestion(user);
 
     await vi.waitFor(() => {
-      expect(toast.success).toHaveBeenCalledWith("评分已完成");
+      expect(toast.success).toHaveBeenCalledWith("Calificación completa");
     });
   });
 
   it("shows loading then data", async () => {
     renderPage();
-    expect(screen.getByText("加载中...")).toBeInTheDocument();
+    expect(screen.getByText("Cargando...")).toBeInTheDocument();
     expect(await screen.findByText(/期末考试 — 张三/)).toBeInTheDocument();
   });
 
   it("shows error on fetch failure", async () => {
     getMock.mockRejectedValue(new Error("fail"));
     renderPage();
-    expect(await screen.findByText("加载评分详情失败")).toBeInTheDocument();
+    expect(await screen.findByText("No se pudo cargar el detalle de la calificación")).toBeInTheDocument();
   });
 
   it("submits non-empty comment with score", async () => {
@@ -388,7 +388,7 @@ describe("GradingDetailPage", () => {
     await user.clear(firstInput);
     await user.type(firstInput, "8");
 
-    const commentInputs = screen.getAllByPlaceholderText("输入评语...");
+    const commentInputs = screen.getAllByPlaceholderText("Escribe un comentario...");
     await user.type(commentInputs[0]!, "回答基本完整，但缺少细节");
 
     await confirmSubmitFirstQuestion(user);
@@ -422,14 +422,14 @@ describe("GradingDetailPage", () => {
 
     await confirmSubmitFirstQuestion(user);
 
-    expect(await screen.findByText("提交中...")).toBeInTheDocument();
+    expect(await screen.findByText("Enviando...")).toBeInTheDocument();
     expect(
-      screen.getAllByText("提交中...")[0]!.closest("button"),
+      screen.getAllByText("Enviando...")[0]!.closest("button"),
     ).toBeDisabled();
 
     resolvePost!(mockGradeResponse);
     await vi.waitFor(() => {
-      expect(screen.queryByText("提交中...")).not.toBeInTheDocument();
+      expect(screen.queryByText("Enviando...")).not.toBeInTheDocument();
     });
   });
 });
@@ -472,14 +472,14 @@ describe("GradingDetailPage — one-time submission UX", () => {
     renderPage();
     await screen.findByText(/期末考试 — 张三/);
     expect(screen.getByTestId("grading-fully-graded-notice")).toHaveTextContent(
-      "评分已完成",
+      "Calificación completa",
     );
     expect(
       screen.queryByTestId("grading-irrevocable-notice"),
     ).not.toBeInTheDocument();
     // No executable submit button once fully graded.
     expect(
-      screen.queryByRole("button", { name: "提交评分" }),
+      screen.queryByRole("button", { name: "Enviar calificación" }),
     ).not.toBeInTheDocument();
   });
 
@@ -513,10 +513,10 @@ describe("GradingDetailPage — one-time submission UX", () => {
       screen.queryByTestId("grading-submit-btn-q-done"),
     ).not.toBeInTheDocument();
     // Submitted metadata block is present.
-    expect(screen.getByText("已提交评分")).toBeInTheDocument();
+    expect(screen.getByText("Calificación enviada")).toBeInTheDocument();
     expect(
       screen.getByTestId("grading-submitted-meta-q-done"),
-    ).toHaveTextContent("已评分: 7 分");
+    ).toHaveTextContent("Calificado: 7 分");
     expect(
       screen.getByTestId("grading-submitted-comment-q-done"),
     ).toHaveTextContent("不错的回答");
@@ -541,23 +541,23 @@ describe("GradingDetailPage — one-time submission UX", () => {
     await user.type(firstInput, "8");
 
     // Clicking submit opens the dialog but does NOT post yet.
-    await user.click(screen.getAllByText("提交评分")[0]!);
+    await user.click(screen.getAllByText("Enviar calificación")[0]!);
     expect(postMock).not.toHaveBeenCalled();
 
     expect(
-      await screen.findByRole("button", { name: "确认提交" }),
+      await screen.findByRole("button", { name: "Confirmar envío" }),
     ).toBeInTheDocument();
     // The dialog shows the score, max score, and the irrevocable statement.
     const dialog = screen
-      .getByText("确认提交评分？")
+      .getByText("¿Confirmar el envío de la calificación?")
       .closest("[role='alertdialog']")!;
-    expect(dialog).toHaveTextContent("分数: 8");
-    expect(dialog).toHaveTextContent("满分: 10");
+    expect(dialog).toHaveTextContent("Puntaje: 8");
+    expect(dialog).toHaveTextContent("Puntaje máximo: 10");
     expect(dialog).toHaveTextContent("提交后不可通过普通阅卷流程修改");
-    expect(dialog).toHaveTextContent("取消");
+    expect(dialog).toHaveTextContent("Cancelar");
 
     // Confirming runs the POST.
-    await user.click(screen.getByRole("button", { name: "确认提交" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar envío" }));
     await vi.waitFor(() => {
       expect(postMock).toHaveBeenCalled();
     });
@@ -572,12 +572,12 @@ describe("GradingDetailPage — one-time submission UX", () => {
     const firstInput = screen.getAllByRole("spinbutton")[0]!;
     await user.clear(firstInput);
     await user.type(firstInput, "8");
-    await user.click(screen.getAllByText("提交评分")[0]!);
+    await user.click(screen.getAllByText("Enviar calificación")[0]!);
 
-    await user.click(screen.getByRole("button", { name: "取消" }));
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
     expect(postMock).not.toHaveBeenCalled();
     expect(
-      screen.queryByRole("button", { name: "确认提交" }),
+      screen.queryByRole("button", { name: "Confirmar envío" }),
     ).not.toBeInTheDocument();
   });
 
@@ -699,7 +699,7 @@ describe("GradingDetailPage — one-time submission UX", () => {
     await user.clear(q2Input);
     await user.type(q2Input, "6");
     // Also fill a comment on q2.
-    const commentInputs = screen.getAllByPlaceholderText("输入评语...");
+    const commentInputs = screen.getAllByPlaceholderText("Escribe un comentario...");
     await user.type(commentInputs[1]!, "q2 draft comment");
 
     // Submit q1 (first question).
@@ -776,7 +776,7 @@ describe("GradingDetailPage — ambiguous-result reconciliation", () => {
     // Neutral synchronized-success, NOT a failure/retry prompt.
     await vi.waitFor(() => {
       expect(toast.success).toHaveBeenCalledWith(
-        "评分已提交，页面已同步最新状态。",
+        "La calificación ya se envió. La página muestra el estado más reciente.",
       );
     });
     expect(toast.error).not.toHaveBeenCalled();
@@ -804,7 +804,7 @@ describe("GradingDetailPage — ambiguous-result reconciliation", () => {
     // Real failure message, NOT a synchronized-success.
     await vi.waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith(
-        "评分未提交，请确认网络后重试。",
+        "La calificación no se envió. Revisa la conexión e inténtalo de nuevo.",
       );
     });
     expect(toast.success).not.toHaveBeenCalled();
@@ -851,7 +851,7 @@ describe("GradingDetailPage — ambiguous-result reconciliation", () => {
 
     await vi.waitFor(() => {
       expect(toast.info).toHaveBeenCalledWith(
-        "阅卷状态已发生变化，已加载最新结果。",
+        "El estado de la corrección cambió. Se cargó el resultado más reciente.",
       );
     });
     expect(postMock).toHaveBeenCalledTimes(1);
@@ -872,7 +872,7 @@ describe("GradingDetailPage — ambiguous-result reconciliation", () => {
 
     await vi.waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith(
-        "无法确认评分是否已提交，请刷新页面核对。",
+        "No se puede confirmar si la calificación se envió. Actualiza la página para verificar.",
       );
     });
     // No success claim, no auto-retry.
@@ -929,7 +929,7 @@ describe("candidateAnswer rendering", () => {
     renderPage();
     await screen.findByText(/期末考试 — 张三/);
     expect(screen.getByTestId("grading-candidate-answer-q1")).toHaveTextContent(
-      "未作答",
+      "Sin responder",
     );
   });
 
@@ -950,7 +950,7 @@ describe("candidateAnswer rendering", () => {
     renderPage();
     await screen.findByText(/期末考试 — 张三/);
     expect(screen.getByTestId("grading-candidate-answer-q1")).toHaveTextContent(
-      "未作答",
+      "Sin responder",
     );
   });
 
@@ -1020,7 +1020,7 @@ describe("candidateAnswer rendering", () => {
     renderPage();
     await screen.findByText(/期末考试 — 张三/);
     expect(screen.getByTestId("grading-candidate-answer-q1")).toHaveTextContent(
-      "错误",
+      "Incorrecto",
     );
   });
 
@@ -1112,7 +1112,7 @@ describe("frozen grading metadata rendering", () => {
           content: "请阐述你的观点",
           maxScore: 20,
           standardAnswer: "参考答案第一行\n参考答案第二行",
-          rubric: "评分细则：\n1. 逻辑清晰\n2. 概念准确",
+          rubric: "Criterios de calificación：\n1. 逻辑清晰\n2. 概念准确",
           candidateAnswer: "我的回答",
           entry: null,
         },
@@ -1125,7 +1125,7 @@ describe("frozen grading metadata rendering", () => {
     // present. Visual whitespace preservation is owned by the shared
     // ReadOnlyLongText component test (type-long-response pre-wrap contract).
     const rubricEl = screen.getByTestId("grading-rubric-q1");
-    expect(rubricEl).toHaveTextContent("评分细则：");
+    expect(rubricEl).toHaveTextContent("Criterios de calificación：");
     expect(rubricEl).toHaveTextContent("1. 逻辑清晰");
     expect(rubricEl).toHaveTextContent("2. 概念准确");
 
@@ -1152,9 +1152,9 @@ describe("frozen grading metadata rendering", () => {
     });
     renderPage();
     await screen.findByText(/期末考试 — 张三/);
-    expect(screen.getByTestId("grading-rubric-q1")).toHaveTextContent("未设置");
+    expect(screen.getByTestId("grading-rubric-q1")).toHaveTextContent("Sin definir");
     expect(screen.getByTestId("grading-standard-answer-q1")).toHaveTextContent(
-      "未设置",
+      "Sin definir",
     );
   });
 
@@ -1321,7 +1321,7 @@ describe("frozen grading metadata rendering", () => {
     const answerEl = screen.getByTestId("grading-candidate-answer-q1");
     // The deep document validation refused the corrupt payload; the page
     // shows the controlled unsupported message instead of crashing.
-    expect(answerEl).toHaveTextContent("此作答内容无法以富文本安全显示");
+    expect(answerEl).toHaveTextContent("Esta respuesta no se puede mostrar como texto enriquecido");
   });
 
   it("keeps the legacy formatter for a document-looking payload on a non-rich answer (#301)", async () => {
@@ -1368,11 +1368,11 @@ describe("frozen grading metadata rendering", () => {
 
 describe("parseScoreInput", () => {
   it("rejects an empty string as scoreRequired (not as 0)", () => {
-    expect(parseScoreInput("", 10)).toEqual({ error: "请输入分数" });
+    expect(parseScoreInput("", 10)).toEqual({ error: "Ingresa el puntaje" });
   });
 
   it("rejects a whitespace-only string as scoreRequired", () => {
-    expect(parseScoreInput("   ", 10)).toEqual({ error: "请输入分数" });
+    expect(parseScoreInput("   ", 10)).toEqual({ error: "Ingresa el puntaje" });
   });
 
   it("accepts an explicit 0 as a valid score", () => {
@@ -1388,7 +1388,7 @@ describe("parseScoreInput", () => {
   });
 
   it("rejects a negative score with the range message", () => {
-    expect(parseScoreInput("-1", 10)).toEqual({ error: "分数不能为负数" });
+    expect(parseScoreInput("-1", 10)).toEqual({ error: "El puntaje no puede ser negativo" });
   });
 
   it("rejects a score exceeding maxScore with the range message", () => {
@@ -1398,7 +1398,7 @@ describe("parseScoreInput", () => {
   });
 
   it("rejects non-numeric input as scoreRequired", () => {
-    expect(parseScoreInput("abc", 10)).toEqual({ error: "请输入分数" });
+    expect(parseScoreInput("abc", 10)).toEqual({ error: "Ingresa el puntaje" });
   });
 });
 
@@ -1416,7 +1416,7 @@ describe("validateScore", () => {
   });
 
   it("returns error for negative score", () => {
-    expect(validateScore(-1, 10)).toBe("分数不能为负数");
+    expect(validateScore(-1, 10)).toBe("El puntaje no puede ser negativo");
   });
 
   it("returns error when score exceeds maxScore", () => {
@@ -1431,6 +1431,6 @@ describe("validateScore", () => {
     // Either the catch-block message or the !data fallback message is fine;
     // both are visible error states with a retry button.
     await screen.findByRole("alert");
-    expect(screen.getByRole("button", { name: "重试" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reintentar" })).toBeInTheDocument();
   });
 });

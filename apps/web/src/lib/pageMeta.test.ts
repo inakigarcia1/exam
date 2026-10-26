@@ -9,73 +9,73 @@ import { routes } from "@/lib/routes";
 
 describe("page metadata", () => {
   it("returns static admin route titles", () => {
-    expect(getPageTitle("/admin/dashboard")).toBe("仪表盘");
-    expect(getPageTitle("/admin/settings")).toBe("平台设置");
-    expect(getPageTitle("/admin/recovery")).toBe("恢复审查");
-    expect(getPageTitle("/admin/proctor/recovery")).toBe("监考处置");
-    expect(getPageTitle("/admin/permissions")).toBe("权限注册表");
-    expect(getPageTitle("/admin/exam-profiles")).toBe("策略模板");
-    expect(getPageTitle("/admin/exam-profiles/new")).toBe("新建策略模板");
-    expect(getPageTitle("/exam/settings")).toBe("账号设置");
+    expect(getPageTitle("/admin/dashboard")).toBe("Panel");
+    expect(getPageTitle("/admin/settings")).toBe("Configuración de la plataforma");
+    expect(getPageTitle("/admin/recovery")).toBe("Revisión de recuperación");
+    expect(getPageTitle("/admin/proctor/recovery")).toBe("Resolución de supervisión");
+    expect(getPageTitle("/admin/permissions")).toBe("Registro de permisos");
+    expect(getPageTitle("/admin/exam-profiles")).toBe("Plantillas de reglas");
+    expect(getPageTitle("/admin/exam-profiles/new")).toBe("Nueva plantilla de política");
+    expect(getPageTitle("/exam/settings")).toBe("Configuración de la cuenta");
   });
 
   it("returns public identity page titles", () => {
-    expect(getPageTitle(routes.inviteAccept)).toBe("激活账号");
-    expect(getPageTitle(routes.forgotPassword)).toBe("忘记密码");
-    expect(getPageTitle(routes.resetPassword)).toBe("重置密码");
+    expect(getPageTitle(routes.inviteAccept)).toBe("Activar cuenta");
+    expect(getPageTitle(routes.forgotPassword)).toBe("Recuperar contraseña");
+    expect(getPageTitle(routes.resetPassword)).toBe("Restablecer contraseña");
   });
 
   it("returns the grading queue title for its registered route", () => {
-    expect(getPageTitle(routes.admin.gradingQueue)).toBe("待评分");
+    expect(getPageTitle(routes.admin.gradingQueue)).toBe("Por calificar");
   });
 
   it("resolves the grading queue title through trailing-slash normalization", () => {
-    expect(getPageTitle(`${routes.admin.gradingQueue}/`)).toBe("待评分");
+    expect(getPageTitle(`${routes.admin.gradingQueue}/`)).toBe("Por calificar");
   });
 
   it("builds the grading queue document title from the same authority", () => {
     expect(getDocumentTitle(routes.admin.gradingQueue, "测评平台")).toBe(
-      "待评分 - 测评平台",
+      "Por calificar - 测评平台",
     );
   });
 
   it("returns candidate-facing route titles", () => {
-    expect(getPageTitle("/exam/list")).toBe("我的考试");
-    expect(getPageTitle("/exam/exam-1/start")).toBe("考试准备");
-    expect(getPageTitle("/exam/attempt-1/take")).toBe("正在答题");
-    expect(getPageTitle("/exam/attempt-1/result")).toBe("考试结果");
+    expect(getPageTitle("/exam/list")).toBe("Mis exámenes");
+    expect(getPageTitle("/exam/exam-1/start")).toBe("Preparación del examen");
+    expect(getPageTitle("/exam/attempt-1/take")).toBe("Examen en curso");
+    expect(getPageTitle("/exam/attempt-1/result")).toBe("Resultado del examen");
   });
 
   it("returns dynamic admin route titles", () => {
-    expect(getPageTitle("/admin/exams/exam-1")).toBe("考试详情");
-    expect(getPageTitle("/admin/exams/exam-1/scores")).toBe("成绩列表");
-    expect(getPageTitle("/admin/questions/question-1/edit")).toBe("编辑题目");
-    expect(getPageTitle("/admin/attempts/attempt-1")).toBe("答题详情");
+    expect(getPageTitle("/admin/exams/exam-1")).toBe("Detalle del examen");
+    expect(getPageTitle("/admin/exams/exam-1/scores")).toBe("Lista de calificaciones");
+    expect(getPageTitle("/admin/questions/question-1/edit")).toBe("Editar pregunta");
+    expect(getPageTitle("/admin/attempts/attempt-1")).toBe("Detalle de las respuestas");
     expect(getPageTitle("/admin/recovery/incidents/incident-1")).toBe(
-      "事件详情",
+      "Detalle del incidente",
     );
     expect(getPageTitle("/admin/recovery/attempts/attempt-1")).toBe(
-      "答题操作详情",
+      "Operaciones del intento",
     );
-    expect(getPageTitle("/admin/recovery/exams/exam-1")).toBe("考试恢复详情");
+    expect(getPageTitle("/admin/recovery/exams/exam-1")).toBe("Recuperación del examen");
   });
 
   it("resolves the newly registered dynamic page titles", () => {
-    expect(getPageTitle("/admin/grading-queue/attempt-1")).toBe("手动评分");
-    expect(getPageTitle("/admin/exams/exam-1/edit")).toBe("编辑考试");
+    expect(getPageTitle("/admin/grading-queue/attempt-1")).toBe("Calificación manual");
+    expect(getPageTitle("/admin/exams/exam-1/edit")).toBe("Editar examen");
     expect(getPageTitle("/admin/exam-profiles/profile-1/edit")).toBe(
-      "编辑策略模板",
+      "Editar plantilla de política",
     );
   });
 
   it("keeps sub-page routes from resolving to the generic exam detail rule", () => {
     // Dynamic rules are $-anchored: the detail pattern must never swallow
     // /edit, /scores or /proctor siblings.
-    expect(getPageTitle("/admin/exams/exam-1/edit")).not.toBe("考试详情");
-    expect(getPageTitle("/admin/exams/exam-1/scores")).not.toBe("考试详情");
-    expect(getPageTitle("/admin/exams/exam-1/proctor")).not.toBe("考试详情");
+    expect(getPageTitle("/admin/exams/exam-1/edit")).not.toBe("Detalle del examen");
+    expect(getPageTitle("/admin/exams/exam-1/scores")).not.toBe("Detalle del examen");
+    expect(getPageTitle("/admin/exams/exam-1/proctor")).not.toBe("Detalle del examen");
     expect(getPageTitle("/admin/exams/exam-1/proctor/monitor")).not.toBe(
-      "考试详情",
+      "Detalle del examen",
     );
   });
 
@@ -85,10 +85,10 @@ describe("page metadata", () => {
 
   it("builds document titles with product fallback", () => {
     expect(getDocumentTitle("/admin/dashboard", "测评平台")).toBe(
-      "仪表盘 - 测评平台",
+      "Panel - 测评平台",
     );
     expect(getDocumentTitle("/admin/dashboard", "  ")).toBe(
-      `仪表盘 - ${getFallbackProductName()}`,
+      `Panel - ${getFallbackProductName()}`,
     );
   });
 });

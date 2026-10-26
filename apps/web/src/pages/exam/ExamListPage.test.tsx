@@ -65,7 +65,7 @@ describe("ExamListPage", () => {
     getMock.mockReset();
   });
 
-  it("renders available exam with start button in 可参加 section", async () => {
+  it("renders available exam with start button in Disponible section", async () => {
     getMock.mockResolvedValue([makeExam({})]);
 
     render(
@@ -76,8 +76,8 @@ describe("ExamListPage", () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText("可参加的考试")).toBeInTheDocument();
-    expect(screen.getByText("开始考试")).toBeInTheDocument();
+    expect(await screen.findByText("Exámenes disponibles")).toBeInTheDocument();
+    expect(screen.getByText("Comenzar examen")).toBeInTheDocument();
   });
 
   it("renders in_progress exam with resume button", async () => {
@@ -98,8 +98,8 @@ describe("ExamListPage", () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText("继续考试")).toBeInTheDocument();
-    expect(screen.getByText("进行中")).toBeInTheDocument();
+    expect(await screen.findByText("Continuar examen")).toBeInTheDocument();
+    expect(screen.getByText("En curso")).toBeInTheDocument();
   });
 
   it("renders resumable exam with resume button", async () => {
@@ -120,8 +120,8 @@ describe("ExamListPage", () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText("继续考试")).toBeInTheDocument();
-    expect(screen.getByText("可恢复")).toBeInTheDocument();
+    expect(await screen.findByText("Continuar examen")).toBeInTheDocument();
+    expect(screen.getByText("Para retomar")).toBeInTheDocument();
   });
 
   it("renders graded exam with bestScore badge", async () => {
@@ -144,18 +144,18 @@ describe("ExamListPage", () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText("已评分")).toBeInTheDocument();
+    expect(await screen.findByText("Calificado")).toBeInTheDocument();
     const scoreBadge = screen.getByTestId("exam-best-score");
     expect(scoreBadge).toBeInTheDocument();
     expect(scoreBadge).toHaveTextContent("85");
-    expect(screen.getByText("查看成绩")).toBeInTheDocument();
+    expect(screen.getByText("Ver calificación")).toBeInTheDocument();
     expect(screen.getByTestId("exam-primary-action")).toHaveAttribute(
       "data-action",
       "view_result",
     );
   });
 
-  it("renders max_attempts_exhausted in 历史考试 section", async () => {
+  it("renders max_attempts_exhausted in Exámenes anteriores section", async () => {
     getMock.mockResolvedValue([
       makeExam({
         examId: "exam-exhaust",
@@ -180,10 +180,10 @@ describe("ExamListPage", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.queryByText("可参加的考试")).not.toBeInTheDocument();
-    expect(await screen.findByText("历史考试")).toBeInTheDocument();
-    expect(screen.getByText("次数已用完")).toBeInTheDocument();
-    expect(screen.getByText("查看成绩")).toBeInTheDocument();
+    expect(screen.queryByText("Exámenes disponibles")).not.toBeInTheDocument();
+    expect(await screen.findByText("Exámenes anteriores")).toBeInTheDocument();
+    expect(screen.getByText("Intentos agotados")).toBeInTheDocument();
+    expect(screen.getByText("Ver calificación")).toBeInTheDocument();
   });
 
   it("shows empty state when no exams", async () => {
@@ -197,14 +197,14 @@ describe("ExamListPage", () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText("暂无可参加的考试")).toBeInTheDocument();
+    expect(await screen.findByText("No hay exámenes disponibles")).toBeInTheDocument();
   });
 
   // Characterization (UI-MIGRATE-N-W3): each section heading introduces a
   // page-level group of exam cards and must remain present as a heading
   // tied to its card group after the section-title typography migration.
   // Asserts the durable role, not the raw typography class.
-  it("keeps the 可参加的考试 heading as a section title over its card group", async () => {
+  it("keeps the Exámenes disponibles heading as a section title over its card group", async () => {
     getMock.mockResolvedValue([makeExam({})]);
     render(
       <MemoryRouter initialEntries={["/exam/list"]}>
@@ -214,7 +214,7 @@ describe("ExamListPage", () => {
       </MemoryRouter>,
     );
     const heading = await screen.findByRole("heading", {
-      name: "可参加的考试",
+      name: "Exámenes disponibles",
     });
     expect(heading.tagName).toBe("H2");
     const section = heading.closest("section");
@@ -222,7 +222,7 @@ describe("ExamListPage", () => {
     expect(section).toHaveTextContent("Test Exam");
   });
 
-  it("keeps the 历史考试 heading as a section title over its card group", async () => {
+  it("keeps the Exámenes anteriores heading as a section title over its card group", async () => {
     getMock.mockResolvedValue([
       makeExam({
         examId: "exam-exhaust",
@@ -242,7 +242,7 @@ describe("ExamListPage", () => {
       </MemoryRouter>,
     );
     const heading = await screen.findByRole("heading", {
-      name: "历史考试",
+      name: "Exámenes anteriores",
     });
     expect(heading.tagName).toBe("H2");
     const section = heading.closest("section");
@@ -270,7 +270,7 @@ describe("ExamListPage", () => {
     // The card region still holds the exam title, its meta, and the action.
     expect(card).toHaveTextContent("Test Exam");
     expect(card).toHaveTextContent("60");
-    expect(card).toHaveTextContent("开始考试");
+    expect(card).toHaveTextContent("Comenzar examen");
   });
 
   it("shows error state on load failure", async () => {
@@ -284,6 +284,6 @@ describe("ExamListPage", () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText("加载考试列表失败")).toBeInTheDocument();
+    expect(await screen.findByText("No se pudo cargar la lista de exámenes")).toBeInTheDocument();
   });
 });

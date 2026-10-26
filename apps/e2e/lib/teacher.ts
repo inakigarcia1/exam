@@ -70,7 +70,7 @@ export async function createTeacherViaApi(
   const stamp = Date.now();
   const rand = Math.random().toString(36).slice(2, 6);
   const username = `${options.usernamePrefix ?? "e2e-teacher"}-${stamp}-${rand}`;
-  const name = options.name ?? `E2E教师${rand}`;
+  const name = options.name ?? `E2EDocente${rand}`;
   const password = TEACHER_PASSWORD;
 
   const adminToken = await adminApiToken(request);

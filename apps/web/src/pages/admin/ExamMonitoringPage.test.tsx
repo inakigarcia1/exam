@@ -123,7 +123,7 @@ describe("ExamMonitoringPage", () => {
     });
     renderPage();
     await waitFor(() => {
-      expect(screen.getByText("考试监控")).toBeInTheDocument();
+      expect(screen.getByText("Monitoreo del examen")).toBeInTheDocument();
     });
     expect(screen.getByText("李四")).toBeInTheDocument();
   });
@@ -131,7 +131,7 @@ describe("ExamMonitoringPage", () => {
   it("shows initial error state when first load fails", async () => {
     getMock.mockRejectedValueOnce(new Error("network"));
     renderPage();
-    expect(await screen.findByText("加载监控数据失败")).toBeInTheDocument();
+    expect(await screen.findByText("No se pudo cargar el monitoreo")).toBeInTheDocument();
   });
 
   it("shows stale warning and logger.warn on subsequent poll failure", async () => {
@@ -171,7 +171,7 @@ describe("ExamMonitoringPage", () => {
       examId: "exam-1",
     });
     expect(
-      screen.getByText("监控数据刷新失败，当前为上次成功数据"),
+      screen.getByText("No se pudo actualizar. Se muestran los datos de la última carga que salió bien."),
     ).toBeInTheDocument();
   });
 
@@ -189,7 +189,7 @@ describe("ExamMonitoringPage", () => {
     // rendered label is unchanged.
     //
     // The waitFor target is the candidate-name cell, NOT the page header: the
-    // header ("考试监控") renders before the async fetch resolves, so waiting
+    // header ("Monitoreo del examen") renders before the async fetch resolves, so waiting
     // for it would let the spy assertion race ahead of `loadAttempts` and
     // intermittently record 0 calls when the fetch hadn't drained yet. The
     // candidate name only appears once the attempt row renders, which is

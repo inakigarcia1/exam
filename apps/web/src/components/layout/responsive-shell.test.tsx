@@ -13,7 +13,7 @@ const admin: MeResponse = {
   id: "00000000-0000-4000-8000-000000000001",
   organizationId: "00000000-0000-4000-8000-000000000010",
   username: "admin",
-  name: "管理员",
+  name: "Administrador",
   role: "Admin",
   capabilities: [...permissionsForRole("Admin")],
 };
@@ -42,7 +42,7 @@ describe("AdminLayout mobile navigation trigger", () => {
     );
     const trigger = screen.getByTestId("mobile-nav-trigger");
     expect(trigger).toBeInTheDocument();
-    expect(trigger).toHaveAccessibleName("打开菜单");
+    expect(trigger).toHaveAccessibleName("Abrir menú");
   });
 
   it("starts collapsed (aria-expanded false) and expands when activated", async () => {
@@ -75,7 +75,7 @@ describe("AdminLayout mobile navigation trigger", () => {
     await user.click(screen.getByTestId("mobile-nav-trigger"));
     expect(screen.getByTestId("mobile-nav-drawer")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "关闭菜单" }));
+    await user.click(screen.getByRole("button", { name: "Cerrar menú" }));
     expect(screen.queryByTestId("mobile-nav-drawer")).not.toBeInTheDocument();
   });
 });
@@ -92,15 +92,15 @@ describe("Shared navigation authority", () => {
     );
 
     // Desktop sidebar (rendered, visually hidden below lg via CSS) contains
-    // the full nav. "考试管理" is a stable label from the shared authority.
+    // the full nav. "Gestión de exámenes" is a stable label from the shared authority.
     expect(
-      screen.getAllByRole("link", { name: "考试管理" }).length,
+      screen.getAllByRole("link", { name: "Gestión de exámenes" }).length,
     ).toBeGreaterThan(0);
 
     // Open the mobile drawer and confirm the same authority is surfaced there.
     await user.click(screen.getByTestId("mobile-nav-trigger"));
     const drawerLinks = screen
-      .getAllByRole("link", { name: "考试管理" })
+      .getAllByRole("link", { name: "Gestión de exámenes" })
       .map((a) => a.getAttribute("href"));
     expect(drawerLinks).toContain("/admin/exams");
   });
@@ -114,7 +114,7 @@ describe("Shared navigation authority", () => {
         </BrandProvider>
       </MemoryRouter>,
     );
-    expect(screen.getByRole("link", { name: "考试管理" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Gestión de exámenes" })).toHaveAttribute(
       "href",
       "/admin/exams",
     );
@@ -132,7 +132,7 @@ describe("Shared navigation authority", () => {
         </BrandProvider>
       </MemoryRouter>,
     );
-    expect(screen.getByRole("link", { name: "考试管理" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Gestión de exámenes" })).toHaveAttribute(
       "href",
       "/admin/exams",
     );

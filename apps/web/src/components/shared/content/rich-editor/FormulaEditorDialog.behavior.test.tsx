@@ -5,7 +5,7 @@ import { FormulaEditorDialog } from "./FormulaEditorDialog";
 
 /**
  * Dialog-level regressions for the no-op policy seam (review U-R1): the
- * persisted-mode clamp must not turn a zero-edit confirm of a 独立显示 atom
+ * persisted-mode clamp must not turn a zero-edit confirm of a En bloque atom
  * in a downgrade context into a silent inline conversion.
  */
 
@@ -59,10 +59,10 @@ describe("formula dialog — blockMath atom in a downgrade context (U-R1)", () =
     expect(onConfirm).not.toHaveBeenCalled();
   });
 
-  it("the radio reflects the atom's real mode (独立显示, disabled)", async () => {
+  it("the radio reflects the atom's real mode (En bloque, disabled)", async () => {
     renderDialog({ blockAllowed: false });
     await screen.findByTestId("formula-dialog");
-    const blockRadio = screen.getByRole("radio", { name: "独立显示" });
+    const blockRadio = screen.getByRole("radio", { name: "En bloque" });
     expect(blockRadio).toBeChecked();
     expect(blockRadio).toBeDisabled();
   });

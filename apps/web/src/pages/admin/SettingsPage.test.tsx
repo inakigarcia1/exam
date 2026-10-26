@@ -86,17 +86,17 @@ describe("SettingsPage", () => {
 
   it("renders product name field with loaded value", async () => {
     renderPage();
-    const input = await screen.findByLabelText("产品标题");
+    const input = await screen.findByLabelText("Título del producto");
     expect(input).toHaveValue("Test Platform");
   });
 
   it("renders settings through shared form sections", async () => {
     renderPage();
     expect(
-      await screen.findByRole("heading", { name: "品牌设置" }),
+      await screen.findByRole("heading", { name: "Marca" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "账号安全" }),
+      screen.getByRole("heading", { name: "Seguridad de la cuenta" }),
     ).toBeInTheDocument();
   });
 
@@ -104,10 +104,10 @@ describe("SettingsPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    const input = await screen.findByLabelText("产品标题");
+    const input = await screen.findByLabelText("Título del producto");
     await user.clear(input);
 
-    const button = await screen.findByRole("button", { name: "保存设置" });
+    const button = await screen.findByRole("button", { name: "Guardar configuración" });
     await user.click(button);
 
     await vi.waitFor(() => {
@@ -128,11 +128,11 @@ describe("SettingsPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await screen.findByLabelText("产品标题");
-    await user.click(await screen.findByRole("button", { name: "保存设置" }));
+    await screen.findByLabelText("Título del producto");
+    await user.click(await screen.findByRole("button", { name: "Guardar configuración" }));
 
     expect(
-      await screen.findByText("服务器内部错误，请稍后重试"),
+      await screen.findByText("Error interno del servidor. Inténtalo más tarde."),
     ).toBeInTheDocument();
   });
 });

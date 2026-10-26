@@ -111,7 +111,7 @@ async function openRowMenu(
   user: ReturnType<typeof userEvent.setup>,
   index: number,
 ) {
-  const kebabs = await screen.findAllByRole("button", { name: "更多操作" });
+  const kebabs = await screen.findAllByRole("button", { name: "Más acciones" });
   await user.click(kebabs[index]!);
   return await screen.findByRole("menu");
 }
@@ -135,8 +135,8 @@ describe("CandidateFieldsPage", () => {
     const table = await screen.findByRole("table");
     expect(within(table).getByText("employeeId")).toBeInTheDocument();
     expect(within(table).getByText("工号")).toBeInTheDocument();
-    expect(within(table).getByText("文本")).toBeInTheDocument();
-    expect(within(table).getAllByText("是").length).toBeGreaterThanOrEqual(1);
+    expect(within(table).getByText("Texto")).toBeInTheDocument();
+    expect(within(table).getAllByText("Sí").length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders second field correctly", async () => {
@@ -145,27 +145,27 @@ describe("CandidateFieldsPage", () => {
     // table and the mobile cards; scope to the desktop table representation.
     const table = await screen.findByRole("table");
     expect(within(table).getByText("department")).toBeInTheDocument();
-    expect(screen.getByText("选项")).toBeInTheDocument();
+    expect(screen.getByText("Opción")).toBeInTheDocument();
   });
 
   it("opens create dialog", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /添加字段/ }));
+    await user.click(await screen.findByRole("button", { name: /Agregar campo/ }));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
   it("saves a new field", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /添加字段/ }));
+    await user.click(await screen.findByRole("button", { name: /Agregar campo/ }));
     const dialog = screen.getByRole("dialog");
     const inputs = dialog.querySelectorAll("input");
     await user.type(inputs[0]!, "phone");
     await user.type(inputs[1]!, "手机号");
     const saveBtn = within(dialog)
       .getAllByRole("button")
-      .find((b) => b.textContent === "保存")!;
+      .find((b) => b.textContent === "Guardar")!;
     await user.click(saveBtn);
     expect(apiPost).toHaveBeenCalledWith("/api/candidate-fields", {
       name: "phone",
@@ -183,17 +183,17 @@ describe("CandidateFieldsPage", () => {
     );
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /添加字段/ }));
+    await user.click(await screen.findByRole("button", { name: /Agregar campo/ }));
     const dialog = screen.getByRole("dialog");
     const inputs = dialog.querySelectorAll("input");
     await user.type(inputs[0]!, "phone");
     await user.type(inputs[1]!, "手机号");
     const saveBtn = within(dialog)
       .getAllByRole("button")
-      .find((b) => b.textContent === "保存")!;
+      .find((b) => b.textContent === "Guardar")!;
     await user.click(saveBtn);
     expect(
-      await within(dialog).findByText("只能设置一个唯一身份字段"),
+      await within(dialog).findByText("Solo puede haber un campo de identidad único"),
     ).toBeInTheDocument();
   });
 
@@ -203,27 +203,27 @@ describe("CandidateFieldsPage", () => {
     );
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /添加字段/ }));
+    await user.click(await screen.findByRole("button", { name: /Agregar campo/ }));
     const dialog = screen.getByRole("dialog");
     const inputs = dialog.querySelectorAll("input");
     await user.type(inputs[0]!, "phone");
     await user.type(inputs[1]!, "手机号");
     const saveBtn = within(dialog)
       .getAllByRole("button")
-      .find((b) => b.textContent === "保存")!;
+      .find((b) => b.textContent === "Guardar")!;
     await user.click(saveBtn);
     expect(
-      await within(dialog).findByText("只能设置一个唯一身份字段"),
+      await within(dialog).findByText("Solo puede haber un campo de identidad único"),
     ).toBeInTheDocument();
     const cancelBtn = within(dialog)
       .getAllByRole("button")
-      .find((b) => b.textContent === "取消")!;
+      .find((b) => b.textContent === "Cancelar")!;
     await user.click(cancelBtn);
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
     expect(
-      screen.queryByText("只能设置一个唯一身份字段"),
+      screen.queryByText("Solo puede haber un campo de identidad único"),
     ).not.toBeInTheDocument();
   });
 
@@ -236,17 +236,17 @@ describe("CandidateFieldsPage", () => {
     );
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /添加字段/ }));
+    await user.click(await screen.findByRole("button", { name: /Agregar campo/ }));
     const dialog = screen.getByRole("dialog");
     const inputs = dialog.querySelectorAll("input");
     await user.type(inputs[0]!, "phone");
     await user.type(inputs[1]!, "手机号");
     const saveBtn = within(dialog)
       .getAllByRole("button")
-      .find((b) => b.textContent === "保存")!;
+      .find((b) => b.textContent === "Guardar")!;
     await user.dblClick(saveBtn);
     expect(
-      within(dialog).getByRole("button", { name: "保存中..." }),
+      within(dialog).getByRole("button", { name: "Guardando..." }),
     ).toBeDisabled();
     expect(apiPost).toHaveBeenCalledTimes(1);
     resolveSave!({ id: "cf3" });
@@ -256,11 +256,11 @@ describe("CandidateFieldsPage", () => {
   it("does not save when name and label are empty", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /添加字段/ }));
+    await user.click(await screen.findByRole("button", { name: /Agregar campo/ }));
     const dialog = screen.getByRole("dialog");
     const saveBtn = within(dialog)
       .getAllByRole("button")
-      .find((b) => b.textContent === "保存")!;
+      .find((b) => b.textContent === "Guardar")!;
     await user.click(saveBtn);
     expect(apiPost).not.toHaveBeenCalled();
   });
@@ -268,10 +268,10 @@ describe("CandidateFieldsPage", () => {
   it("opens edit dialog with field data", async () => {
     const user = userEvent.setup();
     renderPage();
-    const editButtons = await screen.findAllByLabelText("编辑字段");
+    const editButtons = await screen.findAllByLabelText("Editar campo");
     await user.click(editButtons[0]!);
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText("编辑字段")).toBeInTheDocument();
+    expect(within(dialog).getByText("Editar campo")).toBeInTheDocument();
     expect(screen.getByText(/不可修改/)).toBeInTheDocument();
     const inputs = dialog.querySelectorAll("input");
     expect(inputs[0]!).toHaveValue("工号");
@@ -280,7 +280,7 @@ describe("CandidateFieldsPage", () => {
   it("saves edited field", async () => {
     const user = userEvent.setup();
     renderPage();
-    const editButtons = await screen.findAllByLabelText("编辑字段");
+    const editButtons = await screen.findAllByLabelText("Editar campo");
     await user.click(editButtons[0]!);
     const dialog = await screen.findByRole("dialog");
     const labelInput = dialog.querySelectorAll("input")[0]!;
@@ -288,7 +288,7 @@ describe("CandidateFieldsPage", () => {
     await user.type(labelInput, "员工编号");
     const saveBtn = within(dialog)
       .getAllByRole("button")
-      .find((b) => b.textContent === "保存")!;
+      .find((b) => b.textContent === "Guardar")!;
     await user.click(saveBtn);
     expect(apiPatch).toHaveBeenCalledWith("/api/candidate-fields/cf1", {
       label: "员工编号",
@@ -303,10 +303,10 @@ describe("CandidateFieldsPage", () => {
     renderPage();
     await within(await screen.findByRole("table")).findByText("employeeId");
     const menu = await openRowMenu(user, 0);
-    await user.click(within(menu).getByRole("menuitem", { name: "删除字段" }));
+    await user.click(within(menu).getByRole("menuitem", { name: "Eliminar campo" }));
     const alertDialog = await screen.findByRole("alertdialog");
     const confirmBtn = within(alertDialog).getByRole("button", {
-      name: "确认",
+      name: "Confirmar",
     });
     await user.click(confirmBtn);
     expect(apiDelete).toHaveBeenCalledWith("/api/candidate-fields/cf1");
@@ -317,7 +317,7 @@ describe("CandidateFieldsPage", () => {
     renderPage();
     await within(await screen.findByRole("table")).findByText("department");
     const menu = await openRowMenu(user, 1);
-    await user.click(within(menu).getByRole("menuitem", { name: "上移" }));
+    await user.click(within(menu).getByRole("menuitem", { name: "Subir" }));
     // department (sortOrder 1) swaps with employeeId (sortOrder 0): the two
     // PATCH bodies must carry the swapped pair, not a no-op rewrite.
     expect(apiPatch).toHaveBeenCalledTimes(2);
@@ -334,7 +334,7 @@ describe("CandidateFieldsPage", () => {
     renderPage();
     await within(await screen.findByRole("table")).findByText("employeeId");
     const menu = await openRowMenu(user, 0);
-    await user.click(within(menu).getByRole("menuitem", { name: "下移" }));
+    await user.click(within(menu).getByRole("menuitem", { name: "Bajar" }));
     // employeeId (sortOrder 0) swaps with department (sortOrder 1).
     expect(apiPatch).toHaveBeenCalledTimes(2);
     expect(apiPatch.mock.calls).toEqual(
@@ -349,28 +349,28 @@ describe("CandidateFieldsPage", () => {
     const user = userEvent.setup();
     renderPage();
     await within(await screen.findByRole("table")).findByText("employeeId");
-    const kebabs = await screen.findAllByRole("button", { name: "更多操作" });
+    const kebabs = await screen.findAllByRole("button", { name: "Más acciones" });
     await user.click(kebabs[0]!);
     const firstMenu = await screen.findByRole("menu");
     expect(
-      within(firstMenu).getByRole("menuitem", { name: "上移" }),
+      within(firstMenu).getByRole("menuitem", { name: "Subir" }),
     ).toHaveAttribute("aria-disabled", "true");
     await user.keyboard("{Escape}");
     await user.click(kebabs[kebabs.length - 1]!);
     const lastMenu = await screen.findByRole("menu");
     expect(
-      within(lastMenu).getByRole("menuitem", { name: "下移" }),
+      within(lastMenu).getByRole("menuitem", { name: "Bajar" }),
     ).toHaveAttribute("aria-disabled", "true");
   });
 
   it("cancels dialog", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /添加字段/ }));
+    await user.click(await screen.findByRole("button", { name: /Agregar campo/ }));
     const dialog = screen.getByRole("dialog");
     const cancelBtn = within(dialog)
       .getAllByRole("button")
-      .find((b) => b.textContent === "取消")!;
+      .find((b) => b.textContent === "Cancelar")!;
     await user.click(cancelBtn);
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -383,18 +383,18 @@ describe("CandidateFieldsPage", () => {
       .mockResolvedValueOnce([...mockFields]);
     const user = userEvent.setup();
     renderPage();
-    expect(await screen.findByText("加载字段配置失败")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "重试" }));
+    expect(await screen.findByText("No se pudo cargar la configuración de campos")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Reintentar" }));
     expect(
       await within(await screen.findByRole("table")).findByText("employeeId"),
     ).toBeInTheDocument();
-    expect(screen.queryByText("加载字段配置失败")).not.toBeInTheDocument();
+    expect(screen.queryByText("No se pudo cargar la configuración de campos")).not.toBeInTheDocument();
   });
 
   it("shows empty state when no fields", async () => {
     apiGet.mockResolvedValue([]);
     renderPage();
-    expect(await screen.findByText("暂无候选人字段")).toBeInTheDocument();
+    expect(await screen.findByText("No hay campos de alumno")).toBeInTheDocument();
   });
 
   it("downloads template", async () => {
@@ -407,14 +407,14 @@ describe("CandidateFieldsPage", () => {
     await within(await screen.findByRole("table")).findByText("employeeId");
     await userEvent
       .setup()
-      .click(screen.getByRole("button", { name: /下载模板/ }));
+      .click(screen.getByRole("button", { name: /Descargar plantilla/ }));
     expect(apiGet).toHaveBeenCalledWith("/api/candidate-fields/template");
   });
 
   it("toggles required and unique checkboxes in dialog", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /添加字段/ }));
+    await user.click(await screen.findByRole("button", { name: /Agregar campo/ }));
     const dialog = screen.getByRole("dialog");
     const inputs = dialog.querySelectorAll("input");
     await user.type(inputs[0]!, "test");
@@ -424,7 +424,7 @@ describe("CandidateFieldsPage", () => {
     await user.click(checkboxes[1]!);
     const saveBtn = within(dialog)
       .getAllByRole("button")
-      .find((b) => b.textContent === "保存")!;
+      .find((b) => b.textContent === "Guardar")!;
     await user.click(saveBtn);
     expect(apiPost).toHaveBeenCalledWith(
       "/api/candidate-fields",

@@ -44,7 +44,7 @@ describe("AppTitle", () => {
     renderTitleProbe("/admin/settings");
 
     await waitFor(() => {
-      expect(document.title).toBe("平台设置 - 测评平台");
+      expect(document.title).toBe("Configuración de la plataforma - 测评平台");
     });
   });
 
@@ -52,7 +52,7 @@ describe("AppTitle", () => {
     renderTitleProbe("/exam/list");
 
     await waitFor(() => {
-      expect(document.title).toBe("我的考试 - 测评平台");
+      expect(document.title).toBe("Mis exámenes - 测评平台");
     });
   });
 
@@ -61,7 +61,7 @@ describe("AppTitle", () => {
     renderTitleProbe("/admin/dashboard", "");
 
     await waitFor(() => {
-      expect(document.title).toBe("仪表盘 - 考试平台");
+      expect(document.title).toBe("Panel - Aki");
     });
   });
 });
@@ -71,7 +71,7 @@ describe("AdminIndexRoute", () => {
     renderAdminIndex({
       id: "teacher",
       username: "teacher",
-      name: "教师",
+      name: "Docente",
       role: "Teacher",
       organizationId: "org",
       capabilities: [...permissionsForRole("Teacher")],
@@ -84,7 +84,7 @@ describe("AdminIndexRoute", () => {
     renderAdminIndex({
       id: "proctor",
       username: "proctor",
-      name: "监考员",
+      name: "Supervisor",
       role: "Proctor",
       organizationId: "org",
       capabilities: [...permissionsForRole("Proctor")],

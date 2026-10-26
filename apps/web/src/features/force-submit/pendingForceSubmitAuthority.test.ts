@@ -20,7 +20,7 @@ function validAuthority(
     command: {
       attemptId: "00000000-0000-4000-8000-000000000001",
       operationId: "00000000-0000-4000-8000-000000000002",
-      reason: "管理员强制交卷",
+      reason: "Entrega forzada por un administrador",
       examId: "exam-1",
       candidateName: "张三",
     },

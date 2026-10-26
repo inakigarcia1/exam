@@ -64,13 +64,13 @@ describe("public identity pages (#297)", () => {
     renderAt("/forgot-password");
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole("button", { name: "发送重置链接" }));
-    expect(await screen.findByText("请输入用户名")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Enviar enlace de restablecimiento" }));
+    expect(await screen.findByText("Ingresa el usuario")).toBeInTheDocument();
     expect(apiPost).not.toHaveBeenCalled();
 
     apiPost.mockResolvedValueOnce({ ok: true });
-    await user.type(screen.getByLabelText("用户名"), "someone");
-    await user.click(screen.getByRole("button", { name: "发送重置链接" }));
+    await user.type(screen.getByLabelText("Usuario"), "someone");
+    await user.click(screen.getByRole("button", { name: "Enviar enlace de restablecimiento" }));
     await waitFor(() =>
       expect(screen.getByTestId("forgot-password-sent")).toBeInTheDocument(),
     );
@@ -80,12 +80,12 @@ describe("public identity pages (#297)", () => {
   });
 
   it("forgot-password keeps the confirmation generic even on rejection", async () => {
-    apiPost.mockRejectedValueOnce(new Error("重置链接无效或已过期"));
+    apiPost.mockRejectedValueOnce(new Error("El link para restablecer la contraseña no sirve o venció"));
     renderAt("/forgot-password");
     const user = userEvent.setup();
 
-    await user.type(screen.getByLabelText("用户名"), "someone");
-    await user.click(screen.getByRole("button", { name: "发送重置链接" }));
+    await user.type(screen.getByLabelText("Usuario"), "someone");
+    await user.click(screen.getByRole("button", { name: "Enviar enlace de restablecimiento" }));
     await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
     // No success view: a genuine request failure must not fake success.
     expect(screen.queryByTestId("forgot-password-sent")).toBeNull();
@@ -98,11 +98,11 @@ describe("public identity pages (#297)", () => {
     renderAt("/invite/accept?token=abc123abc123abc123");
     const user = userEvent.setup();
 
-    await user.type(screen.getByLabelText("用户名"), "invited");
-    await user.type(screen.getByLabelText("姓名"), "受邀");
-    await user.type(screen.getByLabelText("设置密码"), "Sup3rSecret!");
-    await user.type(screen.getByLabelText("确认密码"), "Sup3rSecret!");
-    await user.click(screen.getByRole("button", { name: "激活账号" }));
+    await user.type(screen.getByLabelText("Usuario"), "invited");
+    await user.type(screen.getByLabelText("Nombre"), "受邀");
+    await user.type(screen.getByLabelText("Definir contraseña"), "Sup3rSecret!");
+    await user.type(screen.getByLabelText("Confirmar contraseña"), "Sup3rSecret!");
+    await user.click(screen.getByRole("button", { name: "Activar cuenta" }));
 
     await waitFor(() =>
       expect(screen.getByTestId("invite-accept-success")).toBeInTheDocument(),
@@ -119,13 +119,13 @@ describe("public identity pages (#297)", () => {
     renderAt("/invite/accept?token=abc123abc123abc123");
     const user = userEvent.setup();
 
-    await user.type(screen.getByLabelText("用户名"), "invited");
-    await user.type(screen.getByLabelText("姓名"), "受邀");
-    await user.type(screen.getByLabelText("设置密码"), "Sup3rSecret!");
-    await user.type(screen.getByLabelText("确认密码"), "Different1!");
-    await user.click(screen.getByRole("button", { name: "激活账号" }));
+    await user.type(screen.getByLabelText("Usuario"), "invited");
+    await user.type(screen.getByLabelText("Nombre"), "受邀");
+    await user.type(screen.getByLabelText("Definir contraseña"), "Sup3rSecret!");
+    await user.type(screen.getByLabelText("Confirmar contraseña"), "Different1!");
+    await user.click(screen.getByRole("button", { name: "Activar cuenta" }));
 
-    expect(await screen.findByText("两次输入的密码不一致")).toBeInTheDocument();
+    expect(await screen.findByText("Las contraseñas no coinciden")).toBeInTheDocument();
     expect(apiPost).not.toHaveBeenCalled();
   });
 
@@ -134,9 +134,9 @@ describe("public identity pages (#297)", () => {
     renderAt("/reset-password?token=tok123tok123tok123");
     const user = userEvent.setup();
 
-    await user.type(screen.getByLabelText("新密码"), "NewPassword1!");
-    await user.type(screen.getByLabelText("确认新密码"), "NewPassword1!");
-    await user.click(screen.getByRole("button", { name: "重置密码" }));
+    await user.type(screen.getByLabelText("Contraseña nueva"), "NewPassword1!");
+    await user.type(screen.getByLabelText("Confirmar contraseña nueva"), "NewPassword1!");
+    await user.click(screen.getByRole("button", { name: "Restablecer contraseña" }));
 
     await waitFor(() =>
       expect(screen.getByTestId("reset-password-success")).toBeInTheDocument(),

@@ -17,7 +17,7 @@ const STEP_KEYS = [
  * a plain composition over Button — NOT a generic stepper framework.
  *
  * Forward validation must not be bypassable: FUTURE steps are disabled —
- * reaching them requires the 下一步 flow, which runs each step's validation
+ * reaching them requires the Siguiente flow, which runs each step's validation
  * gate. Past/current steps stay clickable so the user can go back and edit.
  */
 export function WizardStepper({

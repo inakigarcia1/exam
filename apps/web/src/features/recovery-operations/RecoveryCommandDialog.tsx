@@ -30,7 +30,7 @@ import { CircleAlert } from "lucide-react";
  *     that clears the durable pending authority — abandoning is an explicit
  *     user decision, never implicit;
  *   - the accessible name of the confirm button is the operation (never a
- *     bare "确认"), and the description names the command target.
+ *     bare "Confirmar"), and the description names the command target.
  */
 export interface RecoveryCommandDialogProps {
   open: boolean;

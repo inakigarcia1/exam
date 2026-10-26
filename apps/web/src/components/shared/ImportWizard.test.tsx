@@ -4,7 +4,7 @@ import { ImportWizard } from "./ImportWizard";
 import type { ImportPreviewRow } from "./ImportWizard";
 
 const previewRows: ImportPreviewRow[] = [
-  { row: 2, status: "create", message: "将新增候选人" },
+  { row: 2, status: "create", message: "Se creará el alumno" },
   { row: 3, status: "update", message: "已存在" },
 ];
 
@@ -14,7 +14,7 @@ describe("ImportWizard", () => {
       <ImportWizard
         open={true}
         onOpenChange={() => {}}
-        title="导入考生"
+        title="Importar alumnos"
         instructions="请上传CSV文件"
         csv=""
         onCsvChange={() => {}}
@@ -22,7 +22,7 @@ describe("ImportWizard", () => {
         onConfirm={() => {}}
       />,
     );
-    expect(screen.getByText("导入考生")).toBeInTheDocument();
+    expect(screen.getByText("Importar alumnos")).toBeInTheDocument();
     expect(screen.getByText("请上传CSV文件")).toBeInTheDocument();
   });
 
@@ -39,7 +39,7 @@ describe("ImportWizard", () => {
         onConfirm={() => {}}
       />,
     );
-    expect(screen.getByText(/将新增候选人/)).toBeInTheDocument();
+    expect(screen.getByText(/Se creará el alumno/)).toBeInTheDocument();
     expect(screen.getByText(/已存在/)).toBeInTheDocument();
   });
 
@@ -59,7 +59,7 @@ describe("ImportWizard", () => {
         onConfirm={() => {}}
       />,
     );
-    expect(screen.getByText("确认导入")).toBeDisabled();
+    expect(screen.getByText("Confirmar importación")).toBeDisabled();
   });
 
   it("disables confirm button when preview is empty", () => {
@@ -75,7 +75,7 @@ describe("ImportWizard", () => {
         onConfirm={() => {}}
       />,
     );
-    expect(screen.getByText("确认导入")).toBeDisabled();
+    expect(screen.getByText("Confirmar importación")).toBeDisabled();
   });
 
   it("enables confirm when no errors", () => {
@@ -91,7 +91,7 @@ describe("ImportWizard", () => {
         onConfirm={() => {}}
       />,
     );
-    expect(screen.getByText("确认导入")).not.toBeDisabled();
+    expect(screen.getByText("Confirmar importación")).not.toBeDisabled();
   });
 
   it("shows warning text when provided", () => {
@@ -143,7 +143,7 @@ describe("ImportWizard", () => {
         onConfirm={onConfirm}
       />,
     );
-    await userEvent.setup().click(screen.getByText("确认导入"));
+    await userEvent.setup().click(screen.getByText("Confirmar importación"));
     expect(onConfirm).toHaveBeenCalled();
   });
 });

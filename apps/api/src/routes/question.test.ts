@@ -1276,7 +1276,7 @@ describe("question routes", () => {
               content: "Import tag round-trip",
               standardAnswer: true,
               score: 5,
-              tags: "导入, ,另一个",
+              tags: "Importar, ,另一个",
             },
           ],
         },
@@ -1288,7 +1288,7 @@ describe("question routes", () => {
 
       const byTag = await ctx.app.inject({
         method: "GET",
-        url: `/api/questions?page=1&pageSize=50&tags=${encodeURIComponent("导入")}`,
+        url: `/api/questions?page=1&pageSize=50&tags=${encodeURIComponent("Importar")}`,
         cookies: { "auth-token": ctx.adminToken },
       });
       expect(byTag.statusCode).toBe(200);

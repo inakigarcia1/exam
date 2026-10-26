@@ -4,13 +4,13 @@
  * The single explicit mechanism answering "current pathname → which sidebar
  * destination is current?". A destination represents a ROUTE FAMILY: its
  * exact route plus routed descendants that semantically belong to it (e.g.
- * /admin/exams/:id/edit resolves to the 考试管理 destination).
+ * /admin/exams/:id/edit resolves to the Gestión de exámenes destination).
  *
  * Matching is segment-exact against explicit patterns (the same matcher the
  * admin route-capability table uses) — never React Router prefix semantics,
  * which cannot express route families: NavLink `end` resolves descendants to
  * ZERO current destinations, and a naive prefix rule would make
- * /admin/questions/import match BOTH 题目管理 and 题目导入, violating
+ * /admin/questions/import match BOTH Gestión de preguntas and Importar preguntas, violating
  * exactly-one-current.
  *
  * This is the ONE current-route authority: AppSidebar derives every link's
@@ -37,10 +37,10 @@ export interface NavFamily {
  * every routed Admin page resolves to exactly one family and that all
  * families are pairwise disjoint.
  *
- * `attempts/:id` (答题详情) belongs to the exams family: its entry points
- * include the exam scores page row action (ScoreListPage → 查看详情) and the
+ * `attempts/:id` (Detalle de las respuestas) belongs to the exams family: its entry points
+ * include the exam scores page row action (ScoreListPage → Ver detalle) and the
  * recovery/proctor surfaces linking to the attempt detail; the page header
- * renders `{examTitle} - 答题详情`. The family assignment — not an entry-point
+ * renders `{examTitle} - Detalle de las respuestas`. The family assignment — not an entry-point
  * enumeration — is the load-bearing fact here.
  */
 export const ADMIN_NAV_FAMILIES: readonly NavFamily[] = [

@@ -9,7 +9,7 @@ import type { FormulaActivation } from "./rich-editor/editorExtensions";
 
 /**
  * Open-time target-context wiring for the formula surface (review
- * MATH_CONTEXT_REEDIT_OPEN): a re-edit activation must judge 独立显示
+ * MATH_CONTEXT_REEDIT_OPEN): a re-edit activation must judge En bloque
  * availability by the ATOM's ancestry (activation.pos), not the caret —
  * the Mathematics click path delivers the payload WITHOUT moving the
  * selection onto the atom, so the caret can sit in a different context
@@ -135,7 +135,7 @@ function activateClickedAtom(pos: number) {
 }
 
 describe("formula open-time context — re-edit activation follows the target atom", () => {
-  it("caret at top level + formula inside a list opens with 独立显示 unavailable; the inverse opens with it available", async () => {
+  it("caret at top level + formula inside a list opens with En bloque unavailable; the inverse opens with it available", async () => {
     const user = userEvent.setup();
     const pos = fixturePositions();
     render(<RichContentEditor document={DOC} onChange={vi.fn()} />);
@@ -144,13 +144,13 @@ describe("formula open-time context — re-edit activation follows the target at
 
     // LOAD-BEARING DIRECTION: the caret sits at top level while the clicked
     // atom lives inside the list item. The pre-fix code judged the caret here
-    // and offered 独立显示 — a choice the persisted document then downgrades.
+    // and offered En bloque — a choice the persisted document then downgrades.
     editor.commands.setTextSelection(pos.topLevel + 1);
     expect(editor.isActive("listItem")).toBe(false);
     activateClickedAtom(pos.inList);
     await screen.findByTestId("formula-dialog");
-    expect(screen.getByRole("radio", { name: "独立显示" })).toBeDisabled();
-    expect(screen.getByRole("radio", { name: "行内" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "En bloque" })).toBeDisabled();
+    expect(screen.getByRole("radio", { name: "En línea" })).toBeChecked();
 
     // Zero-edit confirm is a policy no-op and only closes the surface.
     await user.click(screen.getByTestId("formula-confirm"));
@@ -160,12 +160,12 @@ describe("formula open-time context — re-edit activation follows the target at
 
     // INVERSE CONTROL: the caret sits inside the list while the clicked atom
     // is top level — the target's context still decides, and it allows
-    // 独立显示 (the pre-fix caret judgment would have disabled it).
+    // En bloque (the pre-fix caret judgment would have disabled it).
     editor.commands.setTextSelection(pos.inList + 1);
     expect(editor.isActive("listItem")).toBe(true);
     activateClickedAtom(pos.topLevel);
     await screen.findByTestId("formula-dialog");
-    expect(screen.getByRole("radio", { name: "独立显示" })).toBeEnabled();
-    expect(screen.getByRole("radio", { name: "行内" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "En bloque" })).toBeEnabled();
+    expect(screen.getByRole("radio", { name: "En línea" })).toBeChecked();
   });
 });

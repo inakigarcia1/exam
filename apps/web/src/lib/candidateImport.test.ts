@@ -66,13 +66,13 @@ describe("resolveHeaders", () => {
 
   it("maps chinese labels to field names", () => {
     const result = resolveHeaders(
-      ["用户名", "密码", "姓名", "学号", "院系", "年级"],
+      ["Usuario", "Contraseña", "Nombre", "学号", "院系", "年级"],
       sampleFields,
     );
     expect(result).toEqual({
-      用户名: "username",
-      密码: "password",
-      姓名: "name",
+      Usuario: "username",
+      Contraseña: "password",
+      Nombre: "name",
       学号: "studentId",
       院系: "department",
       年级: "grade",
@@ -109,7 +109,7 @@ stu002,123456,李四,20240002,软件工程,2024级`;
   });
 
   it("parses CSV with chinese label headers", () => {
-    const csv = `用户名,密码,姓名,学号,院系,年级
+    const csv = `Usuario,Contraseña,Nombre,学号,院系,年级
 stu001,123456,张三,20240001,计算机系,2024级`;
     const result = parseImportCsv(csv, sampleFields);
     expect(result.rows).toHaveLength(1);
@@ -143,7 +143,7 @@ stu001,123456,张三,20240001`;
     const numericFields: CandidateFieldConfig[] = [
       {
         name: "score",
-        label: "分数",
+        label: "Puntaje",
         fieldType: "number",
         required: false,
         unique: false,

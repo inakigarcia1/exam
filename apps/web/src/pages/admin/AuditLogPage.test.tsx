@@ -57,7 +57,7 @@ vi.mock("@/components/shared/DatePicker", () => ({
       aria-label={ariaLabel}
       onClick={() =>
         onChange(
-          ariaLabel === "开始日期"
+          ariaLabel === "Fecha de inicio"
             ? new Date("2025-01-15T12:00:00Z")
             : new Date("2025-01-20T12:00:00Z"),
         )
@@ -228,8 +228,8 @@ describe("AuditLogPage", () => {
     renderPage();
     // Known actions render the localized label (same filterActions authority
     // as the dropdown), not the raw machine key (C6 F-14).
-    expect(await screen.findByText("评分录入")).toBeInTheDocument();
-    expect(screen.getByText("公布成绩")).toBeInTheDocument();
+    expect(await screen.findByText("Registrar puntaje")).toBeInTheDocument();
+    expect(screen.getByText("Publicar resultados")).toBeInTheDocument();
     // A future unknown action keeps the raw compatibility channel: the full
     // machine key stays the accessible value, the visible form is the
     // presenter's deterministic shortening (#598 — never bare unbounded text
@@ -242,7 +242,7 @@ describe("AuditLogPage", () => {
 
   it("declares the roles: action-label for actions, short-id for targets", async () => {
     renderPage();
-    await screen.findByText("评分录入");
+    await screen.findByText("Registrar puntaje");
 
     // Headers and body cells carry the same frozen role for each column.
     const actionHead = document.querySelectorAll(
@@ -264,7 +264,7 @@ describe("AuditLogPage", () => {
     // Known action: the localized pill (page-local presenter, not a governed
     // StatusBadge/TagBadge; not the machine presenter path).
     const knownCell = screen
-      .getByText("评分录入")
+      .getByText("Registrar puntaje")
       .closest('[data-column-role="action-label"]');
     expect(knownCell).toBeTruthy();
     expect(knownCell?.querySelector("[data-overflow-policy]")).toBeNull();
@@ -297,7 +297,7 @@ describe("AuditLogPage", () => {
 
   it("renders target type and target id", async () => {
     renderPage();
-    await screen.findByText("评分录入");
+    await screen.findByText("Registrar puntaje");
     expect(screen.getAllByText("attempt").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("exam").length).toBeGreaterThanOrEqual(1);
   });
@@ -310,7 +310,7 @@ describe("AuditLogPage", () => {
       return Promise.resolve({ items: [], nextCursor: null });
     });
     renderPage();
-    expect(await screen.findByText("暂无审计日志")).toBeInTheDocument();
+    expect(await screen.findByText("No hay registros de auditoría")).toBeInTheDocument();
   });
 
   it("shows error state on fetch failure", async () => {
@@ -321,16 +321,16 @@ describe("AuditLogPage", () => {
       return Promise.reject(new Error("Network error"));
     });
     renderPage();
-    expect(await screen.findByText("加载审计日志失败")).toBeInTheDocument();
+    expect(await screen.findByText("No se pudo cargar el registro de auditoría")).toBeInTheDocument();
   });
 
   it("navigates pages with keyset next/prev", async () => {
     const user = userEvent.setup();
     renderPage();
-    await screen.findByText("评分录入");
+    await screen.findByText("Registrar puntaje");
 
     // A non-null nextCursor enables the next button.
-    const nextButton = screen.getByRole("button", { name: /下一页/ });
+    const nextButton = screen.getByRole("button", { name: /Página siguiente/ });
     expect(nextButton).toBeEnabled();
     await user.click(nextButton);
 
@@ -341,14 +341,14 @@ describe("AuditLogPage", () => {
     });
 
     // After navigating forward, the prev button becomes enabled.
-    const prevButton = screen.getByRole("button", { name: /上一页/ });
+    const prevButton = screen.getByRole("button", { name: /Página anterior/ });
     expect(prevButton).toBeEnabled();
   });
 
   it("disables the prev button on the first page", async () => {
     renderPage();
-    await screen.findByText("评分录入");
-    expect(screen.getByRole("button", { name: /上一页/ })).toBeDisabled();
+    await screen.findByText("Registrar puntaje");
+    expect(screen.getByRole("button", { name: /Página anterior/ })).toBeDisabled();
   });
 
   it("retry button re-fetches data on error", async () => {
@@ -359,19 +359,19 @@ describe("AuditLogPage", () => {
       return Promise.reject(new Error("fail"));
     });
     renderPage();
-    await screen.findByText("加载审计日志失败");
+    await screen.findByText("No se pudo cargar el registro de auditoría");
 
     mockApi();
-    await userEvent.setup().click(screen.getByText("重试"));
-    expect(await screen.findByText("评分录入")).toBeInTheDocument();
+    await userEvent.setup().click(screen.getByText("Reintentar"));
+    expect(await screen.findByText("Registrar puntaje")).toBeInTheDocument();
   });
 
   it("expands metadata on row click", async () => {
     const user = userEvent.setup();
     renderPage();
-    await screen.findByText("评分录入");
+    await screen.findByText("Registrar puntaje");
 
-    const row = screen.getByText("评分录入").closest("tr");
+    const row = screen.getByText("Registrar puntaje").closest("tr");
     expect(row).toBeTruthy();
     await user.click(row!);
 
@@ -381,36 +381,36 @@ describe("AuditLogPage", () => {
   it("sends targetType query param when target filter is set", async () => {
     const user = userEvent.setup();
     renderPage();
-    await screen.findByText("评分录入");
+    await screen.findByText("Registrar puntaje");
 
     const targetTrigger = screen.getByRole("combobox", {
-      name: /全部目标/,
+      name: /Todos los objetos/,
     });
     await user.click(targetTrigger);
-    await user.click(await screen.findByRole("option", { name: "考试" }));
+    await user.click(await screen.findByRole("option", { name: "Exámenes" }));
 
     const lastCall = getMock.mock.calls.at(-1)?.[0] as string;
     expect(lastCall).toContain("targetType=exam");
   });
 
-  it("renders 开始日期 / 结束日期 date-range pickers", async () => {
+  it("renders Fecha de inicio / Fecha de fin date-range pickers", async () => {
     renderPage();
-    await screen.findByText("评分录入");
-    expect(screen.getByLabelText("开始日期")).toBeInTheDocument();
-    expect(screen.getByLabelText("结束日期")).toBeInTheDocument();
+    await screen.findByText("Registrar puntaje");
+    expect(screen.getByLabelText("Fecha de inicio")).toBeInTheDocument();
+    expect(screen.getByLabelText("Fecha de fin")).toBeInTheDocument();
   });
 
   it("sends from / to query params when a date range is selected", async () => {
     renderPage();
-    await screen.findByText("评分录入");
+    await screen.findByText("Registrar puntaje");
 
-    fireEvent.click(screen.getByLabelText("开始日期"));
+    fireEvent.click(screen.getByLabelText("Fecha de inicio"));
     await waitFor(() => {
       const lastCall = getMock.mock.calls.at(-1)?.[0] as string;
       expect(lastCall).toMatch(/from=\d{4}-\d{2}-\d{2}T/);
     });
 
-    fireEvent.click(screen.getByLabelText("结束日期"));
+    fireEvent.click(screen.getByLabelText("Fecha de fin"));
 
     await waitFor(() => {
       const lastCall = getMock.mock.calls.at(-1)?.[0] as string;
@@ -421,13 +421,13 @@ describe("AuditLogPage", () => {
 
   it("has a clear-filters control that resets all filters", async () => {
     renderPage();
-    await screen.findByText("评分录入");
+    await screen.findByText("Registrar puntaje");
 
-    fireEvent.click(screen.getByRole("combobox", { name: /全部操作/ }));
-    fireEvent.click(await screen.findByRole("option", { name: "公布成绩" }));
-    await screen.findByText("评分录入");
+    fireEvent.click(screen.getByRole("combobox", { name: /Todas las acciones/ }));
+    fireEvent.click(await screen.findByRole("option", { name: "Publicar resultados" }));
+    await screen.findByText("Registrar puntaje");
 
-    fireEvent.click(screen.getByText("清空筛选"));
+    fireEvent.click(screen.getByText("Limpiar filtros"));
 
     await waitFor(() => {
       const lastCall = getMock.mock.calls.at(-1)?.[0] as string;
@@ -452,13 +452,13 @@ describe("AuditLogPage", () => {
     await screen.findByText("管理员张三");
     // A #297 action shipped after the old hardcoded list: present because the
     // dropdown is backend-driven, with a Chinese label from i18n.
-    await user.click(screen.getByRole("combobox", { name: /全部操作/ }));
+    await user.click(screen.getByRole("combobox", { name: /Todas las acciones/ }));
     expect(
-      await screen.findByRole("option", { name: "邀请用户" }),
+      await screen.findByRole("option", { name: "Invitar usuario" }),
     ).toBeInTheDocument();
     // The export action is present with its label too.
     expect(
-      screen.getByRole("option", { name: "导出审计日志" }),
+      screen.getByRole("option", { name: "Exportar registro de auditoría" }),
     ).toBeInTheDocument();
   });
 
@@ -467,9 +467,9 @@ describe("AuditLogPage", () => {
     renderPage();
     await screen.findByText("管理员张三");
 
-    await user.click(screen.getByRole("combobox", { name: /全部操作/ }));
+    await user.click(screen.getByRole("combobox", { name: /Todas las acciones/ }));
     const grantOption = await screen.findByRole("option", {
-      name: "授予考试时间",
+      name: "Otorgar tiempo de examen",
     });
     expect(grantOption).toBeInTheDocument();
     // The raw action key must not appear as a visible label.

@@ -279,7 +279,7 @@ function getCalls(prefix: string) {
 async function openRowMenu(user: ReturnType<typeof userEvent.setup>) {
   const table = await screen.findByRole("table");
   const kebab = within(table).getAllByRole("button", {
-    name: "更多操作",
+    name: "Más acciones",
   })[0]!;
   await user.click(kebab);
   return screen.getByRole("menu");
@@ -305,31 +305,31 @@ describe("UsersPage", () => {
     // scope to the desktop table representation.
     const table = await screen.findByRole("table");
     expect(within(table).getByText("admin1")).toBeInTheDocument();
-    expect(within(table).getByText("考试管理员")).toBeInTheDocument();
+    expect(within(table).getByText("Administrador de exámenes")).toBeInTheDocument();
   });
 
   it("create dialog shows the staff role options sourced from /roles/assignable (F-01)", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /新增用户/ }));
+    await user.click(await screen.findByRole("button", { name: /Nuevo usuario/ }));
     const dialog = await screen.findByRole("dialog");
     const trigger = within(dialog).getByRole("combobox");
     await user.click(trigger);
     // The selector is driven by GET /roles/assignable (the backend
     // @exam/authz ROLE_PRESETS authority), not a frontend hardcoded set.
     expect(
-      await screen.findByRole("option", { name: "考试管理员" }),
+      await screen.findByRole("option", { name: "Administrador de exámenes" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "教师" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "监考员" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "阅卷员" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Docente" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Supervisor" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Corrector" })).toBeInTheDocument();
     expect(
-      screen.getByRole("option", { name: "系统运维" }),
+      screen.getByRole("option", { name: "Operaciones del sistema" }),
     ).toBeInTheDocument();
     // Candidate is NOT offered (managed via candidate routes); System is never
     // assignable; SuperAdmin is never defined (no ADR).
     expect(
-      screen.queryByRole("option", { name: "候选人" }),
+      screen.queryByRole("option", { name: "Alumno" }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("option", { name: "超级管理员" }),
@@ -359,36 +359,36 @@ describe("UsersPage", () => {
     );
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /新增用户/ }));
+    await user.click(await screen.findByRole("button", { name: /Nuevo usuario/ }));
     const dialog = await screen.findByRole("dialog");
     await user.click(within(dialog).getByRole("combobox"));
     expect(
-      await screen.findByRole("option", { name: "考试管理员" }),
+      await screen.findByRole("option", { name: "Administrador de exámenes" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "教师" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Docente" })).toBeInTheDocument();
     // The selector does NOT offer roles the backend did not return.
     expect(
-      screen.queryByRole("option", { name: "监考员" }),
+      screen.queryByRole("option", { name: "Supervisor" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("option", { name: "系统运维" }),
+      screen.queryByRole("option", { name: "Operaciones del sistema" }),
     ).not.toBeInTheDocument();
   });
 
   it("shows validation errors for empty fields on create", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /新增用户/ }));
-    await user.click(screen.getByRole("button", { name: "保存" }));
-    expect(screen.getByText("请输入用户名")).toBeInTheDocument();
-    expect(screen.getByText("请输入姓名")).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: /Nuevo usuario/ }));
+    await user.click(screen.getByRole("button", { name: "Guardar" }));
+    expect(screen.getByText("Ingresa el usuario")).toBeInTheDocument();
+    expect(screen.getByText("Ingresa el nombre")).toBeInTheDocument();
     expect(screen.getByText("密码至少 8 位")).toBeInTheDocument();
   });
 
   it("creates a new Admin user with valid data", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /新增用户/ }));
+    await user.click(await screen.findByRole("button", { name: /Nuevo usuario/ }));
     const dialog = await screen.findByRole("dialog");
     const inputs = getDialogInputs(dialog);
     await user.type(inputs[0]!, "newuser");
@@ -396,7 +396,7 @@ describe("UsersPage", () => {
     await user.type(inputs[2]!, "New User");
     const saveBtn = within(dialog)
       .getAllByRole("button")
-      .find((b) => b.textContent === "保存")!;
+      .find((b) => b.textContent === "Guardar")!;
     await user.click(saveBtn);
     expect(apiPost).toHaveBeenCalledWith("/api/users", {
       username: "newuser",
@@ -415,7 +415,7 @@ describe("UsersPage", () => {
     );
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /新增用户/ }));
+    await user.click(await screen.findByRole("button", { name: /Nuevo usuario/ }));
     const dialog = await screen.findByRole("dialog");
     const inputs = getDialogInputs(dialog);
     await user.type(inputs[0]!, "newuser");
@@ -423,10 +423,10 @@ describe("UsersPage", () => {
     await user.type(inputs[2]!, "New User");
     const saveBtn = within(dialog)
       .getAllByRole("button")
-      .find((b) => b.textContent === "保存")!;
+      .find((b) => b.textContent === "Guardar")!;
     await user.dblClick(saveBtn);
     expect(
-      within(dialog).getByRole("button", { name: "保存中..." }),
+      within(dialog).getByRole("button", { name: "Guardando..." }),
     ).toBeDisabled();
     expect(apiPost).toHaveBeenCalledTimes(1);
     resolveSave!({ id: "u4" });
@@ -436,9 +436,9 @@ describe("UsersPage", () => {
   it("opens edit dialog for Admin", async () => {
     const user = userEvent.setup();
     renderPage();
-    const editButtons = await screen.findAllByLabelText("编辑用户");
+    const editButtons = await screen.findAllByLabelText("Editar usuario");
     await user.click(editButtons[0]!);
-    expect(screen.getByText("编辑用户")).toBeInTheDocument();
+    expect(screen.getByText("Editar usuario")).toBeInTheDocument();
     const dialog = screen.getByRole("dialog");
     expect(dialog).toBeInTheDocument();
   });
@@ -446,7 +446,7 @@ describe("UsersPage", () => {
   it("edits a user", async () => {
     const user = userEvent.setup();
     renderPage();
-    const editButtons = await screen.findAllByLabelText("编辑用户");
+    const editButtons = await screen.findAllByLabelText("Editar usuario");
     await user.click(editButtons[0]!);
     const dialog = await screen.findByRole("dialog");
     const nameInput = getDialogInputs(dialog)[0]!;
@@ -454,7 +454,7 @@ describe("UsersPage", () => {
     await user.type(nameInput, "Updated Name");
     const saveBtn = within(dialog)
       .getAllByRole("button")
-      .find((b) => b.textContent === "保存")!;
+      .find((b) => b.textContent === "Guardar")!;
     await user.click(saveBtn);
     expect(apiPatch).toHaveBeenCalledWith("/api/users/u3", {
       name: "Updated Name",
@@ -466,11 +466,11 @@ describe("UsersPage", () => {
     const user = userEvent.setup();
     renderPage();
     const table = await screen.findByRole("table");
-    const toggleBtn = within(table).getByRole("button", { name: "禁用" });
+    const toggleBtn = within(table).getByRole("button", { name: "Desactivar" });
     await user.click(toggleBtn);
     const dialog = await screen.findByRole("alertdialog");
     expect(within(dialog).getByText(/Admin One/)).toBeInTheDocument();
-    const confirm = within(dialog).getByRole("button", { name: "确认" });
+    const confirm = within(dialog).getByRole("button", { name: "Confirmar" });
     expect(confirm).toHaveAttribute("data-variant", "destructive");
     await user.click(confirm);
     expect(apiPatch).toHaveBeenCalledWith(
@@ -482,11 +482,11 @@ describe("UsersPage", () => {
   it("closes dialog on cancel", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /新增用户/ }));
+    await user.click(await screen.findByRole("button", { name: /Nuevo usuario/ }));
     const dialog = screen.getByRole("dialog");
     const cancelBtn = within(dialog)
       .getAllByRole("button")
-      .find((b) => b.textContent === "取消")!;
+      .find((b) => b.textContent === "Cancelar")!;
     await user.click(cancelBtn);
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -496,7 +496,7 @@ describe("UsersPage", () => {
   it("shows error state when loading fails", async () => {
     apiGet.mockRejectedValue(new Error("fail"));
     renderPage();
-    expect(await screen.findByText("加载用户列表失败")).toBeInTheDocument();
+    expect(await screen.findByText("No se pudo cargar la lista de usuarios")).toBeInTheDocument();
   });
 
   it("shows empty state when no users", async () => {
@@ -508,7 +508,7 @@ describe("UsersPage", () => {
       totalPages: 0,
     });
     renderPage();
-    expect(await screen.findByText("暂无用户")).toBeInTheDocument();
+    expect(await screen.findByText("No hay usuarios")).toBeInTheDocument();
   });
 
   it("renders exactly what the server returns — no client-side role post-filter (F-03)", async () => {
@@ -572,18 +572,18 @@ describe("UsersPage", () => {
     );
     const user = userEvent.setup();
     renderPage();
-    const editButtons = await screen.findAllByLabelText("编辑用户");
+    const editButtons = await screen.findAllByLabelText("Editar usuario");
     await user.click(editButtons[0]!);
     const dialog = await screen.findByRole("dialog");
     // Read-only hint shows the ORIGINAL role (its zh label), not a silently
     // selected Admin.
-    expect(screen.getByTestId("locked-role")).toHaveTextContent("系统运维");
+    expect(screen.getByTestId("locked-role")).toHaveTextContent("Operaciones del sistema");
     const nameInput = getDialogInputs(dialog)[0]!;
     await user.clear(nameInput);
     await user.type(nameInput, "Updated Name");
     const saveBtn = within(dialog)
       .getAllByRole("button")
-      .find((b) => b.textContent === "保存")!;
+      .find((b) => b.textContent === "Guardar")!;
     await user.click(saveBtn);
     // PATCH omits `role` entirely — the save cannot flip the user to Admin.
     expect(apiPatch).toHaveBeenCalledWith("/api/users/u9", {
@@ -617,16 +617,16 @@ describe("UsersPage", () => {
     });
     const user = userEvent.setup();
     renderPage();
-    const editButtons = await screen.findAllByLabelText("编辑用户");
+    const editButtons = await screen.findAllByLabelText("Editar usuario");
     await user.click(editButtons[1]!);
     const dialog = await screen.findByRole("dialog");
-    expect(screen.getByTestId("locked-role")).toHaveTextContent("候选人");
+    expect(screen.getByTestId("locked-role")).toHaveTextContent("Alumno");
     const nameInput = getDialogInputs(dialog)[0]!;
     await user.clear(nameInput);
     await user.type(nameInput, "Renamed");
     const saveBtn = within(dialog)
       .getAllByRole("button")
-      .find((b) => b.textContent === "保存")!;
+      .find((b) => b.textContent === "Guardar")!;
     await user.click(saveBtn);
     expect(apiPatch).toHaveBeenCalledWith("/api/users/u11", {
       name: "Renamed",
@@ -676,7 +676,7 @@ describe("UsersPage", () => {
     renderPage();
     const table = await screen.findByRole("table");
     expect(within(table).getByText("aud1")).toBeInTheDocument();
-    expect(within(table).getByText("未知角色")).toBeInTheDocument();
+    expect(within(table).getByText("Rol desconocido")).toBeInTheDocument();
     expect(
       screen.queryByText(/admin\.users\.roleLabels\./),
     ).not.toBeInTheDocument();
@@ -718,7 +718,7 @@ describe("UsersPage", () => {
       renderPage();
       const menu = await openRowMenu(user);
       expect(
-        within(menu).getByRole("menuitem", { name: "授课课程" }),
+        within(menu).getByRole("menuitem", { name: "Comisiones a cargo" }),
       ).toBeInTheDocument();
     });
 
@@ -732,10 +732,10 @@ describe("UsersPage", () => {
       renderPage();
       const table = await screen.findByRole("table");
       expect(
-        within(table).queryByRole("button", { name: "授课课程" }),
+        within(table).queryByRole("button", { name: "Comisiones a cargo" }),
       ).not.toBeInTheDocument();
       expect(
-        within(table).queryAllByRole("button", { name: "更多操作" }),
+        within(table).queryAllByRole("button", { name: "Más acciones" }),
       ).toHaveLength(0);
     });
 
@@ -791,11 +791,11 @@ describe("UsersPage", () => {
       // Open the dialog from the row's kebab menu.
       const menu = await openRowMenu(user);
       await user.click(
-        within(menu).getByRole("menuitem", { name: "授课课程" }),
+        within(menu).getByRole("menuitem", { name: "Comisiones a cargo" }),
       );
       const dialog = await screen.findByRole("dialog");
       expect(
-        within(dialog).getByText("管理「Teacher One」的授课课程"),
+        within(dialog).getByText("Administración「Teacher One」的授课课程"),
       ).toBeInTheDocument();
       // Both canonical GETs fired — the read projection and the (mutation
       // support) catalog, as two independent requests.
@@ -807,14 +807,14 @@ describe("UsersPage", () => {
       expect(apiGet).toHaveBeenCalledWith("/api/courses?page=1&pageSize=20");
       // Empty start.
       expect(
-        await within(dialog).findByText("尚未分配任何课程。"),
+        await within(dialog).findByText("Todavía no hay comisiones asignadas."),
       ).toBeInTheDocument();
 
       // Select the course via the paged radio picker and assign.
       await user.click(
         await within(dialog).findByRole("radio", { name: "数学 (MATH-101)" }),
       );
-      await user.click(within(dialog).getByRole("button", { name: "分配" }));
+      await user.click(within(dialog).getByRole("button", { name: "Asignar" }));
       expect(apiPost).toHaveBeenCalledWith(
         "/api/admin/users/u-t/course-assignments",
         { courseId: "c1" },
@@ -826,7 +826,7 @@ describe("UsersPage", () => {
       expect(matches.length).toBeGreaterThanOrEqual(2);
 
       // Revoke it and observe removal.
-      await user.click(within(dialog).getByRole("button", { name: "撤销" }));
+      await user.click(within(dialog).getByRole("button", { name: "Deshacer" }));
       await waitFor(() => {
         expect(apiPost).toHaveBeenCalledWith(
           "/api/admin/users/u-t/course-assignments/c1/revoke",
@@ -834,11 +834,11 @@ describe("UsersPage", () => {
       });
       await waitFor(() => {
         expect(
-          within(dialog).queryByRole("button", { name: "撤销" }),
+          within(dialog).queryByRole("button", { name: "Deshacer" }),
         ).not.toBeInTheDocument();
       });
       expect(
-        await within(dialog).findByText("尚未分配任何课程。"),
+        await within(dialog).findByText("Todavía no hay comisiones asignadas."),
       ).toBeInTheDocument();
     });
 
@@ -850,15 +850,15 @@ describe("UsersPage", () => {
       renderPage();
       const menu = await openRowMenu(user);
       await user.click(
-        within(menu).getByRole("menuitem", { name: "授课课程" }),
+        within(menu).getByRole("menuitem", { name: "Comisiones a cargo" }),
       );
       const dialog = await screen.findByRole("dialog");
       await user.click(
         await within(dialog).findByRole("radio", { name: "数学 (MATH-101)" }),
       );
-      await user.click(within(dialog).getByRole("button", { name: "分配" }));
+      await user.click(within(dialog).getByRole("button", { name: "Asignar" }));
       await waitFor(() => {
-        expect(toast.info).toHaveBeenCalledWith("该课程已在授课列表中");
+        expect(toast.info).toHaveBeenCalledWith("Esa comisión ya está asignada");
       });
     });
 
@@ -874,13 +874,13 @@ describe("UsersPage", () => {
       renderPage();
       const menu = await openRowMenu(user);
       await user.click(
-        within(menu).getByRole("menuitem", { name: "授课课程" }),
+        within(menu).getByRole("menuitem", { name: "Comisiones a cargo" }),
       );
       const dialog = await screen.findByRole("dialog");
       await user.click(
         await within(dialog).findByRole("radio", { name: "数学 (MATH-101)" }),
       );
-      const assignBtn = within(dialog).getByRole("button", { name: "分配" });
+      const assignBtn = within(dialog).getByRole("button", { name: "Asignar" });
       await user.dblClick(assignBtn);
       const assignCalls = apiPost.mock.calls.filter(
         (c) => c[0] === "/api/admin/users/u-t/course-assignments",
@@ -899,10 +899,10 @@ describe("UsersPage", () => {
       );
       const table = await screen.findByRole("table");
       expect(
-        within(table).queryByRole("button", { name: "授课课程" }),
+        within(table).queryByRole("button", { name: "Comisiones a cargo" }),
       ).not.toBeInTheDocument();
       expect(
-        within(table).queryAllByRole("button", { name: "更多操作" }),
+        within(table).queryAllByRole("button", { name: "Más acciones" }),
       ).toHaveLength(0);
     });
 
@@ -927,7 +927,7 @@ describe("UsersPage", () => {
       );
       const menu = await openRowMenu(user);
       await user.click(
-        within(menu).getByRole("menuitem", { name: "授课课程" }),
+        within(menu).getByRole("menuitem", { name: "Comisiones a cargo" }),
       );
       const dialog = await screen.findByRole("dialog");
       // The read-only projection still lists the active assignment — as its
@@ -938,10 +938,10 @@ describe("UsersPage", () => {
       expect(within(dialog).queryByRole("radio")).not.toBeInTheDocument();
       expect(within(dialog).queryByRole("searchbox")).not.toBeInTheDocument();
       expect(
-        within(dialog).queryByRole("button", { name: "分配" }),
+        within(dialog).queryByRole("button", { name: "Asignar" }),
       ).not.toBeInTheDocument();
       expect(
-        within(dialog).queryByRole("button", { name: "撤销" }),
+        within(dialog).queryByRole("button", { name: "Deshacer" }),
       ).not.toBeInTheDocument();
       // The catalog is mutation-support data: assignment View alone must not
       // require CourseView — no /api/courses request is issued at all.
@@ -967,14 +967,14 @@ describe("UsersPage", () => {
       // part of it: the admin must still reach the projection.
       const menu = await openRowMenu(user);
       await user.click(
-        within(menu).getByRole("menuitem", { name: "授课课程" }),
+        within(menu).getByRole("menuitem", { name: "Comisiones a cargo" }),
       );
       const dialog = await screen.findByRole("dialog");
       // Existing assignment rows stay inspectable (stable courseId fallback:
       // the catalog is not fetched for an inactive target).
       expect(await within(dialog).findByText("c1")).toBeInTheDocument();
       expect(
-        within(dialog).getByRole("button", { name: "撤销" }),
+        within(dialog).getByRole("button", { name: "Deshacer" }),
       ).toBeInTheDocument();
       // Assign-new affordance requires target user.isActive — the write
       // endpoint would reject it (TARGET_USER_INACTIVE), so it is absent.
@@ -984,13 +984,13 @@ describe("UsersPage", () => {
       expect(within(dialog).queryByRole("radio")).not.toBeInTheDocument();
       expect(within(dialog).queryByRole("searchbox")).not.toBeInTheDocument();
       expect(
-        within(dialog).queryByRole("button", { name: "分配" }),
+        within(dialog).queryByRole("button", { name: "Asignar" }),
       ).not.toBeInTheDocument();
       expect(getCalls("/api/courses")).toHaveLength(0);
       // Revoke on the inactive target remains available and issues the
       // canonical write.
       apiPost.mockResolvedValue({ outcome: "applied" });
-      await user.click(within(dialog).getByRole("button", { name: "撤销" }));
+      await user.click(within(dialog).getByRole("button", { name: "Deshacer" }));
       await waitFor(() => {
         expect(apiPost).toHaveBeenCalledWith(
           "/api/admin/users/u-it/course-assignments/c1/revoke",
@@ -1022,25 +1022,25 @@ describe("UsersPage", () => {
       renderPage();
       const menu = await openRowMenu(user);
       await user.click(
-        within(menu).getByRole("menuitem", { name: "授课课程" }),
+        within(menu).getByRole("menuitem", { name: "Comisiones a cargo" }),
       );
       const dialog = await screen.findByRole("dialog");
       // The dialog remains open with a readable projection; the row falls
       // back to its stable courseId because option metadata is unavailable.
       expect(await within(dialog).findByText("c1")).toBeInTheDocument();
       expect(
-        within(dialog).getByRole("button", { name: "撤销" }),
+        within(dialog).getByRole("button", { name: "Deshacer" }),
       ).toBeInTheDocument();
       // The picker is downgraded to an explicit unavailable hint + retry,
       // not to a crash or a silently empty list.
       expect(
-        await within(dialog).findByText("课程列表暂不可用，已有分配不受影响。"),
+        await within(dialog).findByText("La lista de comisiones no está disponible. Las asignaciones actuales siguen igual."),
       ).toBeInTheDocument();
       expect(within(dialog).queryByRole("radio")).not.toBeInTheDocument();
       // The transient failure erases neither the list nor the mutation path:
       // revoke still works against the readable rows.
       apiPost.mockResolvedValue({ outcome: "applied" });
-      await user.click(within(dialog).getByRole("button", { name: "撤销" }));
+      await user.click(within(dialog).getByRole("button", { name: "Deshacer" }));
       await waitFor(() => {
         expect(apiPost).toHaveBeenCalledWith(
           "/api/admin/users/u-t/course-assignments/c1/revoke",
@@ -1054,7 +1054,7 @@ describe("UsersPage", () => {
       // paging through.
       const allCourses = Array.from({ length: 120 }, (_, i) => ({
         id: `c${i + 1}`,
-        name: `课程${i + 1}`,
+        name: `Comisión${i + 1}`,
         code: `CODE-${i + 1}`,
       }));
       mockAssignmentApi({ users: [mockUsers[0], teacherTarget] });
@@ -1080,31 +1080,31 @@ describe("UsersPage", () => {
       renderPage();
       const menu = await openRowMenu(user);
       await user.click(
-        within(menu).getByRole("menuitem", { name: "授课课程" }),
+        within(menu).getByRole("menuitem", { name: "Comisiones a cargo" }),
       );
       const dialog = await screen.findByRole("dialog");
       // Page 1 renders; the page-6 course is not selectable from it.
       expect(
-        await within(dialog).findByRole("radio", { name: "课程1 (CODE-1)" }),
+        await within(dialog).findByRole("radio", { name: "Comisión1 (CODE-1)" }),
       ).toBeInTheDocument();
       expect(
-        within(dialog).queryByRole("radio", { name: "课程101 (CODE-101)" }),
+        within(dialog).queryByRole("radio", { name: "Comisión101 (CODE-101)" }),
       ).not.toBeInTheDocument();
       // Server-side search (debounced) narrows the catalog to the target.
-      await user.type(within(dialog).getByRole("searchbox"), "课程101");
+      await user.type(within(dialog).getByRole("searchbox"), "Comisión101");
       await waitFor(
         () => {
           expect(
-            within(dialog).getByRole("radio", { name: "课程101 (CODE-101)" }),
+            within(dialog).getByRole("radio", { name: "Comisión101 (CODE-101)" }),
           ).toBeInTheDocument();
         },
         { timeout: 3000 },
       );
       await user.click(
-        within(dialog).getByRole("radio", { name: "课程101 (CODE-101)" }),
+        within(dialog).getByRole("radio", { name: "Comisión101 (CODE-101)" }),
       );
       apiPost.mockResolvedValue({ outcome: "applied" });
-      await user.click(within(dialog).getByRole("button", { name: "分配" }));
+      await user.click(within(dialog).getByRole("button", { name: "Asignar" }));
       expect(apiPost).toHaveBeenCalledWith(
         "/api/admin/users/u-t/course-assignments",
         { courseId: "c101" },
@@ -1116,7 +1116,7 @@ describe("UsersPage", () => {
     it("course picker: catalog pagination reaches page 6 without search (issue 548)", async () => {
       const allCourses = Array.from({ length: 120 }, (_, i) => ({
         id: `c${i + 1}`,
-        name: `课程${i + 1}`,
+        name: `Comisión${i + 1}`,
         code: `CODE-${i + 1}`,
       }));
       mockAssignmentApi({ users: [mockUsers[0], teacherTarget] });
@@ -1133,24 +1133,24 @@ describe("UsersPage", () => {
       renderPage();
       const menu = await openRowMenu(user);
       await user.click(
-        within(menu).getByRole("menuitem", { name: "授课课程" }),
+        within(menu).getByRole("menuitem", { name: "Comisiones a cargo" }),
       );
       const dialog = await screen.findByRole("dialog");
       expect(
-        await within(dialog).findByRole("radio", { name: "课程1 (CODE-1)" }),
+        await within(dialog).findByRole("radio", { name: "Comisión1 (CODE-1)" }),
       ).toBeInTheDocument();
       // Page through to page 6 — the course beyond the first 100.
       for (let i = 0; i < 5; i++) {
         await user.click(
-          within(dialog).getByRole("button", { name: "下一页" }),
+          within(dialog).getByRole("button", { name: "Página siguiente" }),
         );
       }
       const target = await within(dialog).findByRole("radio", {
-        name: "课程101 (CODE-101)",
+        name: "Comisión101 (CODE-101)",
       });
       await user.click(target);
       apiPost.mockResolvedValue({ outcome: "applied" });
-      await user.click(within(dialog).getByRole("button", { name: "分配" }));
+      await user.click(within(dialog).getByRole("button", { name: "Asignar" }));
       expect(apiPost).toHaveBeenCalledWith(
         "/api/admin/users/u-t/course-assignments",
         { courseId: "c101" },
@@ -1158,12 +1158,12 @@ describe("UsersPage", () => {
     }, 15_000);
 
     it("course picker: clearing the search field atomically resets the input, the committed query, and the page (issue 548)", async () => {
-      // 120 courses; searching "课程1" matches 32 of them (2 pages), so the
+      // 120 courses; searching "Comisión1" matches 32 of them (2 pages), so the
       // clear can be exercised from page 2 — the state where a clear that
       // only emptied the input would leave a stale filtered server query.
       const allCourses = Array.from({ length: 120 }, (_, i) => ({
         id: `c${i + 1}`,
-        name: `课程${i + 1}`,
+        name: `Comisión${i + 1}`,
         code: `CODE-${i + 1}`,
       }));
       mockAssignmentApi({ users: [mockUsers[0], teacherTarget] });
@@ -1191,31 +1191,31 @@ describe("UsersPage", () => {
       renderPage();
       const menu = await openRowMenu(user);
       await user.click(
-        within(menu).getByRole("menuitem", { name: "授课课程" }),
+        within(menu).getByRole("menuitem", { name: "Comisiones a cargo" }),
       );
       const dialog = await screen.findByRole("dialog");
       const searchbox = within(dialog).getByRole("searchbox");
       expect(
-        await within(dialog).findByRole("radio", { name: "课程1 (CODE-1)" }),
+        await within(dialog).findByRole("radio", { name: "Comisión1 (CODE-1)" }),
       ).toBeInTheDocument();
 
       // Search commits a filtered server query...
-      await user.type(searchbox, "课程1");
+      await user.type(searchbox, "Comisión1");
       await waitFor(
         () => {
-          expect(queryParams(courseCalls.at(-1)!).get("search")).toBe("课程1");
+          expect(queryParams(courseCalls.at(-1)!).get("search")).toBe("Comisión1");
         },
         { timeout: 3000 },
       );
       // ...then page forward, so the clear must also reset the page.
-      await user.click(within(dialog).getByRole("button", { name: "下一页" }));
+      await user.click(within(dialog).getByRole("button", { name: "Página siguiente" }));
       await waitFor(() => {
         expect(queryParams(courseCalls.at(-1)!).get("page")).toBe("2");
       });
 
       const callsBeforeClear = courseCalls.length;
       await user.click(
-        within(dialog).getByRole("button", { name: "清除搜索" }),
+        within(dialog).getByRole("button", { name: "Borrar búsqueda" }),
       );
       // The input empties immediately...
       expect(searchbox).toHaveValue("");
@@ -1229,10 +1229,10 @@ describe("UsersPage", () => {
       }
       // The unfiltered first page is restored in the picker.
       expect(
-        await within(dialog).findByRole("radio", { name: "课程3 (CODE-3)" }),
+        await within(dialog).findByRole("radio", { name: "Comisión3 (CODE-3)" }),
       ).toBeInTheDocument();
       expect(
-        within(dialog).queryByRole("radio", { name: "课程110 (CODE-110)" }),
+        within(dialog).queryByRole("radio", { name: "Comisión110 (CODE-110)" }),
       ).not.toBeInTheDocument();
     });
 
@@ -1254,7 +1254,7 @@ describe("UsersPage", () => {
       renderPage();
       const menu = await openRowMenu(user);
       await user.click(
-        within(menu).getByRole("menuitem", { name: "授课课程" }),
+        within(menu).getByRole("menuitem", { name: "Comisiones a cargo" }),
       );
       const dialog = await screen.findByRole("dialog");
       // Assign failure → assignFailed copy.
@@ -1262,16 +1262,16 @@ describe("UsersPage", () => {
       await user.click(
         await within(dialog).findByRole("radio", { name: "数学 (MATH-101)" }),
       );
-      await user.click(within(dialog).getByRole("button", { name: "分配" }));
+      await user.click(within(dialog).getByRole("button", { name: "Asignar" }));
       await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith("分配课程失败，请稍后重试");
+        expect(toast.error).toHaveBeenCalledWith("No se pudo asignar la comisión. Inténtalo de nuevo más tarde.");
       });
       // Revoke failure → revokeFailed copy.
       apiPost.mockRejectedValueOnce(new Error("boom"));
-      await user.click(within(dialog).getByRole("button", { name: "撤销" }));
+      await user.click(within(dialog).getByRole("button", { name: "Deshacer" }));
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith(
-          "撤销课程分配失败，请稍后重试",
+          "No se pudo revocar la comisión. Inténtalo de nuevo más tarde.",
         );
       });
     });
@@ -1288,13 +1288,13 @@ describe("UsersPage", () => {
       renderPage();
       const menu = await openRowMenu(user);
       await user.click(
-        within(menu).getByRole("menuitem", { name: "授课课程" }),
+        within(menu).getByRole("menuitem", { name: "Comisiones a cargo" }),
       );
       const dialog = await screen.findByRole("dialog");
       await user.click(
         await within(dialog).findByRole("radio", { name: "数学 (MATH-101)" }),
       );
-      await user.click(within(dialog).getByRole("button", { name: "分配" }));
+      await user.click(within(dialog).getByRole("button", { name: "Asignar" }));
       // Busy: Esc must not change the dialog's open state.
       fireEvent.keyDown(document, { key: "Escape" });
       expect(screen.getByRole("dialog")).toBeInTheDocument();
@@ -1316,7 +1316,7 @@ describe("UsersPage", () => {
       renderPage();
       const menu = await openRowMenu(user);
       expect(
-        within(menu).getByRole("menuitem", { name: "评卷考试" }),
+        within(menu).getByRole("menuitem", { name: "Exámenes a corregir" }),
       ).toBeInTheDocument();
     });
 
@@ -1369,11 +1369,11 @@ describe("UsersPage", () => {
 
       const menu = await openRowMenu(user);
       await user.click(
-        within(menu).getByRole("menuitem", { name: "评卷考试" }),
+        within(menu).getByRole("menuitem", { name: "Exámenes a corregir" }),
       );
       const dialog = await screen.findByRole("dialog");
       expect(
-        within(dialog).getByText("管理「Grader One」的评卷考试"),
+        within(dialog).getByText("Administración「Grader One」的评卷考试"),
       ).toBeInTheDocument();
       await waitFor(() => {
         expect(apiGet).toHaveBeenCalledWith(
@@ -1382,13 +1382,13 @@ describe("UsersPage", () => {
       });
       expect(apiGet).toHaveBeenCalledWith("/api/exams?page=1&pageSize=20");
       expect(
-        await within(dialog).findByText("尚未分配任何考试。"),
+        await within(dialog).findByText("Todavía no hay exámenes asignados."),
       ).toBeInTheDocument();
 
       await user.click(
         await within(dialog).findByRole("radio", { name: "期末考试" }),
       );
-      await user.click(within(dialog).getByRole("button", { name: "分配" }));
+      await user.click(within(dialog).getByRole("button", { name: "Asignar" }));
       expect(apiPost).toHaveBeenCalledWith(
         "/api/admin/users/u-g/exam-assignments",
         { examId: "e1" },
@@ -1396,7 +1396,7 @@ describe("UsersPage", () => {
       const matches = await within(dialog).findAllByText("期末考试");
       expect(matches.length).toBeGreaterThanOrEqual(2);
 
-      await user.click(within(dialog).getByRole("button", { name: "撤销" }));
+      await user.click(within(dialog).getByRole("button", { name: "Deshacer" }));
       await waitFor(() => {
         expect(apiPost).toHaveBeenCalledWith(
           "/api/admin/users/u-g/exam-assignments/e1/revoke",
@@ -1404,11 +1404,11 @@ describe("UsersPage", () => {
       });
       await waitFor(() => {
         expect(
-          within(dialog).queryByRole("button", { name: "撤销" }),
+          within(dialog).queryByRole("button", { name: "Deshacer" }),
         ).not.toBeInTheDocument();
       });
       expect(
-        await within(dialog).findByText("尚未分配任何考试。"),
+        await within(dialog).findByText("Todavía no hay exámenes asignados."),
       ).toBeInTheDocument();
     });
 
@@ -1421,10 +1421,10 @@ describe("UsersPage", () => {
       );
       const table = await screen.findByRole("table");
       expect(
-        within(table).queryByRole("button", { name: "评卷考试" }),
+        within(table).queryByRole("button", { name: "Exámenes a corregir" }),
       ).not.toBeInTheDocument();
       expect(
-        within(table).queryAllByRole("button", { name: "更多操作" }),
+        within(table).queryAllByRole("button", { name: "Más acciones" }),
       ).toHaveLength(0);
     });
 
@@ -1449,17 +1449,17 @@ describe("UsersPage", () => {
       );
       const menu = await openRowMenu(user);
       await user.click(
-        within(menu).getByRole("menuitem", { name: "评卷考试" }),
+        within(menu).getByRole("menuitem", { name: "Exámenes a corregir" }),
       );
       const dialog = await screen.findByRole("dialog");
       // Stable examId fallback: no catalog is fetched without Manage.
       expect(await within(dialog).findByText("e1")).toBeInTheDocument();
       expect(within(dialog).queryByRole("radio")).not.toBeInTheDocument();
       expect(
-        within(dialog).queryByRole("button", { name: "分配" }),
+        within(dialog).queryByRole("button", { name: "Asignar" }),
       ).not.toBeInTheDocument();
       expect(
-        within(dialog).queryByRole("button", { name: "撤销" }),
+        within(dialog).queryByRole("button", { name: "Deshacer" }),
       ).not.toBeInTheDocument();
       // Assignment View must not silently require ExamView: the option
       // catalog is mutation-support data and is not fetched at all.
@@ -1483,23 +1483,23 @@ describe("UsersPage", () => {
       renderPage();
       const menu = await openRowMenu(user);
       await user.click(
-        within(menu).getByRole("menuitem", { name: "评卷考试" }),
+        within(menu).getByRole("menuitem", { name: "Exámenes a corregir" }),
       );
       const dialog = await screen.findByRole("dialog");
       expect(await within(dialog).findByText("e1")).toBeInTheDocument();
       expect(
-        within(dialog).getByRole("button", { name: "撤销" }),
+        within(dialog).getByRole("button", { name: "Deshacer" }),
       ).toBeInTheDocument();
       expect(
         await within(dialog).findByTestId("grader-assign-inactive"),
       ).toHaveTextContent("该账号已停用");
       expect(within(dialog).queryByRole("radio")).not.toBeInTheDocument();
       expect(
-        within(dialog).queryByRole("button", { name: "分配" }),
+        within(dialog).queryByRole("button", { name: "Asignar" }),
       ).not.toBeInTheDocument();
       expect(getCalls("/api/exams")).toHaveLength(0);
       apiPost.mockResolvedValue({ outcome: "applied" });
-      await user.click(within(dialog).getByRole("button", { name: "撤销" }));
+      await user.click(within(dialog).getByRole("button", { name: "Deshacer" }));
       await waitFor(() => {
         expect(apiPost).toHaveBeenCalledWith(
           "/api/admin/users/u-ig/exam-assignments/e1/revoke",
@@ -1531,17 +1531,17 @@ describe("UsersPage", () => {
       renderPage();
       const menu = await openRowMenu(user);
       await user.click(
-        within(menu).getByRole("menuitem", { name: "评卷考试" }),
+        within(menu).getByRole("menuitem", { name: "Exámenes a corregir" }),
       );
       const dialog = await screen.findByRole("dialog");
       expect(await within(dialog).findByText("e1")).toBeInTheDocument();
       expect(
-        await within(dialog).findByText("考试列表暂不可用，已有分配不受影响。"),
+        await within(dialog).findByText("La lista de exámenes no está disponible. Las asignaciones actuales siguen igual."),
       ).toBeInTheDocument();
       expect(within(dialog).queryByRole("radio")).not.toBeInTheDocument();
       // The readable list is not erased and revoke still works.
       apiPost.mockResolvedValue({ outcome: "applied" });
-      await user.click(within(dialog).getByRole("button", { name: "撤销" }));
+      await user.click(within(dialog).getByRole("button", { name: "Deshacer" }));
       await waitFor(() => {
         expect(apiPost).toHaveBeenCalledWith(
           "/api/admin/users/u-g/exam-assignments/e1/revoke",
@@ -1554,7 +1554,7 @@ describe("UsersPage", () => {
     it("exam picker: catalog pagination reaches page 6 — an exam beyond the first 100 is assignable (issue 548)", async () => {
       const allExams = Array.from({ length: 120 }, (_, i) => ({
         id: `e${i + 1}`,
-        title: `考试${i + 1}`,
+        title: `Exámenes${i + 1}`,
       }));
       mockAssignmentApi({ users: [mockUsers[0], graderTarget] });
       const origImpl = apiGet.getMockImplementation()!;
@@ -1570,22 +1570,22 @@ describe("UsersPage", () => {
       renderPage();
       const menu = await openRowMenu(user);
       await user.click(
-        within(menu).getByRole("menuitem", { name: "评卷考试" }),
+        within(menu).getByRole("menuitem", { name: "Exámenes a corregir" }),
       );
       const dialog = await screen.findByRole("dialog");
       expect(
-        within(dialog).queryByRole("radio", { name: "考试101" }),
+        within(dialog).queryByRole("radio", { name: "Exámenes101" }),
       ).not.toBeInTheDocument();
       for (let i = 0; i < 5; i++) {
         await user.click(
-          within(dialog).getByRole("button", { name: "下一页" }),
+          within(dialog).getByRole("button", { name: "Página siguiente" }),
         );
       }
       await user.click(
-        await within(dialog).findByRole("radio", { name: "考试101" }),
+        await within(dialog).findByRole("radio", { name: "Exámenes101" }),
       );
       apiPost.mockResolvedValue({ outcome: "applied" });
-      await user.click(within(dialog).getByRole("button", { name: "分配" }));
+      await user.click(within(dialog).getByRole("button", { name: "Asignar" }));
       expect(apiPost).toHaveBeenCalledWith(
         "/api/admin/users/u-g/exam-assignments",
         { examId: "e101" },
@@ -1631,7 +1631,7 @@ describe("UsersPage", () => {
       expect(within(table).queryByText("teacher1")).not.toBeInTheDocument();
       expect(screen.getByText(/共 103 条/)).toBeInTheDocument();
       for (let i = 0; i < 5; i++) {
-        await user.click(screen.getByRole("button", { name: "下一页" }));
+        await user.click(screen.getByRole("button", { name: "Página siguiente" }));
       }
       await waitFor(() => {
         expect(apiGet).toHaveBeenCalledWith("/api/users?page=6&pageSize=20");
@@ -1641,7 +1641,7 @@ describe("UsersPage", () => {
       expect(within(table6).getByText("teacher1")).toBeInTheDocument();
       const menu = await openRowMenu(user);
       expect(
-        within(menu).getByRole("menuitem", { name: "授课课程" }),
+        within(menu).getByRole("menuitem", { name: "Comisiones a cargo" }),
       ).toBeInTheDocument();
     }, 15_000);
   });

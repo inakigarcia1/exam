@@ -44,7 +44,7 @@ vi.mock("@/components/shared/DatePicker", () => ({
       aria-label={ariaLabel}
       onClick={() =>
         onChange(
-          ariaLabel === "开始日期"
+          ariaLabel === "Fecha de inicio"
             ? new Date("2025-01-15T12:00:00Z")
             : new Date("2025-01-20T12:00:00Z"),
         )
@@ -161,26 +161,26 @@ describe("RecoveryQueuePage", () => {
     const table = await screen.findByRole("table");
     expect(within(table).getByText("网络恢复考试")).toBeInTheDocument();
     expect(within(table).getByText("考生张三")).toBeInTheDocument();
-    expect(within(table).getByText("严重")).toBeInTheDocument();
+    expect(within(table).getByText("Crítico")).toBeInTheDocument();
     expect(within(table).getByText("监考李四")).toBeInTheDocument();
     // Incident status renders through StatusBadge (statusMeta authority).
-    expect(within(table).getByText("待处理")).toBeInTheDocument();
+    expect(within(table).getByText("Pendiente")).toBeInTheDocument();
     expect(within(table).getByText("1 条关联")).toBeInTheDocument();
   });
 
   it("shows empty state when no incidents match", async () => {
     getMock.mockResolvedValue({ items: [], nextCursor: null });
     renderPage();
-    expect(await screen.findByText("暂无中断事件")).toBeInTheDocument();
+    expect(await screen.findByText("No hay interrupciones")).toBeInTheDocument();
   });
 
   it("shows error state on fetch failure and retry refetches", async () => {
     getMock.mockRejectedValueOnce(new Error("Network error"));
     renderPage();
-    expect(await screen.findByText("加载恢复队列失败")).toBeInTheDocument();
+    expect(await screen.findByText("No se pudo cargar la cola de recuperación")).toBeInTheDocument();
 
     getMock.mockResolvedValue(mockQueueData);
-    await userEvent.setup().click(screen.getByText("重试"));
+    await userEvent.setup().click(screen.getByText("Reintentar"));
     expect(await screen.findAllByText("网络恢复考试")).toHaveLength(2);
   });
 
@@ -198,9 +198,9 @@ describe("RecoveryQueuePage", () => {
     renderPage();
     await screen.findAllByText("网络恢复考试");
 
-    const trigger = screen.getByRole("combobox", { name: "全部状态" });
+    const trigger = screen.getByRole("combobox", { name: "Todos los estados" });
     await user.click(trigger);
-    await user.click(await screen.findByRole("option", { name: "调查中" }));
+    await user.click(await screen.findByRole("option", { name: "En investigación" }));
 
     expect(screen.getByTestId("location-search")).toHaveTextContent(
       "status=investigating",
@@ -214,10 +214,10 @@ describe("RecoveryQueuePage", () => {
     renderPage();
     await act(async () => {});
 
-    fireEvent.change(screen.getByRole("textbox", { name: "考试 ID" }), {
+    fireEvent.change(screen.getByRole("textbox", { name: "ID del examen" }), {
       target: { value: "exam-abc" },
     });
-    fireEvent.change(screen.getByRole("textbox", { name: "考生 ID" }), {
+    fireEvent.change(screen.getByRole("textbox", { name: "ID del alumno" }), {
       target: { value: "cand-1" },
     });
     // ONE advance past both debounce deadlines: the two commits flush in the
@@ -240,7 +240,7 @@ describe("RecoveryQueuePage", () => {
     renderPage(["/admin/recovery?status=open"]);
     await screen.findAllByText("网络恢复考试");
 
-    await user.click(screen.getByText("清除筛选"));
+    await user.click(screen.getByText("Limpiar filtros"));
     expect(screen.getByTestId("location-search")).not.toHaveTextContent(
       "status=",
     );
@@ -254,7 +254,7 @@ describe("RecoveryQueuePage", () => {
     const table = await screen.findByRole("table");
     // The incident status badge is the navigation link (keyboard-accessible,
     // open-in-new-tab capable). Clicking it navigates to the detail route.
-    const incidentLink = within(table).getByText("待处理");
+    const incidentLink = within(table).getByText("Pendiente");
     await user.click(incidentLink);
     expect(screen.getByTestId("incident-detail-stub")).toBeInTheDocument();
   });
@@ -277,7 +277,7 @@ describe("RecoveryQueuePage", () => {
     const table = await screen.findByRole("table");
     expect(within(table).getByText("网络恢复考试")).toBeInTheDocument();
 
-    await user.click(screen.getByText("加载更多"));
+    await user.click(screen.getByText("Cargar más"));
     expect(await within(table).findByText("第二页考试")).toBeInTheDocument();
     // The cursor page went through a query param, but the URL never carries it.
     expect(screen.getByTestId("location-search")).not.toHaveTextContent(
@@ -318,7 +318,7 @@ describe("RecoveryQueuePage", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
-    fireEvent.click(screen.getByText("加载更多"));
+    fireEvent.click(screen.getByText("Cargar más"));
     await act(async () => {});
     expect(within(table).getByText("第二页考试")).toBeInTheDocument();
 
@@ -387,10 +387,10 @@ describe("RecoveryQueuePage", () => {
 
     // Type examId, then candidateId within the debounce window: the SECOND
     // keystroke must NOT cancel the first filter — one timer commits both.
-    fireEvent.change(screen.getByPlaceholderText("考试 ID"), {
+    fireEvent.change(screen.getByPlaceholderText("ID del examen"), {
       target: { value: "exam-9" },
     });
-    fireEvent.change(screen.getByPlaceholderText("考生 ID"), {
+    fireEvent.change(screen.getByPlaceholderText("ID del alumno"), {
       target: { value: "cand-9" },
     });
     await act(async () => {
@@ -419,8 +419,8 @@ describe("RecoveryQueuePage", () => {
     await act(async () => {});
 
     // Empty queue: EmptyState visible, Refresh button visible, snapshot visible.
-    expect(screen.getByText("暂无中断事件")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "刷新" })).toBeInTheDocument();
+    expect(screen.getByText("No hay interrupciones")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Actualizar" })).toBeInTheDocument();
     expect(screen.getByText(/数据快照/)).toBeInTheDocument();
 
     // Background poll fails — must keep EmptyState, not switch to ErrorState.
@@ -430,11 +430,11 @@ describe("RecoveryQueuePage", () => {
     });
 
     // EmptyState still visible (not replaced by full-screen ErrorState).
-    expect(screen.getByText("暂无中断事件")).toBeInTheDocument();
+    expect(screen.getByText("No hay interrupciones")).toBeInTheDocument();
     // Inline warning appears.
-    expect(screen.getByText("加载恢复队列失败")).toBeInTheDocument();
+    expect(screen.getByText("No se pudo cargar la cola de recuperación")).toBeInTheDocument();
     // Refresh button still clickable.
-    expect(screen.getByRole("button", { name: "刷新" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Actualizar" })).toBeInTheDocument();
     // Snapshot still visible.
     expect(screen.getByText(/数据快照/)).toBeInTheDocument();
   });
@@ -448,7 +448,7 @@ describe("RecoveryQueuePage", () => {
     renderPage(["/admin/recovery?status=investigating"]);
     await act(async () => {});
 
-    fireEvent.change(screen.getByPlaceholderText("考试 ID"), {
+    fireEvent.change(screen.getByPlaceholderText("ID del examen"), {
       target: { value: "exam-9" },
     });
 
@@ -472,43 +472,43 @@ describe("RecoveryQueuePage", () => {
     const lastCall = getMock.mock.calls.at(-1)?.[0] as string;
     expect(lastCall).toContain("unresolvedOnly=true");
 
-    // The active filter is VISIBLE (resolution select reads 仅未处理) and the
+    // The active filter is VISIBLE (resolution select reads Solo sin resolver) and the
     // generic clear button is present because a filter is active.
     expect(
-      screen.getByRole("combobox", { name: "全部事件" }),
-    ).toHaveTextContent("仅未处理");
+      screen.getByRole("combobox", { name: "Todos los incidentes" }),
+    ).toHaveTextContent("Solo sin resolver");
     expect(
-      screen.getByRole("button", { name: "清除筛选" }),
+      screen.getByRole("button", { name: "Limpiar filtros" }),
     ).toBeInTheDocument();
   });
 
-  it("toggling 仅未处理 on/off writes the URL (replace) and refetches page 1", async () => {
+  it("toggling Solo sin resolver on/off writes the URL (replace) and refetches page 1", async () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findAllByText("网络恢复考试");
 
-    await user.click(screen.getByRole("combobox", { name: "全部事件" }));
-    await user.click(await screen.findByRole("option", { name: "仅未处理" }));
+    await user.click(screen.getByRole("combobox", { name: "Todos los incidentes" }));
+    await user.click(await screen.findByRole("option", { name: "Solo sin resolver" }));
     expect(screen.getByTestId("location-search")).toHaveTextContent(
       "unresolvedOnly=true",
     );
     expect(getMock.mock.calls.at(-1)?.[0]).toContain("unresolvedOnly=true");
 
-    await user.click(screen.getByRole("combobox", { name: "全部事件" }));
-    await user.click(await screen.findByRole("option", { name: "全部事件" }));
+    await user.click(screen.getByRole("combobox", { name: "Todos los incidentes" }));
+    await user.click(await screen.findByRole("option", { name: "Todos los incidentes" }));
     expect(screen.getByTestId("location-search")).not.toHaveTextContent(
       "unresolvedOnly",
     );
     expect(getMock.mock.calls.at(-1)?.[0]).not.toContain("unresolvedOnly");
   });
 
-  it("enabling 仅未处理 over a terminal status atomically resets the status", async () => {
+  it("enabling Solo sin resolver over a terminal status atomically resets the status", async () => {
     const user = userEvent.setup();
     renderPage(["/admin/recovery?status=resolved"]);
     await screen.findAllByText("网络恢复考试");
 
-    await user.click(screen.getByRole("combobox", { name: "全部事件" }));
-    await user.click(await screen.findByRole("option", { name: "仅未处理" }));
+    await user.click(screen.getByRole("combobox", { name: "Todos los incidentes" }));
+    await user.click(await screen.findByRole("option", { name: "Solo sin resolver" }));
     expect(screen.getByTestId("location-search")).toHaveTextContent(
       "unresolvedOnly=true",
     );
@@ -520,23 +520,23 @@ describe("RecoveryQueuePage", () => {
     expect(lastCall).not.toContain("status=");
   });
 
-  it("selecting a terminal status while 仅未处理 is active atomically clears it (no hidden conflict)", async () => {
+  it("selecting a terminal status while Solo sin resolver is active atomically clears it (no hidden conflict)", async () => {
     const user = userEvent.setup();
     renderPage(["/admin/recovery?unresolvedOnly=true"]);
     await screen.findAllByText("网络恢复考试");
 
-    await user.click(screen.getByRole("combobox", { name: "全部状态" }));
-    await user.click(await screen.findByRole("option", { name: "已解决" }));
+    await user.click(screen.getByRole("combobox", { name: "Todos los estados" }));
+    await user.click(await screen.findByRole("option", { name: "Resuelto" }));
     expect(screen.getByTestId("location-search")).toHaveTextContent(
       "status=resolved",
     );
     expect(screen.getByTestId("location-search")).not.toHaveTextContent(
       "unresolvedOnly",
     );
-    // The resolution select visibly reflects the resolution (全部事件).
+    // The resolution select visibly reflects the resolution (Todos los incidentes).
     expect(
-      screen.getByRole("combobox", { name: "全部事件" }),
-    ).toHaveTextContent("全部事件");
+      screen.getByRole("combobox", { name: "Todos los incidentes" }),
+    ).toHaveTextContent("Todos los incidentes");
   });
 
   it("selecting an unresolved status keeps both filters (compatible predicates)", async () => {
@@ -544,8 +544,8 @@ describe("RecoveryQueuePage", () => {
     renderPage(["/admin/recovery?unresolvedOnly=true"]);
     await screen.findAllByText("网络恢复考试");
 
-    await user.click(screen.getByRole("combobox", { name: "全部状态" }));
-    await user.click(await screen.findByRole("option", { name: "调查中" }));
+    await user.click(screen.getByRole("combobox", { name: "Todos los estados" }));
+    await user.click(await screen.findByRole("option", { name: "En investigación" }));
     expect(screen.getByTestId("location-search")).toHaveTextContent(
       "unresolvedOnly=true",
     );
@@ -573,8 +573,8 @@ describe("RecoveryQueuePage", () => {
       "?unresolvedOnly=true",
     );
     expect(
-      screen.getByRole("combobox", { name: "全部状态" }),
-    ).toHaveTextContent("全部状态");
+      screen.getByRole("combobox", { name: "Todos los estados" }),
+    ).toHaveTextContent("Todos los estados");
 
     // Bounded requests: the normalization settled after one replace — a fixed
     // number of page-1 fetches (initial + refetch), never a loop.
@@ -600,16 +600,16 @@ describe("RecoveryQueuePage", () => {
     expect(lastCall).toContain("unresolvedOnly=true");
     expect(lastCall).toContain("status=open");
     expect(
-      screen.getByRole("combobox", { name: "全部事件" }),
-    ).toHaveTextContent("仅未处理");
+      screen.getByRole("combobox", { name: "Todos los incidentes" }),
+    ).toHaveTextContent("Solo sin resolver");
   });
 
-  it("清除筛选 removes the unresolved predicate too", async () => {
+  it("Limpiar filtros removes the unresolved predicate too", async () => {
     const user = userEvent.setup();
     renderPage(["/admin/recovery?unresolvedOnly=true"]);
     await screen.findAllByText("网络恢复考试");
 
-    await user.click(screen.getByRole("button", { name: "清除筛选" }));
+    await user.click(screen.getByRole("button", { name: "Limpiar filtros" }));
     expect(screen.getByTestId("location-search").textContent).toBe("");
     expect(getMock.mock.calls.at(-1)?.[0]).not.toContain("unresolvedOnly");
   });

@@ -132,7 +132,7 @@ describe("SystemDiagnosticsPage", () => {
     getMock.mockResolvedValueOnce(health());
     getMock.mockResolvedValueOnce(diag());
     renderPage();
-    expect(await screen.findByText("系统监控")).toBeInTheDocument();
+    expect(await screen.findByText("Monitoreo del sistema")).toBeInTheDocument();
     // Routine successful refreshes are debug-level telemetry (S3): polling
     // fires health every 10s and diag every 30s, so info would flood the table.
     await waitFor(() => {
@@ -153,10 +153,10 @@ describe("SystemDiagnosticsPage", () => {
     getMock.mockResolvedValueOnce(health());
     getMock.mockResolvedValueOnce(diag());
     renderPage();
-    expect(await screen.findByText("系统监控")).toBeInTheDocument();
-    expect(await screen.findByText("CPU 使用率")).toBeInTheDocument();
-    expect(screen.getByText("内存使用率")).toBeInTheDocument();
-    expect(screen.getByText("数据库响应时间")).toBeInTheDocument();
+    expect(await screen.findByText("Monitoreo del sistema")).toBeInTheDocument();
+    expect(await screen.findByText("Uso de CPU")).toBeInTheDocument();
+    expect(screen.getByText("Uso de memoria")).toBeInTheDocument();
+    expect(screen.getByText("Tiempo de respuesta de la base de datos")).toBeInTheDocument();
     expect(screen.getByText("10")).toBeInTheDocument();
     expect(screen.getByText("20")).toBeInTheDocument();
     expect(screen.getByText("5")).toBeInTheDocument();
@@ -174,7 +174,7 @@ describe("SystemDiagnosticsPage", () => {
     getMock.mockResolvedValueOnce(health());
     getMock.mockResolvedValueOnce(diag());
     renderPage();
-    const dbLabel = await screen.findByText("数据库状态");
+    const dbLabel = await screen.findByText("Estado de la base de datos");
     const card = dbLabel.closest("[data-slot='card']");
     expect(card).toBeInTheDocument();
     expect(card).toHaveTextContent("5ms");
@@ -184,11 +184,11 @@ describe("SystemDiagnosticsPage", () => {
     getMock.mockResolvedValueOnce(health());
     getMock.mockResolvedValueOnce(diag());
     renderPage();
-    expect(await screen.findByText("数据库状态")).toBeInTheDocument();
+    expect(await screen.findByText("Estado de la base de datos")).toBeInTheDocument();
     expect(screen.getByText("5ms")).toBeInTheDocument();
     // Redis ready state renders infra-available badge; email also renders
-    // "可用" so assert count >= 2 (one Redis + at least one email).
-    expect(screen.getAllByText("可用").length).toBeGreaterThanOrEqual(2);
+    // "Disponible" so assert count >= 2 (one Redis + at least one email).
+    expect(screen.getAllByText("Disponible").length).toBeGreaterThanOrEqual(2);
   });
 
   it("shows Redis as degraded when state is degraded", async () => {
@@ -204,8 +204,8 @@ describe("SystemDiagnosticsPage", () => {
       },
     });
     renderPage();
-    expect(await screen.findByText("数据库状态")).toBeInTheDocument();
-    expect(screen.getByText("降级")).toBeInTheDocument();
+    expect(await screen.findByText("Estado de la base de datos")).toBeInTheDocument();
+    expect(screen.getByText("Degradado")).toBeInTheDocument();
   });
 
   it("shows Redis as disabled when mode is off", async () => {
@@ -221,9 +221,9 @@ describe("SystemDiagnosticsPage", () => {
       },
     });
     renderPage();
-    expect(await screen.findByText("数据库状态")).toBeInTheDocument();
+    expect(await screen.findByText("Estado de la base de datos")).toBeInTheDocument();
     // StatusBadge renders the infra-disabled label
-    expect(screen.getByText("已禁用")).toBeInTheDocument();
+    expect(screen.getByText("Desactivado")).toBeInTheDocument();
     expect(screen.queryByText("未连接")).not.toBeInTheDocument();
   });
 
@@ -240,27 +240,27 @@ describe("SystemDiagnosticsPage", () => {
       },
     });
     renderPage();
-    expect(await screen.findByText("数据库状态")).toBeInTheDocument();
-    expect(screen.getByText("连接中")).toBeInTheDocument();
+    expect(await screen.findByText("Estado de la base de datos")).toBeInTheDocument();
+    expect(screen.getByText("Conectando")).toBeInTheDocument();
   });
 
   it("renders heartbeat scanner and deadline scanner status cards", async () => {
     getMock.mockResolvedValueOnce(health());
     getMock.mockResolvedValueOnce(diag());
     renderPage();
-    expect(await screen.findByText("心跳扫描器")).toBeInTheDocument();
-    expect(screen.getByText("截止扫描器")).toBeInTheDocument();
-    expect(screen.getByText("已中断")).toBeInTheDocument();
-    expect(screen.getByText("自动提交")).toBeInTheDocument();
+    expect(await screen.findByText("Escáner de latidos")).toBeInTheDocument();
+    expect(screen.getByText("Escáner de plazos")).toBeInTheDocument();
+    expect(screen.getByText("Interrumpidos")).toBeInTheDocument();
+    expect(screen.getByText("Envíos automáticos")).toBeInTheDocument();
     expect(screen.getAllByText("0").length).toBeGreaterThanOrEqual(1);
     expect(
       document.querySelectorAll('[data-diagnostic-role="scanner"]'),
     ).toHaveLength(2);
-    // Timestamp rows: each scanner card has a "上次扫描" row
-    expect(screen.getAllByText("上次扫描")).toHaveLength(2);
-    // Signal rows: heartbeat has "已中断", deadline has "自动提交"
-    expect(screen.getByText("已中断")).toBeInTheDocument();
-    expect(screen.getByText("自动提交")).toBeInTheDocument();
+    // Timestamp rows: each scanner card has a "Último escaneo" row
+    expect(screen.getAllByText("Último escaneo")).toHaveLength(2);
+    // Signal rows: heartbeat has "Interrumpidos", deadline has "Envíos automáticos"
+    expect(screen.getByText("Interrumpidos")).toBeInTheDocument();
+    expect(screen.getByText("Envíos automáticos")).toBeInTheDocument();
   });
 
   it("emits distinct information, scanner, disabled, and raised metric roles", async () => {
@@ -275,7 +275,7 @@ describe("SystemDiagnosticsPage", () => {
       },
     });
     renderPage();
-    expect(await screen.findByText("服务器信息")).toBeInTheDocument();
+    expect(await screen.findByText("Información del servidor")).toBeInTheDocument();
     expect(
       document.querySelectorAll('[data-diagnostic-role="information"]'),
     ).toHaveLength(3);
@@ -298,7 +298,7 @@ describe("SystemDiagnosticsPage", () => {
     getMock.mockResolvedValueOnce(health());
     getMock.mockResolvedValueOnce(diag());
     renderPage();
-    expect(await screen.findByText("服务器信息")).toBeInTheDocument();
+    expect(await screen.findByText("Información del servidor")).toBeInTheDocument();
     expect(screen.getByText("1.0.0")).toBeInTheDocument();
   });
 
@@ -306,18 +306,18 @@ describe("SystemDiagnosticsPage", () => {
     getMock.mockResolvedValueOnce(health());
     getMock.mockResolvedValueOnce(diag());
     renderPage();
-    expect(await screen.findByText("运行时配置")).toBeInTheDocument();
-    expect(screen.getByText("心跳间隔")).toBeInTheDocument();
-    expect(screen.getByText("心跳超时")).toBeInTheDocument();
-    expect(screen.getByText("截止扫描间隔")).toBeInTheDocument();
+    expect(await screen.findByText("Configuración de ejecución")).toBeInTheDocument();
+    expect(screen.getByText("Intervalo de latido")).toBeInTheDocument();
+    expect(screen.getByText("Tiempo de espera del latido")).toBeInTheDocument();
+    expect(screen.getByText("Intervalo de plazos")).toBeInTheDocument();
   });
 
   it("renders page when health fails but diag succeeds (no white screen)", async () => {
     getMock.mockRejectedValueOnce(new Error("health down"));
     getMock.mockResolvedValueOnce(diag());
     renderPage();
-    expect(await screen.findByText("系统监控")).toBeInTheDocument();
-    expect(screen.getByText("服务器信息")).toBeInTheDocument();
+    expect(await screen.findByText("Monitoreo del sistema")).toBeInTheDocument();
+    expect(screen.getByText("Información del servidor")).toBeInTheDocument();
     expect(screen.getByText("1.0.0")).toBeInTheDocument();
   });
 
@@ -325,8 +325,8 @@ describe("SystemDiagnosticsPage", () => {
     getMock.mockResolvedValueOnce(health());
     getMock.mockRejectedValueOnce(new Error("diag down"));
     renderPage();
-    expect(await screen.findByText("系统监控")).toBeInTheDocument();
-    expect(screen.getByText("CPU 使用率")).toBeInTheDocument();
+    expect(await screen.findByText("Monitoreo del sistema")).toBeInTheDocument();
+    expect(screen.getByText("Uso de CPU")).toBeInTheDocument();
     expect(screen.getByText("10")).toBeInTheDocument();
   });
 
@@ -334,13 +334,13 @@ describe("SystemDiagnosticsPage", () => {
     getMock.mockResolvedValueOnce(health());
     getMock.mockResolvedValueOnce(diag());
     renderPage();
-    expect(await screen.findByText("系统监控")).toBeInTheDocument();
+    expect(await screen.findByText("Monitoreo del sistema")).toBeInTheDocument();
     expect(debugMock).toHaveBeenCalled();
 
     vi.clearAllMocks();
     getMock.mockResolvedValueOnce(health());
     getMock.mockResolvedValueOnce(diag());
-    const refreshBtn = screen.getByRole("button", { name: "刷新系统数据" });
+    const refreshBtn = screen.getByRole("button", { name: "Actualizar datos del sistema" });
     // Click inside act: handleRefresh calls setIsLoading(true) synchronously,
     // which is an out-of-act state update if the native .click() runs bare.
     await act(async () => {
@@ -378,7 +378,7 @@ describe("SystemDiagnosticsPage", () => {
       // yields to the queue so the mock .then callbacks run inside this act.
       await Promise.resolve();
     });
-    expect(screen.getByText("系统监控")).toBeInTheDocument();
+    expect(screen.getByText("Monitoreo del sistema")).toBeInTheDocument();
     expect(debugMock).toHaveBeenCalled();
 
     // Subsequent scheduled poll: health fails, diagnostics ok. Order again
@@ -401,7 +401,7 @@ describe("SystemDiagnosticsPage", () => {
     // S5: the stale warning must actually render in the DOM — the user sees a
     // visible "stale data" Alert, not just a swallowed log.
     expect(
-      screen.getByText("系统状态刷新失败，当前显示上次成功数据"),
+      screen.getByText("No se pudo actualizar el estado. Se muestran los últimos datos correctos."),
     ).toBeInTheDocument();
   });
 
@@ -418,17 +418,17 @@ describe("SystemDiagnosticsPage", () => {
       },
     });
     renderPage();
-    expect(await screen.findByText("邮件基础设施")).toBeInTheDocument();
+    expect(await screen.findByText("Infraestructura de correo")).toBeInTheDocument();
     // overall email status badge (degraded label) + worker status badge.
-    expect(screen.getByText("降级")).toBeInTheDocument();
-    expect(screen.getByText("邮件状态")).toBeInTheDocument();
-    expect(screen.getByText("工作进程")).toBeInTheDocument();
-    expect(screen.getByText("未知")).toBeInTheDocument();
+    expect(screen.getByText("Degradado")).toBeInTheDocument();
+    expect(screen.getByText("Estado del correo")).toBeInTheDocument();
+    expect(screen.getByText("Proceso")).toBeInTheDocument();
+    expect(screen.getByText("Desconocido")).toBeInTheDocument();
     // outbox counts card.
-    expect(screen.getByText("邮件发件箱")).toBeInTheDocument();
-    expect(screen.getByText("待发送")).toBeInTheDocument();
-    expect(screen.getByText("已发送")).toBeInTheDocument();
-    expect(screen.getByText("发送失败")).toBeInTheDocument();
+    expect(screen.getByText("Bandeja de salida")).toBeInTheDocument();
+    expect(screen.getByText("Por enviar")).toBeInTheDocument();
+    expect(screen.getByText("Enviado")).toBeInTheDocument();
+    expect(screen.getByText("No se envió")).toBeInTheDocument();
     // count values render at least once (numbers may repeat elsewhere on the
     // page; assert presence via getAllByText, not uniqueness).
     expect(screen.getAllByText("2").length).toBeGreaterThanOrEqual(1);
@@ -448,10 +448,10 @@ describe("SystemDiagnosticsPage", () => {
       },
     });
     renderPage();
-    expect(await screen.findByText("邮件基础设施")).toBeInTheDocument();
-    // "已禁用" appears on the email status badge, the email-enabled badge,
+    expect(await screen.findByText("Infraestructura de correo")).toBeInTheDocument();
+    // "Desactivado" appears on the email status badge, the email-enabled badge,
     // and the worker badge when everything is disabled — assert presence.
-    expect(screen.getAllByText("已禁用").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText("Desactivado").length).toBeGreaterThanOrEqual(2);
     expect(
       document.querySelectorAll('[data-diagnostic-role="disabled"]'),
     ).toHaveLength(2);
@@ -469,7 +469,7 @@ describe("SystemDiagnosticsPage", () => {
       },
     });
     renderPage();
-    await screen.findByText("邮件基础设施");
+    await screen.findByText("Infraestructura de correo");
     // The diagnostics surface must never leak these — even if they existed in
     // the response, the UI must not render them.
     expect(screen.queryByText(/SMTP_/i)).not.toBeInTheDocument();

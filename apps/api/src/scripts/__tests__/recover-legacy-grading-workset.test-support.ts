@@ -120,7 +120,7 @@ export function manualSnapshot(questionId: string): QuestionSnapshot[] {
       answerMode: null,
       attachments: [],
       options: [],
-      standardAnswer: "参考答案",
+      standardAnswer: "Respuesta de referencia",
       score: 100,
       gradingRule: {
         multiSelectScoring: "all_correct_full" as const,

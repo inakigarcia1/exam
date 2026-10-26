@@ -122,12 +122,12 @@ describe("ProctorRecoveryIncidentDetailPage", () => {
     // The investigated gap: the whole Proctor investigate family must be
     // reachable from the product surface, not just the API.
     for (const name of [
-      "开始调查",
-      "添加备注",
-      "修改严重程度",
-      "关联操作记录",
-      "关联答题",
-      "关联中断证据",
+      "Iniciar investigación",
+      "Agregar nota",
+      "Cambiar gravedad",
+      "Asociar operación",
+      "Asociar intento",
+      "Asociar interrupción",
     ]) {
       expect(
         screen.getByRole("button", { name }),
@@ -140,10 +140,10 @@ describe("ProctorRecoveryIncidentDetailPage", () => {
     renderPage();
     await screen.findByText("proctor detail test incident");
     expect(
-      screen.queryByRole("button", { name: "解决事件" }),
+      screen.queryByRole("button", { name: "Resolver incidente" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "驳回事件" }),
+      screen.queryByRole("button", { name: "Descartar incidente" }),
     ).not.toBeInTheDocument();
   });
 
@@ -151,10 +151,10 @@ describe("ProctorRecoveryIncidentDetailPage", () => {
     getMock.mockResolvedValue(detail([]));
     renderPage();
     await screen.findByText("proctor detail test incident");
-    expect(screen.queryByText("操作")).not.toBeInTheDocument();
+    expect(screen.queryByText("Acciones")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", {
-        name: /开始调查|添加备注|修改严重程度|关联操作记录|关联答题|关联中断证据/,
+        name: /Iniciar investigación|Agregar nota|Cambiar gravedad|Asociar operación|Asociar intento|Asociar interrupción/,
       }),
     ).not.toBeInTheDocument();
   });
@@ -164,14 +164,14 @@ describe("ProctorRecoveryIncidentDetailPage", () => {
     renderPage();
     await screen.findByText("proctor detail test incident");
 
-    await user.click(screen.getByRole("button", { name: "关联操作记录" }));
-    await user.click(screen.getByRole("combobox", { name: "操作类型" }));
-    await user.click(await screen.findByRole("option", { name: "时间补偿" }));
+    await user.click(screen.getByRole("button", { name: "Asociar operación" }));
+    await user.click(screen.getByRole("combobox", { name: "Tipo de operación" }));
+    await user.click(await screen.findByRole("option", { name: "Compensación de tiempo" }));
     await user.type(
-      screen.getByLabelText("操作记录 ID"),
+      screen.getByLabelText("ID del registro de operación"),
       "adjustment-1234567890",
     );
-    await user.click(screen.getByRole("button", { name: "关联操作记录" }));
+    await user.click(screen.getByRole("button", { name: "Asociar operación" }));
 
     expect(postMock).toHaveBeenCalledTimes(1);
     const [url, body] = postMock.mock.calls[0]! as unknown as [
@@ -197,12 +197,12 @@ describe("ProctorRecoveryIncidentDetailPage", () => {
     renderPage();
     await screen.findByText("proctor detail test incident");
 
-    await user.click(screen.getByRole("button", { name: "关联中断证据" }));
+    await user.click(screen.getByRole("button", { name: "Asociar interrupción" }));
     await user.type(
-      screen.getByLabelText("中断记录 ID"),
+      screen.getByLabelText("ID del registro de interrupción"),
       "00000000-0000-4000-8000-000000000099",
     );
-    await user.click(screen.getByRole("button", { name: "关联中断证据" }));
+    await user.click(screen.getByRole("button", { name: "Asociar interrupción" }));
 
     expect(postMock).toHaveBeenCalledTimes(1);
     const [url, body] = postMock.mock.calls[0]! as unknown as [string, object];

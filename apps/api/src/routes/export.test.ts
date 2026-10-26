@@ -93,8 +93,8 @@ describe("CSV export integration", () => {
     expect(res.statusCode).toBe(200);
     expect(res.headers["content-type"]).toContain("text/csv");
     const body = typeof res.body === "string" ? res.body : res.body.toString();
-    expect(body).toContain("考生姓名");
-    expect(body).toContain("成绩");
+    expect(body).toContain("Nombre del alumno");
+    expect(body).toContain("Calificaciones");
     expect(body).toContain("及格状态");
   });
 
@@ -183,7 +183,7 @@ describe("CSV export integration", () => {
       gradedExamId,
     );
     expect(body).toContain("100");
-    expect(body).toContain("及格");
+    expect(body).toContain("Aprobado");
     expect(body).toContain(`Candidate ${gradedUsername}`);
   });
 
@@ -835,7 +835,7 @@ describe("CSV export integration", () => {
 
     const lines = body.split("\n").filter((l: string) => l.length > 0);
     expect(lines.length).toBe(RECORD_COUNT + 1);
-    expect(body).toContain("考生姓名");
+    expect(body).toContain("Nombre del alumno");
     expect(body).toContain("LargeCandidate0");
     expect(body).toContain(`LargeCandidate${RECORD_COUNT - 1}`);
     expect(elapsed).toBeLessThan(30000);

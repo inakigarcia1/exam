@@ -172,14 +172,14 @@ export function QuestionImportPage() {
   /**
    * Converts a raw answer string into the appropriate typed value based on
    * the question type (boolean for true/false, array for multiple-choice).
-   * NOTE: `"是"` here is a CSV answer-parsing alias for boolean true, NOT UI
+   * NOTE: `"Sí"` here is a CSV answer-parsing alias for boolean true, NOT UI
    * copy — it is part of the import compatibility contract and must not be
    * moved to i18n.
    */
   function parseStandardAnswer(answer: string, type: string): unknown {
     if (type === "true_false") {
       // i18n-copy-allow: data-format — CSV template headers, parser tokens, example rows
-      return answer.toLowerCase() === "true" || answer === "是";
+      return answer.toLowerCase() === "true" || answer === "Sí";
     }
     if (type === "multiple_choice") {
       return answer.split(/[,，]/).map((s) => s.trim());
@@ -220,7 +220,7 @@ export function QuestionImportPage() {
     // CSV template header — import column contract (not UI copy).
     const header =
       // i18n-copy-allow: data-format — CSV template headers, parser tokens, example rows
-      "题型,题目内容,选项A,选项B,选项C,选项D,标准答案,分值,难度,标签";
+      "Tipo,Enunciado,OpciónA,OpciónB,OpciónC,OpciónD,Respuesta correcta,Puntaje,Dificultad,Etiqueta";
     // CSV template example rows (fixture content, not UI copy).
     // i18n-copy-allow: data-format — CSV template headers, parser tokens, example rows
     const example1 = "single_choice,1+1=?,1,2,3,4,B,10,1,基础";

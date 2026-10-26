@@ -346,16 +346,16 @@ describe("REC-I3 — disrupted direct restore", () => {
     // Restore failure UI: dedicated alert surface, explicit description,
     // and a retry control. Stable role/id selectors — not text-only.
     const failedSurface = await screen.findByTestId("restore-failed-surface");
-    expect(failedSurface).toHaveTextContent("恢复考试失败");
+    expect(failedSurface).toHaveTextContent("No se pudo retomar el examen");
     expect(failedSurface).toHaveTextContent(/未能确认考试状态/);
     expect(
-      within(failedSurface).getByRole("button", { name: "重试恢复" }),
+      within(failedSurface).getByRole("button", { name: "Reintentar recuperación" }),
     ).toBeInTheDocument();
 
     // The generic deadline/time-up copy MUST NOT appear merely because
     // isEditable is false on a disrupted attempt.
     expect(
-      screen.queryByText("考试时间已到，答题已结束"),
+      screen.queryByText("Se acabó el tiempo. El examen terminó."),
     ).not.toBeInTheDocument();
     expect(screen.queryByText(/系统正在自动提交/)).not.toBeInTheDocument();
   });
@@ -404,7 +404,7 @@ describe("REC-I3 — disrupted direct restore", () => {
     // First restore attempt already fired automatically; it failed and the
     // authoritative GET confirmed the attempt is still disrupted+resumable,
     // so the restore-failed surface appears with a retry control.
-    const retryBtn = await screen.findByRole("button", { name: "重试恢复" });
+    const retryBtn = await screen.findByRole("button", { name: "Reintentar recuperación" });
 
     await waitFor(() => {
       const restores = apiPost.mock.calls.filter(
@@ -472,9 +472,9 @@ describe("REC-I3 — disrupted direct restore", () => {
     // both faster and a real assertion of outcome.
     expect((await screen.findAllByRole("radio"))[0]).toBeDisabled();
     expect(
-      screen.queryByRole("heading", { name: "恢复考试失败" }),
+      screen.queryByRole("heading", { name: "No se pudo retomar el examen" }),
     ).not.toBeInTheDocument();
-    expect(screen.queryByText(/正在恢复考试/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Retomando el examen/)).not.toBeInTheDocument();
 
     // After settling, no further restore may fire. We re-check via a final
     // microtask flush (deterministic) rather than an arbitrary sleep.
@@ -727,7 +727,7 @@ describe("REC-I3 — disrupted direct restore", () => {
     // previous test was missing.
     const failedSurface = await screen.findByTestId("restore-failed-surface");
     expect(
-      within(failedSurface).getByRole("button", { name: "重试恢复" }),
+      within(failedSurface).getByRole("button", { name: "Reintentar recuperación" }),
     ).toBeInTheDocument();
 
     // The page must not invent editable controls from the restore response.
@@ -1186,7 +1186,7 @@ describe("REC-I3 — disrupted direct restore", () => {
     // without the reset, the retained index 9 would break att-new.
     const user = userEvent.setup();
     for (let i = 0; i < 9; i++) {
-      const nextBtn = await screen.findByRole("button", { name: /下一题/ });
+      const nextBtn = await screen.findByRole("button", { name: /Pregunta siguiente/ });
       await user.click(nextBtn);
     }
     // Sanity: we are now on the old exam's last question.
@@ -1563,7 +1563,7 @@ describe("REC-I3 — disrupted direct restore", () => {
     // The generic load-error ErrorState surfaces a Retry button; it must not
     // appear (the page is still the loaded editable exam).
     expect(
-      screen.queryByRole("button", { name: /重试|Retry/ }),
+      screen.queryByRole("button", { name: /Reintentar|Retry/ }),
     ).not.toBeInTheDocument();
   });
 });
@@ -1597,7 +1597,7 @@ describe("REC-I3 — restoring UX and accessibility", () => {
     // Visible, accessible restoring UI: heading + descriptive copy. The
     // editable controls MUST NOT render while restore is pending.
     const surface = await screen.findByTestId("restore-restoring-surface");
-    expect(surface).toHaveTextContent("正在恢复考试");
+    expect(surface).toHaveTextContent("Retomando el examen");
     expect(surface).toHaveTextContent(/服务器正在确认考试状态和剩余时间/);
 
     // No editable radio while restoring.
@@ -1612,7 +1612,7 @@ describe("REC-I3 — restoring UX and accessibility", () => {
     });
   });
 
-  it("restore failure surfaces a '返回考试列表' control alongside the retry", async () => {
+  it("restore failure surfaces a 'Volver a los exámenes' control alongside the retry", async () => {
     const disrupted = buildSnapshot({
       attemptStatus: "disrupted",
       isEditable: false,
@@ -1632,11 +1632,11 @@ describe("REC-I3 — restoring UX and accessibility", () => {
     renderPage();
 
     expect(
-      await screen.findByRole("button", { name: "重试恢复" }),
+      await screen.findByRole("button", { name: "Reintentar recuperación" }),
     ).toBeInTheDocument();
     // The "back to list" affordance must be reachable.
     expect(
-      screen.getByRole("button", { name: "返回考试列表" }),
+      screen.getByRole("button", { name: "Volver a los exámenes" }),
     ).toBeInTheDocument();
   });
 });

@@ -12,21 +12,21 @@ import type { AdminTodoState } from "@/hooks/useAdminTodoCount";
  * state itself (the bounded minimum only exists in fetched state).
  */
 export interface AdminTodoCardCopy {
-  /** Work name, e.g. "待人工评分". */
+  /** Work name, e.g. "Calificación manual pendiente". */
   label: string;
-  /** Count unit, e.g. "份答卷" / "条事件". */
+  /** Count unit, e.g. "entregas" / "incidentes". */
   unit: string;
-  /** Verified-zero caption, e.g. "暂无待评分答卷". */
+  /** Verified-zero caption, e.g. "No hay entregas pendientes de calificar". */
   zeroCaption: string;
-  /** Source-failed placeholder replacing the metric, e.g. "无法获取". */
+  /** Source-failed placeholder replacing the metric, e.g. "No se pudo obtener". */
   unknownValue: string;
-  /** Expired-value caption, e.g. "数据可能已过期". */
+  /** Expired-value caption, e.g. "Los datos pueden estar desactualizados". */
   staleCaption: string;
   /** In-flight refresh caption over an existing value. */
   refreshingCaption: string;
   retryLabel: string;
   refreshLabel: string;
-  /** Destination hint inside the link, e.g. "前往评分队列". */
+  /** Destination hint inside the link, e.g. "Ir a la cola de calificación". */
   cta: string;
 }
 
@@ -111,7 +111,7 @@ export function AdminTodoCard({
 }
 
 /** Metric row: exact number, bounded ">min" lower bound, or non-numeric
- * placeholders (loading skeleton / 无法获取) that can never read as a count. */
+ * placeholders (loading skeleton / No se pudo obtener) that can never read as a count. */
 function ValueSurface({
   state,
   copy,

@@ -54,7 +54,7 @@ const EXPECTED_ROUTE_FAMILY: Record<string, string> = {
   "/admin/permissions": "/admin/permissions",
   "/admin/import-logs": "/admin/import-logs",
   // Attempt detail is reached only from the exam scores page and renders
-  // "{examTitle} - 答题详情": it belongs to the exams family.
+  // "{examTitle} - Detalle de las respuestas": it belongs to the exams family.
   "/admin/attempts/:id": "/admin/exams",
   "/admin/recovery": "/admin/recovery",
   "/admin/recovery/incidents/:incidentId": "/admin/recovery",
@@ -112,7 +112,7 @@ describe("navMatch — route family authority", () => {
     }
   });
 
-  it("questions import resolves ONLY to 题目导入 — never also 题目管理", () => {
+  it("questions import resolves ONLY to Importar preguntas — never also Gestión de preguntas", () => {
     // In dev/test an ambiguity throws; success + the single expected value
     // proves exactly-one for the mandatory negative case.
     expect(() => matchNavDestination("/admin/questions/import")).not.toThrow();

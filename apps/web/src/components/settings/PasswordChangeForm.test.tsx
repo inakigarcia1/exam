@@ -47,11 +47,11 @@ describe("PasswordChangeForm", () => {
   it("shows error when passwords do not match", async () => {
     render(<PasswordChangeForm />);
     const { toast } = await import("sonner");
-    await userEvent.type(screen.getByLabelText("当前密码"), "old123");
-    await userEvent.type(screen.getByLabelText("新密码"), "new123");
-    await userEvent.type(screen.getByLabelText("确认新密码"), "different");
-    await userEvent.click(screen.getByRole("button", { name: "修改密码" }));
-    expect(toast.error).toHaveBeenCalledWith("两次输入的新密码不一致");
+    await userEvent.type(screen.getByLabelText("Contraseña actual"), "old123");
+    await userEvent.type(screen.getByLabelText("Contraseña nueva"), "new123");
+    await userEvent.type(screen.getByLabelText("Confirmar contraseña nueva"), "different");
+    await userEvent.click(screen.getByRole("button", { name: "Cambiar contraseña" }));
+    expect(toast.error).toHaveBeenCalledWith("Las contraseñas nuevas no coinciden");
   });
 
   it("submits, shows success toast, logs out and redirects to /login", async () => {
@@ -64,15 +64,15 @@ describe("PasswordChangeForm", () => {
     });
     render(<PasswordChangeForm />);
     const { toast } = await import("sonner");
-    await userEvent.type(screen.getByLabelText("当前密码"), "old12345");
-    await userEvent.type(screen.getByLabelText("新密码"), "newpass123");
-    await userEvent.type(screen.getByLabelText("确认新密码"), "newpass123");
-    await userEvent.click(screen.getByRole("button", { name: "修改密码" }));
+    await userEvent.type(screen.getByLabelText("Contraseña actual"), "old12345");
+    await userEvent.type(screen.getByLabelText("Contraseña nueva"), "newpass123");
+    await userEvent.type(screen.getByLabelText("Confirmar contraseña nueva"), "newpass123");
+    await userEvent.click(screen.getByRole("button", { name: "Cambiar contraseña" }));
     expect(api.patch).toHaveBeenCalledWith("/api/auth/me/password", {
       currentPassword: "old12345",
       newPassword: "newpass123",
     });
-    expect(toast.success).toHaveBeenCalledWith("密码修改成功");
+    expect(toast.success).toHaveBeenCalledWith("La contraseña se actualizó");
     // Token revocation: a successful change ends the session client-side too.
     expect(api.post).toHaveBeenCalledWith("/api/auth/logout");
     await waitFor(() => expect(assign).toHaveBeenCalledWith("/login"));
@@ -81,24 +81,24 @@ describe("PasswordChangeForm", () => {
   it("rejects new password shorter than the policy minimum", async () => {
     render(<PasswordChangeForm />);
     const { toast } = await import("sonner");
-    await userEvent.type(screen.getByLabelText("当前密码"), "old12345");
-    await userEvent.type(screen.getByLabelText("新密码"), "short12");
-    await userEvent.type(screen.getByLabelText("确认新密码"), "short12");
-    await userEvent.click(screen.getByRole("button", { name: "修改密码" }));
+    await userEvent.type(screen.getByLabelText("Contraseña actual"), "old12345");
+    await userEvent.type(screen.getByLabelText("Contraseña nueva"), "short12");
+    await userEvent.type(screen.getByLabelText("Confirmar contraseña nueva"), "short12");
+    await userEvent.click(screen.getByRole("button", { name: "Cambiar contraseña" }));
     expect(toast.error).toHaveBeenCalledWith("新密码至少 8 位");
     expect(api.patch).not.toHaveBeenCalled();
   });
 
   it("shows error toast on API failure", async () => {
     vi.mocked(api.patch).mockRejectedValueOnce(
-      new ApiError(400, "当前密码不正确", "CURRENT_PASSWORD_INVALID"),
+      new ApiError(400, "La contraseña actual no es correcta", "CURRENT_PASSWORD_INVALID"),
     );
     render(<PasswordChangeForm />);
     const { toast } = await import("sonner");
-    await userEvent.type(screen.getByLabelText("当前密码"), "old12345");
-    await userEvent.type(screen.getByLabelText("新密码"), "newpass123");
-    await userEvent.type(screen.getByLabelText("确认新密码"), "newpass123");
-    await userEvent.click(screen.getByRole("button", { name: "修改密码" }));
-    expect(toast.error).toHaveBeenCalledWith("当前密码不正确");
+    await userEvent.type(screen.getByLabelText("Contraseña actual"), "old12345");
+    await userEvent.type(screen.getByLabelText("Contraseña nueva"), "newpass123");
+    await userEvent.type(screen.getByLabelText("Confirmar contraseña nueva"), "newpass123");
+    await userEvent.click(screen.getByRole("button", { name: "Cambiar contraseña" }));
+    expect(toast.error).toHaveBeenCalledWith("La contraseña actual no es correcta");
   });
 });

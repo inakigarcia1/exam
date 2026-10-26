@@ -89,13 +89,13 @@ interface QueueFilters {
  *
  * | current URL                          | action                    | resulting URL |
  * | ------------------------------------ | ------------------------- | ----------------------------------- |
- * | (none)                               | toggle 仅未处理 on         | ?unresolvedOnly=true |
- * | ?unresolvedOnly=true                 | toggle 仅未处理 off        | (none) |
- * | ?status=resolved                     | toggle 仅未处理 on         | ?unresolvedOnly=true (status reset) |
+ * | (none)                               | toggle Solo sin resolver on         | ?unresolvedOnly=true |
+ * | ?unresolvedOnly=true                 | toggle Solo sin resolver off        | (none) |
+ * | ?status=resolved                     | toggle Solo sin resolver on         | ?unresolvedOnly=true (status reset) |
  * | ?unresolvedOnly=true                 | select status=resolved    | ?status=resolved (unresolved cleared) |
  * | ?unresolvedOnly=true                 | select status=open        | ?unresolvedOnly=true&status=open |
  * | ?unresolvedOnly=true&status=resolved | deep link lands           | ?unresolvedOnly=true (normalize) |
- * | (any with filters)                   | 清除筛选                   | (none) |
+ * | (any with filters)                   | Limpiar filtros                   | (none) |
  */
 function normalizeUnresolvedConflict(
   params: URLSearchParams,

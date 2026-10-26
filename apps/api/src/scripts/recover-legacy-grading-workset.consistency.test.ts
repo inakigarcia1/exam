@@ -139,7 +139,7 @@ describe("recover-legacy-grading-workset — non-zero consistency guards", () =>
       db,
       orgId,
       manualSnapshot("m1"),
-      draftAnswer("m1", "考生作答"),
+      draftAnswer("m1", "Respuesta del alumno"),
     );
 
     await recoverLegacyGradingWorkset(db, id);
@@ -164,7 +164,7 @@ describe("recover-legacy-grading-workset — non-zero consistency guards", () =>
       db,
       orgId,
       manualSnapshot("m1"),
-      draftAnswer("m1", "考生作答"),
+      draftAnswer("m1", "Respuesta del alumno"),
     );
     await recoverLegacyGradingWorkset(db, id);
     await setGradingStatus(db, id, "auto_graded");
@@ -205,7 +205,7 @@ describe("recover-legacy-grading-workset — non-zero consistency guards", () =>
       db,
       orgId,
       manualSnapshot("m1"),
-      draftAnswer("m1", "考生作答"),
+      draftAnswer("m1", "Respuesta del alumno"),
     );
     await recoverLegacyGradingWorkset(db, id);
     await setGradingStatus(db, id, "auto_graded");
@@ -227,7 +227,7 @@ describe("recover-legacy-grading-workset — non-zero consistency guards", () =>
       db,
       orgId,
       manualSnapshot("m1"),
-      draftAnswer("m1", "考生作答"),
+      draftAnswer("m1", "Respuesta del alumno"),
     );
 
     await recoverLegacyGradingWorkset(db, id);

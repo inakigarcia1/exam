@@ -244,7 +244,7 @@ export async function seedExam(
   const question = await adminPost(request, baseURL, token, "/api/questions", {
     courseId,
     type: "true_false",
-    content: `判断题-${unique}`,
+    content: `Verdadero o falso-${unique}`,
     standardAnswer: opts.questionAnswer ?? true,
     score: opts.questionScore ?? 100,
   });

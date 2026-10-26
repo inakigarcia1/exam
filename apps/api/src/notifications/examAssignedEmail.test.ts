@@ -15,7 +15,7 @@ describe("renderExamAssignedEmail", () => {
       examTitle: "期中考试",
       listUrl: `${ORIGIN}/exam/list`,
     });
-    expect(rendered.subject).toBe("考试已安排");
+    expect(rendered.subject).toBe("Te asignaron un examen");
   });
 
   it("interpolates the exam title and the trusted list URL in both bodies", () => {
@@ -25,7 +25,7 @@ describe("renderExamAssignedEmail", () => {
     });
     expect(rendered.bodyText).toContain("期中考试");
     expect(rendered.bodyText).toContain(`${ORIGIN}/exam/list`);
-    expect(rendered.bodyText).toContain("考试列表");
+    expect(rendered.bodyText).toContain("Lista de exámenes");
     expect(rendered.bodyHtml).toContain(`${ORIGIN}/exam/list`);
     expect(rendered.bodyHtml).toContain("期中考试");
   });

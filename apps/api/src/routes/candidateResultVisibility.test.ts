@@ -337,7 +337,7 @@ describe("candidate result visibility projection", () => {
       stripRequestId(failedStart.json()),
     );
     expect(JSON.stringify(stripRequestId(passedStart.json()))).not.toContain(
-      "已通过",
+      "Aprobado",
     );
 
     const passedDetail = await getCandidateExamDetail(passedExamId);
@@ -557,7 +557,7 @@ describe("candidate result visibility projection", () => {
         };
         expect(stripRequestId(response.json()).code).toBe("RESOURCE_CONFLICT");
         expect(JSON.stringify(stripRequestId(response.json()))).not.toContain(
-          "已通过",
+          "Aprobado",
         );
 
         const attempts = await createAttemptRepo(ctx.db).findByExamAndCandidate(

@@ -8,16 +8,16 @@ describe("PlatformSettingsForm", () => {
     render(<PlatformSettingsForm onSave={() => {}} />);
 
     expect(screen.getByRole("combobox")).toBeInTheDocument();
-    expect(screen.getByText("选择时区")).toBeInTheDocument();
+    expect(screen.getByText("Elegí una zona horaria")).toBeInTheDocument();
   });
 
   it("shows branding fields in the form", () => {
     render(<PlatformSettingsForm onSave={() => {}} />);
 
-    expect(screen.getByLabelText("产品标题")).toBeInTheDocument();
-    expect(screen.getByLabelText("产品副标题")).toBeInTheDocument();
-    expect(screen.getByLabelText("页脚说明")).toBeInTheDocument();
-    expect(screen.getByLabelText("机构显示名")).toBeInTheDocument();
+    expect(screen.getByLabelText("Título del producto")).toBeInTheDocument();
+    expect(screen.getByLabelText("Subtítulo del producto")).toBeInTheDocument();
+    expect(screen.getByLabelText("Texto del pie")).toBeInTheDocument();
+    expect(screen.getByLabelText("Nombre de la institución")).toBeInTheDocument();
   });
 
   it("fills form with initialValues", () => {
@@ -33,10 +33,10 @@ describe("PlatformSettingsForm", () => {
       />,
     );
 
-    expect(screen.getByLabelText("产品标题")).toHaveValue("My Platform");
-    expect(screen.getByLabelText("产品副标题")).toHaveValue("My Subtitle");
-    expect(screen.getByLabelText("页脚说明")).toHaveValue("My Footer");
-    expect(screen.getByLabelText("机构显示名")).toHaveValue("My Org");
+    expect(screen.getByLabelText("Título del producto")).toHaveValue("My Platform");
+    expect(screen.getByLabelText("Subtítulo del producto")).toHaveValue("My Subtitle");
+    expect(screen.getByLabelText("Texto del pie")).toHaveValue("My Footer");
+    expect(screen.getByLabelText("Nombre de la institución")).toHaveValue("My Org");
   });
 
   it("updates form when initialValues change", () => {
@@ -47,7 +47,7 @@ describe("PlatformSettingsForm", () => {
       />,
     );
 
-    expect(screen.getByLabelText("产品标题")).toHaveValue("V1");
+    expect(screen.getByLabelText("Título del producto")).toHaveValue("V1");
 
     rerender(
       <PlatformSettingsForm
@@ -56,7 +56,7 @@ describe("PlatformSettingsForm", () => {
       />,
     );
 
-    expect(screen.getByLabelText("产品标题")).toHaveValue("V2");
+    expect(screen.getByLabelText("Título del producto")).toHaveValue("V2");
   });
 
   it("submits the edited fields through onSave", async () => {
@@ -64,9 +64,9 @@ describe("PlatformSettingsForm", () => {
     const onSave = vi.fn();
     render(<PlatformSettingsForm onSave={onSave} />);
 
-    await user.type(screen.getByLabelText("产品标题"), "新平台");
-    await user.type(screen.getByLabelText("产品副标题"), "新副标题");
-    await user.click(screen.getByRole("button", { name: "保存设置" }));
+    await user.type(screen.getByLabelText("Título del producto"), "新平台");
+    await user.type(screen.getByLabelText("Subtítulo del producto"), "新副标题");
+    await user.click(screen.getByRole("button", { name: "Guardar configuración" }));
 
     expect(onSave).toHaveBeenCalledTimes(1);
     // react-hook-form hands the values object (plus the submit event) to

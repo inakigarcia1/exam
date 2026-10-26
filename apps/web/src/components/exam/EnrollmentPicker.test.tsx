@@ -22,7 +22,7 @@ describe("EnrollmentPicker", () => {
       />,
     );
 
-    expect(screen.getByPlaceholderText("搜索考生")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Buscar alumnos")).toBeInTheDocument();
   });
 
   it("shows all candidates by default", () => {
@@ -52,7 +52,7 @@ describe("EnrollmentPicker", () => {
       />,
     );
 
-    await userEvent.type(screen.getByPlaceholderText("搜索考生"), "张");
+    await userEvent.type(screen.getByPlaceholderText("Buscar alumnos"), "张");
 
     expect(screen.getByText("张三")).toBeInTheDocument();
     expect(screen.getByText("张伟")).toBeInTheDocument();
@@ -71,14 +71,14 @@ describe("EnrollmentPicker", () => {
       />,
     );
 
-    await userEvent.type(screen.getByPlaceholderText("搜索考生"), "zhang");
+    await userEvent.type(screen.getByPlaceholderText("Buscar alumnos"), "zhang");
 
     expect(screen.getByText("张三")).toBeInTheDocument();
     expect(screen.getByText("张伟")).toBeInTheDocument();
     expect(screen.queryByText("李四")).not.toBeInTheDocument();
   });
 
-  it("shows '已添加' label for enrolled candidates", () => {
+  it("shows 'Agregado' label for enrolled candidates", () => {
     render(
       <EnrollmentPicker
         candidates={candidates}
@@ -88,7 +88,7 @@ describe("EnrollmentPicker", () => {
       />,
     );
 
-    const enrolledLabels = screen.getAllByText("已添加");
+    const enrolledLabels = screen.getAllByText("Agregado");
     expect(enrolledLabels).toHaveLength(2);
   });
 
@@ -119,7 +119,7 @@ describe("EnrollmentPicker", () => {
       />,
     );
 
-    expect(screen.getByRole("checkbox", { name: /全选/ })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: /Seleccionar todo/ })).toBeInTheDocument();
   });
 
   it("select all toggles non-enrolled visible candidates", async () => {
@@ -133,7 +133,7 @@ describe("EnrollmentPicker", () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole("checkbox", { name: /全选/ }));
+    await userEvent.click(screen.getByRole("checkbox", { name: /Seleccionar todo/ }));
 
     expect(onChange).toHaveBeenCalledWith(new Set(["c1", "c3", "c4", "c5"]));
   });
@@ -165,8 +165,8 @@ describe("EnrollmentPicker", () => {
       />,
     );
 
-    await userEvent.type(screen.getByPlaceholderText("搜索考生"), "张");
-    await userEvent.click(screen.getByRole("checkbox", { name: /全选/ }));
+    await userEvent.type(screen.getByPlaceholderText("Buscar alumnos"), "张");
+    await userEvent.click(screen.getByRole("checkbox", { name: /Seleccionar todo/ }));
 
     expect(onChange).toHaveBeenCalledWith(new Set(["c1", "c3"]));
   });
@@ -184,7 +184,7 @@ describe("EnrollmentPicker", () => {
     );
 
     expect(
-      screen.getByRole("button", { name: /加载更多/ }),
+      screen.getByRole("button", { name: /Cargar más/ }),
     ).toBeInTheDocument();
   });
 
@@ -199,7 +199,7 @@ describe("EnrollmentPicker", () => {
     );
 
     expect(
-      screen.queryByRole("button", { name: /加载更多/ }),
+      screen.queryByRole("button", { name: /Cargar más/ }),
     ).not.toBeInTheDocument();
   });
 
@@ -216,7 +216,7 @@ describe("EnrollmentPicker", () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: /加载更多/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Cargar más/ }));
 
     expect(onLoadMore).toHaveBeenCalledOnce();
   });
@@ -234,6 +234,6 @@ describe("EnrollmentPicker", () => {
       />,
     );
 
-    expect(screen.getByText("加载中...")).toBeInTheDocument();
+    expect(screen.getByText("Cargando...")).toBeInTheDocument();
   });
 });

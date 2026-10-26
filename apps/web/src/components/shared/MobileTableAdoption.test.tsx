@@ -165,7 +165,7 @@ describe("mobile card representation structural guards (issue 457)", () => {
         {
           id: "username",
           meta: { role: "primary-text" },
-          header: "用户名",
+          header: "Usuario",
           cell: () => "u",
         },
         {
@@ -198,19 +198,19 @@ describe("mobile card representation structural guards (issue 457)", () => {
       {
         id: "candidateName",
         meta: { role: "primary-text" },
-        header: "考生",
+        header: "Alumno",
         cell: () => "n",
       },
       {
         id: "candidateInfo",
         meta: { role: "secondary-text", priority: "low" },
-        header: "考生信息",
+        header: "Datos del alumno",
         cell: () => "i",
       },
       {
         id: "submittedAt",
         meta: { role: "date" },
-        header: "提交时间",
+        header: "Fecha de entrega",
         cell: () => "d",
       },
     ] as DataViewColumnDef<{ candidateName: string }>[]);

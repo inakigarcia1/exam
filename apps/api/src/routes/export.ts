@@ -99,25 +99,25 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
 
       const headers = [
         // i18n-copy-allow: data-format — CSV export header/value data contract
-        "考生姓名",
+        "Nombre del alumno",
         ...fieldPairs.map((fp) => fp.label),
         // i18n-copy-allow: data-format — CSV export header/value data contract
-        "成绩",
+        "Calificaciones",
         // i18n-copy-allow: data-format — CSV export header/value data contract
         "及格状态",
         // i18n-copy-allow: data-format — CSV export header/value data contract
-        "尝试次数",
+        "Intentos",
         // i18n-copy-allow: data-format — CSV export header/value data contract
-        "提交时间",
+        "Fecha de entrega",
       ];
 
       // i18n-copy-allow: data-format — CSV export header/value data contract
-      const passedLabel = "及格";
+      const passedLabel = "Aprobado";
       // i18n-copy-allow: data-format — CSV export header/value data contract
-      const notPassedLabel = "不及格";
+      const notPassedLabel = "No aprobado";
 
       const rows = results.map((r) => ({
-        考生姓名: r.candidateUser.name,
+        Nombre del alumno: r.candidateUser.name,
         ...fieldPairs.reduce(
           (acc, fp) => {
             acc[fp.label] = r.candidateProfile.fields[fp.key] ?? "";
@@ -125,10 +125,10 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
           },
           {} as Record<string, unknown>,
         ),
-        成绩: r.attempt.score,
+        Calificaciones: r.attempt.score,
         及格状态: r.attempt.passed ? passedLabel : notPassedLabel,
-        尝试次数: r.attempt.attemptNo,
-        提交时间: r.attempt.submittedAt?.toISOString() ?? "",
+        Intentos: r.attempt.attemptNo,
+        Fecha de entrega: r.attempt.submittedAt?.toISOString() ?? "",
       }));
 
       const csv = "\uFEFF" + generateCSV(headers, rows);

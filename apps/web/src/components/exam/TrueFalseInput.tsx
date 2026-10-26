@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 
 /**
  * Radio-button input for true/false (judgment) questions,
- * offering "正确" (true) and "错误" (false) options.
+ * offering "Correcto" (true) and "Incorrecto" (false) options.
  */
 export function TrueFalseInput({
   value,

@@ -117,13 +117,13 @@ describe("OperationsPage", () => {
     await renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText("运维总览")).toBeInTheDocument();
+      expect(screen.getByText("Resumen de operaciones")).toBeInTheDocument();
     });
     // Health stats (StatsCard renders value + suffix separately)
     expect(screen.getByText("10")).toBeInTheDocument();
     expect(screen.getByText("5")).toBeInTheDocument();
     // Diagnostics
-    expect(screen.getByText("运行状态")).toBeInTheDocument();
+    expect(screen.getByText("Estado de ejecución")).toBeInTheDocument();
     // No dangling fetch to the removed backup-evidence endpoints.
     expect(getMock.mock.calls.map((c) => c[0])).toEqual([
       "/api/system/health",
@@ -139,7 +139,7 @@ describe("OperationsPage", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Redis")).toBeInTheDocument();
-      expect(screen.getByText("邮件 Worker")).toBeInTheDocument();
+      expect(screen.getByText("Worker de correo")).toBeInTheDocument();
     });
     expect(screen.queryByText(/完整性|异常/)).not.toBeInTheDocument();
   });
@@ -149,7 +149,7 @@ describe("OperationsPage", () => {
     await renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText("运维总览")).toBeInTheDocument();
+      expect(screen.getByText("Resumen de operaciones")).toBeInTheDocument();
     });
     const body = document.body.textContent ?? "";
     expect(body).not.toMatch(/\/var\/|postgresql:\/\/|password|secret/i);
@@ -160,7 +160,7 @@ describe("OperationsPage", () => {
     await renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText("运维数据加载失败")).toBeInTheDocument();
+      expect(screen.getByText("No se pudieron cargar los datos de operaciones")).toBeInTheDocument();
     });
   });
 });

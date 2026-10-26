@@ -5,7 +5,7 @@ import { DefinitionList } from "./DefinitionList";
 describe("DefinitionList", () => {
   it("renders real definition semantics: dl > div > dt + dd", () => {
     const { container } = render(
-      <DefinitionList items={[{ label: "考试名称", value: "期中考试" }]} />,
+      <DefinitionList items={[{ label: "Nombre del examen", value: "期中考试" }]} />,
     );
     const dl = container.querySelector("dl");
     expect(dl).not.toBeNull();
@@ -13,7 +13,7 @@ describe("DefinitionList", () => {
     expect(row?.tagName).toBe("DIV");
     expect(row?.querySelector("dt")?.tagName).toBe("DT");
     expect(row?.querySelector("dd")?.tagName).toBe("DD");
-    expect(screen.getByText("考试名称").tagName).toBe("DT");
+    expect(screen.getByText("Nombre del examen").tagName).toBe("DT");
     expect(screen.getByText("期中考试").tagName).toBe("DD");
   });
 
@@ -21,9 +21,9 @@ describe("DefinitionList", () => {
     const { container } = render(
       <DefinitionList
         items={[
-          { label: "开始时间", value: "2026-09-11 08:00" },
-          { label: "时长", value: "60 分钟" },
-          { label: "状态", value: "已发布" },
+          { label: "Inicio", value: "2026-09-11 08:00" },
+          { label: "Duración", value: "60 分钟" },
+          { label: "Estado", value: "Publicado" },
         ]}
       />,
     );
@@ -32,7 +32,7 @@ describe("DefinitionList", () => {
     const labels = Array.from(rows).map(
       (row) => row.querySelector("dt")?.textContent,
     );
-    expect(labels).toEqual(["开始时间", "时长", "状态"]);
+    expect(labels).toEqual(["Inicio", "Duración", "Estado"]);
   });
 
   it("renders ReactNode values without flattening them", () => {
@@ -40,19 +40,19 @@ describe("DefinitionList", () => {
       <DefinitionList
         items={[
           {
-            label: "状态",
-            value: <span data-testid="item-status">进行中</span>,
+            label: "Estado",
+            value: <span data-testid="item-status">En curso</span>,
           },
         ]}
       />,
     );
     expect(screen.getByTestId("item-status").tagName).toBe("SPAN");
-    expect(screen.getByTestId("item-status")).toHaveTextContent("进行中");
+    expect(screen.getByTestId("item-status")).toHaveTextContent("En curso");
   });
 
   it("keeps the label/value typography contract owned by the component", () => {
     const { container } = render(
-      <DefinitionList items={[{ label: "标签", value: "值" }]} />,
+      <DefinitionList items={[{ label: "Etiqueta", value: "值" }]} />,
     );
     expect(container.querySelector("dt")).toHaveClass("type-metadata");
     expect(container.querySelector("dd")).toHaveClass("type-body");
@@ -74,7 +74,7 @@ describe("DefinitionList", () => {
 
   it("keeps rows shrinkable so containment works inside grids", () => {
     const { container } = render(
-      <DefinitionList items={[{ label: "标签", value: "值" }]} />,
+      <DefinitionList items={[{ label: "Etiqueta", value: "值" }]} />,
     );
     expect(container.querySelector("dl")?.firstElementChild).toHaveClass(
       "min-w-0",
@@ -85,7 +85,7 @@ describe("DefinitionList", () => {
     const { container } = render(
       <DefinitionList
         className="grid gap-x-6 gap-y-2 sm:grid-cols-2"
-        items={[{ label: "标签", value: "值" }]}
+        items={[{ label: "Etiqueta", value: "值" }]}
       />,
     );
     const dl = container.querySelector("dl");
@@ -98,7 +98,7 @@ describe("DefinitionList", () => {
 
   it("imposes no layout opinion when the page passes none", () => {
     const { container } = render(
-      <DefinitionList items={[{ label: "标签", value: "值" }]} />,
+      <DefinitionList items={[{ label: "Etiqueta", value: "值" }]} />,
     );
     expect(container.querySelector("dl")?.className).toBe("");
   });
@@ -106,7 +106,7 @@ describe("DefinitionList", () => {
   it("forwards page-owned structural classes to the row", () => {
     const { container } = render(
       <DefinitionList
-        items={[{ label: "标签", value: "值", className: "sm:col-span-2" }]}
+        items={[{ label: "Etiqueta", value: "值", className: "sm:col-span-2" }]}
       />,
     );
     expect(container.querySelector("dl")?.firstElementChild).toHaveClass(

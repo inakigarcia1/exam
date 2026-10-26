@@ -4,15 +4,15 @@ import { InlineErrorBanner } from "./InlineErrorBanner";
 
 describe("InlineErrorBanner", () => {
   it("renders the message as a div with role=alert", () => {
-    render(<InlineErrorBanner>保存失败</InlineErrorBanner>);
+    render(<InlineErrorBanner>No se guardó</InlineErrorBanner>);
     const banner = screen.getByRole("alert");
     expect(banner).toBeInTheDocument();
-    expect(banner).toHaveTextContent("保存失败");
+    expect(banner).toHaveTextContent("No se guardó");
     expect(banner.tagName).toBe("DIV");
   });
 
   it("applies the canonical destructive banner class contract", () => {
-    render(<InlineErrorBanner>失败</InlineErrorBanner>);
+    render(<InlineErrorBanner>Fallido</InlineErrorBanner>);
     const banner = screen.getByRole("alert");
     // Canonical authority-owned recipe: attention surface (radius) + border
     // geometry + the semantic feedback tone layer owning the destructive

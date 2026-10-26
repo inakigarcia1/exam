@@ -157,7 +157,7 @@ const MATH_NODE_NAMES = new Set(["inlineMath", "blockMath"]);
 export interface FormulaActivation {
   pos: number;
   latex: string;
-  /** True for blockMath (独立显示), false for inlineMath (行内). */
+  /** True for blockMath (En bloque), false for inlineMath (En línea). */
   display: boolean;
   /** Node size — the range the atom occupies (in-place conversion target). */
   nodeSize: number;

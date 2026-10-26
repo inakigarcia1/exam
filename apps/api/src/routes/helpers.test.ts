@@ -14,7 +14,7 @@ describe("formatZodError", () => {
     const body = formatZodError("req-1", parsed.error);
 
     expect(body.error.code).toBe("VALIDATION_ERROR");
-    expect(body.error.message).toBe("请求参数无效");
+    expect(body.error.message).toBe("Los datos no son válidos");
     expect(body.error.requestId).toBe("req-1");
     expect(body.error.details).toMatchObject({
       fields: [{ field: "page", code: "TOO_SMALL" }],

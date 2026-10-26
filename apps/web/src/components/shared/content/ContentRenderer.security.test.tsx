@@ -203,7 +203,7 @@ describe("ContentRenderer — hostile HTML-looking strings stay inert text", () 
 });
 
 describe("ContentDocumentRenderer — defense-in-depth fail-safes (boundary bypassed)", () => {
-  const UNSUPPORTED = "此内容包含当前版本不支持的元素";
+  const UNSUPPORTED = "Este contenido incluye elementos que esta versión no admite";
 
   it("replaces an unknown block node with the controlled placeholder", () => {
     const hostile = doc([

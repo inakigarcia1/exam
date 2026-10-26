@@ -44,10 +44,10 @@ describe("type guards and getters", () => {
 
   it("getTypeLabel resolves the localized label via the provided t", () => {
     const t = (key: string) => i18n.t(key as never);
-    expect(getTypeLabel("single_choice", t)).toBe("单选");
-    expect(getTypeLabel("multiple_choice", t)).toBe("多选");
-    expect(getTypeLabel("fill_blank", t)).toBe("填空");
-    expect(getTypeLabel("true_false", t)).toBe("判断");
+    expect(getTypeLabel("single_choice", t)).toBe("Opción única");
+    expect(getTypeLabel("multiple_choice", t)).toBe("Opción múltiple");
+    expect(getTypeLabel("fill_blank", t)).toBe("Completar");
+    expect(getTypeLabel("true_false", t)).toBe("Verdadero o falso");
   });
 
   it("getTypeLabel falls back to the raw i18n key when no t is provided", () => {

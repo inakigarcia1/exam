@@ -88,11 +88,11 @@ describe("Button", () => {
     });
     render(
       <form onSubmit={onSubmit}>
-        <Button type="submit">提交</Button>
+        <Button type="submit">Enviar</Button>
       </form>,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "提交" }));
+    await userEvent.click(screen.getByRole("button", { name: "Enviar" }));
 
     expect(onSubmit).toHaveBeenCalledTimes(1);
   });

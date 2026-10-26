@@ -61,7 +61,7 @@ export const CandidateExamSummarySchema = z.object({
   // personal duration.
   windowEndAt: z.string().datetime().nullable(),
   durationMinutes: z.number().int().positive().nullable(),
-  // Canonical timing mode — UI must gate "不限时"/countdown copy on this
+  // Canonical timing mode — UI must gate "Sin límite de tiempo"/countdown copy on this
   // field, never on a null duration/windowEnd.
   timingMode: TimingModeEnum,
   totalQuestions: z.number().int().min(0),

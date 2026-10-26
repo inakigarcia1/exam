@@ -12,15 +12,15 @@ function LocationProbe() {
 }
 
 const copy: AdminTodoCardCopy = {
-  label: "待人工评分",
-  unit: "份答卷",
-  zeroCaption: "暂无待评分答卷",
-  unknownValue: "无法获取",
-  staleCaption: "数据可能已过期",
-  refreshingCaption: "刷新中…",
-  retryLabel: "重试",
-  refreshLabel: "刷新",
-  cta: "前往评分队列",
+  label: "Calificación manual pendiente",
+  unit: "entregas",
+  zeroCaption: "No hay entregas pendientes de calificar",
+  unknownValue: "No se pudo obtener",
+  staleCaption: "Los datos pueden estar desactualizados",
+  refreshingCaption: "Actualizando…",
+  retryLabel: "Reintentar",
+  refreshLabel: "Actualizar",
+  cta: "Ir a la cola de calificación",
 };
 
 function renderCard(state: AdminTodoState, onRefresh = vi.fn()) {
@@ -79,16 +79,16 @@ describe("AdminTodoCard", () => {
     const card = getCard();
     expect(card).toHaveAttribute("data-state", "ready");
     expect(within(card).getByText("0")).toBeInTheDocument();
-    expect(within(card).getByText("暂无待评分答卷")).toBeInTheDocument();
-    expect(within(card).queryByText("无法获取")).not.toBeInTheDocument();
+    expect(within(card).getByText("No hay entregas pendientes de calificar")).toBeInTheDocument();
+    expect(within(card).queryByText("No se pudo obtener")).not.toBeInTheDocument();
   });
 
   it("verified nonzero renders the exact number with its unit", () => {
     renderCard(ready(25));
     const card = getCard();
     expect(within(card).getByText("25")).toBeInTheDocument();
-    expect(within(card).getByText("份答卷")).toBeInTheDocument();
-    expect(within(card).queryByText("暂无待评分答卷")).not.toBeInTheDocument();
+    expect(within(card).getByText("entregas")).toBeInTheDocument();
+    expect(within(card).queryByText("No hay entregas pendientes de calificar")).not.toBeInTheDocument();
   });
 
   it("bounded count renders the >min lower bound, never min as an exact total", () => {
@@ -99,15 +99,15 @@ describe("AdminTodoCard", () => {
     });
     const card = getCard();
     expect(within(card).getByText(">20")).toBeInTheDocument();
-    expect(within(card).getByText("份答卷")).toBeInTheDocument();
+    expect(within(card).getByText("entregas")).toBeInTheDocument();
   });
 
-  it("unknown renders 无法获取 plus a retry Button and never a zero (B05)", () => {
+  it("unknown renders No se pudo obtener plus a retry Button and never a zero (B05)", () => {
     renderCard({ kind: "unknown" });
     const card = getCard();
     expect(card).toHaveAttribute("data-state", "unknown");
-    expect(within(card).getByText("无法获取")).toBeInTheDocument();
-    expect(within(card).getByText("重试")).toBeInTheDocument();
+    expect(within(card).getByText("No se pudo obtener")).toBeInTheDocument();
+    expect(within(card).getByText("Reintentar")).toBeInTheDocument();
     // The failure state must not read as an empty workset.
     expect(within(card).queryByText("0")).not.toBeInTheDocument();
     expect(
@@ -124,8 +124,8 @@ describe("AdminTodoCard", () => {
     const card = getCard();
     expect(card).toHaveAttribute("data-state", "stale");
     expect(within(card).getByText("5")).toBeInTheDocument();
-    expect(within(card).getByText("数据可能已过期")).toBeInTheDocument();
-    expect(within(card).getByText("刷新")).toBeInTheDocument();
+    expect(within(card).getByText("Los datos pueden estar desactualizados")).toBeInTheDocument();
+    expect(within(card).getByText("Actualizar")).toBeInTheDocument();
   });
 
   it("refreshing over a value shows the refresh caption", () => {
@@ -136,12 +136,12 @@ describe("AdminTodoCard", () => {
     });
     const card = getCard();
     expect(within(card).getByText("7")).toBeInTheDocument();
-    expect(within(card).getByText("刷新中…")).toBeInTheDocument();
+    expect(within(card).getByText("Actualizando…")).toBeInTheDocument();
   });
 
   it("the retry Button and the navigation Link are siblings — no interactive nesting", () => {
     renderCard({ kind: "unknown" });
-    const link = screen.getByRole("link", { name: /待人工评分/ });
+    const link = screen.getByRole("link", { name: /Calificación manual pendiente/ });
     expect(within(link).queryByRole("button")).not.toBeInTheDocument();
     // Both actions live in the same card.
     const card = getCard();
@@ -153,7 +153,7 @@ describe("AdminTodoCard", () => {
   it("the Link navigates natively to the queue route", async () => {
     renderCard(ready(3));
     const user = userEvent.setup();
-    await user.click(screen.getByRole("link", { name: /待人工评分/ }));
+    await user.click(screen.getByRole("link", { name: /Calificación manual pendiente/ }));
     await waitFor(() =>
       expect(screen.getByTestId("location")).toHaveTextContent(
         "/admin/grading-queue",
@@ -164,7 +164,7 @@ describe("AdminTodoCard", () => {
   it("the retry Button fires onRefresh without navigating", async () => {
     const { refresh } = renderCard({ kind: "unknown" });
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "重试" }));
+    await user.click(screen.getByRole("button", { name: "Reintentar" }));
     expect(refresh).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId("location")).toHaveTextContent(
       "/admin/dashboard",

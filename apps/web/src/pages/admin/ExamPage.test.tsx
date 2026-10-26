@@ -108,23 +108,23 @@ describe("ExamPage", () => {
     renderPage("Teacher");
 
     expect(
-      await screen.findByRole("button", { name: "创建考试" }),
+      await screen.findByRole("button", { name: "Crear examen" }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "删除考试" }),
+      screen.queryByRole("button", { name: "Eliminar examen" }),
     ).not.toBeInTheDocument();
   });
 
   it("shows delete only as enabled for draft exams", async () => {
     renderPage();
 
-    expect(await screen.findByText("考试管理")).toBeInTheDocument();
+    expect(await screen.findByText("Gestión de exámenes")).toBeInTheDocument();
 
     // Row actions render twice by design (desktop table + mobile cards);
     // scope to the desktop table representation.
     const table = await screen.findByRole("table");
     const deleteButtons = await within(table).findAllByRole("button", {
-      name: "删除考试",
+      name: "Eliminar examen",
     });
     expect(deleteButtons).toHaveLength(2);
     expect(deleteButtons[0]).toBeEnabled();
@@ -134,7 +134,7 @@ describe("ExamPage", () => {
   it("renders through the shared list-page template", async () => {
     renderPage();
 
-    const heading = await screen.findByRole("heading", { name: "考试列表" });
+    const heading = await screen.findByRole("heading", { name: "Lista de exámenes" });
     const shell = heading.closest('[data-slot="admin-table-shell"]');
 
     expect(shell).toBeInTheDocument();
@@ -144,7 +144,7 @@ describe("ExamPage", () => {
     expect(shell).not.toHaveTextContent("共 2 场考试");
     // The status filter lives in the shell's toolbar band.
     expect(
-      screen.getByRole("toolbar", { name: "考试列表工具栏" }),
+      screen.getByRole("toolbar", { name: "Barra de la lista de exámenes" }),
     ).toBeInTheDocument();
   });
 
@@ -157,7 +157,7 @@ describe("ExamPage", () => {
     const duration = within(table).getAllByText("60分钟");
     const score = within(table).getAllByText("60/100");
     const deleteButtons = within(table).getAllByRole("button", {
-      name: "删除考试",
+      name: "Eliminar examen",
     });
 
     expect(duration[0]?.closest("td")).toHaveAttribute(
@@ -251,7 +251,7 @@ describe("ExamPage #785 pagination and status filter (BDD L2)", () => {
     expect(screen.getByText(/共 21 条/)).toBeInTheDocument();
     expect(apiGet).toHaveBeenCalledWith("/api/exams?page=1&pageSize=20");
 
-    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await user.click(screen.getByRole("button", { name: "Página siguiente" }));
     await waitFor(() => {
       expect(apiGet).toHaveBeenCalledWith("/api/exams?page=2&pageSize=20");
     });
@@ -297,13 +297,13 @@ describe("ExamPage #785 pagination and status filter (BDD L2)", () => {
     renderPage();
     await screen.findByRole("table");
     // Navigate to page 2 first: changing the filter must reset to page 1.
-    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await user.click(screen.getByRole("button", { name: "Página siguiente" }));
     await waitFor(() => {
       expect(apiGet).toHaveBeenCalledWith("/api/exams?page=2&pageSize=20");
     });
 
-    await user.click(screen.getByRole("combobox", { name: "按状态筛选" }));
-    await user.click(await screen.findByRole("option", { name: "已发布" }));
+    await user.click(screen.getByRole("combobox", { name: "Filtrar por estado" }));
+    await user.click(await screen.findByRole("option", { name: "Publicado" }));
 
     await waitFor(() => {
       expect(apiGet).toHaveBeenCalledWith(
@@ -344,7 +344,7 @@ describe("ExamPage #785 pagination and status filter (BDD L2)", () => {
 
     renderPage();
     await screen.findByRole("table");
-    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await user.click(screen.getByRole("button", { name: "Página siguiente" }));
     // Rows render twice by design (desktop + mobile); scope to the table.
     // findByText (not getByText) is the sync point for the page-2 render.
     expect(
@@ -353,10 +353,10 @@ describe("ExamPage #785 pagination and status filter (BDD L2)", () => {
 
     await user.click(
       within(await screen.findByRole("table")).getByRole("button", {
-        name: "删除考试",
+        name: "Eliminar examen",
       }),
     );
-    await user.click(await screen.findByRole("button", { name: "确认" }));
+    await user.click(await screen.findByRole("button", { name: "Confirmar" }));
 
     await waitFor(() => {
       expect(apiDelete).toHaveBeenCalledWith("/api/exams/e21");
@@ -398,8 +398,8 @@ describe("ExamPage #785 pagination and status filter (BDD L2)", () => {
     expect(await screen.findAllByText("第一页数据")).not.toHaveLength(0);
 
     // Two rapid page flips: page 2 then page 3, both slow.
-    await user.click(screen.getByRole("button", { name: "下一页" }));
-    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await user.click(screen.getByRole("button", { name: "Página siguiente" }));
+    await user.click(screen.getByRole("button", { name: "Página siguiente" }));
     expect(pending).toHaveLength(2);
     const page2Req = pending[0]!;
     const page3Req = pending[1]!;
@@ -471,17 +471,17 @@ describe("ExamPage #785 pagination and status filter (BDD L2)", () => {
 
     renderPage();
     await screen.findByRole("table");
-    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await user.click(screen.getByRole("button", { name: "Página siguiente" }));
     expect(
       await within(await screen.findByRole("table")).findByText("待删除考试"),
     ).toBeInTheDocument();
 
     await user.click(
       within(await screen.findByRole("table")).getByRole("button", {
-        name: "删除考试",
+        name: "Eliminar examen",
       }),
     );
-    await user.click(await screen.findByRole("button", { name: "确认" }));
+    await user.click(await screen.findByRole("button", { name: "Confirmar" }));
     await waitFor(() => {
       expect(apiDelete).toHaveBeenCalledWith("/api/exams/e21");
     });
@@ -492,7 +492,7 @@ describe("ExamPage #785 pagination and status filter (BDD L2)", () => {
 
     // While the recovery is in flight: no fake empty state, no stale
     // deleted row, and no old rows presented as fresh data.
-    expect(screen.queryByText("暂无考试")).not.toBeInTheDocument();
+    expect(screen.queryByText("No hay exámenes")).not.toBeInTheDocument();
     expect(screen.queryByText("待删除考试")).not.toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
 
@@ -545,8 +545,8 @@ describe("ExamPage #785 pagination and status filter (BDD L2)", () => {
     renderPage();
     await within(await screen.findByRole("table")).findByText("草稿考试 1");
 
-    await user.click(screen.getByRole("combobox", { name: "按状态筛选" }));
-    await user.click(await screen.findByRole("option", { name: "已发布" }));
+    await user.click(screen.getByRole("combobox", { name: "Filtrar por estado" }));
+    await user.click(await screen.findByRole("option", { name: "Publicado" }));
 
     // The published query is in flight: the draft rows must not stay on
     // screen as if they were the published query's result, and no fake
@@ -558,7 +558,7 @@ describe("ExamPage #785 pagination and status filter (BDD L2)", () => {
     });
     expect(screen.queryByText("草稿考试 1")).not.toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
-    expect(screen.queryByText("暂无考试")).not.toBeInTheDocument();
+    expect(screen.queryByText("No hay exámenes")).not.toBeInTheDocument();
 
     resolvePublished(undefined);
     expect(

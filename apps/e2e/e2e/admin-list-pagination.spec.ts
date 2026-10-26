@@ -34,7 +34,7 @@ const DESC_KEYWORD = `descword${STAMP}`;
 /** The 21 seeded exams, title → unique. */
 const EXAM_TITLES = Array.from(
   { length: 21 },
-  (_, i) => `BDD785${STAMP} 考试 ${String(i + 1).padStart(2, "0")}`,
+  (_, i) => `BDD785${STAMP} Exámenes ${String(i + 1).padStart(2, "0")}`,
 );
 
 async function seedCandidate(
@@ -72,7 +72,7 @@ async function seedPublishedExam(
   const question = await adminPost(request, token, "/api/questions", {
     courseId,
     type: "true_false",
-    content: `${title} 判断题`,
+    content: `${title} Verdadero o falso`,
     standardAnswer: true,
     score: 10,
   });
@@ -129,7 +129,7 @@ async function walkAllPages(
   const found = new Set<string>();
   for (let pageNumber = 0; pageNumber < maxPages; pageNumber += 1) {
     if (pageNumber > 0) {
-      const next = page.getByRole("button", { name: "下一页" });
+      const next = page.getByRole("button", { name: "Página siguiente" });
       if (await next.isDisabled().catch(() => true)) break;
       const responsePromise = page.waitForResponse((r) =>
         r.url().includes(apiPath),
@@ -153,7 +153,7 @@ async function walkAllPages(
       }
     }
     if (found.size === wanted.length) break;
-    const next = page.getByRole("button", { name: "下一页" });
+    const next = page.getByRole("button", { name: "Página siguiente" });
     if (await next.isDisabled().catch(() => true)) break;
   }
   return found;
@@ -189,10 +189,10 @@ test.describe
       await seedCandidate(
         request,
         adminToken,
-        `考生${STAMP}x${String(i + 1).padStart(2, "0")}`,
+        `Alumno${STAMP}x${String(i + 1).padStart(2, "0")}`,
       );
     }
-    await seedCandidate(request, adminToken, `考生${STAMP} ${KEYWORD}`);
+    await seedCandidate(request, adminToken, `Alumno${STAMP} ${KEYWORD}`);
 
     // 21 published exams push both /admin/exams and the results overview
     // past the first page (B01/B04).
@@ -205,7 +205,7 @@ test.describe
     const descCourse = await adminPost(request, adminToken, "/api/courses", {
       name: `普通课程${STAMP}`,
       code: `ORD-${STAMP}`,
-      description: `课程简介 ${DESC_KEYWORD} 唯一`,
+      description: `课程简介 ${DESC_KEYWORD} Único`,
     });
     expect(descCourse.ok(), await descCourse.text()).toBe(true);
   });
@@ -219,7 +219,7 @@ test.describe
 
     // The collection is beyond one page: real pagination controls show.
     await expect(page.getByText(/共 \d+ 条/)).toBeVisible();
-    const next = page.getByRole("button", { name: "下一页" });
+    const next = page.getByRole("button", { name: "Página siguiente" });
     await expect(next).toBeEnabled();
 
     // Paging forward renders the second page's range line (B01). No
@@ -235,7 +235,7 @@ test.describe
 
     // Server-side search finds the keyword candidate from wherever the
     // browser currently is — no need to page to the end first (B02).
-    const searchBox = page.getByLabel("搜索考生");
+    const searchBox = page.getByLabel("Buscar alumnos");
     await searchBox.fill(KEYWORD);
     const searchResponse = page.waitForResponse((r) =>
       r.url().includes(`search=${KEYWORD}`),
@@ -245,16 +245,16 @@ test.describe
 
     const table = page.getByRole("table");
     await expect(
-      table.getByText(`考生${STAMP} ${KEYWORD}`, { exact: true }),
+      table.getByText(`Alumno${STAMP} ${KEYWORD}`, { exact: true }),
     ).toBeVisible();
     await expect(page.getByText(/共 1 条/)).toBeVisible();
 
     // Clearing restores the full-set pagination.
-    await page.getByRole("button", { name: "清除考生搜索" }).click();
+    await page.getByRole("button", { name: "Borrar búsqueda de alumnos" }).click();
     await expect
       .poll(() => page.getByText(/共 \d+ 条/).textContent())
       .not.toContain("共 1 条");
-    await expect(page.getByRole("button", { name: "下一页" })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Página siguiente" })).toBeEnabled();
   });
 
   test("B01: exams page — all 21 seeded exams are reachable across pages", async ({
@@ -264,7 +264,7 @@ test.describe
     await loginAsAdmin(page);
     await page.goto("/admin/exams");
     await expect(page.getByRole("table")).toBeVisible();
-    await expect(page.getByRole("button", { name: "下一页" })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Página siguiente" })).toBeEnabled();
 
     const expectedPages = await fetchTotalPages(
       request,
@@ -290,7 +290,7 @@ test.describe
     await page.goto("/admin/courses");
     await expect(page.getByRole("table")).toBeVisible();
 
-    const searchBox = page.getByLabel("搜索课程");
+    const searchBox = page.getByLabel("Buscar comisiones");
     await searchBox.fill(DESC_KEYWORD);
     const searchResponse = page.waitForResponse((r) =>
       r.url().includes(`search=${DESC_KEYWORD}`),
@@ -324,7 +324,7 @@ test.describe
     await overviewRequest;
 
     // 21 newly published exams ⇒ the filtered set spans pages.
-    await expect(page.getByRole("button", { name: "下一页" })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Página siguiente" })).toBeEnabled();
 
     const expectedPages = await fetchTotalPages(
       request,
@@ -349,8 +349,8 @@ test.describe
       .getByRole("row")
       .filter({ hasText: EXAM_TITLES[EXAM_TITLES.length - 1]! })
       .first();
-    await expect(row.getByText("已发布")).toBeVisible();
-    const viewScores = row.getByRole("button", { name: "查看成绩" });
+    await expect(row.getByText("Publicado")).toBeVisible();
+    const viewScores = row.getByRole("button", { name: "Ver calificación" });
     await expect(viewScores).toBeDisabled();
   });
 });

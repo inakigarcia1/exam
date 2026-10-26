@@ -1,7 +1,7 @@
 import i18n from "@/i18n";
 import { isErrorCode, type ErrorCode } from "@exam/contracts";
 import { ApiError } from "./api";
-import type zhCN from "@/i18n/locales/zh-CN";
+import type es from "@/i18n/locales/es";
 
 /**
  * i18n key for the generic "operation failed" fallback used across the API
@@ -25,7 +25,7 @@ export type ApiErrorTranslateFn = typeof i18n.t;
  * registry code. Codes added to the server registry later resolve through the
  * unknown-code fallback chain until mapped here — forward compatible by design.
  */
-const ERROR_CODE_KEYS: Record<ErrorCode, keyof typeof zhCN.errors.codes> = {
+const ERROR_CODE_KEYS: Record<ErrorCode, keyof typeof es.errors.codes> = {
   AUTH_REQUIRED: "authRequired",
   AUTH_INVALID_CREDENTIALS: "authInvalidCredentials",
   PERMISSION_DENIED: "permissionDenied",
@@ -87,7 +87,7 @@ const ERROR_CODE_KEYS: Record<ErrorCode, keyof typeof zhCN.errors.codes> = {
  * unmapped ones) fall through to the code-level presentation (D0.10).
  */
 const ERROR_REASON_KEYS: Partial<
-  Record<ErrorCode, Record<string, keyof typeof zhCN.errors.reasons>>
+  Record<ErrorCode, Record<string, keyof typeof es.errors.reasons>>
 > = {
   RESOURCE_CONFLICT: {
     COURSE_CODE_EXISTS: "courseCodeExists",

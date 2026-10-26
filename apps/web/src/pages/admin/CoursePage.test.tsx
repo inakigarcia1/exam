@@ -145,22 +145,22 @@ describe("CoursePage", () => {
   it("opens create dialog", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "新增课程" }));
+    await user.click(await screen.findByRole("button", { name: "Nueva comisión" }));
     const dialog = screen.getByRole("dialog");
     expect(dialog).toBeInTheDocument();
-    expect(within(dialog).getByLabelText(/课程名称/)).toHaveValue("");
-    expect(within(dialog).getByLabelText(/课程代码/)).toHaveValue("");
+    expect(within(dialog).getByLabelText(/Nombre/)).toHaveValue("");
+    expect(within(dialog).getByLabelText(/Código/)).toHaveValue("");
   });
 
   it("exposes required state and hides the visual asterisk from AT", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "新增课程" }));
+    await user.click(await screen.findByRole("button", { name: "Nueva comisión" }));
     const dialog = screen.getByRole("dialog");
-    expect(within(dialog).getByLabelText(/课程名称/)).toBeRequired();
-    expect(within(dialog).getByLabelText(/课程代码/)).toBeRequired();
-    const nameLabel = within(dialog).getByText("课程名称").closest("label")!;
-    const codeLabel = within(dialog).getByText("课程代码").closest("label")!;
+    expect(within(dialog).getByLabelText(/Nombre/)).toBeRequired();
+    expect(within(dialog).getByLabelText(/Código/)).toBeRequired();
+    const nameLabel = within(dialog).getByText("Nombre").closest("label")!;
+    const codeLabel = within(dialog).getByText("Código").closest("label")!;
     expect(within(nameLabel).getByText("*")).toHaveAttribute(
       "aria-hidden",
       "true",
@@ -174,20 +174,20 @@ describe("CoursePage", () => {
   it("shows validation errors for empty fields", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "新增课程" }));
-    await user.click(screen.getByRole("button", { name: "保存" }));
-    expect(screen.getByText("请输入课程名称")).toBeInTheDocument();
-    expect(screen.getByText("请输入课程代码")).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Nueva comisión" }));
+    await user.click(screen.getByRole("button", { name: "Guardar" }));
+    expect(screen.getByText("Ingresa el nombre de la comisión")).toBeInTheDocument();
+    expect(screen.getByText("Ingresa el código de la comisión")).toBeInTheDocument();
   });
 
   it("creates a new course", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "新增课程" }));
-    await user.type(screen.getByLabelText(/课程名称/), "物理");
-    await user.type(screen.getByLabelText(/课程代码/), "PHY101");
-    await user.type(screen.getByLabelText("描述"), "大学物理");
-    await user.click(screen.getByRole("button", { name: "保存" }));
+    await user.click(await screen.findByRole("button", { name: "Nueva comisión" }));
+    await user.type(screen.getByLabelText(/Nombre/), "物理");
+    await user.type(screen.getByLabelText(/Código/), "PHY101");
+    await user.type(screen.getByLabelText("Descripción"), "大学物理");
+    await user.click(screen.getByRole("button", { name: "Guardar" }));
     expect(apiPost).toHaveBeenCalledWith("/api/courses", {
       name: "物理",
       code: "PHY101",
@@ -198,32 +198,32 @@ describe("CoursePage", () => {
   it("clears field error on input change", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "新增课程" }));
-    await user.click(screen.getByRole("button", { name: "保存" }));
-    expect(screen.getByText("请输入课程名称")).toBeInTheDocument();
-    await user.type(screen.getByLabelText(/课程名称/), "物理");
-    expect(screen.queryByText("请输入课程名称")).not.toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Nueva comisión" }));
+    await user.click(screen.getByRole("button", { name: "Guardar" }));
+    expect(screen.getByText("Ingresa el nombre de la comisión")).toBeInTheDocument();
+    await user.type(screen.getByLabelText(/Nombre/), "物理");
+    expect(screen.queryByText("Ingresa el nombre de la comisión")).not.toBeInTheDocument();
   });
 
   it("opens edit dialog with course data", async () => {
     const user = userEvent.setup();
     renderPage();
-    const editButtons = await screen.findAllByLabelText("编辑课程");
+    const editButtons = await screen.findAllByLabelText("Editar comisión");
     await user.click(editButtons[0]!);
-    expect(screen.getByText("编辑课程")).toBeInTheDocument();
-    expect(screen.getByLabelText(/课程名称/)).toHaveValue("数学");
-    expect(screen.getByLabelText(/课程代码/)).toHaveValue("MATH101");
+    expect(screen.getByText("Editar comisión")).toBeInTheDocument();
+    expect(screen.getByLabelText(/Nombre/)).toHaveValue("数学");
+    expect(screen.getByLabelText(/Código/)).toHaveValue("MATH101");
   });
 
   it("saves edited course", async () => {
     const user = userEvent.setup();
     renderPage();
-    const editButtons = await screen.findAllByLabelText("编辑课程");
+    const editButtons = await screen.findAllByLabelText("Editar comisión");
     await user.click(editButtons[0]!);
-    const nameInput = screen.getByLabelText(/课程名称/);
+    const nameInput = screen.getByLabelText(/Nombre/);
     await user.clear(nameInput);
     await user.type(nameInput, "高等数学A");
-    await user.click(screen.getByRole("button", { name: "保存" }));
+    await user.click(screen.getByRole("button", { name: "Guardar" }));
     expect(apiPatch).toHaveBeenCalledWith("/api/courses/c1", {
       name: "高等数学A",
       code: "MATH101",
@@ -234,10 +234,10 @@ describe("CoursePage", () => {
   it("deletes a course after confirmation", async () => {
     const user = userEvent.setup();
     renderPage();
-    const deleteButtons = await screen.findAllByLabelText("删除课程");
+    const deleteButtons = await screen.findAllByLabelText("Eliminar comisión");
     await user.click(deleteButtons[0]!);
     const dialog = await screen.findByRole("alertdialog");
-    const confirmBtn = within(dialog).getByRole("button", { name: "确认" });
+    const confirmBtn = within(dialog).getByRole("button", { name: "Confirmar" });
     await user.click(confirmBtn);
     expect(apiDelete).toHaveBeenCalledWith("/api/courses/c1");
   });
@@ -246,7 +246,7 @@ describe("CoursePage", () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByRole("table");
-    await user.type(screen.getByPlaceholderText("搜索课程名称或代码..."), "数");
+    await user.type(screen.getByPlaceholderText("Buscar por nombre o código..."), "数");
     await waitFor(() => {
       const [lastUrl] = apiGet.mock.lastCall!;
       expect(
@@ -269,7 +269,7 @@ describe("CoursePage", () => {
     renderPage();
     await screen.findByRole("table");
     await user.type(
-      screen.getByPlaceholderText("搜索课程名称或代码..."),
+      screen.getByPlaceholderText("Buscar por nombre o código..."),
       "ENG",
     );
     await waitFor(() => {
@@ -292,14 +292,14 @@ describe("CoursePage", () => {
     renderPage();
     await screen.findByRole("table");
     await user.type(
-      screen.getByPlaceholderText("搜索课程名称或代码..."),
+      screen.getByPlaceholderText("Buscar por nombre o código..."),
       "不存在",
     );
     expect(
-      await screen.findByRole("heading", { name: "未找到匹配的课程" }),
+      await screen.findByRole("heading", { name: "Ninguna comisión coincide" }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("搜索课程")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "清除课程搜索" }));
+    expect(screen.getByLabelText("Buscar comisiones")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Borrar búsqueda de comisiones" }));
     await waitFor(() => {
       expect(apiGet).toHaveBeenLastCalledWith(
         "/api/courses?page=1&pageSize=20",
@@ -308,7 +308,7 @@ describe("CoursePage", () => {
     expect(
       await within(await screen.findByRole("table")).findByText("数学"),
     ).toBeInTheDocument();
-    await user.type(screen.getByLabelText("搜索课程"), "不存在");
+    await user.type(screen.getByLabelText("Buscar comisiones"), "不存在");
     await waitFor(() => {
       const [lastUrl] = apiGet.mock.lastCall!;
       expect(
@@ -316,7 +316,7 @@ describe("CoursePage", () => {
       ).toBe("不存在");
     });
     // The empty-state action only exists once the no-match response rendered.
-    await user.click(await screen.findByRole("button", { name: "清除搜索" }));
+    await user.click(await screen.findByRole("button", { name: "Borrar búsqueda" }));
     await waitFor(() => {
       expect(apiGet).toHaveBeenLastCalledWith(
         "/api/courses?page=1&pageSize=20",
@@ -330,7 +330,7 @@ describe("CoursePage", () => {
   it("shows error state when loading fails", async () => {
     apiGet.mockRejectedValue(new Error("fail"));
     renderPage();
-    expect(await screen.findByText("加载课程列表失败")).toBeInTheDocument();
+    expect(await screen.findByText("No se pudo cargar la lista de comisiones")).toBeInTheDocument();
   });
 
   it("shows empty state when no courses", async () => {
@@ -343,7 +343,7 @@ describe("CoursePage", () => {
     });
     renderPage();
     expect(
-      await screen.findByRole("heading", { name: "暂无课程" }),
+      await screen.findByRole("heading", { name: "No hay comisiones" }),
     ).toBeInTheDocument();
   });
 
@@ -356,25 +356,25 @@ describe("CoursePage", () => {
     );
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "新增课程" }));
-    await user.type(screen.getByLabelText(/课程名称/), "物理");
-    await user.type(screen.getByLabelText(/课程代码/), "PHY101");
-    await user.click(screen.getByRole("button", { name: "保存" }));
-    expect(screen.getByText("保存中...")).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Nueva comisión" }));
+    await user.type(screen.getByLabelText(/Nombre/), "物理");
+    await user.type(screen.getByLabelText(/Código/), "PHY101");
+    await user.click(screen.getByRole("button", { name: "Guardar" }));
+    expect(screen.getByText("Guardando...")).toBeInTheDocument();
     resolveSave!({ id: "c3" });
     await waitFor(() => {
-      expect(screen.queryByText("保存中...")).not.toBeInTheDocument();
+      expect(screen.queryByText("Guardando...")).not.toBeInTheDocument();
     });
   });
 
   it("closes dialog on cancel", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "新增课程" }));
+    await user.click(await screen.findByRole("button", { name: "Nueva comisión" }));
     const dialog = screen.getByRole("dialog");
     const cancelBtn = within(dialog)
       .getAllByRole("button")
-      .find((b) => b.textContent === "取消")!;
+      .find((b) => b.textContent === "Cancelar")!;
     await user.click(cancelBtn);
     await waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -390,9 +390,9 @@ describe("CoursePage", () => {
       totalPages: 0,
     });
     renderPage();
-    await screen.findByRole("heading", { name: "暂无课程" });
+    await screen.findByRole("heading", { name: "No hay comisiones" });
     expect(
-      screen.queryByPlaceholderText("搜索课程名称或代码..."),
+      screen.queryByPlaceholderText("Buscar por nombre o código..."),
     ).not.toBeInTheDocument();
   });
 });
@@ -447,7 +447,7 @@ describe("CoursePage #785 server-side search and pagination (BDD L2)", () => {
     const all = Array.from({ length: 21 }, (_, i) =>
       courseRow(
         `co${i + 1}`,
-        `课程${String(i + 1).padStart(2, "0")}`,
+        `Comisión${String(i + 1).padStart(2, "0")}`,
         `C${i + 1}`,
       ),
     );
@@ -455,17 +455,17 @@ describe("CoursePage #785 server-side search and pagination (BDD L2)", () => {
 
     renderPage();
     const table = await screen.findByRole("table");
-    expect(within(table).getByText("课程01")).toBeInTheDocument();
-    expect(within(table).queryByText("课程21")).not.toBeInTheDocument();
+    expect(within(table).getByText("Comisión01")).toBeInTheDocument();
+    expect(within(table).queryByText("Comisión21")).not.toBeInTheDocument();
     expect(screen.getByText(/共 21 条/)).toBeInTheDocument();
     expect(apiGet).toHaveBeenCalledWith("/api/courses?page=1&pageSize=20");
 
-    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await user.click(screen.getByRole("button", { name: "Página siguiente" }));
     await waitFor(() => {
       expect(apiGet).toHaveBeenCalledWith("/api/courses?page=2&pageSize=20");
     });
     expect(
-      await within(await screen.findByRole("table")).findByText("课程21"),
+      await within(await screen.findByRole("table")).findByText("Comisión21"),
     ).toBeInTheDocument();
   });
 
@@ -473,7 +473,7 @@ describe("CoursePage #785 server-side search and pagination (BDD L2)", () => {
     const user = userEvent.setup();
     const all = [
       ...Array.from({ length: 25 }, (_, i) =>
-        courseRow(`co${i + 1}`, `bulk785 课程${i + 1}`, `B785-${i + 1}`),
+        courseRow(`co${i + 1}`, `bulk785 Comisión${i + 1}`, `B785-${i + 1}`),
       ),
       ...Array.from({ length: 15 }, (_, i) =>
         courseRow(`ot${i + 1}`, `其他课程${i + 1}`, `OTH-${i + 1}`),
@@ -483,7 +483,7 @@ describe("CoursePage #785 server-side search and pagination (BDD L2)", () => {
 
     renderPage();
     await screen.findByRole("table");
-    await user.type(screen.getByLabelText("搜索课程"), "bulk785");
+    await user.type(screen.getByLabelText("Buscar comisiones"), "bulk785");
     await waitFor(() => {
       expect(apiGet).toHaveBeenCalledWith(
         "/api/courses?page=1&pageSize=20&search=bulk785",
@@ -492,7 +492,7 @@ describe("CoursePage #785 server-side search and pagination (BDD L2)", () => {
     expect(await screen.findByText(/共 25 条/)).toBeInTheDocument();
 
     // Paging keeps the search condition.
-    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await user.click(screen.getByRole("button", { name: "Página siguiente" }));
     await waitFor(() => {
       expect(apiGet).toHaveBeenCalledWith(
         "/api/courses?page=2&pageSize=20&search=bulk785",
@@ -500,7 +500,7 @@ describe("CoursePage #785 server-side search and pagination (BDD L2)", () => {
     });
 
     // Clearing restores the unfiltered full set on page 1.
-    await user.click(screen.getByRole("button", { name: "清除课程搜索" }));
+    await user.click(screen.getByRole("button", { name: "Borrar búsqueda de comisiones" }));
     await waitFor(() => {
       expect(apiGet).toHaveBeenLastCalledWith(
         "/api/courses?page=1&pageSize=20",
@@ -513,7 +513,7 @@ describe("CoursePage #785 server-side search and pagination (BDD L2)", () => {
     const user = userEvent.setup();
     let deleted = false;
     const page1 = Array.from({ length: 20 }, (_, i) =>
-      courseRow(`co${i + 1}`, `课程${i + 1}`, `C${i + 1}`),
+      courseRow(`co${i + 1}`, `Comisión${i + 1}`, `C${i + 1}`),
     );
     apiGet.mockImplementation(async (url: string) => {
       if (!url.startsWith("/api/courses")) {
@@ -541,17 +541,17 @@ describe("CoursePage #785 server-side search and pagination (BDD L2)", () => {
 
     renderPage();
     await screen.findByRole("table");
-    await user.click(screen.getByRole("button", { name: "下一页" }));
+    await user.click(screen.getByRole("button", { name: "Página siguiente" }));
     expect(
       await within(await screen.findByRole("table")).findByText("待删除课程"),
     ).toBeInTheDocument();
 
     await user.click(
       within(await screen.findByRole("table")).getByRole("button", {
-        name: "删除课程",
+        name: "Eliminar comisión",
       }),
     );
-    await user.click(await screen.findByRole("button", { name: "确认" }));
+    await user.click(await screen.findByRole("button", { name: "Confirmar" }));
 
     await waitFor(() => {
       expect(apiDelete).toHaveBeenCalledWith("/api/courses/co21");
@@ -562,7 +562,7 @@ describe("CoursePage #785 server-side search and pagination (BDD L2)", () => {
       );
     });
     expect(
-      await within(await screen.findByRole("table")).findByText("课程1"),
+      await within(await screen.findByRole("table")).findByText("Comisión1"),
     ).toBeInTheDocument();
   });
 });

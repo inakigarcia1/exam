@@ -485,7 +485,7 @@ describe("text_response with non-null standardAnswer", () => {
   it("is held at pending_manual by the freeze barrier (B-classification)", async () => {
     const questionSnapshot = [
       textResponseSnapshot("q-text", 100, {
-        standardAnswer: "参考答案：评分要点……",
+        standardAnswer: "Respuesta de referencia：评分要点……",
       }),
     ];
     const attempt = makeAttempt({
@@ -511,7 +511,7 @@ describe("text_response with non-null standardAnswer", () => {
   it("is recognized by the manual grader (Defect B)", async () => {
     const questionSnapshot = [
       textResponseSnapshot("q-text", 100, {
-        standardAnswer: "参考答案：评分要点……",
+        standardAnswer: "Respuesta de referencia：评分要点……",
       }),
     ];
     const { attempt, result } = await runMixedLifecycle({

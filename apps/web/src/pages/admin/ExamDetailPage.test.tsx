@@ -110,17 +110,17 @@ describe("ExamDetailPage", () => {
     it("renders stats cards at the top", async () => {
       renderPage();
       expect(await screen.findByText("期末能力测评")).toBeInTheDocument();
-      expect(screen.getByText("状态")).toBeInTheDocument();
-      expect(screen.getByText("考试时长")).toBeInTheDocument();
-      expect(screen.getByText("及格分")).toBeInTheDocument();
-      expect(screen.getByText("题目数量")).toBeInTheDocument();
+      expect(screen.getByText("Estado")).toBeInTheDocument();
+      expect(screen.getByText("Duración del examen")).toBeInTheDocument();
+      expect(screen.getByText("Puntaje de aprobación")).toBeInTheDocument();
+      expect(screen.getByText("Cantidad de preguntas")).toBeInTheDocument();
     });
 
     it("renders config section", async () => {
       renderPage();
-      expect(await screen.findByText("考试配置")).toBeInTheDocument();
+      expect(await screen.findByText("Configuración del examen")).toBeInTheDocument();
       // Policy enums render as localized labels, never raw values.
-      expect(screen.getByText("定时窗口")).toBeInTheDocument();
+      expect(screen.getByText("Ventana con límite")).toBeInTheDocument();
       expect(screen.queryByText("timed_window")).not.toBeInTheDocument();
     });
 
@@ -129,21 +129,21 @@ describe("ExamDetailPage", () => {
     // governed region holding the associated value.
     it("keeps stat and config titles inside their governed regions", async () => {
       renderPage();
-      const statusLabel = await screen.findByText("状态");
+      const statusLabel = await screen.findByText("Estado");
       const statCard = statusLabel.closest("[data-slot='stats-card']");
       expect(statCard).toBeInTheDocument();
-      const configLabel = await screen.findByText("考试配置");
+      const configLabel = await screen.findByText("Configuración del examen");
       const configSection = configLabel.closest("section");
       expect(configSection).toBeInTheDocument();
-      expect(configSection).toHaveTextContent("定时窗口");
+      expect(configSection).toHaveTextContent("Ventana con límite");
     });
 
     it("renders Phase 1 tabs without audit placeholder", async () => {
       renderPage();
       expect(
-        await screen.findByRole("tab", { name: "报考" }),
+        await screen.findByRole("tab", { name: "Inscripción" }),
       ).toBeInTheDocument();
-      expect(screen.getByRole("tab", { name: "成绩" })).toBeInTheDocument();
+      expect(screen.getByRole("tab", { name: "Calificaciones" })).toBeInTheDocument();
       expect(
         screen.queryByRole("tab", { name: "操作日志" }),
       ).not.toBeInTheDocument();
@@ -151,7 +151,7 @@ describe("ExamDetailPage", () => {
   });
 
   describe("enrollment tab", () => {
-    it("shows enrollment stats and table in报考 tab", async () => {
+    it("shows enrollment stats and table inInscripción tab", async () => {
       getMock.mockImplementation((path: string) => {
         if (path.includes("/enrollments"))
           return Promise.resolve([
@@ -180,17 +180,17 @@ describe("ExamDetailPage", () => {
 
     it("shows empty state when no enrollments", async () => {
       renderPage();
-      expect(await screen.findByText("暂无考生")).toBeInTheDocument();
+      expect(await screen.findByText("No hay alumnos")).toBeInTheDocument();
     });
   });
 
   describe("scores tab", () => {
     it("shows scores tab content with link to score list", async () => {
       renderPage();
-      await screen.findByRole("tab", { name: "成绩" });
+      await screen.findByRole("tab", { name: "Calificaciones" });
       const user = userEvent.setup();
-      await user.click(screen.getByRole("tab", { name: "成绩" }));
-      expect(screen.getByText("成绩管理")).toBeInTheDocument();
+      await user.click(screen.getByRole("tab", { name: "Calificaciones" }));
+      expect(screen.getByText("Gestión de calificaciones")).toBeInTheDocument();
     });
   });
 
@@ -214,12 +214,12 @@ describe("ExamDetailPage", () => {
       expect(
         screen.getByTestId("exam-detail-publish-results-btn"),
       ).toBeInTheDocument();
-      expect(screen.getByText("添加考生")).toBeInTheDocument();
+      expect(screen.getByText("Agregar alumno")).toBeInTheDocument();
       expect(
         screen.queryByTestId("exam-detail-extend-btn"),
       ).not.toBeInTheDocument();
-      expect(screen.queryByText("监考")).not.toBeInTheDocument();
-      expect(screen.queryByText("取消考试")).not.toBeInTheDocument();
+      expect(screen.queryByText("Supervisión")).not.toBeInTheDocument();
+      expect(screen.queryByText("Cancelar examen")).not.toBeInTheDocument();
     });
 
     it("hides published-state Admin-only lifecycle actions from Teacher", async () => {
@@ -239,8 +239,8 @@ describe("ExamDetailPage", () => {
       expect(
         screen.queryByTestId("exam-detail-unpublish-btn"),
       ).not.toBeInTheDocument();
-      expect(screen.queryByText("归档")).not.toBeInTheDocument();
-      expect(screen.queryByText("取消考试")).not.toBeInTheDocument();
+      expect(screen.queryByText("Archivar")).not.toBeInTheDocument();
+      expect(screen.queryByText("Cancelar examen")).not.toBeInTheDocument();
       expect(
         screen.getByTestId("exam-detail-publish-results-btn"),
       ).toBeInTheDocument();
@@ -250,7 +250,7 @@ describe("ExamDetailPage", () => {
       postMock.mockResolvedValue({});
       const user = userEvent.setup();
       renderPage();
-      await user.click(await screen.findByText("发布考试"));
+      await user.click(await screen.findByText("Publicar examen"));
       await waitFor(() => {
         expect(postMock).toHaveBeenCalledWith("/api/exams/exam-1/publish");
       });
@@ -258,13 +258,13 @@ describe("ExamDetailPage", () => {
 
     it("shows publish error message on failure", async () => {
       postMock.mockRejectedValue(
-        new ApiError(409, "考试已发布，不能重复发布", "EXAM_ALREADY_PUBLISHED"),
+        new ApiError(409, "El examen ya está publicado", "EXAM_ALREADY_PUBLISHED"),
       );
       const user = userEvent.setup();
       renderPage();
-      await user.click(await screen.findByText("发布考试"));
+      await user.click(await screen.findByText("Publicar examen"));
       expect(
-        await screen.findByText("考试已发布，不能重复发布"),
+        await screen.findByText("El examen ya está publicado"),
       ).toBeInTheDocument();
     });
 
@@ -277,10 +277,10 @@ describe("ExamDetailPage", () => {
       const user = userEvent.setup();
       renderPage();
       await screen.findByText("期末能力测评");
-      await user.click(screen.getByText("归档"));
+      await user.click(screen.getByText("Archivar"));
       const dialog = await screen.findByRole("alertdialog");
       expect(within(dialog).getByText(/期末能力测评/)).toBeInTheDocument();
-      const confirm = within(dialog).getByRole("button", { name: "确认" });
+      const confirm = within(dialog).getByRole("button", { name: "Confirmar" });
       expect(confirm).toHaveAttribute("data-variant", "destructive");
       await user.click(confirm);
       await waitFor(() => {
@@ -296,7 +296,7 @@ describe("ExamDetailPage", () => {
       });
       renderPage();
       await screen.findByText("期末能力测评");
-      expect(screen.queryByText("取消考试")).not.toBeInTheDocument();
+      expect(screen.queryByText("Cancelar examen")).not.toBeInTheDocument();
     });
 
     it("opens confirmation and cancels a published exam", async () => {
@@ -308,10 +308,10 @@ describe("ExamDetailPage", () => {
       const user = userEvent.setup();
       renderPage();
       await screen.findByText("期末能力测评");
-      await user.click(screen.getByText("取消考试"));
+      await user.click(screen.getByText("Cancelar examen"));
       const dialog = await screen.findByRole("alertdialog");
       expect(within(dialog).getByText(/期末能力测评/)).toBeInTheDocument();
-      const confirm = within(dialog).getByRole("button", { name: "确认" });
+      const confirm = within(dialog).getByRole("button", { name: "Confirmar" });
       expect(confirm).toHaveAttribute("data-variant", "destructive");
       await user.click(confirm);
       await waitFor(() => {
@@ -329,7 +329,7 @@ describe("ExamDetailPage", () => {
     // succeeded. Every OTHER failure keeps the legacy handling (generic
     // toast, dialog open, no refetch).
     const staleClosedError = () =>
-      new ApiError(409, "考试当前状态不能延长", "EXAM_EXTEND_NOT_ALLOWED", {
+      new ApiError(409, "En este estado no se puede extender el examen", "EXAM_EXTEND_NOT_ALLOWED", {
         reason: "ALREADY_CLOSED",
       });
 
@@ -370,7 +370,7 @@ describe("ExamDetailPage", () => {
       });
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith(
-          "考试已关闭，无法延长。已为你更新考试状态。",
+          "El examen ya está cerrado, así que no se puede extender. El estado ya está actualizado.",
         );
       });
       // The rejected operation never claims success.
@@ -384,13 +384,13 @@ describe("ExamDetailPage", () => {
       expect(
         screen.queryByTestId("exam-detail-close-btn"),
       ).not.toBeInTheDocument();
-      expect(screen.queryByText("取消考试")).not.toBeInTheDocument();
-      expect(screen.getByText("已关闭")).toBeInTheDocument();
+      expect(screen.queryByText("Cancelar examen")).not.toBeInTheDocument();
+      expect(screen.getByText("Cerrado")).toBeInTheDocument();
       // The refreshed closed projection is not merely a subtraction: the
       // still-legal closed-state entries (archive for the capable Admin,
       // manual-mode publish-results) appear, exactly as a native closed
       // render would.
-      expect(screen.getByText("归档")).toBeInTheDocument();
+      expect(screen.getByText("Archivar")).toBeInTheDocument();
       expect(
         screen.getByTestId("exam-detail-publish-results-btn"),
       ).toBeInTheDocument();
@@ -418,7 +418,7 @@ describe("ExamDetailPage", () => {
 
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith(
-          "考试已关闭，无法延长。最新状态加载失败，请重试。",
+          "El examen ya está cerrado, así que no se puede extender. No se pudo cargar el estado nuevo. Intentá de nuevo.",
         );
       });
       // No false recovery claim for a failed refresh.
@@ -428,7 +428,7 @@ describe("ExamDetailPage", () => {
       expect(getMock.mock.calls.length).toBe(readsAfterLoad + 1);
       // The failed refresh surfaces the standard retryable error state —
       // never a blank page or a stale actionable dialog.
-      expect(await screen.findByText("加载考试详情失败")).toBeInTheDocument();
+      expect(await screen.findByText("No se pudo cargar el examen")).toBeInTheDocument();
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
 
@@ -438,7 +438,7 @@ describe("ExamDetailPage", () => {
         return Promise.resolve({ ...mockDraftExam, status: "open" });
       });
       postMock.mockRejectedValueOnce(
-        new ApiError(500, "服务器内部错误", "INTERNAL_ERROR"),
+        new ApiError(500, "Error interno del servidor", "INTERNAL_ERROR"),
       );
       const user = userEvent.setup();
       renderPage();
@@ -452,7 +452,7 @@ describe("ExamDetailPage", () => {
       );
 
       await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith("延长失败，请稍后重试");
+        expect(toast.error).toHaveBeenCalledWith("No se pudo extender. Intentá de nuevo más tarde.");
       });
       expect(toast.success).not.toHaveBeenCalled();
       expect(postMock).toHaveBeenCalledTimes(1);
@@ -484,12 +484,12 @@ describe("ExamDetailPage", () => {
       renderPage("Admin");
 
       expect(await screen.findByText("期末能力测评")).toBeInTheDocument();
-      expect(screen.getByText("已关闭")).toBeInTheDocument();
-      expect(screen.getByText("归档")).toBeInTheDocument();
+      expect(screen.getByText("Cerrado")).toBeInTheDocument();
+      expect(screen.getByText("Archivar")).toBeInTheDocument();
       expect(
         screen.getByTestId("exam-detail-publish-results-btn"),
       ).toBeInTheDocument();
-      expect(screen.getByText("返回列表")).toBeEnabled();
+      expect(screen.getByText("Volver a la lista")).toBeEnabled();
     });
 
     it("hides every draft/open/published-only lifecycle entry in the closed state", async () => {
@@ -510,10 +510,10 @@ describe("ExamDetailPage", () => {
       expect(
         screen.queryByTestId("exam-detail-unpublish-btn"),
       ).not.toBeInTheDocument();
-      expect(screen.queryByText("取消考试")).not.toBeInTheDocument();
-      expect(screen.queryByText("发布考试")).not.toBeInTheDocument();
-      expect(screen.queryByText("编辑")).not.toBeInTheDocument();
-      expect(screen.queryByText("监考")).not.toBeInTheDocument();
+      expect(screen.queryByText("Cancelar examen")).not.toBeInTheDocument();
+      expect(screen.queryByText("Publicar examen")).not.toBeInTheDocument();
+      expect(screen.queryByText("Editar")).not.toBeInTheDocument();
+      expect(screen.queryByText("Supervisión")).not.toBeInTheDocument();
     });
 
     it("shows publish-results button for manual-mode unpublished published exam", async () => {
@@ -586,7 +586,7 @@ describe("ExamDetailPage", () => {
       await screen.findByTestId("exam-detail-publish-results-btn");
       await user.click(screen.getByTestId("exam-detail-publish-results-btn"));
       const dialog = await screen.findByRole("alertdialog");
-      await user.click(within(dialog).getByRole("button", { name: "确认" }));
+      await user.click(within(dialog).getByRole("button", { name: "Confirmar" }));
       await waitFor(() => {
         expect(postMock).toHaveBeenCalledWith(
           "/api/exams/exam-1/publish-results",
@@ -606,7 +606,7 @@ describe("ExamDetailPage", () => {
       const user = userEvent.setup();
       renderPage();
       await screen.findByText("期末能力测评");
-      const addButtons = screen.getAllByText("添加考生");
+      const addButtons = screen.getAllByText("Agregar alumno");
       await user.click(addButtons[0]!);
       expect(screen.getByRole("dialog")).toBeInTheDocument();
     });
@@ -632,7 +632,7 @@ describe("ExamDetailPage", () => {
       renderPage();
       const table = await screen.findByRole("table");
       expect(within(table).getByText("张三")).toBeInTheDocument();
-      expect(within(table).getByText("已分配")).toBeInTheDocument();
+      expect(within(table).getByText("Asignado")).toBeInTheDocument();
     });
 
     it("shows remove button only for assigned enrollments", async () => {
@@ -666,7 +666,7 @@ describe("ExamDetailPage", () => {
       const table = await screen.findByRole("table");
       expect(within(table).getByText("张三")).toBeInTheDocument();
       const removeButtons = within(table).getAllByRole("button", {
-        name: "移除考生",
+        name: "Quitar alumno",
       });
       expect(removeButtons).toHaveLength(1);
     });
@@ -676,7 +676,7 @@ describe("ExamDetailPage", () => {
     it("shows error state when exam loading fails", async () => {
       getMock.mockRejectedValue(new Error("fail"));
       renderPage();
-      expect(await screen.findByText("加载考试详情失败")).toBeInTheDocument();
+      expect(await screen.findByText("No se pudo cargar el examen")).toBeInTheDocument();
     });
   });
 
@@ -696,7 +696,7 @@ describe("ExamDetailPage", () => {
       });
       renderPage();
       expect(await screen.findByText("45分钟")).toBeInTheDocument();
-      expect(screen.getByText("定时窗口")).toBeInTheDocument();
+      expect(screen.getByText("Ventana con límite")).toBeInTheDocument();
     });
 
     it("renders deadline mode without fabricating a duration", async () => {
@@ -710,13 +710,13 @@ describe("ExamDetailPage", () => {
         });
       });
       renderPage();
-      expect(await screen.findByText("截止时间制")).toBeInTheDocument();
+      expect(await screen.findByText("Con hora límite")).toBeInTheDocument();
       // i18next collapses a null interpolation to a bare “分钟” unit — the
       // fabricated-duration render this regression locks out.
       expect(screen.queryByText("分钟")).not.toBeInTheDocument();
       expect(screen.queryByText("0分钟")).not.toBeInTheDocument();
       // The config row localizes the mode instead of leaking the raw enum.
-      expect(screen.getByText("截止时间")).toBeInTheDocument();
+      expect(screen.getByText("Hora límite")).toBeInTheDocument();
       expect(screen.queryByText("deadline")).not.toBeInTheDocument();
     });
 
@@ -731,9 +731,9 @@ describe("ExamDetailPage", () => {
         });
       });
       renderPage();
-      // Duration card AND the config timingMode row both render 不限时.
+      // Duration card AND the config timingMode row both render Sin límite de tiempo.
       expect(
-        (await screen.findAllByText("不限时")).length,
+        (await screen.findAllByText("Sin límite de tiempo")).length,
       ).toBeGreaterThanOrEqual(2);
       expect(screen.queryByText("分钟")).not.toBeInTheDocument();
       // formatDateTime(null) renders the 1970 epoch — never reachable.

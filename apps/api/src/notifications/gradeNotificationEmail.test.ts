@@ -30,7 +30,7 @@ describe("renderGradeNotificationEmail", () => {
 
   it("subject is a server-generated zh-CN string", () => {
     const out = renderGradeNotificationEmail(payload);
-    expect(out.subject).toBe("考试结果已发布");
+    expect(out.subject).toBe("Ya están las calificaciones");
   });
 
   it("bodyText mentions the exam title", () => {
@@ -69,15 +69,15 @@ describe("renderGradeNotificationEmail", () => {
     // never in the Email.
     const forbidden = [
       "score",
-      "分数",
-      "得分",
+      "Puntaje",
+      "Puntaje",
       "passed",
       "通过",
-      "未通过",
+      "No aprobado",
       "standard answer",
-      "标准答案",
+      "Respuesta correcta",
       "rubric",
-      "评分细则",
+      "Criterios de calificación",
       "grader",
       "评卷人",
     ];

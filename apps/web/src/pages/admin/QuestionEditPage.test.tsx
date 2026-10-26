@@ -163,30 +163,30 @@ describe("QuestionEditPage", () => {
 
   it("shows error state when API fails", async () => {
     renderNew(() => Promise.reject(new Error("network")));
-    expect(await screen.findByText("加载数据失败")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /重试/ })).toBeInTheDocument();
+    expect(await screen.findByText("No se pudieron cargar los datos")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Reintentar/ })).toBeInTheDocument();
   });
 
   it("renders new question form with default values", async () => {
     renderNew();
-    expect(await screen.findByText("新增题目")).toBeInTheDocument();
-    expect(screen.getByText("保存")).toBeInTheDocument();
-    expect(screen.getByText("取消")).toBeInTheDocument();
-    expect(screen.getByText("考生视角预览")).toBeInTheDocument();
+    expect(await screen.findByText("Nueva pregunta")).toBeInTheDocument();
+    expect(screen.getByText("Guardar")).toBeInTheDocument();
+    expect(screen.getByText("Cancelar")).toBeInTheDocument();
+    expect(screen.getByText("Vista del alumno")).toBeInTheDocument();
   });
 
   it("loads existing question in edit mode", async () => {
     renderEdit();
-    expect(await screen.findByText("编辑题目")).toBeInTheDocument();
-    const textarea = screen.getByPlaceholderText("输入题目内容");
+    expect(await screen.findByText("Editar pregunta")).toBeInTheDocument();
+    const textarea = screen.getByPlaceholderText("Escribí el enunciado");
     expect(textarea).toHaveValue("1+1=?");
   });
 
   it("save button calls POST for new question", async () => {
     const user = userEvent.setup();
     renderNew();
-    await screen.findByText("新增题目");
-    await user.click(screen.getByText("保存"));
+    await screen.findByText("Nueva pregunta");
+    await user.click(screen.getByText("Guardar"));
     await waitFor(() => {
       expect(apiPost).toHaveBeenCalledWith(
         "/api/questions",
@@ -198,8 +198,8 @@ describe("QuestionEditPage", () => {
   it("save button calls PATCH for existing question", async () => {
     const user = userEvent.setup();
     renderEdit();
-    await screen.findByText("编辑题目");
-    await user.click(screen.getByText("保存"));
+    await screen.findByText("Editar pregunta");
+    await user.click(screen.getByText("Guardar"));
     await waitFor(() => {
       expect(apiPatch).toHaveBeenCalledWith(
         "/api/questions/q1",
@@ -210,13 +210,13 @@ describe("QuestionEditPage", () => {
 
   it("shows specific save error when API rejects", async () => {
     apiPost.mockRejectedValue(
-      new ApiError(400, "题目不属于所选课程", "QUESTION_COURSE_MISMATCH"),
+      new ApiError(400, "La pregunta no pertenece a la comisión elegida", "QUESTION_COURSE_MISMATCH"),
     );
     const user = userEvent.setup();
     renderNew();
-    await screen.findByText("新增题目");
-    await user.click(screen.getByText("保存"));
-    expect(await screen.findByText("题目不属于所选课程")).toBeInTheDocument();
+    await screen.findByText("Nueva pregunta");
+    await user.click(screen.getByText("Guardar"));
+    expect(await screen.findByText("La pregunta no pertenece a la comisión elegida")).toBeInTheDocument();
   });
 
   it("cancel button is clickable and disabled during saving", async () => {
@@ -228,11 +228,11 @@ describe("QuestionEditPage", () => {
     );
     const user = userEvent.setup();
     renderNew();
-    await screen.findByText("新增题目");
-    const cancelBtn = screen.getByText("取消");
+    await screen.findByText("Nueva pregunta");
+    const cancelBtn = screen.getByText("Cancelar");
     expect(cancelBtn).toBeEnabled();
-    await user.click(screen.getByText("保存"));
-    expect(screen.getByRole("button", { name: "保存中..." })).toBeDisabled();
+    await user.click(screen.getByText("Guardar"));
+    expect(screen.getByRole("button", { name: "Guardando..." })).toBeDisabled();
     expect(cancelBtn).toBeDisabled();
     resolveSave!(undefined);
     await act(async () => {});
@@ -244,18 +244,18 @@ describe("QuestionEditPage", () => {
 // type-specific fields correct (options/standardAnswer) and rubric=null.
 // text_response create payload is proven separately below (P2-1C block).
 
-const CONTENT_PLACEHOLDER = "输入题目内容";
-const CONTENT_FILLBLANK_PLACEHOLDER = "输入题目内容，用 ____ 标记空格位置";
+const CONTENT_PLACEHOLDER = "Escribí el enunciado";
+const CONTENT_FILLBLANK_PLACEHOLDER = "Escribí el enunciado y marcá cada espacio con ____";
 const RUBRIC_PLACEHOLDER =
-  "请描述评分时应考虑的关键点、完整性、准确性或论证质量";
-const REFERENCE_ANSWER_PLACEHOLDER = "供阅卷人参考的示例答案，不影响自动判分";
+  "Describí qué hay que mirar al corregir: los puntos clave, si está completo, si es exacto o cómo argumenta";
+const REFERENCE_ANSWER_PLACEHOLDER = "Ejemplo para quien corrige. No cambia la corrección automática.";
 
-/** Open the type <Select> (a11y-labeled 题目类型) and pick an option. */
+/** Open the type <Select> (a11y-labeled Tipo de pregunta) and pick an option. */
 async function selectType(
   user: ReturnType<typeof userEvent.setup>,
   name: string,
 ) {
-  await user.click(screen.getByRole("combobox", { name: "题目类型" }));
+  await user.click(screen.getByRole("combobox", { name: "Tipo de pregunta" }));
   await user.click(await screen.findByRole("option", { name }));
 }
 
@@ -271,9 +271,9 @@ describe("QuestionEditPage — objective type create payloads", () => {
   it("creates single_choice with selected option answer and rubric null", async () => {
     const user = userEvent.setup();
     renderNew();
-    await screen.findByText("新增题目");
+    await screen.findByText("Nueva pregunta");
 
-    await selectType(user, "单选题");
+    await selectType(user, "Opción única");
     await user.type(
       screen.getByPlaceholderText(CONTENT_PLACEHOLDER),
       "请选择正确答案",
@@ -282,7 +282,7 @@ describe("QuestionEditPage — objective type create payloads", () => {
     // options A and B; picking A sets standardAnswer = "A".
     const radios = screen.getAllByRole("radio");
     await user.click(radios[0]!);
-    await user.click(screen.getByText("保存"));
+    await user.click(screen.getByText("Guardar"));
 
     await waitFor(() => {
       expect(apiPost).toHaveBeenCalledWith(
@@ -302,9 +302,9 @@ describe("QuestionEditPage — objective type create payloads", () => {
   it("creates multiple_choice with array answer and rubric null", async () => {
     const user = userEvent.setup();
     renderNew();
-    await screen.findByText("新增题目");
+    await screen.findByText("Nueva pregunta");
 
-    await selectType(user, "多选题");
+    await selectType(user, "Opción múltiple");
     await user.type(
       screen.getByPlaceholderText(CONTENT_PLACEHOLDER),
       "选择所有偶数",
@@ -313,7 +313,7 @@ describe("QuestionEditPage — objective type create payloads", () => {
     const checkboxes = screen.getAllByRole("checkbox");
     await user.click(checkboxes[0]!);
     await user.click(checkboxes[1]!);
-    await user.click(screen.getByText("保存"));
+    await user.click(screen.getByText("Guardar"));
 
     await waitFor(() => {
       expect(apiPost).toHaveBeenCalledWith(
@@ -330,16 +330,16 @@ describe("QuestionEditPage — objective type create payloads", () => {
   it("creates true_false with boolean canonical answer and rubric null", async () => {
     const user = userEvent.setup();
     renderNew();
-    await screen.findByText("新增题目");
+    await screen.findByText("Nueva pregunta");
 
-    await selectType(user, "判断题");
+    await selectType(user, "Verdadero o falso");
     await user.type(
       screen.getByPlaceholderText(CONTENT_PLACEHOLDER),
       "天空是蓝色的",
     );
     // true_false defaults standardAnswer to true; keep the default canonical
     // boolean. No answer control interaction needed — prove the default.
-    await user.click(screen.getByText("保存"));
+    await user.click(screen.getByText("Guardar"));
 
     await waitFor(() => {
       expect(apiPost).toHaveBeenCalledWith(
@@ -356,19 +356,19 @@ describe("QuestionEditPage — objective type create payloads", () => {
   it("creates fill_blank with string answer and rubric null", async () => {
     const user = userEvent.setup();
     renderNew();
-    await screen.findByText("新增题目");
+    await screen.findByText("Nueva pregunta");
 
-    await selectType(user, "填空题");
+    await selectType(user, "Completar espacios");
     // fill_blank content uses a distinct placeholder (marks the ____ slot).
     await user.type(
-      screen.getByPlaceholderText("输入题目内容，用 ____ 标记空格位置"),
+      screen.getByPlaceholderText("Escribí el enunciado y marcá cada espacio con ____"),
       "法国的首都是 ____。",
     );
     await user.type(
-      screen.getByPlaceholderText("输入标准答案，多个答案用 | 分隔"),
+      screen.getByPlaceholderText("Escribí la respuesta correcta. Si hay varias, separalas con |"),
       "巴黎",
     );
-    await user.click(screen.getByText("保存"));
+    await user.click(screen.getByText("Guardar"));
 
     await waitFor(() => {
       expect(apiPost).toHaveBeenCalledWith(
@@ -402,30 +402,30 @@ describe("QuestionEditPage — text_response authoring", () => {
   it("renders text_response option and shows rubric control when selected", async () => {
     const user = userEvent.setup();
     renderNew();
-    await screen.findByText("新增题目");
+    await screen.findByText("Nueva pregunta");
 
-    await selectType(user, "文本作答题");
+    await selectType(user, "Respuesta de texto");
 
     // rubric Textarea appears (placeholder marks the grading basis field)
     expect(screen.getByPlaceholderText(RUBRIC_PLACEHOLDER)).toBeInTheDocument();
     // objective options control is NOT shown for text_response
-    expect(screen.queryByText("选项")).not.toBeInTheDocument();
+    expect(screen.queryByText("Opción")).not.toBeInTheDocument();
   });
 
   it("creates text_response question with multiline rubric preserved", async () => {
     const user = userEvent.setup();
     renderNew();
-    await screen.findByText("新增题目");
+    await screen.findByText("Nueva pregunta");
 
     const rubric = "关键概念正确：10 分\n论证完整且逻辑清晰：10 分";
-    await selectType(user, "文本作答题");
+    await selectType(user, "Respuesta de texto");
     await user.type(
       screen.getByPlaceholderText(CONTENT_PLACEHOLDER),
       "请阐述你的观点",
     );
     await user.type(screen.getByPlaceholderText(RUBRIC_PLACEHOLDER), rubric);
 
-    await user.click(screen.getByText("保存"));
+    await user.click(screen.getByText("Guardar"));
 
     await waitFor(() => {
       expect(apiPost).toHaveBeenCalledWith(
@@ -443,9 +443,9 @@ describe("QuestionEditPage — text_response authoring", () => {
   it("does not require standardAnswer for text_response (payload null when blank)", async () => {
     const user = userEvent.setup();
     renderNew();
-    await screen.findByText("新增题目");
+    await screen.findByText("Nueva pregunta");
 
-    await selectType(user, "文本作答题");
+    await selectType(user, "Respuesta de texto");
     await user.type(
       screen.getByPlaceholderText(CONTENT_PLACEHOLDER),
       "请阐述你的观点",
@@ -459,12 +459,12 @@ describe("QuestionEditPage — text_response authoring", () => {
     // optional reference-answer field IS shown but left blank, so the
     // payload must normalize to standardAnswer: null.
     expect(
-      screen.queryByPlaceholderText("输入标准答案，多个答案用 | 分隔"),
+      screen.queryByPlaceholderText("Escribí la respuesta correcta. Si hay varias, separalas con |"),
     ).not.toBeInTheDocument();
     expect(
       screen.getByPlaceholderText(REFERENCE_ANSWER_PLACEHOLDER),
     ).toBeInTheDocument();
-    await user.click(screen.getByText("保存"));
+    await user.click(screen.getByText("Guardar"));
 
     await waitFor(() => {
       expect(apiPost).toHaveBeenCalledWith(
@@ -481,11 +481,11 @@ describe("QuestionEditPage — text_response authoring", () => {
   it("forwards a non-empty optional reference answer for text_response", async () => {
     const user = userEvent.setup();
     renderNew();
-    await screen.findByText("新增题目");
+    await screen.findByText("Nueva pregunta");
 
     const rubric = "按论证完整性给分";
     const reference = "参考要点一\n参考要点二";
-    await selectType(user, "文本作答题");
+    await selectType(user, "Respuesta de texto");
     await user.type(
       screen.getByPlaceholderText(CONTENT_PLACEHOLDER),
       "请阐述你的观点",
@@ -496,7 +496,7 @@ describe("QuestionEditPage — text_response authoring", () => {
       reference,
     );
 
-    await user.click(screen.getByText("保存"));
+    await user.click(screen.getByText("Guardar"));
 
     await waitFor(() => {
       expect(apiPost).toHaveBeenCalledWith(
@@ -520,9 +520,9 @@ describe("QuestionEditPage — text_response authoring", () => {
     async (_label, blank) => {
       const user = userEvent.setup();
       renderNew();
-      await screen.findByText("新增题目");
+      await screen.findByText("Nueva pregunta");
 
-      await selectType(user, "文本作答题");
+      await selectType(user, "Respuesta de texto");
       await user.type(
         screen.getByPlaceholderText(CONTENT_PLACEHOLDER),
         "请阐述你的观点",
@@ -536,7 +536,7 @@ describe("QuestionEditPage — text_response authoring", () => {
         blank,
       );
 
-      await user.click(screen.getByText("保存"));
+      await user.click(screen.getByText("Guardar"));
 
       await waitFor(() => {
         expect(apiPost).toHaveBeenCalledWith(
@@ -559,9 +559,9 @@ describe("QuestionEditPage — text_response authoring", () => {
     async (_label, badRubric) => {
       const user = userEvent.setup();
       renderNew();
-      await screen.findByText("新增题目");
+      await screen.findByText("Nueva pregunta");
 
-      await selectType(user, "文本作答题");
+      await selectType(user, "Respuesta de texto");
       await user.type(
         screen.getByPlaceholderText(CONTENT_PLACEHOLDER),
         "请阐述你的观点",
@@ -573,11 +573,11 @@ describe("QuestionEditPage — text_response authoring", () => {
         );
       }
 
-      await user.click(screen.getByText("保存"));
+      await user.click(screen.getByText("Guardar"));
 
       // The save must be blocked client-side: no API call, error shown.
       expect(apiPost).not.toHaveBeenCalled();
-      expect(await screen.findByText(/评分标准不能为空/)).toBeInTheDocument();
+      expect(await screen.findByText(/El criterio de corrección no puede estar vacío/)).toBeInTheDocument();
     },
   );
 
@@ -632,7 +632,7 @@ describe("QuestionEditPage — text_response authoring", () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText("编辑题目")).toBeInTheDocument();
+    expect(await screen.findByText("Editar pregunta")).toBeInTheDocument();
     const rubricField = screen.getByPlaceholderText(RUBRIC_PLACEHOLDER);
     expect(rubricField).toBeInTheDocument();
     expect(rubricField).toHaveValue("第一项评分标准\n第二项评分标准");
@@ -641,10 +641,10 @@ describe("QuestionEditPage — text_response authoring", () => {
   it("normalizes incompatible fields when switching single_choice → text_response", async () => {
     const user = userEvent.setup();
     renderNew();
-    await screen.findByText("新增题目");
+    await screen.findByText("Nueva pregunta");
 
     // default is single_choice with 2 options; switch to text_response
-    await selectType(user, "文本作答题");
+    await selectType(user, "Respuesta de texto");
     await user.type(
       screen.getByPlaceholderText(CONTENT_PLACEHOLDER),
       "请阐述你的观点",
@@ -654,7 +654,7 @@ describe("QuestionEditPage — text_response authoring", () => {
       "按逻辑给分",
     );
 
-    await user.click(screen.getByText("保存"));
+    await user.click(screen.getByText("Guardar"));
 
     await waitFor(() => {
       expect(apiPost).toHaveBeenCalledWith(
@@ -671,10 +671,10 @@ describe("QuestionEditPage — text_response authoring", () => {
   it("does not leak rubric into payload when switching text_response → objective type", async () => {
     const user = userEvent.setup();
     renderNew();
-    await screen.findByText("新增题目");
+    await screen.findByText("Nueva pregunta");
 
     // Set up a text_response with a rubric, then switch back to fill_blank.
-    await selectType(user, "文本作答题");
+    await selectType(user, "Respuesta de texto");
     await user.type(
       screen.getByPlaceholderText(CONTENT_PLACEHOLDER),
       "____ 是元素符号",
@@ -683,14 +683,14 @@ describe("QuestionEditPage — text_response authoring", () => {
       screen.getByPlaceholderText(RUBRIC_PLACEHOLDER),
       "主观评分依据",
     );
-    await selectType(user, "填空题");
+    await selectType(user, "Completar espacios");
     // fill_blank canonical: objective, no rubric in payload
     await user.type(
-      screen.getByPlaceholderText("输入标准答案，多个答案用 | 分隔"),
+      screen.getByPlaceholderText("Escribí la respuesta correcta. Si hay varias, separalas con |"),
       "Fe",
     );
 
-    await user.click(screen.getByText("保存"));
+    await user.click(screen.getByText("Guardar"));
 
     await waitFor(() => {
       expect(apiPost).toHaveBeenCalledWith(
@@ -751,7 +751,7 @@ describe("QuestionEditPage — text_response authoring", () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText("编辑题目")).toBeInTheDocument();
+    expect(await screen.findByText("Editar pregunta")).toBeInTheDocument();
     const referenceField = screen.getByPlaceholderText(
       REFERENCE_ANSWER_PLACEHOLDER,
     );
@@ -765,10 +765,10 @@ describe("QuestionEditPage — text_response authoring", () => {
   it("single_choice → text_response: does not carry the objective answer as reference", async () => {
     const user = userEvent.setup();
     renderNew();
-    await screen.findByText("新增题目");
+    await screen.findByText("Nueva pregunta");
 
     // single_choice with a REAL answer "A" selected (standardAnswer = "A").
-    await selectType(user, "单选题");
+    await selectType(user, "Opción única");
     await user.type(screen.getByPlaceholderText(CONTENT_PLACEHOLDER), "1+1=?");
     // Select option A's radio (the default single_choice ships options A and
     // B). This genuinely sets standardAnswer = "A" — without it the leak guard
@@ -777,7 +777,7 @@ describe("QuestionEditPage — text_response authoring", () => {
     const radios = screen.getAllByRole("radio");
     await user.click(radios[0]!);
     // Switch to text_response — the string "A" must NOT become the reference.
-    await selectType(user, "文本作答题");
+    await selectType(user, "Respuesta de texto");
 
     const referenceField = screen.getByPlaceholderText(
       REFERENCE_ANSWER_PLACEHOLDER,
@@ -788,19 +788,19 @@ describe("QuestionEditPage — text_response authoring", () => {
   it("fill_blank → text_response: does not carry the fill-blank answer as reference", async () => {
     const user = userEvent.setup();
     renderNew();
-    await screen.findByText("新增题目");
+    await screen.findByText("Nueva pregunta");
 
-    await selectType(user, "填空题");
+    await selectType(user, "Completar espacios");
     await user.type(
       screen.getByPlaceholderText(CONTENT_FILLBLANK_PLACEHOLDER),
       "TCP是什么协议",
     );
     await user.type(
-      screen.getByPlaceholderText("输入标准答案，多个答案用 | 分隔"),
+      screen.getByPlaceholderText("Escribí la respuesta correcta. Si hay varias, separalas con |"),
       "TCP",
     );
     // Switch to text_response — "TCP" must NOT become the reference.
-    await selectType(user, "文本作答题");
+    await selectType(user, "Respuesta de texto");
 
     const referenceField = screen.getByPlaceholderText(
       REFERENCE_ANSWER_PLACEHOLDER,
@@ -811,16 +811,16 @@ describe("QuestionEditPage — text_response authoring", () => {
   it("text_response → single_choice: does not carry reference answer as objective answer", async () => {
     const user = userEvent.setup();
     renderNew();
-    await screen.findByText("新增题目");
+    await screen.findByText("Nueva pregunta");
 
-    await selectType(user, "文本作答题");
+    await selectType(user, "Respuesta de texto");
     await user.type(
       screen.getByPlaceholderText(REFERENCE_ANSWER_PLACEHOLDER),
       "参考答案文本",
     );
     // Switch to single_choice — the reference answer text must not appear
     // as the standardAnswer.
-    await selectType(user, "单选题");
+    await selectType(user, "Opción única");
 
     // single_choice shows radio buttons; standardAnswer is "" (empty).
     // The reference text should not be visible anywhere.
@@ -834,18 +834,18 @@ describe("QuestionEditPage — text_response authoring", () => {
   it("text_response → objective → text_response: reference answer is cleared after round-trip", async () => {
     const user = userEvent.setup();
     renderNew();
-    await screen.findByText("新增题目");
+    await screen.findByText("Nueva pregunta");
 
     // Type a reference answer in text_response.
-    await selectType(user, "文本作答题");
+    await selectType(user, "Respuesta de texto");
     await user.type(
       screen.getByPlaceholderText(REFERENCE_ANSWER_PLACEHOLDER),
       "原始参考答案",
     );
     // Switch to single_choice (clears reference).
-    await selectType(user, "单选题");
+    await selectType(user, "Opción única");
     // Switch back to text_response — the original reference is gone.
-    await selectType(user, "文本作答题");
+    await selectType(user, "Respuesta de texto");
 
     const referenceField = screen.getByPlaceholderText(
       REFERENCE_ANSWER_PLACEHOLDER,

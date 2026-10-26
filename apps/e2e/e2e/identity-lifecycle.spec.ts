@@ -28,13 +28,13 @@ test.describe("staff invitation end to end", () => {
     await page.goto(`${BASE_URL}/admin/users`);
 
     // Open the invitations panel dialog.
-    await page.getByRole("button", { name: "邀请成员" }).click();
-    await page.getByLabel("邮箱地址").fill(email);
+    await page.getByRole("button", { name: "Invitar" }).click();
+    await page.getByLabel("Correo electrónico").fill(email);
     await page.getByRole("dialog").getByRole("combobox").click();
-    await page.getByRole("option", { name: "教师" }).click();
+    await page.getByRole("option", { name: "Docente" }).click();
     await page
       .getByRole("dialog")
-      .getByRole("button", { name: "发送邀请" })
+      .getByRole("button", { name: "Enviar invitación" })
       .click();
 
     // The one-time acceptance URL appears in the dialog.
@@ -48,18 +48,18 @@ test.describe("staff invitation end to end", () => {
     await page.context().clearCookies();
     await page.goto(acceptUrl);
 
-    await page.getByLabel("用户名").fill(username);
-    await page.getByLabel("姓名", { exact: true }).fill("受邀教师");
-    await page.getByLabel("设置密码", { exact: true }).fill(password);
-    await page.getByLabel("确认密码").fill(password);
-    await page.getByRole("button", { name: "激活账号" }).click();
+    await page.getByLabel("Usuario").fill(username);
+    await page.getByLabel("Nombre", { exact: true }).fill("受邀教师");
+    await page.getByLabel("Definir contraseña", { exact: true }).fill(password);
+    await page.getByLabel("Confirmar contraseña").fill(password);
+    await page.getByRole("button", { name: "Activar cuenta" }).click();
     await expect(page.getByTestId("invite-accept-success")).toBeVisible();
 
     // The new staff account logs in through the real login flow.
     await page.goto(`${BASE_URL}/login`);
-    await page.getByLabel("用户名").fill(username);
-    await page.getByLabel("密码", { exact: true }).fill(password);
-    await page.getByRole("button", { name: "登录", exact: true }).click();
+    await page.getByLabel("Usuario").fill(username);
+    await page.getByLabel("Contraseña", { exact: true }).fill(password);
+    await page.getByRole("button", { name: "Iniciar sesión", exact: true }).click();
     // A Teacher lands on the capability-driven console surface.
     await page.waitForURL(/\/admin\/exams(?:$|[/?#])/, {
       timeout: 15_000,

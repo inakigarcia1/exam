@@ -311,7 +311,7 @@ describe("auth routes", () => {
     expect(response.json()).toMatchObject({
       error: {
         code: "AUTH_INVALID_CREDENTIALS",
-        message: "用户名或密码错误",
+        message: "Usuario o contraseña incorrectos",
         requestId: expect.any(String),
       },
     });
@@ -334,7 +334,7 @@ describe("auth routes", () => {
     expect(meRes.json()).toMatchObject({
       error: {
         code: "AUTH_REQUIRED",
-        message: "请先登录",
+        message: "Inicia sesión",
         requestId: expect.any(String),
       },
     });
@@ -363,7 +363,7 @@ describe("auth routes", () => {
       expect(response.json()).toMatchObject({
         error: {
           code: "AUTH_INVALID_CREDENTIALS",
-          message: "用户名或密码错误",
+          message: "Usuario o contraseña incorrectos",
           requestId: expect.any(String),
         },
       });
@@ -382,7 +382,7 @@ describe("auth routes", () => {
     expect(response.json()).toMatchObject({
       error: {
         code: "VALIDATION_ERROR",
-        message: "请求参数无效",
+        message: "Los datos no son válidos",
         details: {
           fields: expect.arrayContaining([
             expect.objectContaining({
@@ -482,7 +482,7 @@ describe("auth routes", () => {
     expect(res.json()).toMatchObject({
       error: {
         code: "CURRENT_PASSWORD_INVALID",
-        message: "当前密码不正确",
+        message: "La contraseña actual no es correcta",
         requestId: expect.any(String),
       },
     });
@@ -501,7 +501,7 @@ describe("auth routes", () => {
     expect(res.json()).toMatchObject({
       error: {
         code: "AUTH_REQUIRED",
-        message: "请先登录",
+        message: "Inicia sesión",
         requestId: expect.any(String),
       },
     });
@@ -678,7 +678,7 @@ describe("auth routes", () => {
         expect(body).toMatchObject({
           error: {
             code: "AUTH_INVALID_CREDENTIALS",
-            message: "用户名或密码错误",
+            message: "Usuario o contraseña incorrectos",
             requestId: expect.any(String),
           },
         });
@@ -712,7 +712,7 @@ describe("auth routes", () => {
       expect(body).toMatchObject({
         error: {
           code: "AUTH_INVALID_CREDENTIALS",
-          message: "用户名或密码错误",
+          message: "Usuario o contraseña incorrectos",
           requestId: expect.any(String),
         },
       });

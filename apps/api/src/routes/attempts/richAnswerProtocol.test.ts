@@ -229,7 +229,7 @@ describe("rich answer save protocol", () => {
     const body = res.json();
     expect(body.accepted).toBe(false);
     expect(body.reason).toBe("INVALID_ANSWER");
-    expect(body.message).toBe("答案格式不符合此题要求，请检查作答内容");
+    expect(body.message).toBe("La respuesta no tiene el formato de esta pregunta");
     expect(body.serverVersion).toBe(1);
     expect(await draftAnswer(richQId)).toEqual(before);
   });

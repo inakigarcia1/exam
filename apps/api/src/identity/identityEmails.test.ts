@@ -35,7 +35,7 @@ describe("identity email renderers (#297)", () => {
       acceptUrl: `${ORIGIN}/invite/accept?token=abc`,
       expiresInDays: 7,
     });
-    expect(rendered.subject).toContain("邀请");
+    expect(rendered.subject).toContain("Invitación");
     expect(rendered.bodyText).toContain(STAFF_ROLE_LABELS_ZH.Teacher);
     expect(rendered.bodyText).toContain(`${ORIGIN}/invite/accept?token=abc`);
   });
@@ -47,7 +47,7 @@ describe("identity email renderers (#297)", () => {
     });
     // The quotes/angle brackets of the token must not appear raw in HTML.
     expect(rendered.bodyHtml).not.toContain('a"b<c>');
-    expect(rendered.bodyHtml).toContain("60 分钟内有效");
+    expect(rendered.bodyHtml).toContain("60 minutos");
   });
 
   it("renders a zh label for EVERY invitable role with no raw fallback (C6 F-14)", () => {

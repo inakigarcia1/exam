@@ -158,7 +158,7 @@ describe("role geometry", () => {
 
   it("raises the basis of the roles whose header outgrew their value token", () => {
     // Measured defect (census E4): /admin/exams @1440 allocated 84px to a
-    // `number` column whose 参与人数 header needs 88px, rendering 参与人….
+    // `number` column whose Participantes header needs 88px, rendering 参与人….
     // The value floor stays at the value token; the header channel raises the
     // preferred width.
     expect(ROLE_GEOMETRY.number.floor).toBe(VALUE_GEOMETRY.number);

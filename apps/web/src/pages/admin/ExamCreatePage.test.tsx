@@ -127,7 +127,7 @@ beforeEach(() => {
 });
 
 function fillTitle(value: string) {
-  fireEvent.change(screen.getByPlaceholderText("请输入考试名称"), {
+  fireEvent.change(screen.getByPlaceholderText("Ingresa el nombre del examen"), {
     target: { value },
   });
 }
@@ -135,82 +135,82 @@ function fillTitle(value: string) {
 describe("ExamCreatePage wizard — step 1 (basic + profile)", () => {
   it("renders the wizard title and step 1 fields", async () => {
     renderPage();
-    expect(await screen.findByText("创建考试")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("请输入考试名称")).toBeInTheDocument();
+    expect(await screen.findByText("Crear examen")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Ingresa el nombre del examen")).toBeInTheDocument();
     // Profile picker is present on step 1.
     expect(
-      screen.getByRole("combobox", { name: "使用现有模板" }),
+      screen.getByRole("combobox", { name: "Usar plantilla existente" }),
     ).toBeInTheDocument();
   });
 
   it("does NOT surface latent Phase-2 control flags anywhere in the wizard", async () => {
     const user = userEvent.setup();
     renderPage();
-    await screen.findByText("创建考试");
+    await screen.findByText("Crear examen");
     // Step 1, then step 2 (policy fields — where such flags would appear)…
     fillTitle("Flags Exam");
-    await user.click(screen.getByRole("button", { name: /下一步/ }));
-    await screen.findByLabelText("考试时长（分钟）");
+    await user.click(screen.getByRole("button", { name: /Siguiente/ }));
+    await screen.findByLabelText("Duración del examen (minutos)");
     // …then the review step, covering every conditional surface.
     for (let i = 0; i < 2; i++) {
-      await user.click(screen.getByRole("button", { name: /下一步/ }));
+      await user.click(screen.getByRole("button", { name: /Siguiente/ }));
     }
-    fireEvent.change(screen.getByLabelText("开始时间"), {
+    fireEvent.change(screen.getByLabelText("Inicio"), {
       target: { value: "2026-09-01T09:00" },
     });
-    fireEvent.change(screen.getByLabelText("结束时间"), {
+    fireEvent.change(screen.getByLabelText("Fin"), {
       target: { value: "2026-09-01T11:00" },
     });
-    await user.click(screen.getByRole("button", { name: /下一步/ }));
-    await screen.findByText("创建前检查");
+    await user.click(screen.getByRole("button", { name: /Siguiente/ }));
+    await screen.findByText("Revisar antes de crear");
     expect(screen.queryByText(/随机选题/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/排队入场/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Fila de ingreso/)).not.toBeInTheDocument();
     expect(screen.queryByText(/限制访问网络/)).not.toBeInTheDocument();
     expect(screen.queryByText(/要求锁定环境/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/打乱题目顺序/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Mezclar las preguntas/)).not.toBeInTheDocument();
     expect(screen.queryByText(/禁止复制粘贴/)).not.toBeInTheDocument();
   });
 
   it("blocks Next when title is empty and shows a field error", async () => {
     const user = userEvent.setup();
     renderPage();
-    await screen.findByText("创建考试");
-    await user.click(screen.getByRole("button", { name: /下一步/ }));
-    expect(await screen.findByText("请输入考试名称")).toBeInTheDocument();
+    await screen.findByText("Crear examen");
+    await user.click(screen.getByRole("button", { name: /Siguiente/ }));
+    expect(await screen.findByText("Ingresa el nombre del examen")).toBeInTheDocument();
     // Still on step 1.
     expect(apiPost).not.toHaveBeenCalled();
   });
 
-  it("profile select defaults to 不使用模板", async () => {
+  it("profile select defaults to Sin plantilla", async () => {
     renderPage();
-    await screen.findByText("创建考试");
-    // Profile select defaults to __none__ (不使用模板) — no interaction needed.
+    await screen.findByText("Crear examen");
+    // Profile select defaults to __none__ (Sin plantilla) — no interaction needed.
     expect(
-      screen.getByRole("combobox", { name: "使用现有模板" }),
-    ).toHaveTextContent("不使用模板");
+      screen.getByRole("combobox", { name: "Usar plantilla existente" }),
+    ).toHaveTextContent("Sin plantilla");
   });
 });
 
 describe("ExamCreatePage wizard — step 3 (questions + scores)", () => {
   async function goToStep3(user: ReturnType<typeof userEvent.setup>) {
     renderPage();
-    await screen.findByText("创建考试");
+    await screen.findByText("Crear examen");
     fillTitle("Test Exam");
     // Step 1 → 2 (policy) → 3 (questions). Identify step 3 by its unique
     // question-picker button rather than the heading (which also appears in
     // the stepper).
-    await user.click(screen.getByRole("button", { name: /下一步/ }));
-    await user.click(screen.getByRole("button", { name: /下一步/ }));
-    await screen.findByRole("button", { name: "手动选题" });
+    await user.click(screen.getByRole("button", { name: /Siguiente/ }));
+    await user.click(screen.getByRole("button", { name: /Siguiente/ }));
+    await screen.findByRole("button", { name: "Elegir preguntas" });
   }
 
   it("opens the question picker dialog and adds a question", async () => {
     const user = userEvent.setup();
     await goToStep3(user);
-    await user.click(screen.getByRole("button", { name: "手动选题" }));
+    await user.click(screen.getByRole("button", { name: "Elegir preguntas" }));
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByText("2+2=4")).toBeInTheDocument();
-    const addButtons = within(dialog).getAllByRole("button", { name: "添加" });
+    const addButtons = within(dialog).getAllByRole("button", { name: "Agregar" });
     await user.click(addButtons[0]!);
     await waitFor(() => {
       expect(screen.getByText("已选题目 (1)")).toBeInTheDocument();
@@ -220,19 +220,19 @@ describe("ExamCreatePage wizard — step 3 (questions + scores)", () => {
   it("removes a selected question", async () => {
     const user = userEvent.setup();
     await goToStep3(user);
-    await user.click(screen.getByRole("button", { name: "手动选题" }));
+    await user.click(screen.getByRole("button", { name: "Elegir preguntas" }));
     const dialog = await screen.findByRole("dialog");
     await user.click(
-      within(dialog).getAllByRole("button", { name: "添加" })[0]!,
+      within(dialog).getAllByRole("button", { name: "Agregar" })[0]!,
     );
-    await user.click(within(dialog).getByRole("button", { name: "关闭" }));
+    await user.click(within(dialog).getByRole("button", { name: "Cerrar" }));
     await waitFor(() =>
       expect(screen.getByText("已选题目 (1)")).toBeInTheDocument(),
     );
-    await user.click(screen.getByRole("button", { name: "删除题目" }));
+    await user.click(screen.getByRole("button", { name: "Eliminar pregunta" }));
     const confirmDialog = await screen.findByRole("alertdialog");
     await user.click(
-      within(confirmDialog).getByRole("button", { name: "确认" }),
+      within(confirmDialog).getByRole("button", { name: "Confirmar" }),
     );
     await waitFor(() =>
       expect(screen.getByText("已选题目 (0)")).toBeInTheDocument(),
@@ -261,7 +261,7 @@ describe("ExamCreatePage wizard — step 3 (questions + scores)", () => {
     });
     const user = userEvent.setup();
     await goToStep3(user);
-    await user.click(screen.getByRole("button", { name: "手动选题" }));
+    await user.click(screen.getByRole("button", { name: "Elegir preguntas" }));
     const dialog = await screen.findByRole("dialog");
     // Page 1 and page 2 items are both selectable in the picker.
     expect(within(dialog).getByText("2+2=4")).toBeInTheDocument();
@@ -274,64 +274,64 @@ describe("ExamCreatePage wizard — step 3 (questions + scores)", () => {
   it("auto-calculates totalScore from the selected questions (10 + 15 = 25)", async () => {
     const user = userEvent.setup();
     await goToStep3(user);
-    await user.click(screen.getByRole("button", { name: "手动选题" }));
+    await user.click(screen.getByRole("button", { name: "Elegir preguntas" }));
     const dialog = await screen.findByRole("dialog");
     // Add BOTH fixture questions (scores 10 and 15).
-    const addButtons = within(dialog).getAllByRole("button", { name: "添加" });
+    const addButtons = within(dialog).getAllByRole("button", { name: "Agregar" });
     await user.click(addButtons[0]!);
     await user.click(addButtons[1]!);
-    await user.click(within(dialog).getByRole("button", { name: "关闭" }));
-    // Auto mode: the 总分 input shows the sum and the auto-calc hint appears.
+    await user.click(within(dialog).getByRole("button", { name: "Cerrar" }));
+    // Auto mode: the Puntaje total input shows the sum and the auto-calc hint appears.
     // (getByLabelText matches both the section title and the input — scope to
     // the input element.)
     await waitFor(() => {
-      expect(screen.getByLabelText("总分", { selector: "input" })).toHaveValue(
+      expect(screen.getByLabelText("Puntaje total", { selector: "input" })).toHaveValue(
         25,
       );
     });
-    expect(screen.getByText("自动计算：25 分")).toBeInTheDocument();
+    expect(screen.getByText("Cálculo automático：25 分")).toBeInTheDocument();
   });
 
-  it("auto-adjusts the untouched default 及格分 when it exceeds the auto total (born-in-error fix)", async () => {
+  it("auto-adjusts the untouched default Puntaje de aprobación when it exceeds the auto total (born-in-error fix)", async () => {
     const user = userEvent.setup();
     await goToStep3(user);
-    // Default 及格分 is 60; adding questions totaling 25 would leave
-    // passingScore > totalScore, blocking 下一步 with an unexplained error.
-    await user.click(screen.getByRole("button", { name: "手动选题" }));
+    // Default Puntaje de aprobación is 60; adding questions totaling 25 would leave
+    // passingScore > totalScore, blocking Siguiente with an unexplained error.
+    await user.click(screen.getByRole("button", { name: "Elegir preguntas" }));
     const dialog = await screen.findByRole("dialog");
-    const addButtons = within(dialog).getAllByRole("button", { name: "添加" });
+    const addButtons = within(dialog).getAllByRole("button", { name: "Agregar" });
     await user.click(addButtons[0]!);
     await user.click(addButtons[1]!);
-    await user.click(within(dialog).getByRole("button", { name: "关闭" }));
-    // 及格分 follows the auto total down to 60% (25 * 0.6 = 15).
+    await user.click(within(dialog).getByRole("button", { name: "Cerrar" }));
+    // Puntaje de aprobación follows the auto total down to 60% (25 * 0.6 = 15).
     await waitFor(() => {
       expect(
-        screen.getByLabelText("及格分", { selector: "input" }),
+        screen.getByLabelText("Puntaje de aprobación", { selector: "input" }),
       ).toHaveValue(15);
     });
     // The step is no longer born in an error state: no validation message and
-    // 下一步 proceeds to the schedule step.
-    expect(screen.queryByText("及格分不能超过总分")).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /下一步/ }));
-    await screen.findByLabelText("开始时间");
+    // Siguiente proceeds to the schedule step.
+    expect(screen.queryByText("El puntaje de aprobación no puede superar el puntaje total")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Siguiente/ }));
+    await screen.findByLabelText("Inicio");
   });
 
-  it("never overwrites an explicitly edited 及格分", async () => {
+  it("never overwrites an explicitly edited Puntaje de aprobación", async () => {
     const user = userEvent.setup();
     await goToStep3(user);
-    await user.click(screen.getByRole("button", { name: "手动选题" }));
+    await user.click(screen.getByRole("button", { name: "Elegir preguntas" }));
     const dialog = await screen.findByRole("dialog");
-    // User sets 及格分 = 8 BEFORE picking questions.
-    fireEvent.change(screen.getByLabelText("及格分", { selector: "input" }), {
+    // User sets Puntaje de aprobación = 8 BEFORE picking questions.
+    fireEvent.change(screen.getByLabelText("Puntaje de aprobación", { selector: "input" }), {
       target: { value: "8" },
     });
-    const addButtons = within(dialog).getAllByRole("button", { name: "添加" });
+    const addButtons = within(dialog).getAllByRole("button", { name: "Agregar" });
     await user.click(addButtons[0]!);
-    await user.click(within(dialog).getByRole("button", { name: "关闭" }));
+    await user.click(within(dialog).getByRole("button", { name: "Cerrar" }));
     // The explicit value (8) survives question selection (8 <= 25 is valid).
     await waitFor(() => {
       expect(
-        screen.getByLabelText("及格分", { selector: "input" }),
+        screen.getByLabelText("Puntaje de aprobación", { selector: "input" }),
       ).toHaveValue(8);
     });
   });
@@ -341,21 +341,21 @@ describe("ExamCreatePage wizard — no-profile create flow", () => {
   it("creates a draft exam via the review step (no profileId sent)", async () => {
     const user = userEvent.setup();
     renderPage();
-    await screen.findByText("创建考试");
+    await screen.findByText("Crear examen");
     fillTitle("My Exam");
     // 1 → 2 → 3 → 4 (schedule), then fill the schedule, then 4 → 5.
-    await user.click(screen.getByRole("button", { name: /下一步/ }));
-    await user.click(screen.getByRole("button", { name: /下一步/ }));
-    await user.click(screen.getByRole("button", { name: /下一步/ }));
-    fireEvent.change(screen.getByLabelText("开始时间"), {
+    await user.click(screen.getByRole("button", { name: /Siguiente/ }));
+    await user.click(screen.getByRole("button", { name: /Siguiente/ }));
+    await user.click(screen.getByRole("button", { name: /Siguiente/ }));
+    fireEvent.change(screen.getByLabelText("Inicio"), {
       target: { value: "2026-09-01T09:00" },
     });
-    fireEvent.change(screen.getByLabelText("结束时间"), {
+    fireEvent.change(screen.getByLabelText("Fin"), {
       target: { value: "2026-09-01T11:00" },
     });
-    await user.click(screen.getByRole("button", { name: /下一步/ }));
-    await screen.findByText("创建前检查");
-    await user.click(screen.getByRole("button", { name: "创建草稿" }));
+    await user.click(screen.getByRole("button", { name: /Siguiente/ }));
+    await screen.findByText("Revisar antes de crear");
+    await user.click(screen.getByRole("button", { name: "Crear borrador" }));
     await waitFor(() => {
       expect(apiPost).toHaveBeenCalledWith(
         "/api/exams",
@@ -373,7 +373,7 @@ describe("ExamCreatePage wizard — profile path", () => {
   const profile: ExamProfileDTO = {
     id: "p1",
     organizationId: "00000000-0000-0000-0000-000000000001",
-    name: "标准在线考试",
+    name: "Examen en línea estándar",
     description: "",
     timingMode: "timed_window" as const,
     durationMinutes: 90,
@@ -390,38 +390,38 @@ describe("ExamCreatePage wizard — profile path", () => {
     updatedAt: "2026-08-10T00:00:00.000Z",
   };
 
-  it("selecting a profile shows its values in step 2 and '已自定义' after override", async () => {
+  it("selecting a profile shows its values in step 2 and 'Con cambios' after override", async () => {
     apiGet.mockImplementation((path: string) => {
       if (path.includes("/api/exam-profiles")) return [profile];
       return defaultApiGet(path);
     });
     const user = userEvent.setup();
     renderPage();
-    await screen.findByText("创建考试");
+    await screen.findByText("Crear examen");
     fillTitle("Profiled Exam");
     // Select the profile.
-    await user.click(screen.getByRole("combobox", { name: "使用现有模板" }));
+    await user.click(screen.getByRole("combobox", { name: "Usar plantilla existente" }));
     await user.click(
-      await screen.findByRole("option", { name: "标准在线考试" }),
+      await screen.findByRole("option", { name: "Examen en línea estándar" }),
     );
     // COPY-ON-APPLY hint now visible.
     expect(
       screen.getAllByText(/选择模板后，模板中的设置将复制到本次考试/).length,
     ).toBeGreaterThan(0);
     // Go to step 2.
-    await user.click(screen.getByRole("button", { name: /下一步/ }));
-    // Profile duration (90) shown; at least one field badge says 来自「标准在线考试」.
-    const durationInput = screen.getByLabelText("考试时长（分钟）");
+    await user.click(screen.getByRole("button", { name: /Siguiente/ }));
+    // Profile duration (90) shown; at least one field badge says 来自「Examen en línea estándar」.
+    const durationInput = screen.getByLabelText("Duración del examen (minutos)");
     expect(durationInput).toHaveValue(90);
-    expect(screen.getAllByText("来自「标准在线考试」").length).toBeGreaterThan(
+    expect(screen.getAllByText("来自「Examen en línea estándar」").length).toBeGreaterThan(
       0,
     );
-    // Override duration → badge switches to 已自定义 for that field.
+    // Override duration → badge switches to Con cambios for that field.
     fireEvent.change(durationInput, { target: { value: 45 } });
-    expect(screen.getAllByText("已自定义").length).toBeGreaterThan(0);
-    // 恢复模板值 button appears.
+    expect(screen.getAllByText("Con cambios").length).toBeGreaterThan(0);
+    // Volver a la plantilla button appears.
     expect(
-      screen.getByRole("button", { name: "恢复模板值" }),
+      screen.getByRole("button", { name: "Volver a la plantilla" }),
     ).toBeInTheDocument();
   });
 
@@ -432,36 +432,36 @@ describe("ExamCreatePage wizard — profile path", () => {
     });
     const user = userEvent.setup();
     renderPage();
-    await screen.findByText("创建考试");
+    await screen.findByText("Crear examen");
     fillTitle("Profiled Exam 2");
-    await user.click(screen.getByRole("combobox", { name: "使用现有模板" }));
+    await user.click(screen.getByRole("combobox", { name: "Usar plantilla existente" }));
     await user.click(
-      await screen.findByRole("option", { name: "标准在线考试" }),
+      await screen.findByRole("option", { name: "Examen en línea estándar" }),
     );
     // Step 1 → 2.
-    await user.click(screen.getByRole("button", { name: /下一步/ }));
+    await user.click(screen.getByRole("button", { name: /Siguiente/ }));
     // Override duration.
-    fireEvent.change(screen.getByLabelText("考试时长（分钟）"), {
+    fireEvent.change(screen.getByLabelText("Duración del examen (minutos)"), {
       target: { value: 120 },
     });
     // Override latestStartOffsetMinutes → explicit null (clear the field).
-    fireEvent.change(screen.getByLabelText("最晚进入（开考后分钟）"), {
+    fireEvent.change(screen.getByLabelText("Último ingreso (minutos desde el inicio)"), {
       target: { value: "" },
     });
     // Walk to review and create.
     for (let i = 0; i < 3; i++) {
-      await user.click(screen.getByRole("button", { name: /下一步/ }));
+      await user.click(screen.getByRole("button", { name: /Siguiente/ }));
     }
     // Fill schedule.
-    fireEvent.change(screen.getByLabelText("开始时间"), {
+    fireEvent.change(screen.getByLabelText("Inicio"), {
       target: { value: "2026-09-01T09:00" },
     });
-    fireEvent.change(screen.getByLabelText("结束时间"), {
+    fireEvent.change(screen.getByLabelText("Fin"), {
       target: { value: "2026-09-01T11:00" },
     });
-    await user.click(screen.getByRole("button", { name: /下一步/ }));
-    await screen.findByText("创建前检查");
-    await user.click(screen.getByRole("button", { name: "创建草稿" }));
+    await user.click(screen.getByRole("button", { name: /Siguiente/ }));
+    await screen.findByText("Revisar antes de crear");
+    await user.click(screen.getByRole("button", { name: "Crear borrador" }));
     await waitFor(() => {
       expect(apiPost).toHaveBeenCalledWith(
         "/api/exams",
@@ -487,21 +487,21 @@ describe("ExamCreatePage wizard — profile path", () => {
     });
     const user = userEvent.setup();
     renderPage();
-    await screen.findByText("创建考试");
+    await screen.findByText("Crear examen");
     fillTitle("Reset Exam");
-    await user.click(screen.getByRole("combobox", { name: "使用现有模板" }));
+    await user.click(screen.getByRole("combobox", { name: "Usar plantilla existente" }));
     await user.click(
-      await screen.findByRole("option", { name: "标准在线考试" }),
+      await screen.findByRole("option", { name: "Examen en línea estándar" }),
     );
-    await user.click(screen.getByRole("button", { name: /下一步/ }));
-    fireEvent.change(screen.getByLabelText("考试时长（分钟）"), {
+    await user.click(screen.getByRole("button", { name: /Siguiente/ }));
+    fireEvent.change(screen.getByLabelText("Duración del examen (minutos)"), {
       target: { value: 45 },
     });
     // Reset.
-    await user.click(screen.getByRole("button", { name: "恢复模板值" }));
+    await user.click(screen.getByRole("button", { name: "Volver a la plantilla" }));
     // Field reverted to profile value; at least one badge is from template.
-    expect(screen.getByLabelText("考试时长（分钟）")).toHaveValue(90);
-    expect(screen.getAllByText("来自「标准在线考试」").length).toBeGreaterThan(
+    expect(screen.getByLabelText("Duración del examen (minutos)")).toHaveValue(90);
+    expect(screen.getAllByText("来自「Examen en línea estándar」").length).toBeGreaterThan(
       0,
     );
   });
@@ -519,32 +519,32 @@ describe("ExamCreatePage wizard — validation routing", () => {
       }),
     );
     renderPage();
-    await screen.findByText("创建考试");
+    await screen.findByText("Crear examen");
     fillTitle("Bad Schedule");
     // Walk to step 4 with a LOCALLY VALID schedule, so the local gate passes
     // and the POST is actually reached (this test proves server routing).
     for (let i = 0; i < 3; i++) {
-      await user.click(screen.getByRole("button", { name: /下一步/ }));
+      await user.click(screen.getByRole("button", { name: /Siguiente/ }));
     }
-    fireEvent.change(screen.getByLabelText("开始时间"), {
+    fireEvent.change(screen.getByLabelText("Inicio"), {
       target: { value: "2026-09-01T09:00" },
     });
-    fireEvent.change(screen.getByLabelText("结束时间"), {
+    fireEvent.change(screen.getByLabelText("Fin"), {
       target: { value: "2026-09-01T11:00" },
     });
-    await user.click(screen.getByRole("button", { name: /下一步/ }));
+    await user.click(screen.getByRole("button", { name: /Siguiente/ }));
     // On step 5 (review). Submit; the server rejects with a closeAt field error.
-    await screen.findByText("创建前检查");
-    await user.click(screen.getByRole("button", { name: "创建草稿" }));
+    await screen.findByText("Revisar antes de crear");
+    await user.click(screen.getByRole("button", { name: "Crear borrador" }));
     // The UI routes back to step 4 and renders the SERVER's inline field error
     // (distinct copy — it can only have come from the mocked rejection). It
     // appears both inline (FieldError) and in the global save-error banner.
     const serverErrors = await screen.findAllByText(serverMsg);
     expect(serverErrors.length).toBeGreaterThan(0);
-    expect(screen.getByLabelText("开始时间")).toBeInTheDocument();
+    expect(screen.getByLabelText("Inicio")).toBeInTheDocument();
     // Step 5's review heading is gone (queryByRole — getByRole throws on absence).
     expect(
-      screen.queryByRole("heading", { name: "创建前检查" }),
+      screen.queryByRole("heading", { name: "Revisar antes de crear" }),
     ).not.toBeInTheDocument();
   });
 
@@ -554,7 +554,7 @@ describe("ExamCreatePage wizard — validation routing", () => {
     // fields[].message is producer-local compat. Both differ from the
     // Web-catalog semantic the field renders.
     apiPost.mockRejectedValueOnce(
-      Object.assign(new Error("输入内容有误，请检查后重试"), {
+      Object.assign(new Error("Hay datos incorrectos. Revísalos e inténtalo de nuevo."), {
         code: "VALIDATION_ERROR",
         details: {
           fields: [
@@ -569,20 +569,20 @@ describe("ExamCreatePage wizard — validation routing", () => {
       }),
     );
     renderPage();
-    await screen.findByText("创建考试");
+    await screen.findByText("Crear examen");
     fillTitle("Machine Course Error");
     for (let i = 0; i < 3; i++) {
-      await user.click(screen.getByRole("button", { name: /下一步/ }));
+      await user.click(screen.getByRole("button", { name: /Siguiente/ }));
     }
-    fireEvent.change(screen.getByLabelText("开始时间"), {
+    fireEvent.change(screen.getByLabelText("Inicio"), {
       target: { value: "2026-09-01T09:00" },
     });
-    fireEvent.change(screen.getByLabelText("结束时间"), {
+    fireEvent.change(screen.getByLabelText("Fin"), {
       target: { value: "2026-09-01T11:00" },
     });
-    await user.click(screen.getByRole("button", { name: /下一步/ }));
-    await screen.findByText("创建前检查");
-    await user.click(screen.getByRole("button", { name: "创建草稿" }));
+    await user.click(screen.getByRole("button", { name: /Siguiente/ }));
+    await screen.findByText("Revisar antes de crear");
+    await user.click(screen.getByRole("button", { name: "Crear borrador" }));
     // The meaning comes from code+params via the Web catalog ("课程不存在");
     // the mutated server wording must never surface.
     expect(
@@ -590,31 +590,31 @@ describe("ExamCreatePage wizard — validation routing", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText("SERVER COMPAT WORDING")).not.toBeInTheDocument();
     // stepForField routes courseId back to step 1.
-    expect(await screen.findByLabelText("考试名称")).toBeInTheDocument();
+    expect(await screen.findByLabelText("Nombre del examen")).toBeInTheDocument();
   });
 
   it("stepper future steps are disabled — forward validation cannot be bypassed", async () => {
     renderPage();
-    await screen.findByText("创建考试");
-    // On step 1, steps 2–5 are locked; only 下一步 advances.
+    await screen.findByText("Crear examen");
+    // On step 1, steps 2–5 are locked; only Siguiente advances.
     // (Stepper buttons expose an explicit aria-label with a number + label.)
-    expect(screen.getByRole("button", { name: /5 检查并创建/ })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /2 考试策略/ })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /1 基本信息/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /5 Revisar y crear/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /2 Política del examen/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /1 Datos básicos/ })).toBeEnabled();
   });
 
   it("fixed validation errors do not linger as ghosts after re-validation", async () => {
     const user = userEvent.setup();
     renderPage();
-    await screen.findByText("创建考试");
+    await screen.findByText("Crear examen");
     // Trigger the title-required error.
-    await user.click(screen.getByRole("button", { name: /下一步/ }));
-    expect(await screen.findByText("请输入考试名称")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Siguiente/ }));
+    expect(await screen.findByText("Ingresa el nombre del examen")).toBeInTheDocument();
     // Fix the title and advance — the error must be gone (we land on step 2).
     fillTitle("Fixed Title");
-    await user.click(screen.getByRole("button", { name: /下一步/ }));
-    await screen.findByLabelText("考试时长（分钟）");
-    expect(screen.queryByText("请输入考试名称")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Siguiente/ }));
+    await screen.findByLabelText("Duración del examen (minutos)");
+    expect(screen.queryByText("Ingresa el nombre del examen")).not.toBeInTheDocument();
   });
 });
 
@@ -645,28 +645,28 @@ describe("ExamCreatePage wizard — interruption policy override semantics", () 
     });
     const user = userEvent.setup();
     renderPage();
-    await screen.findByText("创建考试");
+    await screen.findByText("Crear examen");
     fillTitle("Strict Exam");
-    await user.click(screen.getByRole("combobox", { name: "使用现有模板" }));
+    await user.click(screen.getByRole("combobox", { name: "Usar plantilla existente" }));
     await user.click(await screen.findByRole("option", { name: "宽限模板" }));
     // Step 1 → 2.
-    await user.click(screen.getByRole("button", { name: /下一步/ }));
-    // Switch policy from bounded_grace to strict (不补时).
-    await user.click(screen.getByRole("combobox", { name: "中断恢复策略" }));
-    await user.click(await screen.findByRole("option", { name: "不补时" }));
+    await user.click(screen.getByRole("button", { name: /Siguiente/ }));
+    // Switch policy from bounded_grace to strict (Sin tiempo extra).
+    await user.click(screen.getByRole("combobox", { name: "Política si se interrumpe" }));
+    await user.click(await screen.findByRole("option", { name: "Sin tiempo extra" }));
     // Walk to review and create.
     for (let i = 0; i < 3; i++) {
-      await user.click(screen.getByRole("button", { name: /下一步/ }));
+      await user.click(screen.getByRole("button", { name: /Siguiente/ }));
     }
-    fireEvent.change(screen.getByLabelText("开始时间"), {
+    fireEvent.change(screen.getByLabelText("Inicio"), {
       target: { value: "2026-09-01T09:00" },
     });
-    fireEvent.change(screen.getByLabelText("结束时间"), {
+    fireEvent.change(screen.getByLabelText("Fin"), {
       target: { value: "2026-09-01T11:00" },
     });
-    await user.click(screen.getByRole("button", { name: /下一步/ }));
-    await screen.findByText("创建前检查");
-    await user.click(screen.getByRole("button", { name: "创建草稿" }));
+    await user.click(screen.getByRole("button", { name: /Siguiente/ }));
+    await screen.findByText("Revisar antes de crear");
+    await user.click(screen.getByRole("button", { name: "Crear borrador" }));
     await waitFor(() => {
       expect(apiPost).toHaveBeenCalledWith(
         "/api/exams",

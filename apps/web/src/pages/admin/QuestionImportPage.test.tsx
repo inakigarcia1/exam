@@ -100,13 +100,13 @@ describe("QuestionImportPage", () => {
 
   it("shows error state when courses API fails", async () => {
     renderPage(() => Promise.reject(new Error("network")));
-    expect(await screen.findByText("加载课程列表失败")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /重试/ })).toBeInTheDocument();
+    expect(await screen.findByText("No se pudo cargar la lista de comisiones")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Reintentar/ })).toBeInTheDocument();
   });
 
   it("renders import page with course selector and download button", async () => {
     renderPage();
-    expect(await screen.findByText("导入题目")).toBeInTheDocument();
-    expect(screen.getByText("下载模板")).toBeInTheDocument();
+    expect(await screen.findByText("Importar preguntas")).toBeInTheDocument();
+    expect(screen.getByText("Descargar plantilla")).toBeInTheDocument();
   });
 });

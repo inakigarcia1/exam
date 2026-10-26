@@ -11,7 +11,7 @@ export interface ProductDateTimeFormatter {
   formatDuration: typeof formatDuration;
 }
 
-const PRODUCT_LOCALE = "zh-CN";
+const PRODUCT_LOCALE = "es";
 
 function browserTimeZone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";

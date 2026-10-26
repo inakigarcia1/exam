@@ -23,9 +23,9 @@ describe("BrandProvider", () => {
         <BrandingDisplay />
       </BrandProvider>,
     );
-    expect(screen.getByTestId("name").textContent).toBe("考试平台");
+    expect(screen.getByTestId("name").textContent).toBe("Aki");
     expect(screen.getByTestId("subtitle").textContent).toBe(
-      "内部考核与准入控制",
+      "Evaluaciones internas y control de acceso",
     );
   });
 

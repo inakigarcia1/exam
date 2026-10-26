@@ -29,19 +29,19 @@ describe("RowActions representation contract", () => {
   it("renders every action inline when N ≤ 2 (icon-only, aria-label)", () => {
     const onSelect = vi.fn();
     renderActions([
-      decl({ id: "edit", label: "编辑", onSelect }),
-      decl({ id: "delete", label: "删除", icon: Trash2 }),
+      decl({ id: "edit", label: "Editar", onSelect }),
+      decl({ id: "delete", label: "Eliminar", icon: Trash2 }),
     ]);
     const group = screen.getByRole("group");
-    expect(screen.getByRole("button", { name: "编辑" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "删除" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Editar" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Eliminar" })).toBeInTheDocument();
     // Inline vocabulary is icon-only: no button carries visible text.
     const buttons = group.querySelectorAll("button");
     expect(buttons).toHaveLength(2);
     buttons.forEach((b) => expect(b.textContent).toBe(""));
     // No kebab menu trigger exists.
     expect(
-      screen.queryByRole("button", { name: "更多操作" }),
+      screen.queryByRole("button", { name: "Más acciones" }),
     ).not.toBeInTheDocument();
   });
 
@@ -49,16 +49,16 @@ describe("RowActions representation contract", () => {
     const user = userEvent.setup();
     const onReset = vi.fn();
     renderActions([
-      decl({ id: "edit", label: "编辑" }),
+      decl({ id: "edit", label: "Editar" }),
       decl({
         id: "reset",
-        label: "重置密码",
+        label: "Restablecer contraseña",
         icon: KeyRound,
         onSelect: onReset,
       }),
       decl({
         id: "disable",
-        label: "禁用",
+        label: "Desactivar",
         tone: "destructive",
         confirm: { title: "禁用用户", description: "确定禁用该用户吗？" },
       }),
@@ -66,23 +66,23 @@ describe("RowActions representation contract", () => {
 
     // Primary (first declared) stays inline; the only other inline control is
     // the kebab icon button.
-    expect(screen.getByRole("button", { name: "编辑" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Editar" })).toBeInTheDocument();
     const group = screen.getByRole("group");
     expect(group.querySelectorAll("button")).toHaveLength(2);
 
-    await user.click(screen.getByRole("button", { name: "更多操作" }));
+    await user.click(screen.getByRole("button", { name: "Más acciones" }));
     expect(
-      await screen.findByRole("menuitem", { name: "重置密码" }),
+      await screen.findByRole("menuitem", { name: "Restablecer contraseña" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: "禁用" })).toHaveAttribute(
+    expect(screen.getByRole("menuitem", { name: "Desactivar" })).toHaveAttribute(
       "data-variant",
       "destructive",
     );
     expect(
-      screen.queryByRole("menuitem", { name: "编辑" }),
+      screen.queryByRole("menuitem", { name: "Editar" }),
     ).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("menuitem", { name: "重置密码" }));
+    await user.click(screen.getByRole("menuitem", { name: "Restablecer contraseña" }));
     await waitFor(() => expect(onReset).toHaveBeenCalledWith({ id: "r1" }));
   });
 
@@ -97,7 +97,7 @@ describe("RowActions representation contract", () => {
     expect(
       screen.queryByRole("button", { name: "甲" }),
     ).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "更多操作" }));
+    await user.click(screen.getByRole("button", { name: "Más acciones" }));
     expect(
       await screen.findByRole("menuitem", { name: "甲" }),
     ).toBeInTheDocument();
@@ -117,7 +117,7 @@ describe("RowActions representation contract", () => {
     rerender(<RowActions actions={base.slice(0, 2)} row={{ id: "r1" }} />);
     expect(screen.getAllByRole("button")).toHaveLength(2);
     expect(
-      screen.queryByRole("button", { name: "更多操作" }),
+      screen.queryByRole("button", { name: "Más acciones" }),
     ).not.toBeInTheDocument();
 
     rerender(<RowActions actions={base} row={{ id: "r1" }} />);
@@ -126,9 +126,9 @@ describe("RowActions representation contract", () => {
     const [first] = group.querySelectorAll("button");
     expect(first).toHaveAttribute("data-action-id", "a");
     expect(
-      screen.getByRole("button", { name: "更多操作" }),
+      screen.getByRole("button", { name: "Más acciones" }),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "更多操作" }));
+    await user.click(screen.getByRole("button", { name: "Más acciones" }));
     const items = await screen.findAllByRole("menuitem");
     expect(items.map((i) => i.getAttribute("data-action-id"))).toEqual([
       "b",
@@ -142,14 +142,14 @@ describe("RowActions representation contract", () => {
     // width is derived from).
     const user = userEvent.setup();
     renderActions([
-      decl({ id: "edit", label: "编辑" }),
-      decl({ id: "reset", label: "重置密码", icon: KeyRound }),
-      decl({ id: "disable", label: "禁用", disabled: true }),
+      decl({ id: "edit", label: "Editar" }),
+      decl({ id: "reset", label: "Restablecer contraseña", icon: KeyRound }),
+      decl({ id: "disable", label: "Desactivar", disabled: true }),
     ]);
     const group = screen.getByRole("group");
     expect(group.querySelectorAll("button")).toHaveLength(2);
-    await user.click(screen.getByRole("button", { name: "更多操作" }));
-    const disableItem = await screen.findByRole("menuitem", { name: "禁用" });
+    await user.click(screen.getByRole("button", { name: "Más acciones" }));
+    const disableItem = await screen.findByRole("menuitem", { name: "Desactivar" });
     expect(disableItem).toHaveAttribute("aria-disabled", "true");
     expect(disableItem).toHaveAttribute("data-action-id", "disable");
   });
@@ -171,9 +171,9 @@ describe("RowActions representation contract", () => {
         screen.queryByRole("button", { name: "动作1" }),
       ).not.toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "更多操作" }),
+        screen.getByRole("button", { name: "Más acciones" }),
       ).toBeInTheDocument();
-      await user.click(screen.getByRole("button", { name: "更多操作" }));
+      await user.click(screen.getByRole("button", { name: "Más acciones" }));
       // Every non-primary action is reachable in the kebab.
       const items = await screen.findAllByRole("menuitem");
       expect(items).toHaveLength(n - 1);
@@ -186,16 +186,16 @@ describe("RowActions representation contract", () => {
       renderActions([
         decl({
           id: "view",
-          label: "查看",
+          label: "Ver",
           disabled: { reason: "考试未结束，暂不可查看" },
         }),
       ]);
       const anchor = screen
         .getByRole("group")
         .querySelector("span[tabindex]") as HTMLElement | null;
-      expect(anchor).toHaveAttribute("aria-label", "查看");
+      expect(anchor).toHaveAttribute("aria-label", "Ver");
       expect(anchor?.getAttribute("tabIndex")).toBe("0");
-      expect(screen.getByRole("button", { name: "查看" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Ver" })).toBeDisabled();
       // The reason is reachable from the keyboard: focusing the anchor opens
       // the tooltip that carries the authoritative text (Radix also renders a
       // visually-hidden sr-only copy, so scope to the visible content slot).
@@ -222,23 +222,23 @@ describe("RowActions disabled reason accessibility", () => {
     const onReset = vi.fn();
     const reason = "考试未结束，暂不可重置";
     renderActions([
-      decl({ id: "edit", label: "编辑" }),
+      decl({ id: "edit", label: "Editar" }),
       decl({
         id: "reset",
-        label: "重置密码",
+        label: "Restablecer contraseña",
         icon: KeyRound,
         disabled: { reason },
         onSelect: onReset,
       }),
-      decl({ id: "view", label: "查看" }),
+      decl({ id: "view", label: "Ver" }),
     ]);
 
     // Open the kebab with the keyboard.
-    screen.getByRole("button", { name: "更多操作" }).focus();
+    screen.getByRole("button", { name: "Más acciones" }).focus();
     await user.keyboard("{Enter}");
 
     // The disabled action is present in the menu and cannot be activated.
-    const item = await screen.findByRole("menuitem", { name: /重置密码/ });
+    const item = await screen.findByRole("menuitem", { name: /Restablecer contraseña/ });
     expect(item).toHaveAttribute("aria-disabled", "true");
     fireEvent.click(item);
     expect(onReset).not.toHaveBeenCalled();
@@ -258,19 +258,19 @@ describe("RowActions disabled reason accessibility", () => {
     const reason = "考试未结束，暂不可查看";
     const viewAction = decl({
       id: "view",
-      label: "查看成绩",
+      label: "Ver calificación",
       disabled: { reason },
       onSelect: onView,
     });
-    const editAction = decl({ id: "edit", label: "编辑" });
+    const editAction = decl({ id: "edit", label: "Editar" });
 
     // N=2 → inline: same declaration renders as a disabled icon button whose
     // reason stays reachable through the focusable tooltip anchor.
     const { rerender } = renderActions([viewAction, editAction]);
-    expect(screen.getByRole("button", { name: "查看成绩" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Ver calificación" })).toBeDisabled();
     expect(
       screen.getByRole("group").querySelector("span[tabindex]"),
-    ).toHaveAttribute("aria-label", "查看成绩");
+    ).toHaveAttribute("aria-label", "Ver calificación");
 
     // N=3 → overflow: label, disabled state and reason survive the move into
     // the kebab, and the action still cannot be activated. The non-disabled
@@ -281,13 +281,13 @@ describe("RowActions disabled reason accessibility", () => {
         actions={[
           editAction,
           viewAction,
-          decl({ id: "reset", label: "重置密码", icon: KeyRound }),
+          decl({ id: "reset", label: "Restablecer contraseña", icon: KeyRound }),
         ]}
         row={{ id: "r1" }}
       />,
     );
-    await user.click(screen.getByRole("button", { name: "更多操作" }));
-    const item = await screen.findByRole("menuitem", { name: /查看成绩/ });
+    await user.click(screen.getByRole("button", { name: "Más acciones" }));
+    const item = await screen.findByRole("menuitem", { name: /Ver calificación/ });
     expect(item).toHaveAttribute("aria-disabled", "true");
     expect(screen.getByText(reason)).toBeVisible();
     fireEvent.click(item);
@@ -302,22 +302,22 @@ describe("RowActions confirmation semantics", () => {
     renderActions([
       decl({
         id: "delete",
-        label: "删除",
+        label: "Eliminar",
         icon: Trash2,
         tone: "destructive",
         confirm: {
-          title: "删除课程",
+          title: "Eliminar comisión",
           description: "确定删除该课程吗？",
           destructive: true,
         },
         onSelect: onDelete,
       }),
     ]);
-    await user.click(screen.getByRole("button", { name: "删除" }));
-    expect(await screen.findByText("删除课程")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Eliminar" }));
+    expect(await screen.findByText("Eliminar comisión")).toBeInTheDocument();
     expect(onDelete).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole("button", { name: "确认" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar" }));
     await waitFor(() => expect(onDelete).toHaveBeenCalledWith({ id: "r1" }));
   });
 
@@ -325,23 +325,23 @@ describe("RowActions confirmation semantics", () => {
     const user = userEvent.setup();
     const onDelete = vi.fn();
     renderActions([
-      decl({ id: "edit", label: "编辑" }),
-      decl({ id: "reset", label: "重置密码", icon: KeyRound }),
+      decl({ id: "edit", label: "Editar" }),
+      decl({ id: "reset", label: "Restablecer contraseña", icon: KeyRound }),
       decl({
         id: "delete",
-        label: "删除",
+        label: "Eliminar",
         icon: Trash2,
         tone: "destructive",
-        confirm: { title: "删除字段", description: "确定删除该字段吗？" },
+        confirm: { title: "Eliminar campo", description: "确定删除该字段吗？" },
         onSelect: onDelete,
       }),
     ]);
-    await user.click(screen.getByRole("button", { name: "更多操作" }));
-    await user.click(await screen.findByRole("menuitem", { name: "删除" }));
-    expect(await screen.findByText("删除字段")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Más acciones" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Eliminar" }));
+    expect(await screen.findByText("Eliminar campo")).toBeInTheDocument();
     expect(onDelete).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole("button", { name: "确认" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar" }));
     await waitFor(() => expect(onDelete).toHaveBeenCalledWith({ id: "r1" }));
   });
 });

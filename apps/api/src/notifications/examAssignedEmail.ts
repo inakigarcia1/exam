@@ -35,20 +35,20 @@ export function renderExamAssignedEmail(
   const examTitle = payload.examTitle;
   const link = payload.listUrl;
   // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-  const subject = "考试已安排";
+  const subject = "Te asignaron un examen";
   const bodyText =
     // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-    `您已被安排参加考试「${examTitle}」，请进入考试列表查看详情。\n` +
+    `Te asignaron el examen «${examTitle}».\n` +
     // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-    `请登录考试平台查看：${link}\n\n` +
+    `Entra a la lista en Aki: ${link}\n\n` +
     // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-    `（本邮件由系统自动发送，请勿直接回复。）`;
+    `(Mensaje automático. No respondas.)`;
   const bodyHtml =
     // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-    `<p>您已被安排参加考试「${escapeEmailHtml(examTitle)}」，请进入考试列表查看详情。</p>` +
+    `<p>Te asignaron el examen «${escapeEmailHtml(examTitle)}».</p>` +
     // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-    `<p><a href="${escapeEmailHtml(link)}">查看考试列表</a></p>` +
+    `<p><a href="${escapeEmailHtml(link)}">Ver la lista de exámenes</a></p>` +
     // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-    `<p style="color:#888;font-size:12px;">本邮件由系统自动发送，请勿直接回复。</p>`;
+    `<p style="color:#888;font-size:12px;">Mensaje automático. No respondas.</p>`;
   return { subject, bodyText, bodyHtml };
 }

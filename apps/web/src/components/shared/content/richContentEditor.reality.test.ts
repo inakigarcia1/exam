@@ -277,7 +277,7 @@ describe("restore control — a reloaded document never opens with the atom sele
         docVersion: 1,
         type: "doc",
         content: [
-          { type: "paragraph", content: [{ type: "text", text: "已保存" }] },
+          { type: "paragraph", content: [{ type: "text", text: "Guardado" }] },
           { type: "blockMath", latex: "x^2" },
         ],
       }),
@@ -1156,7 +1156,7 @@ describe("C14 table-cell math fidelity — cell blockMath survives as math", () 
 
 describe("C14 fresh-context clamp — confirm-time context decides the persisted node type", () => {
   /**
-   * The formula dialog disables 独立显示 from an OPEN-TIME context snapshot
+   * The formula dialog disables En bloque from an OPEN-TIME context snapshot
    * (blockAllowed), but the context can change while the dialog is open
    * (authoritative replacement / restore), and the confirm path re-derives
    * the context from the live editor. The persisted node type must come from
@@ -1209,7 +1209,7 @@ describe("C14 fresh-context clamp — confirm-time context decides the persisted
     ],
   };
 
-  it("confirming 独立显示 with the caret in a list item writes INLINE math into the item", () => {
+  it("confirming En bloque with the caret in a list item writes INLINE math into the item", () => {
     const editor = createEditor(listDoc);
     editor.commands.setTextSelection(5); // caret at the end of 步骤
     // The dialog passes the user's RAW choice when its open-time snapshot
@@ -1232,7 +1232,7 @@ describe("C14 fresh-context clamp — confirm-time context decides the persisted
     editor.destroy();
   });
 
-  it("confirming 独立显示 with the caret in a table cell writes INLINE math into the cell", () => {
+  it("confirming En bloque with the caret in a table cell writes INLINE math into the cell", () => {
     const editor = createEditor(tableDoc);
     editor.commands.setTextSelection(5); // caret at the end of 格
     applyFormulaEdit(editor, null, LATEX, true);
@@ -1252,7 +1252,7 @@ describe("C14 fresh-context clamp — confirm-time context decides the persisted
     editor.destroy();
   });
 
-  it("行内 confirms are untouched by the clamp — inline math lands in the list item", () => {
+  it("En línea confirms are untouched by the clamp — inline math lands in the list item", () => {
     const editor = createEditor(listDoc);
     editor.commands.setTextSelection(5);
     applyFormulaEdit(editor, null, LATEX, false);
@@ -1306,7 +1306,7 @@ describe("C14 fresh-context clamp — confirm-time context decides the persisted
 
   it("re-edit follows the TARGET's context: a formula inside a list item stays inline while the caret sits at top level", () => {
     // Stale-context shape: the dialog opened on the atom (open-time snapshot
-    // allowed 独立显示), then an authoritative replacement relocated the SAME
+    // allowed En bloque), then an authoritative replacement relocated the SAME
     // inlineMath (same pos, same latex) into a list item while re-anchoring
     // the selection to a top-level paragraph. The caret says "top level",
     // the target's ancestry says "list" — the target decides.
@@ -1362,7 +1362,7 @@ describe("C14 fresh-context clamp — confirm-time context decides the persisted
 
   it("re-edit follows the TARGET's context: a top-level formula converts to block math while the caret sits inside a list item", () => {
     // Inverse decoy: the caret is parked INSIDE the list while the TARGET
-    // sits at top level. A caret-based clamp would wrongly disable 独立显示
+    // sits at top level. A caret-based clamp would wrongly disable En bloque
     // document-wide — the target's ancestry is what allows the conversion.
     const editor = createEditor({
       type: "doc",

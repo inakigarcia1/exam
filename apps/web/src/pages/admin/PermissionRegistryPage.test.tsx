@@ -162,7 +162,7 @@ describe("PermissionRegistryPage", () => {
       1,
     );
     // Category grouping headings render from i18n (catalog card + matrix header).
-    expect(screen.getAllByText("考试生命周期").length).toBeGreaterThanOrEqual(
+    expect(screen.getAllByText("Ciclo del examen").length).toBeGreaterThanOrEqual(
       1,
     );
   });
@@ -172,8 +172,8 @@ describe("PermissionRegistryPage", () => {
     await screen.findAllByText("exam.publish");
     // Assignable roles are columns (Teacher shown); System is NOT assignable
     // and must not be a column.
-    expect(screen.getByText("教师")).toBeInTheDocument();
-    expect(screen.queryByText("系统")).toBeNull();
+    expect(screen.getByText("Docente")).toBeInTheDocument();
+    expect(screen.queryByText("Sistema")).toBeNull();
   });
 
   it("renders effective authority and its assignments for a selected user", async () => {
@@ -181,7 +181,7 @@ describe("PermissionRegistryPage", () => {
     renderPage();
     await screen.findAllByText("exam.publish");
 
-    await user.click(screen.getByRole("combobox", { name: /选择员工用户/ }));
+    await user.click(screen.getByRole("combobox", { name: /Elegir usuario del personal/ }));
     await user.click(await screen.findByRole("option", { name: "Alice" }));
 
     // The primary role badge + assignment row role are both "Teacher".
@@ -195,6 +195,6 @@ describe("PermissionRegistryPage", () => {
     // The capability list carries the eligibility-vs-resource-reach caveat.
     expect(screen.getByText(/scope assignment/)).toBeInTheDocument();
     // The assignment is displayed alongside, not as a per-capability source.
-    expect(screen.getByText("主角色")).toBeInTheDocument();
+    expect(screen.getByText("Rol principal")).toBeInTheDocument();
   });
 });

@@ -447,7 +447,7 @@ const SettleMathSelectionAfterOperation = Extension.create({
 });
 
 /**
- * Whether a 独立显示 (blockMath) atom can PERSIST at a resolved position:
+ * Whether a En bloque (blockMath) atom can PERSIST at a resolved position:
  * inside a list item or a table the canonical adapter silently downgrades it
  * to inline math, so writing one there would diverge candidate-visible
  * semantics from persisted semantics (C14). tableRow/tableCell/tableHeader
@@ -528,10 +528,10 @@ export function applyFormulaEdit(
       }
       return;
     }
-    // 行内 ↔ 独立显示 conversion: different node types, so the atom is
+    // En línea ↔ En bloque conversion: different node types, so the atom is
     // replaced in place, then the operation settlement re-runs — the
     // replacement atom is operation-produced (#676 guard). A clamped
-    // 独立显示 converts the existing blockMath to inline math in place.
+    // En bloque converts the existing blockMath to inline math in place.
     editor
       .chain()
       .insertContentAt(

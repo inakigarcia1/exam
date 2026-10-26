@@ -162,9 +162,9 @@ async function openRichEditor(
 async function insertVisualFormula(
   page: Page,
   latexTyped: string,
-  mode: "行内" | "独立显示" | null,
+  mode: "En línea" | "En bloque" | null,
 ): Promise<void> {
-  await page.getByRole("button", { name: "公式" }).click();
+  await page.getByRole("button", { name: "Fórmula" }).click();
   const dialog = page.getByTestId("formula-dialog");
   await dialog.waitFor({ state: "visible" });
   const field = dialog.locator("math-field");
@@ -213,7 +213,7 @@ test.describe("candidate rich editor browser boundaries", () => {
     await editor.click();
     await p.keyboard.type("基底。", { delay: 12 });
     await p.keyboard.press("Enter");
-    await p.getByRole("button", { name: "表格" }).click();
+    await p.getByRole("button", { name: "Tabla" }).click();
     await p.waitForTimeout(400);
     await p.keyboard.type("甲", { delay: 12 });
     await waitForSaveSaved(p);
@@ -287,7 +287,7 @@ test.describe("candidate rich editor browser boundaries", () => {
 
     await editor.click();
     await p.keyboard.type("第一项");
-    await p.getByRole("button", { name: "无序列表" }).click();
+    await p.getByRole("button", { name: "Lista con viñetas" }).click();
 
     // FIRST/only item: Tab is illegal for a sink — it must be swallowed
     // instead of moving focus out of the editor (the #677 F4 escape).
@@ -326,7 +326,7 @@ test.describe("candidate rich editor browser boundaries", () => {
 
     await editor.click();
     await p.keyboard.type("重编辑：");
-    await insertVisualFormula(p, "x^2+y^2", "行内");
+    await insertVisualFormula(p, "x^2+y^2", "En línea");
     await waitForSaveSaved(p);
 
     // Reload BEFORE the first re-edit. The same-session re-edit path masks an

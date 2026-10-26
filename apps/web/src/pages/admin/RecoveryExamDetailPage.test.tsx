@@ -100,26 +100,26 @@ describe("RecoveryExamDetailPage", () => {
     expect(
       (await screen.findAllByText("网络恢复考试")).length,
     ).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText(/定时窗口/)).toBeInTheDocument();
-    expect(screen.getByText(/关闭时间/)).toBeInTheDocument();
+    expect(screen.getByText(/Ventana con límite/)).toBeInTheDocument();
+    expect(screen.getByText(/Cierre/)).toBeInTheDocument();
   });
 
   it("renders incident counts by status and severity", async () => {
     renderPage();
-    expect(await screen.findByText(/事件总数/)).toBeInTheDocument();
+    expect(await screen.findByText(/Total de incidentes/)).toBeInTheDocument();
     // byStatus: open=1, investigating=1 (labels render twice — count badge +
     // section row; assert via within-free text with getAllBy).
     expect(screen.getByText("2")).toBeInTheDocument();
     // Severity counts are rendered as label + number pairs.
-    expect(screen.getAllByText("严重").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("轻微").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Crítico").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Leve").length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders recent incidents as navigation stubs to the incident page", async () => {
     renderPage();
-    expect(await screen.findByText("网络中断")).toBeInTheDocument();
-    expect(screen.getByText("设备故障")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "网络中断" })).toHaveAttribute(
+    expect(await screen.findByText("Corte de red")).toBeInTheDocument();
+    expect(screen.getByText("Falla del equipo")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Corte de red" })).toHaveAttribute(
       "href",
       "/admin/recovery/incidents/incident-1",
     );
@@ -149,13 +149,13 @@ describe("RecoveryExamDetailPage", () => {
       (await screen.findAllByText("网络恢复考试")).length,
     ).toBeGreaterThanOrEqual(1);
     expect(await screen.findByText("监考李四")).toBeInTheDocument();
-    expect(await screen.findByText("网络中断")).toBeInTheDocument();
+    expect(await screen.findByText("Corte de red")).toBeInTheDocument();
     // …but the mutation affordances are gone and nothing fires.
     expect(
-      screen.queryByRole("button", { name: "指派监考" }),
+      screen.queryByRole("button", { name: "Asignar supervisor" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "撤销监考" }),
+      screen.queryByRole("button", { name: "Revocar supervisor" }),
     ).not.toBeInTheDocument();
     expect(postMock).not.toHaveBeenCalled();
   });
@@ -163,9 +163,9 @@ describe("RecoveryExamDetailPage", () => {
   it("assigns a proctor with operationId + userId and reloads", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "指派监考" }));
-    await user.type(screen.getByLabelText("监考用户 ID"), "proctor-2");
-    await user.click(screen.getByRole("button", { name: "指派监考" }));
+    await user.click(await screen.findByRole("button", { name: "Asignar supervisor" }));
+    await user.type(screen.getByLabelText("ID del supervisor"), "proctor-2");
+    await user.click(screen.getByRole("button", { name: "Asignar supervisor" }));
 
     expect(postMock).toHaveBeenCalledTimes(1);
     const [url, body] = postMock.mock.calls[0]! as unknown as [
@@ -184,23 +184,23 @@ describe("RecoveryExamDetailPage", () => {
   it("blocks proctor assign until a userId is entered", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "指派监考" }));
-    await user.click(screen.getByRole("button", { name: "指派监考" }));
+    await user.click(await screen.findByRole("button", { name: "Asignar supervisor" }));
+    await user.click(screen.getByRole("button", { name: "Asignar supervisor" }));
     expect(postMock).not.toHaveBeenCalled();
-    expect(screen.getByText("请输入监考用户 ID")).toBeInTheDocument();
+    expect(screen.getByText("Ingresa el ID del supervisor")).toBeInTheDocument();
   });
 
   it("revokes a proctor with operationId after destructive confirmation", async () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByText("监考李四");
-    await user.click(screen.getByRole("button", { name: "撤销监考" }));
+    await user.click(screen.getByRole("button", { name: "Revocar supervisor" }));
 
     // Destructive confirmation names the proctor + exam.
     expect(
-      screen.getByText(/撤销 监考李四 对考试「网络恢复考试」的监考权限/),
+      screen.getByText(/Deshacer 监考李四 对考试「网络恢复考试」的监考权限/),
     ).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "确认撤销" }));
+    await user.click(screen.getByRole("button", { name: "Confirmar revocación" }));
 
     expect(postMock).toHaveBeenCalledTimes(1);
     const [url, body] = postMock.mock.calls[0]! as unknown as [
@@ -221,8 +221,8 @@ describe("RecoveryExamDetailPage", () => {
 
   it("provides a queue link filtered by this exam", async () => {
     renderPage();
-    expect(await screen.findByText("在队列中查看")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /在队列中查看/ })).toHaveAttribute(
+    expect(await screen.findByText("Ver en la cola")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Ver en la cola/ })).toHaveAttribute(
       "href",
       "/admin/recovery?examId=exam-1",
     );
@@ -231,10 +231,10 @@ describe("RecoveryExamDetailPage", () => {
   it("shows not-found for 404 and retry works", async () => {
     getMock.mockRejectedValueOnce(new ApiError(404, "Not found"));
     renderPage();
-    expect(await screen.findByText("未找到该考试")).toBeInTheDocument();
+    expect(await screen.findByText("No se encontró este examen")).toBeInTheDocument();
 
     getMock.mockResolvedValue(mockExamContext);
-    await userEvent.setup().click(screen.getByText("重试"));
+    await userEvent.setup().click(screen.getByText("Reintentar"));
     expect(
       (await screen.findAllByText("网络恢复考试")).length,
     ).toBeGreaterThanOrEqual(1);
@@ -254,18 +254,18 @@ describe("RecoveryExamDetailPage", () => {
 
     // Manual refresh fails while data is on screen (503 → unavailable).
     getMock.mockRejectedValueOnce(new ApiError(503, "unavailable"));
-    await userEvent.setup().click(screen.getByRole("button", { name: "刷新" }));
+    await userEvent.setup().click(screen.getByRole("button", { name: "Actualizar" }));
 
     // Old data stays visible, the failure is an INLINE banner (not a
     // full-screen ErrorState — no retry button, no data swap).
     expect(
-      await screen.findByText("恢复数据暂不可用，请稍后重试。"),
+      await screen.findByText("Los datos de recuperación no están disponibles. Inténtalo más tarde."),
     ).toBeInTheDocument();
     expect(screen.getAllByText("网络恢复考试").length).toBeGreaterThanOrEqual(
       1,
     );
     expect(
-      screen.queryByRole("button", { name: "重试" }),
+      screen.queryByRole("button", { name: "Reintentar" }),
     ).not.toBeInTheDocument();
   });
 });

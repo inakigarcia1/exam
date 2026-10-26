@@ -206,7 +206,7 @@ export async function seedDemo(
     .values({
       id: settingsId,
       organizationId: ids.orgId,
-      productName: "考试平台",
+      productName: "Aki",
       productSubtitle: "可靠的内网考试系统",
       footerText: "© 当前部署",
       organizationDisplayName: "考试中心",
@@ -217,7 +217,7 @@ export async function seedDemo(
     .onConflictDoUpdate({
       target: schema.organizationSettings.organizationId,
       set: {
-        productName: "考试平台",
+        productName: "Aki",
         productSubtitle: "可靠的内网考试系统",
         footerText: "© 当前部署",
         organizationDisplayName: "考试中心",
@@ -273,7 +273,7 @@ export async function seedDemo(
 
   // ── Users ─────────────────────────────────────────────────────
   const userDefs = [
-    { username: "admin", name: "管理员", role: "Admin" as const },
+    { username: "admin", name: "Administrador", role: "Admin" as const },
     { username: "candidate1", name: "考生甲", role: "Candidate" as const },
     { username: "candidate2", name: "考生乙", role: "Candidate" as const },
     { username: "candidate3", name: "考生丙", role: "Candidate" as const },
@@ -525,8 +525,8 @@ export async function seedDemo(
       type: "true_false" as const,
       content: "发生火灾时应乘坐电梯逃生",
       options: [
-        { id: "T", content: "正确", isCorrect: false },
-        { id: "F", content: "错误", isCorrect: true },
+        { id: "T", content: "Correcto", isCorrect: false },
+        { id: "F", content: "Incorrecto", isCorrect: true },
       ],
       standardAnswer: false,
       score: 3,
@@ -582,9 +582,9 @@ export async function seedDemo(
       content: "以下哪种是正确的操作流程？",
       options: [
         { id: "A", content: "直接操作、记录、报告", isCorrect: false },
-        { id: "B", content: "检查、操作、记录、报告", isCorrect: true },
-        { id: "C", content: "操作、检查、报告", isCorrect: false },
-        { id: "D", content: "报告、操作、记录", isCorrect: false },
+        { id: "B", content: "检查、Acciones、记录、报告", isCorrect: true },
+        { id: "C", content: "Acciones、检查、报告", isCorrect: false },
+        { id: "D", content: "报告、Acciones、记录", isCorrect: false },
       ],
       standardAnswer: "B",
       score: 5,
@@ -615,8 +615,8 @@ export async function seedDemo(
       type: "true_false" as const,
       content: "操作前必须进行设备校验",
       options: [
-        { id: "T", content: "正确", isCorrect: true },
-        { id: "F", content: "错误", isCorrect: false },
+        { id: "T", content: "Correcto", isCorrect: true },
+        { id: "F", content: "Incorrecto", isCorrect: false },
       ],
       standardAnswer: true,
       score: 5,
@@ -889,7 +889,7 @@ export async function seedDemo(
     retakePolicy: "pass_then_stop",
     scoreStrategy: "highest",
     maxAttempts: 3,
-    // Manual mode + unpublished so the admin "发布成绩" button is visible and
+    // Manual mode + unpublished so the admin "Publicar calificaciones" button is visible and
     // testable on this closed exam's detail page.
     resultPublicationMode: "manual",
     createdAt: ts(-10 * DAY),

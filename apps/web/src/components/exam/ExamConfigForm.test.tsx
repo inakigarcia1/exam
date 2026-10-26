@@ -50,7 +50,7 @@ describe("ExamConfigForm totalScore", () => {
       />,
     );
 
-    expect(screen.getByText(/自动计算.*30/)).toBeInTheDocument();
+    expect(screen.getByText(/Cálculo automático.*30/)).toBeInTheDocument();
   });
 
   it("shows totalScore as read-only when questions are selected", () => {
@@ -67,7 +67,7 @@ describe("ExamConfigForm totalScore", () => {
       />,
     );
 
-    const totalScoreInput = screen.getByLabelText("总分");
+    const totalScoreInput = screen.getByLabelText("Puntaje total");
     expect(totalScoreInput).toHaveAttribute("readonly");
   });
 
@@ -81,7 +81,7 @@ describe("ExamConfigForm totalScore", () => {
       />,
     );
 
-    const totalScoreInput = screen.getByLabelText("总分");
+    const totalScoreInput = screen.getByLabelText("Puntaje total");
     expect(totalScoreInput).not.toHaveAttribute("readonly");
   });
 
@@ -100,8 +100,8 @@ describe("ExamConfigForm totalScore", () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: /手动输入/ }));
-    const totalScoreInput = screen.getByLabelText("总分");
+    await userEvent.click(screen.getByRole("button", { name: /Carga manual/ }));
+    const totalScoreInput = screen.getByLabelText("Puntaje total");
     expect(totalScoreInput).not.toHaveAttribute("readonly");
   });
 
@@ -122,7 +122,7 @@ describe("ExamConfigForm totalScore", () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: /手动输入/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Carga manual/ }));
 
     expect(screen.getByText(/总分与题目分值之和不匹配/)).toBeInTheDocument();
   });
@@ -185,8 +185,8 @@ describe("ExamConfigForm fields", () => {
         onChange={() => {}}
       />,
     );
-    expect(screen.getByText("考试名称")).toBeInTheDocument();
-    expect(screen.getByText("考试时长（分钟）")).toBeInTheDocument();
+    expect(screen.getByText("Nombre del examen")).toBeInTheDocument();
+    expect(screen.getByText("Duración del examen (minutos)")).toBeInTheDocument();
   });
 
   it("calls onChange when title input is typed", async () => {
@@ -199,7 +199,7 @@ describe("ExamConfigForm fields", () => {
         onChange={onChange}
       />,
     );
-    const input = screen.getByPlaceholderText("请输入考试名称");
+    const input = screen.getByPlaceholderText("Ingresa el nombre del examen");
     await userEvent.type(input, "A");
     expect(onChange).toHaveBeenCalled();
   });
@@ -217,7 +217,7 @@ describe("ExamConfigForm fields", () => {
         onChange={() => {}}
       />,
     );
-    expect(screen.getByText(/结束时间必须晚于开始时间/)).toBeInTheDocument();
+    expect(screen.getByText(/La hora de cierre tiene que ser posterior a la de inicio/)).toBeInTheDocument();
   });
 
   it("shows score error when passingScore > totalScore", () => {
@@ -233,7 +233,7 @@ describe("ExamConfigForm fields", () => {
         onChange={() => {}}
       />,
     );
-    expect(screen.getByText(/及格分不能超过总分/)).toBeInTheDocument();
+    expect(screen.getByText(/El puntaje de aprobación no puede superar el puntaje total/)).toBeInTheDocument();
   });
 
   it("clears the time validation error once closeAt is after openAt", () => {
@@ -249,7 +249,7 @@ describe("ExamConfigForm fields", () => {
         onChange={() => {}}
       />,
     );
-    expect(screen.getByText(/结束时间必须晚于开始时间/)).toBeInTheDocument();
+    expect(screen.getByText(/La hora de cierre tiene que ser posterior a la de inicio/)).toBeInTheDocument();
 
     rerender(
       <ExamConfigForm
@@ -264,7 +264,7 @@ describe("ExamConfigForm fields", () => {
       />,
     );
     expect(
-      screen.queryByText(/结束时间必须晚于开始时间/),
+      screen.queryByText(/La hora de cierre tiene que ser posterior a la de inicio/),
     ).not.toBeInTheDocument();
   });
 
@@ -281,7 +281,7 @@ describe("ExamConfigForm fields", () => {
         onChange={() => {}}
       />,
     );
-    expect(screen.getByText(/及格分不能超过总分/)).toBeInTheDocument();
+    expect(screen.getByText(/El puntaje de aprobación no puede superar el puntaje total/)).toBeInTheDocument();
 
     rerender(
       <ExamConfigForm
@@ -295,7 +295,7 @@ describe("ExamConfigForm fields", () => {
         onChange={() => {}}
       />,
     );
-    expect(screen.queryByText(/及格分不能超过总分/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/El puntaje de aprobación no puede superar el puntaje total/)).not.toBeInTheDocument();
   });
 
   it("does not expose Phase 2 runtime controls", () => {
@@ -310,7 +310,7 @@ describe("ExamConfigForm fields", () => {
     expect(screen.queryByText("开放模式")).not.toBeInTheDocument();
     expect(screen.queryByText("严格模式")).not.toBeInTheDocument();
     expect(screen.queryByText("标准模式")).not.toBeInTheDocument();
-    expect(screen.queryByText(/排队入场/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Fila de ingreso/)).not.toBeInTheDocument();
     expect(screen.queryByText(/限制访问网络/)).not.toBeInTheDocument();
     expect(screen.queryByText(/要求锁定环境/)).not.toBeInTheDocument();
   });
@@ -340,7 +340,7 @@ describe("ExamConfigForm fields", () => {
         onChange={() => {}}
       />,
     );
-    expect(screen.getAllByText("重考策略").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Política de reintentos").length).toBeGreaterThanOrEqual(1);
   });
 
   it("renders max attempts field", () => {
@@ -352,7 +352,7 @@ describe("ExamConfigForm fields", () => {
         onChange={() => {}}
       />,
     );
-    expect(screen.getByText("最大尝试次数")).toBeInTheDocument();
+    expect(screen.getByText("Máximo de intentos")).toBeInTheDocument();
   });
 
   it("renders result publication mode selector with default immediate", () => {
@@ -364,8 +364,8 @@ describe("ExamConfigForm fields", () => {
         onChange={() => {}}
       />,
     );
-    expect(screen.getByText("成绩公布方式")).toBeInTheDocument();
-    expect(screen.getByText("交卷后立即公布")).toBeInTheDocument();
+    expect(screen.getByText("Cómo se publican los resultados")).toBeInTheDocument();
+    expect(screen.getByText("Al entregar")).toBeInTheDocument();
   });
 
   it("renders manual mode option when resultPublicationMode is manual", () => {
@@ -377,7 +377,7 @@ describe("ExamConfigForm fields", () => {
         onChange={() => {}}
       />,
     );
-    expect(screen.getByText("管理员手动公布")).toBeInTheDocument();
+    expect(screen.getByText("Lo publica un administrador")).toBeInTheDocument();
   });
 });
 
@@ -404,7 +404,7 @@ describe("ExamConfigForm passing-score invariant (EXAM-SCORE-INV-1)", () => {
         onChange={() => {}}
       />,
     );
-    const input = screen.getByLabelText("总分");
+    const input = screen.getByLabelText("Puntaje total");
     expect(input).toHaveAttribute("min", "1");
   });
 
@@ -417,7 +417,7 @@ describe("ExamConfigForm passing-score invariant (EXAM-SCORE-INV-1)", () => {
         onChange={() => {}}
       />,
     );
-    expect(screen.getByText(/及格分不能超过总分/)).toBeInTheDocument();
+    expect(screen.getByText(/El puntaje de aprobación no puede superar el puntaje total/)).toBeInTheDocument();
   });
 
   it("passingScore = totalScore does not show error", () => {
@@ -429,7 +429,7 @@ describe("ExamConfigForm passing-score invariant (EXAM-SCORE-INV-1)", () => {
         onChange={() => {}}
       />,
     );
-    expect(screen.queryByText(/及格分不能超过总分/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/El puntaje de aprobación no puede superar el puntaje total/)).not.toBeInTheDocument();
   });
 
   it("passingScore = 0 does not produce a lower-bound UI error", () => {
@@ -441,6 +441,6 @@ describe("ExamConfigForm passing-score invariant (EXAM-SCORE-INV-1)", () => {
         onChange={() => {}}
       />,
     );
-    expect(screen.queryByText(/及格分不能超过总分/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/El puntaje de aprobación no puede superar el puntaje total/)).not.toBeInTheDocument();
   });
 });

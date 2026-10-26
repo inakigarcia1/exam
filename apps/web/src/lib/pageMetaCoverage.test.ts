@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import zhCN from "@/i18n/locales/zh-CN";
+import es from "@/i18n/locales/es";
 import {
   dynamicRouteTitleKeys,
   getFallbackPageTitle,
@@ -90,7 +90,7 @@ function coverageViolations(
       }
     } else if (dynamicMatches.length === 0) {
       violations.push(
-        `${entry.route} (${entry.page}) has no pageMeta registration and resolves to the "页面" fallback — add a static entry or dynamic rule, or classify it as an intentional fallback`,
+        `${entry.route} (${entry.page}) has no pageMeta registration and resolves to the "Página" fallback — add a static entry or dynamic rule, or classify it as an intentional fallback`,
       );
       continue;
     } else if (dynamicMatches.length > 1) {
@@ -200,7 +200,7 @@ describe("routed-page pageMeta coverage (issue 490)", () => {
   });
 
   it("M4: removing a pageMeta catalog key is caught by the gate (in memory)", () => {
-    const mutant = structuredClone(zhCN) as Record<string, unknown>;
+    const mutant = structuredClone(es) as Record<string, unknown>;
     const staticKeys = (mutant.pageMeta as Record<string, unknown>)
       .static as Record<string, unknown>;
     delete staticKeys.dashboard;

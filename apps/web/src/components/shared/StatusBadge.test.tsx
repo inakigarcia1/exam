@@ -8,17 +8,17 @@ import { StatusBadge } from "./StatusBadge";
 describe("StatusBadge", () => {
   it("renders known status labels from centralized metadata", () => {
     render(<StatusBadge status="published" />);
-    expect(screen.getByText("已发布")).toBeInTheDocument();
+    expect(screen.getByText("Publicado")).toBeInTheDocument();
   });
 
   it("renders the fallback label for unknown statuses", () => {
     render(<StatusBadge status="unexpected" />);
-    expect(screen.getByText("未知")).toBeInTheDocument();
+    expect(screen.getByText("Desconocido")).toBeInTheDocument();
   });
 
   it("defaults to text-only for ordinary statuses (published has no icon)", () => {
     const { container } = render(<StatusBadge status="published" />);
-    expect(screen.getByText("已发布")).toBeInTheDocument();
+    expect(screen.getByText("Publicado")).toBeInTheDocument();
     expect(container.querySelector("svg")).toBeNull();
   });
 
@@ -41,7 +41,7 @@ describe("StatusBadge", () => {
     const { container } = render(
       <StatusBadge status="critical" showIcon={false} />,
     );
-    expect(screen.queryByText("严重")).toBeInTheDocument();
+    expect(screen.queryByText("Crítico")).toBeInTheDocument();
     expect(container.querySelector("svg")).toBeNull();
   });
 

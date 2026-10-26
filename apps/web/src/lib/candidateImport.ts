@@ -32,11 +32,11 @@ export interface ExistingCandidate {
  */
 export const CSV_HEADER_ALIASES = {
   // i18n-copy-allow: data-format — CSV header alias data contract
-  username: ["username", "用户名"],
+  username: ["username", "Usuario"],
   // i18n-copy-allow: data-format — CSV header alias data contract
-  password: ["password", "密码"],
+  password: ["password", "Contraseña"],
   // i18n-copy-allow: data-format — CSV header alias data contract
-  name: ["name", "姓名"],
+  name: ["name", "Nombre"],
 } as const;
 
 /** Parses a single CSV line into an array of field values, handling quoted fields. */

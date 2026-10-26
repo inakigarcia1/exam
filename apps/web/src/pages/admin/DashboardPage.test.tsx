@@ -116,13 +116,13 @@ describe("DashboardPage", () => {
 
     it("renders 4 stat cards with correct labels and values", async () => {
       renderPage();
-      expect(await screen.findByText("题目总数")).toBeInTheDocument();
+      expect(await screen.findByText("Total de preguntas")).toBeInTheDocument();
       expect(screen.getByText("120")).toBeInTheDocument();
-      expect(screen.getByText("考试进行中")).toBeInTheDocument();
+      expect(screen.getByText("Exámenes en curso")).toBeInTheDocument();
       expect(screen.getByText("3")).toBeInTheDocument();
-      expect(screen.getByText("考生总数")).toBeInTheDocument();
+      expect(screen.getByText("Total de alumnos")).toBeInTheDocument();
       expect(screen.getByText("45")).toBeInTheDocument();
-      expect(screen.getByText("今日考试")).toBeInTheDocument();
+      expect(screen.getByText("Exámenes de hoy")).toBeInTheDocument();
       expect(screen.getByText("2")).toBeInTheDocument();
     });
   });
@@ -137,13 +137,13 @@ describe("DashboardPage", () => {
       // Badges render twice by design (desktop table + mobile cards);
       // scope to the desktop table representation.
       const table = await screen.findByRole("table");
-      const openBadge = within(table).getByText("开放中");
+      const openBadge = within(table).getByText("Abierto");
       expect(openBadge).toHaveAttribute("data-status-tone", "success");
 
-      const draftBadge = within(table).getByText("草稿");
+      const draftBadge = within(table).getByText("Borrador");
       expect(draftBadge).toHaveAttribute("data-status-tone", "muted");
 
-      const closedBadge = within(table).getByText("已关闭");
+      const closedBadge = within(table).getByText("Cerrado");
       expect(closedBadge).toHaveAttribute("data-status-tone", "secondary");
     });
   });
@@ -158,10 +158,10 @@ describe("DashboardPage", () => {
       await screen.findByRole("table");
 
       expect(
-        screen.getByRole("button", { name: "创建考试" }),
+        screen.getByRole("button", { name: "Crear examen" }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "导入题目" }),
+        screen.getByRole("button", { name: "Importar preguntas" }),
       ).toBeInTheDocument();
     });
 
@@ -170,11 +170,11 @@ describe("DashboardPage", () => {
       await screen.findByRole("table");
 
       const user = userEvent.setup();
-      const createBtn = screen.getByRole("button", { name: "创建考试" });
+      const createBtn = screen.getByRole("button", { name: "Crear examen" });
       await user.click(createBtn);
       // navigation unmounts the component — button is no longer in DOM
       expect(
-        screen.queryByRole("button", { name: "创建考试" }),
+        screen.queryByRole("button", { name: "Crear examen" }),
       ).not.toBeInTheDocument();
     });
   });
@@ -202,14 +202,14 @@ describe("DashboardPage", () => {
       expect(viewButtons).toHaveLength(3);
     });
 
-    // Characterization (UI-MIGRATE-N-W3): the "近期考试" heading names the
+    // Characterization (UI-MIGRATE-N-W3): the "Exámenes recientes" heading names the
     // recent-exams content section. It must remain present and continue to
     // label the table block after the section-title typography migration.
     // Asserts the durable role, not the raw typography class.
-    it("keeps the 近期考试 section title naming the recent-exams block", async () => {
+    it("keeps the Exámenes recientes section title naming the recent-exams block", async () => {
       apiGet.mockResolvedValue(mockDashboardData);
       renderPage();
-      const title = await screen.findByText("近期考试");
+      const title = await screen.findByText("Exámenes recientes");
       expect(title).toBeInTheDocument();
       // The title sits inside the surface-content container for the recent-exams table.
       const card = title.closest(".surface-content");
@@ -230,7 +230,7 @@ describe("DashboardPage", () => {
       renderPage();
       // The empty fact renders in both representations (desktop EmptyState
       // hidden below lg, mobile empty card hidden at lg+).
-      const empties = await screen.findAllByText("暂无考试");
+      const empties = await screen.findAllByText("No hay exámenes");
       expect(empties.length).toBeGreaterThanOrEqual(1);
     });
   });
@@ -239,13 +239,13 @@ describe("DashboardPage", () => {
     it("shows error message when dashboard load fails", async () => {
       apiGet.mockRejectedValue(new Error("network error"));
       renderPage();
-      expect(await screen.findByText("加载仪表盘数据失败")).toBeInTheDocument();
+      expect(await screen.findByText("No se pudo cargar el panel")).toBeInTheDocument();
     });
 
     it("shows retry button on error", async () => {
       apiGet.mockRejectedValue(new Error("network error"));
       renderPage();
-      expect(await screen.findByText("重试")).toBeInTheDocument();
+      expect(await screen.findByText("Reintentar")).toBeInTheDocument();
     });
   });
 
@@ -298,7 +298,7 @@ describe("DashboardPage", () => {
     it("requests the bounded authoritative reads (pageSize=1 / unresolvedOnly&limit=20)", async () => {
       mockApiRouting({});
       renderPage();
-      await screen.findByText("需要处理");
+      await screen.findByText("Pendientes");
       const gradingCalls = apiGet.mock.calls
         .map((c) => String(c[0]))
         .filter((p) => p.startsWith("/api/admin/grading-queue"));
@@ -323,13 +323,13 @@ describe("DashboardPage", () => {
         },
       });
       renderPage();
-      const grading = await todoCard("待人工评分");
+      const grading = await todoCard("Calificación manual pendiente");
       await within(grading).findByText("25");
-      expect(within(grading).getByText("份答卷")).toBeInTheDocument();
+      expect(within(grading).getByText("entregas")).toBeInTheDocument();
 
-      const incidents = await todoCard("待处理异常");
+      const incidents = await todoCard("Incidentes pendientes");
       await within(incidents).findByText("2");
-      expect(within(incidents).getByText("条事件")).toBeInTheDocument();
+      expect(within(incidents).getByText("incidentes")).toBeInTheDocument();
     });
 
     it("shows the >20 lower bound when the incident page has a next cursor", async () => {
@@ -341,7 +341,7 @@ describe("DashboardPage", () => {
         },
       });
       renderPage();
-      const incidents = await todoCard("待处理异常");
+      const incidents = await todoCard("Incidentes pendientes");
       await within(incidents).findByText(">20");
       // A full first page must never be presented as the exact total.
       expect(within(incidents).queryByText("20")).not.toBeInTheDocument();
@@ -357,12 +357,12 @@ describe("DashboardPage", () => {
         },
       });
       renderPage();
-      const grading = await todoCard("待人工评分");
+      const grading = await todoCard("Calificación manual pendiente");
       await within(grading).findByText("0");
-      expect(within(grading).getByText("暂无待评分答卷")).toBeInTheDocument();
-      const incidents = await todoCard("待处理异常");
+      expect(within(grading).getByText("No hay entregas pendientes de calificar")).toBeInTheDocument();
+      const incidents = await todoCard("Incidentes pendientes");
       await within(incidents).findByText("0");
-      expect(within(incidents).getByText("暂无未处理异常")).toBeInTheDocument();
+      expect(within(incidents).getByText("No hay incidentes sin resolver")).toBeInTheDocument();
     });
 
     it("a failed grading source never renders a fake zero and keeps the incident card intact (B05/B06)", async () => {
@@ -375,16 +375,16 @@ describe("DashboardPage", () => {
         },
       });
       renderPage();
-      const grading = await todoCard("待人工评分");
-      await within(grading).findByText("无法获取");
+      const grading = await todoCard("Calificación manual pendiente");
+      await within(grading).findByText("No se pudo obtener");
       expect(
-        within(grading).getByRole("button", { name: "重试" }),
+        within(grading).getByRole("button", { name: "Reintentar" }),
       ).toBeEnabled();
       expect(within(grading).queryByText("0")).not.toBeInTheDocument();
 
-      const incidents = await todoCard("待处理异常");
+      const incidents = await todoCard("Incidentes pendientes");
       await within(incidents).findByText("2");
-      expect(within(incidents).queryByText("无法获取")).not.toBeInTheDocument();
+      expect(within(incidents).queryByText("No se pudo obtener")).not.toBeInTheDocument();
     });
 
     it("a failed incident source leaves the grading card untouched (B06, reverse direction)", async () => {
@@ -393,10 +393,10 @@ describe("DashboardPage", () => {
         incidentsError: new Error("500"),
       });
       renderPage();
-      const grading = await todoCard("待人工评分");
+      const grading = await todoCard("Calificación manual pendiente");
       await within(grading).findByText("7");
-      const incidents = await todoCard("待处理异常");
-      await within(incidents).findByText("无法获取");
+      const incidents = await todoCard("Incidentes pendientes");
+      await within(incidents).findByText("No se pudo obtener");
       expect(within(incidents).queryByText("0")).not.toBeInTheDocument();
     });
 
@@ -425,10 +425,10 @@ describe("DashboardPage", () => {
           </AuthProvider>
         </MemoryRouter>,
       );
-      await screen.findByText("题目总数");
-      expect(screen.queryByText("需要处理")).not.toBeInTheDocument();
-      expect(screen.queryByText("待人工评分")).not.toBeInTheDocument();
-      expect(screen.queryByText("待处理异常")).not.toBeInTheDocument();
+      await screen.findByText("Total de preguntas");
+      expect(screen.queryByText("Pendientes")).not.toBeInTheDocument();
+      expect(screen.queryByText("Calificación manual pendiente")).not.toBeInTheDocument();
+      expect(screen.queryByText("Incidentes pendientes")).not.toBeInTheDocument();
       // A capability-hidden card must not fire its request at all — no
       // guaranteed 403 behind a hidden surface.
       const todoCalls = apiGet.mock.calls
@@ -444,13 +444,13 @@ describe("DashboardPage", () => {
     it("keeps the four stats cards, quick actions and recent exams alongside the todo section (B10)", async () => {
       mockApiRouting({});
       renderPage();
-      await screen.findByText("需要处理");
-      expect(screen.getByText("题目总数")).toBeInTheDocument();
-      expect(screen.getByText("考生总数")).toBeInTheDocument();
+      await screen.findByText("Pendientes");
+      expect(screen.getByText("Total de preguntas")).toBeInTheDocument();
+      expect(screen.getByText("Total de alumnos")).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "创建考试" }),
+        screen.getByRole("button", { name: "Crear examen" }),
       ).toBeInTheDocument();
-      expect(screen.getByText("近期考试")).toBeInTheDocument();
+      expect(screen.getByText("Exámenes recientes")).toBeInTheDocument();
     });
   });
 });

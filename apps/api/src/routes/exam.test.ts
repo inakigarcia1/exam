@@ -812,7 +812,7 @@ describe("exam close (ADR-005 Slice 1)", () => {
         expect.objectContaining({
           id: examId,
           canViewScores: false,
-          scoreViewDisabledReason: "暂无成绩数据",
+          scoreViewDisabledReason: "No hay datos de calificaciones",
           scoreViewDisabledReasonCode: "NO_GRADED_ATTEMPTS",
           canDelete: false,
           deleteDisabledReason: "仅草稿状态的考试允许删除",
@@ -852,7 +852,7 @@ describe("exam close (ADR-005 Slice 1)", () => {
         expect.objectContaining({
           id: examId,
           canViewScores: false,
-          scoreViewDisabledReason: "考试尚未结束，暂不能查看成绩",
+          scoreViewDisabledReason: "El examen todavía no termina，暂不能查看成绩",
           scoreViewDisabledReasonCode: "EXAM_NOT_FINISHED",
           canDelete: true,
           deleteDisabledReason: null,
@@ -903,7 +903,7 @@ describe("exam close (ADR-005 Slice 1)", () => {
         expect.objectContaining({
           id: examId,
           canViewScores: false,
-          scoreViewDisabledReason: "已取消的考试不提供成绩",
+          scoreViewDisabledReason: "Un examen cancelado no tiene calificaciones",
           scoreViewDisabledReasonCode: "EXAM_CANCELED",
         }),
       ]),

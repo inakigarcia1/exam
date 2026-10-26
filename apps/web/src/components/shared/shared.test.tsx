@@ -26,16 +26,16 @@ import { TagBadge } from "./TagBadge";
 
 describe("PageHeader", () => {
   it("renders title", () => {
-    render(<PageHeader title="考试管理" />);
+    render(<PageHeader title="Gestión de exámenes" />);
     expect(
-      screen.getByRole("heading", { name: "考试管理" }),
+      screen.getByRole("heading", { name: "Gestión de exámenes" }),
     ).toBeInTheDocument();
   });
 
   it("renders action slot when provided", () => {
     render(
       <PageHeader
-        title="题目管理"
+        title="Gestión de preguntas"
         actions={<button type="button">新建</button>}
       />,
     );
@@ -43,13 +43,13 @@ describe("PageHeader", () => {
   });
 
   it("renders without actions slot", () => {
-    render(<PageHeader title="成绩查询" />);
+    render(<PageHeader title="Calificaciones" />);
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
   it("renders status slot when provided", () => {
-    render(<PageHeader title="考试详情" status={<span>已发布</span>} />);
-    expect(screen.getByText("已发布")).toBeInTheDocument();
+    render(<PageHeader title="Detalle del examen" status={<span>Publicado</span>} />);
+    expect(screen.getByText("Publicado")).toBeInTheDocument();
   });
 
   it("uses the semantic page-title recipe", () => {
@@ -72,12 +72,12 @@ describe("EmptyState", () => {
     render(
       <EmptyState
         icon={<span data-testid="icon">📚</span>}
-        title="暂无数据"
+        title="Sin datos"
         description="还没有创建任何内容"
       />,
     );
     expect(screen.getByTestId("icon")).toBeInTheDocument();
-    expect(screen.getByText("暂无数据")).toBeInTheDocument();
+    expect(screen.getByText("Sin datos")).toBeInTheDocument();
     expect(screen.getByText("还没有创建任何内容")).toBeInTheDocument();
   });
 
@@ -87,10 +87,10 @@ describe("EmptyState", () => {
         icon={<span>📚</span>}
         title="空列表"
         description="请添加项目"
-        action={<button type="button">添加</button>}
+        action={<button type="button">Agregar</button>}
       />,
     );
-    expect(screen.getByRole("button", { name: "添加" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Agregar" })).toBeInTheDocument();
   });
 
   it("renders without action button", () => {
@@ -102,9 +102,9 @@ describe("EmptyState", () => {
 
   it("renders with default icon", () => {
     const { container } = render(
-      <EmptyState title="暂无数据" description="没有可显示的内容" />,
+      <EmptyState title="Sin datos" description="没有可显示的内容" />,
     );
-    expect(screen.getByText("暂无数据")).toBeInTheDocument();
+    expect(screen.getByText("Sin datos")).toBeInTheDocument();
     expect(container.querySelector("svg")).toBeInTheDocument();
   });
 
@@ -127,78 +127,78 @@ describe("ConfirmDialog", () => {
   it("renders trigger button", () => {
     render(
       <ConfirmDialog
-        trigger={<button type="button">删除</button>}
-        title="确认删除"
+        trigger={<button type="button">Eliminar</button>}
+        title="Confirmar eliminación"
         description="此操作不可撤销"
         onConfirm={() => {}}
       />,
     );
-    expect(screen.getByRole("button", { name: "删除" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Eliminar" })).toBeInTheDocument();
   });
 
   it("opens dialog and shows title and description on trigger click", async () => {
     render(
       <ConfirmDialog
-        trigger={<button type="button">删除</button>}
-        title="确认删除"
+        trigger={<button type="button">Eliminar</button>}
+        title="Confirmar eliminación"
         description="此操作不可撤销"
         onConfirm={() => {}}
       />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "删除" }));
+    await userEvent.click(screen.getByRole("button", { name: "Eliminar" }));
 
-    expect(screen.getByText("确认删除")).toBeInTheDocument();
+    expect(screen.getByText("Confirmar eliminación")).toBeInTheDocument();
     expect(screen.getByText("此操作不可撤销")).toBeInTheDocument();
   });
 
   it("shows default confirm and cancel labels", async () => {
     render(
       <ConfirmDialog
-        trigger={<button type="button">操作</button>}
-        title="提示"
+        trigger={<button type="button">Acciones</button>}
+        title="Avisos"
         description="确定要继续吗"
         onConfirm={() => {}}
       />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "操作" }));
+    await userEvent.click(screen.getByRole("button", { name: "Acciones" }));
 
-    expect(screen.getByRole("button", { name: "确认" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "取消" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Confirmar" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancelar" })).toBeInTheDocument();
   });
 
   it("shows custom confirm and cancel labels", async () => {
     render(
       <ConfirmDialog
-        trigger={<button type="button">操作</button>}
-        title="提示"
+        trigger={<button type="button">Acciones</button>}
+        title="Avisos"
         description="确定"
-        confirmLabel="是"
-        cancelLabel="否"
+        confirmLabel="Sí"
+        cancelLabel="No"
         onConfirm={() => {}}
       />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "操作" }));
+    await userEvent.click(screen.getByRole("button", { name: "Acciones" }));
 
-    expect(screen.getByRole("button", { name: "是" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "否" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sí" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "No" })).toBeInTheDocument();
   });
 
   it("calls onConfirm when confirm button is clicked", async () => {
     const onConfirm = vi.fn();
     render(
       <ConfirmDialog
-        trigger={<button type="button">删除</button>}
-        title="确认"
+        trigger={<button type="button">Eliminar</button>}
+        title="Confirmar"
         description="确定吗"
         onConfirm={onConfirm}
       />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "删除" }));
-    await userEvent.click(screen.getByRole("button", { name: "确认" }));
+    await userEvent.click(screen.getByRole("button", { name: "Eliminar" }));
+    await userEvent.click(screen.getByRole("button", { name: "Confirmar" }));
 
     expect(onConfirm).toHaveBeenCalledOnce();
   });
@@ -207,16 +207,16 @@ describe("ConfirmDialog", () => {
     const onCancel = vi.fn();
     render(
       <ConfirmDialog
-        trigger={<button type="button">操作</button>}
-        title="提示"
+        trigger={<button type="button">Acciones</button>}
+        title="Avisos"
         description="确定吗"
         onConfirm={() => {}}
         onCancel={onCancel}
       />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "操作" }));
-    await userEvent.click(screen.getByRole("button", { name: "取消" }));
+    await userEvent.click(screen.getByRole("button", { name: "Acciones" }));
+    await userEvent.click(screen.getByRole("button", { name: "Cancelar" }));
 
     expect(onCancel).toHaveBeenCalledOnce();
   });
@@ -240,7 +240,7 @@ describe("SearchInput", () => {
 
     render(<SearchInput value="admin" onChange={() => {}} onClear={onClear} />);
 
-    const clearButton = screen.getByRole("button", { name: "清除搜索" });
+    const clearButton = screen.getByRole("button", { name: "Borrar búsqueda" });
     expect(clearButton).toBeInTheDocument();
 
     await user.click(clearButton);
@@ -250,7 +250,7 @@ describe("SearchInput", () => {
   it("does not render clear button when empty", () => {
     render(<SearchInput value="" onChange={() => {}} />);
     expect(
-      screen.queryByRole("button", { name: "清除搜索" }),
+      screen.queryByRole("button", { name: "Borrar búsqueda" }),
     ).not.toBeInTheDocument();
   });
 
@@ -259,7 +259,7 @@ describe("SearchInput", () => {
 
     expect(screen.getByRole("searchbox")).toHaveValue("");
     expect(
-      screen.queryByRole("button", { name: "清除搜索" }),
+      screen.queryByRole("button", { name: "Borrar búsqueda" }),
     ).not.toBeInTheDocument();
   });
 });
@@ -285,7 +285,7 @@ describe("RowActions", () => {
         actions={[
           {
             id: "view",
-            label: "查看",
+            label: "Ver",
             icon: Eye,
             onSelect: () => {},
           },
@@ -293,16 +293,16 @@ describe("RowActions", () => {
       />,
     );
 
-    expect(screen.getByRole("group", { name: "行操作" })).toHaveAttribute(
+    expect(screen.getByRole("group", { name: "Acciones de la fila" })).toHaveAttribute(
       "data-slot",
       "row-actions",
     );
-    expect(screen.getByRole("group", { name: "行操作" })).toHaveAttribute(
+    expect(screen.getByRole("group", { name: "Acciones de la fila" })).toHaveAttribute(
       "data-action-target",
       "responsive",
     );
-    expect(screen.getByRole("group", { name: "行操作" })).toHaveClass("gap-1");
-    expect(screen.getByRole("button", { name: "查看" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Acciones de la fila" })).toHaveClass("gap-1");
+    expect(screen.getByRole("button", { name: "Ver" })).toBeInTheDocument();
   });
 });
 
@@ -333,7 +333,7 @@ describe("DataTablePagination", () => {
       "polite",
     );
 
-    await user.click(screen.getByRole("button", { name: /下一页/ }));
+    await user.click(screen.getByRole("button", { name: /Página siguiente/ }));
     expect(onPageChange).toHaveBeenCalledWith(2);
   });
 
@@ -404,12 +404,12 @@ describe("StatsCard", () => {
   });
 
   it("renders trend indicator when provided", () => {
-    render(<StatsCard label="参加人数" value={100} trend="+12 本月" />);
+    render(<StatsCard label="Participantes" value={100} trend="+12 本月" />);
     expect(screen.getByText("+12 本月")).toBeInTheDocument();
   });
 
   it("renders without trend when not provided", () => {
-    render(<StatsCard label="分数" value={90} />);
+    render(<StatsCard label="Puntaje" value={90} />);
     expect(screen.queryByText(/\+/)).not.toBeInTheDocument();
   });
 
@@ -446,22 +446,22 @@ describe("StatsCard", () => {
 describe("SaveIndicator", () => {
   it("renders idle state", () => {
     render(<SaveIndicator state="idle" />);
-    expect(screen.getByText("等待保存")).toBeInTheDocument();
+    expect(screen.getByText("Sin guardar")).toBeInTheDocument();
   });
 
   it("renders saving state", () => {
     render(<SaveIndicator status="saving" />);
-    expect(screen.getByText("保存中...")).toBeInTheDocument();
+    expect(screen.getByText("Guardando...")).toBeInTheDocument();
   });
 
   it("renders saved state", () => {
     render(<SaveIndicator status="saved" />);
-    expect(screen.getByText("已保存")).toBeInTheDocument();
+    expect(screen.getByText("Guardado")).toBeInTheDocument();
   });
 
   it("renders error state", () => {
     render(<SaveIndicator status="error" />);
-    expect(screen.getByText("保存失败")).toBeInTheDocument();
+    expect(screen.getByText("No se guardó")).toBeInTheDocument();
   });
 
   // #675: the chip shares the Button system's h-9 control geometry with the
@@ -487,7 +487,7 @@ describe("ErrorState", () => {
 
   it("renders retry button when onRetry is provided", () => {
     render(<ErrorState message="加载失败" onRetry={() => {}} />);
-    expect(screen.getByRole("button", { name: "重试" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reintentar" })).toBeInTheDocument();
   });
 
   it("renders without retry button when onRetry is not provided", () => {
@@ -498,7 +498,7 @@ describe("ErrorState", () => {
   it("calls onRetry when retry button is clicked", async () => {
     const onRetry = vi.fn();
     render(<ErrorState message="加载失败" onRetry={onRetry} />);
-    await userEvent.click(screen.getByRole("button", { name: "重试" }));
+    await userEvent.click(screen.getByRole("button", { name: "Reintentar" }));
     expect(onRetry).toHaveBeenCalledOnce();
   });
 
@@ -521,7 +521,7 @@ describe("LoadingState", () => {
 
   it("renders default loading text when no label", () => {
     render(<LoadingState />);
-    expect(screen.getByText("加载中...")).toBeInTheDocument();
+    expect(screen.getByText("Cargando...")).toBeInTheDocument();
   });
 
   it("sets aria-busy on container", () => {
@@ -536,7 +536,7 @@ describe("PageSection", () => {
       <PageSection
         title="基础信息"
         description="用于展示页面区块"
-        actions={<button type="button">编辑</button>}
+        actions={<button type="button">Editar</button>}
       >
         <p>区块内容</p>
       </PageSection>,
@@ -547,12 +547,12 @@ describe("PageSection", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("用于展示页面区块")).toBeInTheDocument();
     expect(screen.getByText("区块内容")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "编辑" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Editar" })).toBeInTheDocument();
   });
 
   it("renders footer slot when provided", () => {
     render(
-      <PageSection title="操作记录" footer={<p>共 2 条</p>}>
+      <PageSection title="Operaciones" footer={<p>共 2 条</p>}>
         <p>记录列表</p>
       </PageSection>,
     );
@@ -608,17 +608,17 @@ describe("FieldRow", () => {
 describe("DataToolbar", () => {
   it("renders toolbar content and actions", () => {
     render(
-      <DataToolbar actions={<button type="button">导入</button>}>
+      <DataToolbar actions={<button type="button">Importar</button>}>
         <label htmlFor="keyword">关键词</label>
         <input id="keyword" />
       </DataToolbar>,
     );
 
     expect(
-      screen.getByRole("toolbar", { name: "数据工具栏" }),
+      screen.getByRole("toolbar", { name: "Barra de datos" }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("关键词")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "导入" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Importar" })).toBeInTheDocument();
     expect(screen.getByRole("toolbar")).toHaveAttribute(
       "data-toolbar-appearance",
       "quiet",
@@ -766,7 +766,7 @@ describe("DataTableShell", () => {
 
   it("renders table content inside shell", () => {
     render(
-      <DataTableShell title="考试列表" description="展示当前考试">
+      <DataTableShell title="Lista de exámenes" description="展示当前考试">
         <table>
           <tbody>
             <tr>
@@ -778,7 +778,7 @@ describe("DataTableShell", () => {
     );
 
     expect(
-      screen.getByRole("heading", { name: "考试列表" }),
+      screen.getByRole("heading", { name: "Lista de exámenes" }),
     ).toBeInTheDocument();
     expect(screen.getByText("展示当前考试")).toBeInTheDocument();
     expect(screen.getByRole("table")).toBeInTheDocument();
@@ -788,7 +788,7 @@ describe("DataTableShell", () => {
   it("renders toolbar and footer slots", () => {
     render(
       <DataTableShell
-        toolbar={<button type="button">刷新</button>}
+        toolbar={<button type="button">Actualizar</button>}
         footer={<p>第 1 页</p>}
       >
         <table>
@@ -801,7 +801,7 @@ describe("DataTableShell", () => {
       </DataTableShell>,
     );
 
-    expect(screen.getByRole("button", { name: "刷新" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Actualizar" })).toBeInTheDocument();
     expect(screen.getByText("第 1 页")).toBeInTheDocument();
   });
 
@@ -811,13 +811,13 @@ describe("DataTableShell", () => {
     // controls band of its own would add a full-width empty row above the
     // table (regression caught on /admin/exams).
     render(
-      <DataTableShell title="考试列表" meta={<span>共 20 场考试</span>}>
+      <DataTableShell title="Lista de exámenes" meta={<span>共 20 场考试</span>}>
         <table aria-label="考试数据" />
       </DataTableShell>,
     );
 
     const shell = screen
-      .getByRole("heading", { name: "考试列表" })
+      .getByRole("heading", { name: "Lista de exámenes" })
       .closest('[data-slot="admin-table-shell"]') as HTMLElement;
     const titleBand = shell.querySelector(
       '[data-slot="data-table-title-band"]',
@@ -903,7 +903,7 @@ describe("DataTableShell", () => {
     // 1394.667px, so clientWidth and scrollWidth both round to 1395 while the
     // table fits exactly. The hint band must stay out of the DOM — deriving
     // overflow from `scrollWidth > contentWidth` reported overflow here and
-    // rendered "向右滑动查看更多" over a table that fit.
+    // rendered "Desliza a la derecha para ver más" over a table that fit.
     render(
       <DataTableShell>
         <table aria-label="刚好放下的表格" />
@@ -1017,24 +1017,24 @@ describe("DataTableShell", () => {
     setScrollMetrics(region, metrics);
     act(() => window.dispatchEvent(new Event("resize")));
 
-    expect(screen.getByText("向右滑动查看更多")).toHaveClass(
+    expect(screen.getByText("Desliza a la derecha para ver más")).toHaveClass(
       "pointer-events-none",
     );
-    expect(screen.getByText("向右滑动查看更多")).toHaveAttribute(
+    expect(screen.getByText("Desliza a la derecha para ver más")).toHaveAttribute(
       "data-scroll-direction",
       "right",
     );
 
     metrics.scrollLeft = 240;
     fireEvent.scroll(region);
-    expect(screen.getByText("左右滑动查看更多")).toHaveAttribute(
+    expect(screen.getByText("Desliza hacia los lados para ver más")).toHaveAttribute(
       "data-scroll-direction",
       "both",
     );
 
     metrics.scrollLeft = 480;
     fireEvent.scroll(region);
-    expect(screen.getByText("向左滑动查看更多")).toHaveAttribute(
+    expect(screen.getByText("Desliza a la izquierda para ver más")).toHaveAttribute(
       "data-scroll-direction",
       "left",
     );
@@ -1043,7 +1043,7 @@ describe("DataTableShell", () => {
     // fact, not a viewport policy.
     metrics.scrollLeft = 0;
     fireEvent.scroll(region);
-    expect(screen.getByText("向右滑动查看更多")).toBeInTheDocument();
+    expect(screen.getByText("Desliza a la derecha para ver más")).toBeInTheDocument();
     expect(region).toHaveClass("overflow-x-auto");
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
       document.documentElement.clientWidth,

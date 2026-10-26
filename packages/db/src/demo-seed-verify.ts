@@ -50,8 +50,8 @@ export async function verifyDemoSeed(
   const settings = settingsRows[0];
   assert(!!settings, "OrganizationSettings not found");
   assert(
-    settings?.productName === "考试平台",
-    "Settings productName should be '考试平台'",
+    settings?.productName === "Aki",
+    "Settings productName should be 'Aki'",
   );
 
   // 3. All users exist

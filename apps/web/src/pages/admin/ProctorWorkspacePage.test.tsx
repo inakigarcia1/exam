@@ -40,7 +40,7 @@ const exams = {
   items: [
     {
       examId: "00000000-0000-4000-8000-000000000001",
-      title: "开放考试",
+      title: "Abrir examen",
       status: "open",
       openAt: "2026-07-17T01:00:00.000Z",
       closeAt: "2026-07-17T03:00:00.000Z",
@@ -85,7 +85,7 @@ describe("ProctorWorkspacePage", () => {
     // Row content renders twice by design (desktop table + mobile cards);
     // scope to the desktop table representation.
     const table = await screen.findByRole("table");
-    expect(within(table).getByText("开放考试")).toBeInTheDocument();
+    expect(within(table).getByText("Abrir examen")).toBeInTheDocument();
     expect(within(table).getByText("已关闭考试")).toBeInTheDocument();
     expect(getMock).toHaveBeenCalledWith("/api/admin/proctor/exams");
   });
@@ -95,11 +95,11 @@ describe("ProctorWorkspacePage", () => {
     renderPage();
     await screen.findByRole("table");
 
-    await user.click(screen.getByRole("combobox", { name: "考试状态" }));
-    await user.click(screen.getByRole("option", { name: "已关闭" }));
+    await user.click(screen.getByRole("combobox", { name: "Estado del examen" }));
+    await user.click(screen.getByRole("option", { name: "Cerrado" }));
 
     const table = screen.getByRole("table");
-    expect(within(table).queryByText("开放考试")).not.toBeInTheDocument();
+    expect(within(table).queryByText("Abrir examen")).not.toBeInTheDocument();
     expect(within(table).getByText("已关闭考试")).toBeInTheDocument();
   });
 
@@ -110,7 +110,7 @@ describe("ProctorWorkspacePage", () => {
 
     const table = screen.getByRole("table");
     await user.click(
-      within(table).getAllByRole("button", { name: "进入监考" })[0]!,
+      within(table).getAllByRole("button", { name: "Entrar a supervisar" })[0]!,
     );
     expect(screen.getByTestId("current-path")).toHaveTextContent(
       "/admin/exams/00000000-0000-4000-8000-000000000001/proctor/monitor",
@@ -121,7 +121,7 @@ describe("ProctorWorkspacePage", () => {
     getMock.mockResolvedValue({ items: [], total: 0 });
     renderPage();
     // The empty fact renders in both representations.
-    const empties = await screen.findAllByText("当前没有可监考的考试");
+    const empties = await screen.findAllByText("No hay exámenes para supervisar");
     expect(empties.length).toBeGreaterThanOrEqual(1);
     expect(
       screen.queryByText("页面将在后续任务中实现。"),
@@ -132,8 +132,8 @@ describe("ProctorWorkspacePage", () => {
     getMock.mockRejectedValue(new Error("403"));
     renderPage();
     // The error fact renders in both representations.
-    const errors = await screen.findAllByText("加载监考考试失败");
+    const errors = await screen.findAllByText("No se pudieron cargar los exámenes para supervisar");
     expect(errors.length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByRole("button", { name: "重试" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reintentar" })).toBeInTheDocument();
   });
 });

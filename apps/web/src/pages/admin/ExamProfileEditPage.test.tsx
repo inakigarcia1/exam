@@ -50,7 +50,7 @@ function renderPage(path = "/admin/exam-profiles/new") {
 const existing: ExamProfileDTO = {
   id: "p-1",
   organizationId: "00000000-0000-0000-0000-000000000001",
-  name: "标准在线考试",
+  name: "Examen en línea estándar",
   description: "existing",
   timingMode: "timed_window" as const,
   durationMinutes: 90,
@@ -77,18 +77,18 @@ describe("ExamProfileEditPage — create path", () => {
       renderPage();
     });
     expect(
-      screen.getByRole("heading", { name: "新建策略模板" }),
+      screen.getByRole("heading", { name: "Nueva plantilla de política" }),
     ).toBeInTheDocument();
     // Default duration is 60.
-    expect(screen.getByLabelText("考试时长（分钟）")).toHaveValue(60);
+    expect(screen.getByLabelText("Duración del examen (minutos)")).toHaveValue(60);
   });
 
   it("requires a name and shows a field error", async () => {
     await act(async () => {
       renderPage();
     });
-    await userEvent.click(screen.getByRole("button", { name: "保存" }));
-    expect(await screen.findByText("请输入模板名称")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Guardar" }));
+    expect(await screen.findByText("Ingresa el nombre de la plantilla")).toBeInTheDocument();
     expect(api.post).not.toHaveBeenCalled();
   });
 
@@ -97,8 +97,8 @@ describe("ExamProfileEditPage — create path", () => {
     await act(async () => {
       renderPage();
     });
-    await userEvent.type(screen.getByLabelText("模板名称"), "我的模板");
-    await userEvent.click(screen.getByRole("button", { name: "保存" }));
+    await userEvent.type(screen.getByLabelText("Nombre de la plantilla"), "我的模板");
+    await userEvent.click(screen.getByRole("button", { name: "Guardar" }));
     expect(api.post).toHaveBeenCalledWith(
       "/api/exam-profiles",
       expect.objectContaining({
@@ -118,38 +118,38 @@ describe("ExamProfileEditPage — create path", () => {
       renderPage();
     });
     await userEvent.click(
-      screen.getByRole("button", { name: "从起步模板创建" }),
+      screen.getByRole("button", { name: "Crear desde una plantilla base" }),
     );
     const dialog = await screen.findByRole("dialog");
     // Two starter recipes present.
-    expect(within(dialog).getByText("基础测验")).toBeInTheDocument();
-    expect(within(dialog).getByText("标准在线考试")).toBeInTheDocument();
+    expect(within(dialog).getByText("Prueba básica")).toBeInTheDocument();
+    expect(within(dialog).getByText("Examen en línea estándar")).toBeInTheDocument();
     // Pick the standard-online card via its stable data-starter-recipe hook
-    // (not button index), then use its 使用此模板 button.
+    // (not button index), then use its Usar esta plantilla button.
     const standardCard = within(dialog)
-      .getByText("标准在线考试")
+      .getByText("Examen en línea estándar")
       .closest("[data-starter-recipe]");
     expect(standardCard).not.toBeNull();
     await userEvent.click(
       within(standardCard as HTMLElement).getByRole("button", {
-        name: "使用此模板",
+        name: "Usar esta plantilla",
       }),
     );
     // After prefill, the bounded_grace caps inputs are visible.
-    expect(screen.getByLabelText("每次中断补时上限（秒）")).toBeInTheDocument();
-    expect(screen.getByLabelText("考试时长（分钟）")).toHaveValue(60);
+    expect(screen.getByLabelText("Tope de tiempo extra por interrupción (segundos)")).toBeInTheDocument();
+    expect(screen.getByLabelText("Duración del examen (minutos)")).toHaveValue(60);
   });
 
   it("maps a 409 duplicate-name server error to a friendly message", async () => {
     // Production ApiError shape: status 409 + code RESOURCE_CONFLICT.
-    const err = new ApiError(409, "资源状态冲突", "RESOURCE_CONFLICT");
+    const err = new ApiError(409, "El estado del recurso cambió", "RESOURCE_CONFLICT");
     vi.mocked(api.post).mockRejectedValueOnce(err);
     await act(async () => {
       renderPage();
     });
-    await userEvent.type(screen.getByLabelText("模板名称"), "dup");
-    await userEvent.click(screen.getByRole("button", { name: "保存" }));
-    expect(await screen.findByText("同名策略模板已存在")).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText("Nombre de la plantilla"), "dup");
+    await userEvent.click(screen.getByRole("button", { name: "Guardar" }));
+    expect(await screen.findByText("Ya existe una plantilla de política con ese nombre")).toBeInTheDocument();
   });
 });
 
@@ -159,7 +159,7 @@ describe("ExamProfileEditPage — conditional fields", () => {
       renderPage();
     });
     // Default retakePolicy is unlimited → maxAttempts input absent.
-    expect(screen.queryByLabelText("最大尝试次数")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Máximo de intentos")).not.toBeInTheDocument();
   });
 
   it("shows maxAttempts when retakePolicy becomes max_attempts", async () => {
@@ -167,11 +167,11 @@ describe("ExamProfileEditPage — conditional fields", () => {
       renderPage();
     });
     // Open the retake policy select (Radix combobox).
-    await userEvent.click(screen.getByRole("combobox", { name: "重考策略" }));
+    await userEvent.click(screen.getByRole("combobox", { name: "Política de reintentos" }));
     await userEvent.click(
-      await screen.findByRole("option", { name: "限制次数" }),
+      await screen.findByRole("option", { name: "Cantidad limitada" }),
     );
-    expect(await screen.findByLabelText("最大尝试次数")).toBeInTheDocument();
+    expect(await screen.findByLabelText("Máximo de intentos")).toBeInTheDocument();
   });
 
   it("hides grace caps when interruption policy is strict", async () => {
@@ -179,7 +179,7 @@ describe("ExamProfileEditPage — conditional fields", () => {
       renderPage();
     });
     expect(
-      screen.queryByLabelText("每次中断补时上限（秒）"),
+      screen.queryByLabelText("Tope de tiempo extra por interrupción (segundos)"),
     ).not.toBeInTheDocument();
   });
 
@@ -188,15 +188,15 @@ describe("ExamProfileEditPage — conditional fields", () => {
       renderPage();
     });
     await userEvent.click(
-      screen.getByRole("combobox", { name: "中断恢复策略" }),
+      screen.getByRole("combobox", { name: "Política si se interrumpe" }),
     );
     await userEvent.click(
-      await screen.findByRole("option", { name: "有限补时" }),
+      await screen.findByRole("option", { name: "Tiempo extra limitado" }),
     );
     expect(
-      await screen.findByLabelText("每次中断补时上限（秒）"),
+      await screen.findByLabelText("Tope de tiempo extra por interrupción (segundos)"),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("累计中断补时上限（秒）")).toBeInTheDocument();
+    expect(screen.getByLabelText("Tope acumulado de tiempo extra (segundos)")).toBeInTheDocument();
   });
 });
 
@@ -207,10 +207,10 @@ describe("ExamProfileEditPage — edit path", () => {
       renderPage("/admin/exam-profiles/p-1/edit");
     });
     expect(
-      await screen.findByRole("heading", { name: "编辑策略模板" }),
+      await screen.findByRole("heading", { name: "Editar plantilla de política" }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("考试时长（分钟）")).toHaveValue(90);
-    expect(screen.getByLabelText("模板名称")).toHaveValue("标准在线考试");
+    expect(screen.getByLabelText("Duración del examen (minutos)")).toHaveValue(90);
+    expect(screen.getByLabelText("Nombre de la plantilla")).toHaveValue("Examen en línea estándar");
   });
 
   it("retry after a load failure clears the stale error and renders the form", async () => {
@@ -221,15 +221,15 @@ describe("ExamProfileEditPage — edit path", () => {
       renderPage("/admin/exam-profiles/p-1/edit");
     });
     expect(
-      await screen.findByRole("button", { name: "重试" }),
+      await screen.findByRole("button", { name: "Reintentar" }),
     ).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "重试" }));
+    await userEvent.click(screen.getByRole("button", { name: "Reintentar" }));
     // A successful retry renders the loaded form (ErrorState is gone).
-    expect(await screen.findByLabelText("模板名称")).toHaveValue(
-      "标准在线考试",
+    expect(await screen.findByLabelText("Nombre de la plantilla")).toHaveValue(
+      "Examen en línea estándar",
     );
     expect(
-      screen.queryByRole("button", { name: "重试" }),
+      screen.queryByRole("button", { name: "Reintentar" }),
     ).not.toBeInTheDocument();
   });
 
@@ -239,11 +239,11 @@ describe("ExamProfileEditPage — edit path", () => {
     await act(async () => {
       renderPage("/admin/exam-profiles/p-1/edit");
     });
-    await screen.findByRole("heading", { name: "编辑策略模板" });
-    await userEvent.click(screen.getByRole("button", { name: "保存" }));
+    await screen.findByRole("heading", { name: "Editar plantilla de política" });
+    await userEvent.click(screen.getByRole("button", { name: "Guardar" }));
     expect(api.patch).toHaveBeenCalledWith(
       "/api/exam-profiles/p-1",
-      expect.objectContaining({ name: "标准在线考试", durationMinutes: 90 }),
+      expect.objectContaining({ name: "Examen en línea estándar", durationMinutes: 90 }),
     );
   });
 });

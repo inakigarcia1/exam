@@ -15,7 +15,7 @@ import {
  * A column's geometry used to be derived from its VALUE vocabulary alone, so a
  * role whose values are short could carry a header that did not fit: measured
  * on /admin/exams @1440, the `number` column allocated 84px while its
- * `参与人数` header needs 88px and rendered as `参与人…`. A header is a
+ * `Participantes` header needs 88px and rendered as `参与人…`. A header is a
  * different content class from a value — different i18n namespace, rendered at
  * the governed 14px header tier, and it grows whenever copy or locale changes —
  * so it is declared here as its own bounded vocabulary and folded into the
@@ -45,7 +45,7 @@ export function headerGlyphRun(glyphs: number): number {
 /**
  * The declared header bound per role: the number of full-width glyphs a
  * governed header label may occupy. The widest production label in the whole
- * vocabulary is `页面不可见` (5 glyphs, the exam-monitoring counters); the next
+ * vocabulary is `Pestaña oculta` (5 glyphs, the exam-monitoring counters); the next
  * tier is 4 glyphs, which covers eleven of the fifteen roles.
  */
 export const MAX_HEADER_GLYPHS: Record<DataTableColumnRole, number> = {

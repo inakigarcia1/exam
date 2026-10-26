@@ -200,7 +200,7 @@ describe("api client", () => {
             JSON.stringify({
               error: {
                 code: "VALIDATION_ERROR",
-                message: "请求参数无效",
+                message: "Los datos no son válidos",
                 details: {
                   fields: [
                     {
@@ -247,7 +247,7 @@ describe("api client", () => {
       await expect(api.get("/api/unreachable")).rejects.toThrow(
         "Network request failed",
       );
-      expect(toast.error).toHaveBeenCalledWith("网络连接失败，请稍后重试");
+      expect(toast.error).toHaveBeenCalledWith("No hay conexión. Inténtalo más tarde.");
     });
 
     it("wraps unknown errors as ApiError with status 0", async () => {
@@ -267,7 +267,7 @@ describe("api client", () => {
     it("exposes structured error metadata", () => {
       const error = new ApiError(
         403,
-        "无权执行此操作",
+        "No tienes permiso para hacer esto",
         "PERMISSION_DENIED",
         { action: "user.update" },
         "req-class",
@@ -275,7 +275,7 @@ describe("api client", () => {
 
       expect(error.name).toBe("ApiError");
       expect(error.status).toBe(403);
-      expect(error.message).toBe("无权执行此操作");
+      expect(error.message).toBe("No tienes permiso para hacer esto");
       expect(error.code).toBe("PERMISSION_DENIED");
       expect(error.details).toEqual({ action: "user.update" });
       expect(error.requestId).toBe("req-class");
@@ -286,7 +286,7 @@ describe("api client", () => {
   describe("C3 browser message authority (wire layer)", () => {
     it("T1: keeps the server compat message verbatim for a known code — never contracts registry text", async () => {
       // If the client re-resolves known codes through the server
-      // compatibility catalog (registry-first), .message would become 请先登录
+      // compatibility catalog (registry-first), .message would become Inicia sesión
       // and this test fails (mutation M5).
       vi.stubGlobal(
         "fetch",
@@ -477,7 +477,7 @@ describe("api client", () => {
             JSON.stringify({
               error: {
                 code: "RESOURCE_CONFLICT",
-                message: "资源状态冲突",
+                message: "El estado del recurso cambió",
                 details: {
                   reason: "COURSE_CODE_EXISTS",
                   params: { courseCode: "CS101" },

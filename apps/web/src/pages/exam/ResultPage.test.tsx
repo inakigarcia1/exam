@@ -43,7 +43,7 @@ function renderPage() {
     <MemoryRouter initialEntries={["/exam/attempt-1/result"]}>
       <Routes>
         <Route path="/exam/:attemptId/result" element={<ResultPage />} />
-        <Route path="/exam/list" element={<div>考试列表</div>} />
+        <Route path="/exam/list" element={<div>Lista de exámenes</div>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -91,10 +91,10 @@ describe("ResultPage", () => {
     renderPage();
 
     expect(await screen.findByText("10")).toBeInTheDocument();
-    expect(screen.getByText("已通过")).toBeInTheDocument();
-    expect(screen.getAllByText("单选题")).toHaveLength(2);
-    expect(screen.getByLabelText("回答正确")).toBeInTheDocument();
-    expect(screen.getByLabelText("回答错误")).toBeInTheDocument();
+    expect(screen.getByText("Aprobado")).toBeInTheDocument();
+    expect(screen.getAllByText("Opción única")).toHaveLength(2);
+    expect(screen.getByLabelText("Respuesta correcta")).toBeInTheDocument();
+    expect(screen.getByLabelText("Respuesta incorrecta")).toBeInTheDocument();
   });
 
   it("shows only the neutral fallback when results are hidden", async () => {
@@ -109,8 +109,8 @@ describe("ResultPage", () => {
 
     expect(
       await screen.findByTestId("result-status-message"),
-    ).toHaveTextContent("暂无法查看成绩，请稍后重试");
-    expect(screen.queryByText("及格线")).not.toBeInTheDocument();
+    ).toHaveTextContent("Ahora no se puede ver la calificación. Inténtalo más tarde.");
+    expect(screen.queryByText("Mínimo para aprobar")).not.toBeInTheDocument();
   });
 
   it("shows pending_publish message when hiddenReason is pending_publish", async () => {
@@ -126,7 +126,7 @@ describe("ResultPage", () => {
 
     expect(
       await screen.findByTestId("result-status-message"),
-    ).toHaveTextContent("评分已完成，成绩尚未公布");
+    ).toHaveTextContent("Ya está calificado, pero el resultado no se publicó.");
   });
 
   it("shows not_graded message when hiddenReason is not_graded", async () => {
@@ -142,7 +142,7 @@ describe("ResultPage", () => {
 
     expect(
       await screen.findByTestId("result-status-message"),
-    ).toHaveTextContent("成绩暂未满足查看条件，请稍后查看");
+    ).toHaveTextContent("La calificación todavía no se puede ver. Vuelve más tarde.");
   });
 
   it("falls back to the neutral message when hiddenReason is unknown/missing", async () => {
@@ -159,7 +159,7 @@ describe("ResultPage", () => {
 
     expect(
       await screen.findByTestId("result-status-message"),
-    ).toHaveTextContent("暂无法查看成绩，请稍后重试");
+    ).toHaveTextContent("Ahora no se puede ver la calificación. Inténtalo más tarde.");
   });
 
   it("published (visible) result still displays score details", async () => {
@@ -177,7 +177,7 @@ describe("ResultPage", () => {
 
     renderPage();
 
-    expect(await screen.findByText("已通过")).toBeInTheDocument();
+    expect(await screen.findByText("Aprobado")).toBeInTheDocument();
     expect(screen.getByText("8")).toBeInTheDocument();
   });
 
@@ -198,7 +198,7 @@ describe("ResultPage", () => {
 
     expect(
       await screen.findByTestId("result-status-message"),
-    ).toHaveTextContent("已交卷，等待评分完成");
+    ).toHaveTextContent("Entregado. Falta la calificación.");
     expect(screen.queryByText("考试尚未开始")).not.toBeInTheDocument();
   });
 
@@ -215,7 +215,7 @@ describe("ResultPage", () => {
 
     expect(
       await screen.findByTestId("result-status-message"),
-    ).toHaveTextContent("答题已中断，请返回考试列表尝试恢复");
+    ).toHaveTextContent("Se interrumpió. Vuelve a los exámenes e intenta retomar.");
     // Hidden states are not successes — the icon must not render the green
     // success treatment the visible/graded result uses.
     expect(container.querySelector("svg[data-app-icon]")).toHaveClass(
@@ -239,7 +239,7 @@ describe("ResultPage", () => {
 
     expect(
       await screen.findByTestId("result-status-message"),
-    ).toHaveTextContent("考试正在进行中，尚未交卷");
+    ).toHaveTextContent("El examen sigue en curso. Todavía no lo entregaste.");
   });
 
   it("shows queued copy from the wire status", async () => {
@@ -255,7 +255,7 @@ describe("ResultPage", () => {
 
     expect(
       await screen.findByTestId("result-status-message"),
-    ).toHaveTextContent("尚未开始答题，暂无成绩");
+    ).toHaveTextContent("Todavía no empezaste. No hay calificación.");
   });
 
   it("shows voided copy with a destructive icon from the wire status", async () => {
@@ -271,7 +271,7 @@ describe("ResultPage", () => {
 
     expect(
       await screen.findByTestId("result-status-message"),
-    ).toHaveTextContent("本次考试记录已作废，无法查看成绩");
+    ).toHaveTextContent("Este registro fue anulado. No se puede ver la calificación.");
     expect(container.querySelector("svg[data-app-icon]")).toHaveClass(
       "text-destructive",
     );
@@ -323,9 +323,9 @@ describe("ResultPage", () => {
     renderPage();
 
     await userEvent.click(
-      await screen.findByRole("button", { name: "返回考试列表" }),
+      await screen.findByRole("button", { name: "Volver a los exámenes" }),
     );
-    expect(screen.getByText("考试列表")).toBeInTheDocument();
+    expect(screen.getByText("Lista de exámenes")).toBeInTheDocument();
   });
 
   // ── P3-MOD-P3-2: independent result/answer visibility gates ──────
@@ -340,7 +340,7 @@ describe("ResultPage", () => {
     // no rubric field. The page must show score/pass and must NOT open an
     // answer-review section just because the score is visible. manualGraded
     // survives the stripping, so only genuinely manual questions keep the
-    // "主观题" marker while objective answers render as hidden.
+    // "Abierta" marker while objective answers render as hidden.
     getMock.mockResolvedValue({
       attemptId: "attempt-1",
       status: "graded",
@@ -384,16 +384,16 @@ describe("ResultPage", () => {
     expect(await screen.findByTestId("result-total-score")).toHaveTextContent(
       "25",
     );
-    expect(screen.getByText("已通过")).toBeInTheDocument();
+    expect(screen.getByText("Aprobado")).toBeInTheDocument();
 
     // Answer gate closed (DTO carries no standardAnswer): the objective
     // correct-answer cell renders the hidden placeholder, NOT a real answer
     // and NOT the manual marker.
     expect(screen.getAllByText("—")).toHaveLength(1);
     // The genuinely manual question keeps the manual marker.
-    expect(screen.getByText("主观题")).toBeInTheDocument();
+    expect(screen.getByText("Abierta")).toBeInTheDocument();
     // No rubric is ever rendered by ResultPage (it is not in the DTO contract).
-    expect(screen.queryByText(/评分标准|rubric/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Criterio de corrección|rubric/i)).not.toBeInTheDocument();
   });
 
   it("does not self-release result from grading state when DTO gate is hidden", async () => {
@@ -413,6 +413,6 @@ describe("ResultPage", () => {
     // Pending message shows; no score/pass leaked.
     expect(await screen.findByTestId("result-status-message")).toBeVisible();
     expect(screen.queryByTestId("result-total-score")).not.toBeInTheDocument();
-    expect(screen.queryByText("已通过")).not.toBeInTheDocument();
+    expect(screen.queryByText("Aprobado")).not.toBeInTheDocument();
   });
 });

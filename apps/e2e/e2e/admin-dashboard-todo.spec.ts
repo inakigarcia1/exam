@@ -144,12 +144,12 @@ test.describe.serial("admin dashboard todo queues (#784 B3 L3)", () => {
 
     // Grading card: exact baseline+2 with its unit (attempt count, NOT the
     // 3 pending entries a per-entry mutant would render).
-    const gradingCard = page.getByRole("link", { name: /待人工评分/ });
+    const gradingCard = page.getByRole("link", { name: /Calificación manual pendiente/ });
     await expect(gradingCard).toContainText(String(baselineGradingTotal + 2));
-    await expect(gradingCard).toContainText("份答卷");
+    await expect(gradingCard).toContainText("entregas");
 
     // Incident card: the bounded display — ">20", never a fabricated 21.
-    const incidentCard = page.getByRole("link", { name: /待处理异常/ });
+    const incidentCard = page.getByRole("link", { name: /Incidentes pendientes/ });
     await expect(incidentCard).toContainText(">20");
 
     // The dashboard queried the recovery source with its bounded read.
@@ -158,9 +158,9 @@ test.describe.serial("admin dashboard todo queues (#784 B3 L3)", () => {
     ).toBe(true);
 
     // B10: stats cards, quick actions and recent exams remain in place.
-    await expect(page.getByText("题目总数")).toBeVisible();
-    await expect(page.getByRole("button", { name: "创建考试" })).toBeVisible();
-    await expect(page.getByText("近期考试")).toBeVisible();
+    await expect(page.getByText("Total de preguntas")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Crear examen" })).toBeVisible();
+    await expect(page.getByText("Exámenes recientes")).toBeVisible();
 
     const shot = await page.screenshot({ fullPage: true });
     await testInfo.attach("dashboard-b3-todo", {
@@ -178,7 +178,7 @@ test.describe.serial("admin dashboard todo queues (#784 B3 L3)", () => {
     // Rendering the value proves the dashboard's own card fetch (identical URL
     // shape) has completed — the response tracked after the click is the
     // queue page's.
-    const gradingCard = page.getByRole("link", { name: /待人工评分/ });
+    const gradingCard = page.getByRole("link", { name: /Calificación manual pendiente/ });
     await expect(gradingCard).toContainText(String(baselineGradingTotal + 2));
 
     const queueResponse = page.waitForResponse(
@@ -209,7 +209,7 @@ test.describe.serial("admin dashboard todo queues (#784 B3 L3)", () => {
     // Same race guard: wait for the bounded display before tracking, so every
     // tracked recovery request below belongs to the card click / landing /
     // clear actions (never the dashboard's own card fetch).
-    const incidentCard = page.getByRole("link", { name: /待处理异常/ });
+    const incidentCard = page.getByRole("link", { name: /Incidentes pendientes/ });
     await expect(incidentCard).toContainText(">20");
 
     const incidentUrls = trackRequestUrls(
@@ -224,10 +224,10 @@ test.describe.serial("admin dashboard todo queues (#784 B3 L3)", () => {
       .poll(() => incidentUrls.some((u) => u.includes("unresolvedOnly=true")))
       .toBe(true);
 
-    // The filter state is VISIBLE (select reads 仅未处理) and CLEARABLE.
-    const resolution = page.getByRole("combobox", { name: "全部事件" });
-    await expect(resolution).toHaveText("仅未处理");
-    await expect(page.getByRole("button", { name: "清除筛选" })).toBeVisible();
+    // The filter state is VISIBLE (select reads Solo sin resolver) and CLEARABLE.
+    const resolution = page.getByRole("combobox", { name: "Todos los incidentes" });
+    await expect(resolution).toHaveText("Solo sin resolver");
+    await expect(page.getByRole("button", { name: "Limpiar filtros" })).toBeVisible();
 
     // This run's unresolved incidents are in the landing rows — anchored by
     // the desktop table cell (all 21 rows share the seeded exam title, hence
@@ -236,7 +236,7 @@ test.describe.serial("admin dashboard todo queues (#784 B3 L3)", () => {
       page.getByRole("cell", { name: `${GRADING_KEYWORD}-c 事件考试` }).first(),
     ).toBeVisible();
 
-    await page.getByRole("button", { name: "清除筛选" }).click();
+    await page.getByRole("button", { name: "Limpiar filtros" }).click();
     await expect(page).not.toHaveURL(new RegExp("unresolvedOnly"));
     // The cleared view refetches WITHOUT the predicate (no filter params).
     await expect
@@ -249,7 +249,7 @@ test.describe.serial("admin dashboard todo queues (#784 B3 L3)", () => {
   }) => {
     await loginAsAdmin(page);
     await page.goto("/admin/dashboard");
-    const incidentCard = page.getByRole("link", { name: /待处理异常/ });
+    const incidentCard = page.getByRole("link", { name: /Incidentes pendientes/ });
     await expect(incidentCard).toContainText(">20");
     await incidentCard.click();
     await page.waitForURL("**/admin/recovery?unresolvedOnly=true");

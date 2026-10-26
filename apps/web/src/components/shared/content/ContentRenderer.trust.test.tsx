@@ -37,7 +37,7 @@ function expectIntegrityNotice(container: HTMLElement, plainMarker: string) {
     "[data-testid='content-integrity-notice']",
   );
   expect(notice, "expected the controlled integrity notice").not.toBeNull();
-  expect(notice?.textContent).toBe("此内容无法安全显示");
+  expect(notice?.textContent).toBe("Este contenido no se puede mostrar");
   expect(
     container.textContent?.includes(plainMarker),
     "corrupt Rich must never fall back to the plain content projection",

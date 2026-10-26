@@ -109,7 +109,7 @@ export const ROLE_COMPARISON_VIEWPORT = { width: 1440, height: 900 };
  * viewport (1280×800), browser and seed stay constant. Every tile of a
  * family must keep the SAME current destination (its family root), proving
  * the sidebar "looks like one navigation system" as routed descendants move.
- * Questions import is the negative control: 题目导入 is current, 题目管理 is
+ * Questions import is the negative control: Importar preguntas is current, Gestión de preguntas is
  * never current (exactly-one).
  */
 export interface HierarchyIds {
@@ -144,7 +144,7 @@ export const HIERARCHY_SETS: readonly HierarchySet[] = [
     id: "exams",
     sheetBase: "NAV-HIERARCHY-exams-1280x800",
     title: "Exam family — route hierarchy @1280x800",
-    destinationLabel: "考试管理",
+    destinationLabel: "Gestión de exámenes",
     stops: [
       {
         id: "01",
@@ -200,7 +200,7 @@ export const HIERARCHY_SETS: readonly HierarchySet[] = [
     id: "questions",
     sheetBase: "NAV-HIERARCHY-questions-1280x800",
     title: "Questions family — route hierarchy @1280x800",
-    destinationLabel: "题目管理 / 题目导入 (exactly-one)",
+    destinationLabel: "Gestión de preguntas / Importar preguntas (exactly-one)",
     stops: [
       {
         id: "01",
@@ -233,7 +233,7 @@ export const HIERARCHY_SETS: readonly HierarchySet[] = [
     id: "profiles",
     sheetBase: "NAV-HIERARCHY-profiles-1280x800",
     title: "Exam profiles family — route hierarchy @1280x800",
-    destinationLabel: "策略模板",
+    destinationLabel: "Plantillas de reglas",
     stops: [
       {
         id: "01",
@@ -291,7 +291,7 @@ export const HIERARCHY_SETS: readonly HierarchySet[] = [
     id: "grading",
     sheetBase: "NAV-HIERARCHY-grading-1280x800",
     title: "Grading family — route hierarchy @1280x800",
-    destinationLabel: "待评分",
+    destinationLabel: "Por calificar",
     stops: [
       {
         id: "01",

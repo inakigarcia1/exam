@@ -37,11 +37,11 @@ const BASE_URL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
  */
 
 const STAMP = `${Date.now()}`;
-const RUBRIC = "评分标准：内容完整、论证清晰、公式正确";
+const RUBRIC = "Criterio de corrección：内容完整、论证清晰、公式正确";
 
 /** Open a Select by aria-label and pick a visible option. */
 async function pickSelect(page: Page, label: string, optionName: string) {
-  // exact: the per-option mode selects ("选项 A 内容模式") substring-match
+  // exact: the per-option mode selects ("Opción A Modo de contenido") substring-match
   // the prompt-mode label; only the exact name is unambiguous.
   await page.getByRole("combobox", { name: label, exact: true }).click();
   await page.getByRole("option", { name: optionName }).click();
@@ -49,22 +49,22 @@ async function pickSelect(page: Page, label: string, optionName: string) {
 
 /**
  * Inserts a formula through the Phase-U formula dialog (#669 phase U):
- * toolbar 公式 → dialog → expert LaTeX source → mode → confirm. The expert
+ * toolbar Fórmula → dialog → expert LaTeX source → mode → confirm. The expert
  * path is the deterministic automation seam; the visual math-field path is
  * exercised in rich-editor-input-boundaries.spec.ts.
  */
 async function insertFormulaViaDialog(
   page: Page,
   latex: string,
-  mode: "行内" | "独立显示",
+  mode: "En línea" | "En bloque",
 ): Promise<void> {
-  await page.getByRole("button", { name: "公式" }).click();
+  await page.getByRole("button", { name: "Fórmula" }).click();
   const dialog = page.getByTestId("formula-dialog");
   await dialog.waitFor({ state: "visible" });
   await dialog.getByTestId("formula-expert-toggle").click();
   await dialog.getByTestId("formula-expert-source").fill(latex);
-  if (mode === "独立显示") {
-    await dialog.getByRole("radio", { name: "独立显示" }).check();
+  if (mode === "En bloque") {
+    await dialog.getByRole("radio", { name: "En bloque" }).check();
   }
   await dialog.getByTestId("formula-confirm").click();
   await dialog.waitFor({ state: "hidden" });
@@ -188,21 +188,21 @@ test.describe("formula persistence in the real editor", () => {
     // ── UI authoring: text_response with answerMode = rich ──────────────
     await loginAsAdmin(page);
     await page.goto("/admin/questions");
-    await page.getByRole("button", { name: /新增题目/ }).click();
+    await page.getByRole("button", { name: /Nueva pregunta/ }).click();
     await page.waitForURL(/\/admin\/questions\/new/);
 
-    await page.getByRole("button", { name: "所属课程" }).click();
-    await page.getByPlaceholder("搜索课程名称或代码...").fill("基础安全培训");
+    await page.getByRole("button", { name: "Comisión" }).click();
+    await page.getByPlaceholder("Buscar por nombre o código...").fill("基础安全培训");
     await page.getByRole("option", { name: "基础安全培训" }).click();
-    await pickSelect(page, "题目类型", "文本作答题");
+    await pickSelect(page, "Tipo de pregunta", "Respuesta de texto");
 
     const PROMPT = `676独立公式作答题-${STAMP}`;
-    await page.getByPlaceholder("输入题目内容").fill(PROMPT);
+    await page.getByPlaceholder("Escribí el enunciado").fill(PROMPT);
     await page
-      .getByPlaceholder("请描述评分时应考虑的关键点、完整性、准确性或论证质量")
+      .getByPlaceholder("Describí qué hay que mirar al corregir: los puntos clave, si está completo, si es exacto o cómo argumenta")
       .fill(RUBRIC);
     await page.getByRole("spinbutton").fill("20");
-    await pickSelect(page, "作答模式", "富文本");
+    await pickSelect(page, "Cómo responde", "Texto enriquecido");
 
     const createResponse = page.waitForResponse(
       (res) =>
@@ -210,7 +210,7 @@ test.describe("formula persistence in the real editor", () => {
         res.url().endsWith("/api/questions"),
       { timeout: 15_000 },
     );
-    await page.getByRole("button", { name: /^保存$/ }).click();
+    await page.getByRole("button", { name: /^Guardar$/ }).click();
     const createdRes = await createResponse;
     expect(createdRes.status()).toBe(201);
     const createdBody = (await createdRes.json()) as { id: string };
@@ -250,11 +250,11 @@ test.describe("formula persistence in the real editor", () => {
     await editor.click();
     await page.keyboard.type("676独立公式作答：证明 ");
     const BLOCK_LATEX = "\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}";
-    await insertFormulaViaDialog(page, BLOCK_LATEX, "独立显示");
+    await insertFormulaViaDialog(page, BLOCK_LATEX, "En bloque");
     await expect(editor.locator("[data-type='block-math']")).toHaveCount(1);
     // The destruction trigger: typing + an inline formula right after.
     await page.keyboard.type("证毕，又 ");
-    await insertFormulaViaDialog(page, "E=mc^2", "行内");
+    await insertFormulaViaDialog(page, "E=mc^2", "En línea");
     await waitForSaveSaved(page);
 
     // The block formula is STILL VISIBLE after further editing.
@@ -324,25 +324,25 @@ async function setupProsePlusFormula(
 
   await loginAsAdmin(page);
   await page.goto("/admin/questions");
-  await page.getByRole("button", { name: /新增题目/ }).click();
+  await page.getByRole("button", { name: /Nueva pregunta/ }).click();
   await page.waitForURL(/\/admin\/questions\/new/);
-  await page.getByRole("button", { name: "所属课程" }).click();
-  await page.getByPlaceholder("搜索课程名称或代码...").fill("基础安全培训");
+  await page.getByRole("button", { name: "Comisión" }).click();
+  await page.getByPlaceholder("Buscar por nombre o código...").fill("基础安全培训");
   await page.getByRole("option", { name: "基础安全培训" }).click();
-  await pickSelect(page, "题目类型", "文本作答题");
+  await pickSelect(page, "Tipo de pregunta", "Respuesta de texto");
   const PROMPT = `${tag}-${STAMP}`;
-  await page.getByPlaceholder("输入题目内容").fill(PROMPT);
+  await page.getByPlaceholder("Escribí el enunciado").fill(PROMPT);
   await page
-    .getByPlaceholder("请描述评分时应考虑的关键点、完整性、准确性或论证质量")
+    .getByPlaceholder("Describí qué hay que mirar al corregir: los puntos clave, si está completo, si es exacto o cómo argumenta")
     .fill(RUBRIC);
   await page.getByRole("spinbutton").fill("20");
-  await pickSelect(page, "作答模式", "富文本");
+  await pickSelect(page, "Cómo responde", "Texto enriquecido");
   const createResponse = page.waitForResponse(
     (res) =>
       res.request().method() === "POST" && res.url().endsWith("/api/questions"),
     { timeout: 15_000 },
   );
-  await page.getByRole("button", { name: /^保存$/ }).click();
+  await page.getByRole("button", { name: /^Guardar$/ }).click();
   const createdRes = await createResponse;
   expect(createdRes.status()).toBe(201);
   const questionId = ((await createdRes.json()) as { id: string }).id;
@@ -375,7 +375,7 @@ async function setupProsePlusFormula(
   await expect(editor).toHaveCount(1);
   await editor.click();
   await page.keyboard.type("结论：");
-  await insertFormulaViaDialog(page, "x^2-1=0", "独立显示");
+  await insertFormulaViaDialog(page, "x^2-1=0", "En bloque");
   await expect(editor.locator("[data-type='block-math']")).toHaveCount(1);
   return {
     attemptId,
@@ -659,13 +659,13 @@ test.describe("adversarial math render security", () => {
       options: [
         {
           id: "opt-a",
-          content: "选项A",
+          content: "OpciónA",
           contentDocument: null,
           isCorrect: true,
         },
         {
           id: "opt-b",
-          content: "选项B",
+          content: "OpciónB",
           contentDocument: null,
           isCorrect: false,
         },

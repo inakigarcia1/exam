@@ -104,7 +104,7 @@ describe("ProctorRecoveryPage — collectionScope presentation (issue 606)", () 
     renderPageForScope("organization", "Admin");
     expect(
       await screen.findByTestId("proctor-recovery-collection-scope"),
-    ).toHaveTextContent("范围：组织内全部考试");
+    ).toHaveTextContent("Alcance: todos los exámenes de la organización");
   });
 
   it("renders the active-assignments scope the server reported, for a Proctor caller", async () => {
@@ -112,7 +112,7 @@ describe("ProctorRecoveryPage — collectionScope presentation (issue 606)", () 
     renderPageForScope("active_assignments", "Proctor");
     expect(
       await screen.findByTestId("proctor-recovery-collection-scope"),
-    ).toHaveTextContent("范围：我的当前监考任务");
+    ).toHaveTextContent("Alcance: mis supervisiones actuales");
   });
 
   it("scope follows the WIRE FACT, not the user's role: Admin + active_assignments response", async () => {
@@ -123,8 +123,8 @@ describe("ProctorRecoveryPage — collectionScope presentation (issue 606)", () 
     renderPageForScope("active_assignments", "Admin");
     expect(
       await screen.findByTestId("proctor-recovery-collection-scope"),
-    ).toHaveTextContent("范围：我的当前监考任务");
-    expect(screen.queryByText("范围：组织内全部考试")).not.toBeInTheDocument();
+    ).toHaveTextContent("Alcance: mis supervisiones actuales");
+    expect(screen.queryByText("Alcance: todos los exámenes de la organización")).not.toBeInTheDocument();
   });
 
   it("scope follows the WIRE FACT, not the user's role: Proctor + organization response", async () => {
@@ -132,9 +132,9 @@ describe("ProctorRecoveryPage — collectionScope presentation (issue 606)", () 
     renderPageForScope("organization", "Proctor");
     expect(
       await screen.findByTestId("proctor-recovery-collection-scope"),
-    ).toHaveTextContent("范围：组织内全部考试");
+    ).toHaveTextContent("Alcance: todos los exámenes de la organización");
     expect(
-      screen.queryByText("范围：我的当前监考任务"),
+      screen.queryByText("Alcance: mis supervisiones actuales"),
     ).not.toBeInTheDocument();
   });
 

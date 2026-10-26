@@ -27,7 +27,7 @@ import { WIZARD_CODE_DEFAULTS } from "./wizardState";
  * presented as exam controls.
  *
  * When a profile is selected, each field shows a provenance badge
- * (来自「模板名」 / 已自定义) and a 恢复模板值 button to drop the override.
+ * (来自「模板名」 / Con cambios) and a Volver a la plantilla button to drop the override.
  */
 export function WizardPolicyFields({
   state,

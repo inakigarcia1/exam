@@ -706,7 +706,7 @@ describe("J8: score list routes", () => {
     const body = response.json();
     // C1-E: top-level message is the canonical registry compat text; the
     // condition itself is asserted via the machine reason (D0.13).
-    expect(body.error.message).toBe("资源状态冲突");
+    expect(body.error.message).toBe("El estado del recurso cambió");
     expect(body.error.details?.reason).toBe("EXAM_NOT_FINISHED");
     expect(body.error.requestId).toEqual(expect.any(String));
     expect(body.error.code).toBe("RESOURCE_CONFLICT");

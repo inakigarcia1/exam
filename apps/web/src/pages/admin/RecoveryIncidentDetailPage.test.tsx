@@ -63,7 +63,7 @@ const mockAggregate: RecoveryIncidentAggregateResponse = {
       actorId: "admin-1",
       beforeVersion: 1,
       afterVersion: 2,
-      payload: { reasonCode: "network", note: "开始调查" },
+      payload: { reasonCode: "network", note: "Iniciar investigación" },
       createdAt: "2025-01-15T10:05:00Z",
     },
   ],
@@ -138,7 +138,7 @@ const mockAggregate: RecoveryIncidentAggregateResponse = {
       id: "aud-1",
       action: "incident.investigated",
       actorId: "admin-1",
-      actorName: "管理员",
+      actorName: "Administrador",
       createdAt: "2025-01-15T10:05:00Z",
     },
   ],
@@ -190,9 +190,9 @@ describe("RecoveryIncidentDetailPage", () => {
       await screen.findByText("detail page test incident"),
     ).toBeInTheDocument();
     // Status renders through StatusBadge (incident domain keys).
-    expect(screen.getByText("调查中")).toBeInTheDocument();
-    expect(screen.getByText("严重")).toBeInTheDocument();
-    expect(screen.getByText("网络中断")).toBeInTheDocument();
+    expect(screen.getByText("En investigación")).toBeInTheDocument();
+    expect(screen.getByText("Crítico")).toBeInTheDocument();
+    expect(screen.getByText("Corte de red")).toBeInTheDocument();
     expect(screen.getAllByText("admin-1").length).toBeGreaterThanOrEqual(1);
   });
 
@@ -201,32 +201,32 @@ describe("RecoveryIncidentDetailPage", () => {
     expect(await screen.findByText("网络恢复考试")).toBeInTheDocument();
     expect(screen.getByText("考生张三")).toBeInTheDocument();
     const attemptsSection = screen
-      .getByText("答题")
+      .getByText("Intento")
       .closest("section") as HTMLElement;
     expect(within(attemptsSection).getByText(/88\.5/)).toBeInTheDocument();
-    expect(within(attemptsSection).getByText("断线")).toBeInTheDocument();
+    expect(within(attemptsSection).getByText("Desconectado")).toBeInTheDocument();
   });
 
   it("renders events, notes, actions, memberships and interruption links", async () => {
     renderPage();
-    // "开始调查" appears both as an event-type label and the Operations
+    // "Iniciar investigación" appears both as an event-type label and the Operations
     // command button (J5-I1C1) — assert presence, not uniqueness.
     expect(
-      (await screen.findAllByText("开始调查")).length,
+      (await screen.findAllByText("Iniciar investigación")).length,
     ).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("已联系考生")).toBeInTheDocument();
-    expect(screen.getAllByText("时间补偿").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("受影响")).toBeInTheDocument();
+    expect(screen.getAllByText("Compensación de tiempo").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Afectado")).toBeInTheDocument();
     expect(screen.getByText("interruption-1")).toBeInTheDocument();
   });
 
   it("renders time adjustment facts (policy/source/deadlines)", async () => {
     renderPage();
-    expect(await screen.findByText("人工干预")).toBeInTheDocument();
-    expect(screen.getByText("人工")).toBeInTheDocument();
+    expect(await screen.findByText("Intervención manual")).toBeInTheDocument();
+    expect(screen.getByText("Manual")).toBeInTheDocument();
     expect(screen.getByText("+3600s")).toBeInTheDocument();
-    expect(screen.getByText(/调整前截止/)).toBeInTheDocument();
-    expect(screen.getByText(/调整后截止/)).toBeInTheDocument();
+    expect(screen.getByText(/Cierre anterior/)).toBeInTheDocument();
+    expect(screen.getByText(/Cierre nuevo/)).toBeInTheDocument();
     expect(screen.getByText(/网络故障补偿/)).toBeInTheDocument();
   });
 
@@ -235,7 +235,7 @@ describe("RecoveryIncidentDetailPage", () => {
     expect(
       await screen.findByText("incident.investigated"),
     ).toBeInTheDocument();
-    expect(screen.getByText("管理员")).toBeInTheDocument();
+    expect(screen.getByText("Administrador")).toBeInTheDocument();
   });
 
   it("renders attempt-operation navigation links (cross-links, not multi-fetch)", async () => {
@@ -255,18 +255,18 @@ describe("RecoveryIncidentDetailPage", () => {
     renderPage();
     await screen.findByText("detail page test incident");
     // Server-computed allowedActions from the mock: investigate + resolve.
-    expect(screen.getByText("操作")).toBeInTheDocument();
+    expect(screen.getByText("Acciones")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "开始调查" }),
+      screen.getByRole("button", { name: "Iniciar investigación" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "解决事件" }),
+      screen.getByRole("button", { name: "Resolver incidente" }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "添加备注" }),
+      screen.queryByRole("button", { name: "Agregar nota" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "驳回事件" }),
+      screen.queryByRole("button", { name: "Descartar incidente" }),
     ).not.toBeInTheDocument();
   });
 
@@ -274,10 +274,10 @@ describe("RecoveryIncidentDetailPage", () => {
     getMock.mockResolvedValue({ ...mockAggregate, allowedActions: [] });
     renderPage();
     await screen.findByText("detail page test incident");
-    expect(screen.queryByText("操作")).not.toBeInTheDocument();
+    expect(screen.queryByText("Acciones")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", {
-        name: /开始调查|添加备注|修改严重程度|解决事件|驳回事件/,
+        name: /Iniciar investigación|Agregar nota|Cambiar gravedad|Resolver incidente|Descartar incidente/,
       }),
     ).not.toBeInTheDocument();
   });
@@ -285,8 +285,8 @@ describe("RecoveryIncidentDetailPage", () => {
   it("investigates with operationId + expectedVersion and reloads", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "开始调查" }));
-    await user.click(screen.getByRole("button", { name: "开始调查" }));
+    await user.click(await screen.findByRole("button", { name: "Iniciar investigación" }));
+    await user.click(screen.getByRole("button", { name: "Iniciar investigación" }));
 
     expect(postMock).toHaveBeenCalledTimes(1);
     const [url, body] = postMock.mock.calls[0]! as unknown as [
@@ -302,22 +302,22 @@ describe("RecoveryIncidentDetailPage", () => {
   it("requires a resolution summary before resolving (terminal judgment)", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "解决事件" }));
-    const confirm = screen.getByRole("button", { name: "解决事件" });
+    await user.click(await screen.findByRole("button", { name: "Resolver incidente" }));
+    const confirm = screen.getByRole("button", { name: "Resolver incidente" });
     await user.click(confirm);
     expect(postMock).not.toHaveBeenCalled();
-    expect(screen.getByText("请输入解决说明")).toBeInTheDocument();
+    expect(screen.getByText("Ingresa la resolución")).toBeInTheDocument();
   });
 
   it("resolves with the resolution summary + expectedVersion", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "解决事件" }));
+    await user.click(await screen.findByRole("button", { name: "Resolver incidente" }));
     await user.type(
-      screen.getByLabelText("解决说明"),
+      screen.getByLabelText("Resolución"),
       "考生已恢复，网络已修复",
     );
-    await user.click(screen.getByRole("button", { name: "解决事件" }));
+    await user.click(screen.getByRole("button", { name: "Resolver incidente" }));
 
     expect(postMock).toHaveBeenCalledTimes(1);
     const [url, body] = postMock.mock.calls[0]! as unknown as [
@@ -339,15 +339,15 @@ describe("RecoveryIncidentDetailPage", () => {
       new ApiError(409, "version conflict", "INCIDENT_VERSION_CONFLICT"),
     );
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "开始调查" }));
-    await user.click(screen.getByRole("button", { name: "开始调查" }));
+    await user.click(await screen.findByRole("button", { name: "Iniciar investigación" }));
+    await user.click(screen.getByRole("button", { name: "Iniciar investigación" }));
 
     // Confirmed rejection — dialog closes; the dedicated version-conflict
     // toast is surfaced (reload and retry).
     expect(toast.error).toHaveBeenCalledWith(
       expect.stringContaining("版本冲突"),
     );
-    expect(screen.queryByText("重试")).not.toBeInTheDocument();
+    expect(screen.queryByText("Reintentar")).not.toBeInTheDocument();
   });
 
   it("shows the snapshot timestamp and a stale warning for old snapshots", async () => {
@@ -357,7 +357,7 @@ describe("RecoveryIncidentDetailPage", () => {
     });
     renderPage();
     expect(await screen.findByText(/快照时间：/)).toBeInTheDocument();
-    expect(screen.getByText("快照较旧，数据可能已变化")).toBeInTheDocument();
+    expect(screen.getByText("La instantánea es antigua. Los datos pueden haber cambiado.")).toBeInTheDocument();
   });
 
   it("shows a fresh snapshot without a stale warning", async () => {
@@ -368,17 +368,17 @@ describe("RecoveryIncidentDetailPage", () => {
     renderPage();
     expect(await screen.findByText(/快照时间：/)).toBeInTheDocument();
     expect(
-      screen.queryByText("快照较旧，数据可能已变化"),
+      screen.queryByText("La instantánea es antigua. Los datos pueden haber cambiado."),
     ).not.toBeInTheDocument();
   });
 
   it("shows not-found for 404 and retry works", async () => {
     getMock.mockRejectedValueOnce(new ApiError(404, "Not found"));
     renderPage();
-    expect(await screen.findByText("未找到该事件")).toBeInTheDocument();
+    expect(await screen.findByText("No se encontró este incidente")).toBeInTheDocument();
 
     getMock.mockResolvedValue(mockAggregate);
-    await userEvent.setup().click(screen.getByText("重试"));
+    await userEvent.setup().click(screen.getByText("Reintentar"));
     expect(
       await screen.findByText("detail page test incident"),
     ).toBeInTheDocument();
@@ -397,16 +397,16 @@ describe("RecoveryIncidentDetailPage", () => {
 
     // Manual refresh fails while data is on screen (503 → unavailable).
     getMock.mockRejectedValueOnce(new ApiError(503, "unavailable"));
-    await userEvent.setup().click(screen.getByRole("button", { name: "刷新" }));
+    await userEvent.setup().click(screen.getByRole("button", { name: "Actualizar" }));
 
     // Old data stays visible, the failure is an INLINE banner (not a
     // full-screen ErrorState — no retry button, no data swap).
     expect(
-      await screen.findByText("恢复数据暂不可用，请稍后重试。"),
+      await screen.findByText("Los datos de recuperación no están disponibles. Inténtalo más tarde."),
     ).toBeInTheDocument();
     expect(screen.getByText("detail page test incident")).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "重试" }),
+      screen.queryByRole("button", { name: "Reintentar" }),
     ).not.toBeInTheDocument();
   });
 });

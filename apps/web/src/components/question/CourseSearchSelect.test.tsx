@@ -55,7 +55,7 @@ interface ListResponse {
   totalPages: number;
 }
 
-function makeCourses(n: number, prefix = "课程"): CourseRow[] {
+function makeCourses(n: number, prefix = "Comisión"): CourseRow[] {
   return Array.from({ length: n }, (_, i) => ({
     id: `c${i}`,
     name: `${prefix}${i}`,
@@ -83,7 +83,7 @@ function renderSelect(
 
 /** Helper to open the popover by clicking the trigger. */
 async function openPopover(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole("button", { name: "所属课程" }));
+  await user.click(screen.getByRole("button", { name: "Comisión" }));
 }
 
 /** Find the combobox input (the search field, not the trigger button). */
@@ -102,7 +102,7 @@ describe("CourseSearchSelect", () => {
   it("the trigger exposes a stable accessible name", () => {
     renderSelect(makeCourses(2));
     expect(
-      screen.getByRole("button", { name: "所属课程" }),
+      screen.getByRole("button", { name: "Comisión" }),
     ).toBeInTheDocument();
   });
 
@@ -113,7 +113,7 @@ describe("CourseSearchSelect", () => {
 
     await openPopover(user);
     expect(
-      await screen.findByRole("option", { name: /课程0/ }),
+      await screen.findByRole("option", { name: /Comisión0/ }),
     ).toBeInTheDocument();
 
     // ArrowDown moves to first option (index 0), Enter selects it.
@@ -126,7 +126,7 @@ describe("CourseSearchSelect", () => {
     renderSelect(makeCourses(4));
 
     await openPopover(user);
-    await screen.findByRole("option", { name: /课程0/ });
+    await screen.findByRole("option", { name: /Comisión0/ });
     const input = getComboboxInput();
 
     // ArrowDown twice → index 1
@@ -164,7 +164,7 @@ describe("CourseSearchSelect", () => {
     renderSelect(makeCourses(3), { onChange });
 
     await openPopover(user);
-    await screen.findByRole("option", { name: /课程0/ });
+    await screen.findByRole("option", { name: /Comisión0/ });
 
     await user.keyboard("{Escape}");
     await waitFor(() => {
@@ -179,7 +179,7 @@ describe("CourseSearchSelect", () => {
     renderSelect(initial);
 
     await openPopover(user);
-    await screen.findByRole("option", { name: /课程0/ });
+    await screen.findByRole("option", { name: /Comisión0/ });
 
     // Remote search returns only a different set.
     apiGet.mockResolvedValueOnce({
@@ -196,9 +196,9 @@ describe("CourseSearchSelect", () => {
       expect(screen.getByText("远程课程A")).toBeInTheDocument();
     });
     // The initial courses must NOT appear in the search results.
-    expect(screen.queryByText("课程0")).not.toBeInTheDocument();
-    expect(screen.queryByText("课程1")).not.toBeInTheDocument();
-    expect(screen.queryByText("课程2")).not.toBeInTheDocument();
+    expect(screen.queryByText("Comisión0")).not.toBeInTheDocument();
+    expect(screen.queryByText("Comisión1")).not.toBeInTheDocument();
+    expect(screen.queryByText("Comisión2")).not.toBeInTheDocument();
   });
 
   it("selected remote course label persists after popover closes", async () => {
@@ -218,7 +218,7 @@ describe("CourseSearchSelect", () => {
     render(<Wrapper />);
 
     await openPopover(user);
-    await screen.findByRole("option", { name: /课程0/ });
+    await screen.findByRole("option", { name: /Comisión0/ });
 
     // Remote search returns a course NOT in initialCourses.
     const remoteCourse = { id: "remote-99", name: "远程课程Z", code: "RZ" };
@@ -240,14 +240,14 @@ describe("CourseSearchSelect", () => {
     await waitFor(() => {
       expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
     });
-    expect(screen.getByRole("button", { name: "所属课程" })).toHaveTextContent(
+    expect(screen.getByRole("button", { name: "Comisión" })).toHaveTextContent(
       "远程课程Z",
     );
     expect(screen.getByTestId("current-value")).toHaveTextContent("remote-99");
 
     // Re-open — the label should still be correct.
     await openPopover(user);
-    expect(screen.getByRole("button", { name: "所属课程" })).toHaveTextContent(
+    expect(screen.getByRole("button", { name: "Comisión" })).toHaveTextContent(
       "远程课程Z",
     );
   });
@@ -265,7 +265,7 @@ describe("CourseSearchSelect", () => {
     await user.type(getComboboxInput(), "不存在");
 
     await waitFor(() => {
-      expect(screen.getByText("未找到匹配课程")).toBeInTheDocument();
+      expect(screen.getByText("Ninguna comisión coincide")).toBeInTheDocument();
     });
   });
 
@@ -295,7 +295,7 @@ describe("CourseSearchSelect", () => {
     // Clear the input → should restore initialCourses immediately.
     await user.clear(input);
     await waitFor(() => {
-      expect(screen.getByText("课程0")).toBeInTheDocument();
+      expect(screen.getByText("Comisión0")).toBeInTheDocument();
     });
 
     // Now resolve request A with stale data.
@@ -309,9 +309,9 @@ describe("CourseSearchSelect", () => {
 
     // The stale result must NOT overwrite the cleared/initial state.
     expect(screen.queryByText("过期结果")).not.toBeInTheDocument();
-    expect(screen.getByText("课程0")).toBeInTheDocument();
-    expect(screen.getByText("课程1")).toBeInTheDocument();
-    expect(screen.getByText("课程2")).toBeInTheDocument();
+    expect(screen.getByText("Comisión0")).toBeInTheDocument();
+    expect(screen.getByText("Comisión1")).toBeInTheDocument();
+    expect(screen.getByText("Comisión2")).toBeInTheDocument();
   });
 
   it("Escape invalidates an older unresolved request", async () => {
@@ -355,7 +355,7 @@ describe("CourseSearchSelect", () => {
     // Re-open — must show initialCourses, not stale results.
     await openPopover(user);
     await waitFor(() => {
-      expect(screen.getByText("课程0")).toBeInTheDocument();
+      expect(screen.getByText("Comisión0")).toBeInTheDocument();
     });
     expect(screen.queryByText("过期结果")).not.toBeInTheDocument();
   });
@@ -383,7 +383,7 @@ describe("CourseSearchSelect", () => {
     renderSelect(makeCourses(3), { onChange });
 
     await openPopover(user);
-    const option = await screen.findByRole("option", { name: /课程1/ });
+    const option = await screen.findByRole("option", { name: /Comisión1/ });
     await user.click(option);
 
     expect(onChange).toHaveBeenCalledWith("c1");
@@ -404,7 +404,7 @@ describe("CourseSearchSelect", () => {
     expect(input).toHaveAttribute("aria-autocomplete", "list");
     expect(input).toHaveAttribute("aria-expanded", "true");
 
-    const listbox = screen.getByRole("listbox", { name: "所属课程" });
+    const listbox = screen.getByRole("listbox", { name: "Comisión" });
     expect(input).toHaveAttribute("aria-controls", listbox.id);
 
     // The listbox ID must be unique (generated via useId).
@@ -417,7 +417,7 @@ describe("CourseSearchSelect", () => {
     }
 
     // The trigger button should NOT have combobox role.
-    const trigger = screen.getByRole("button", { name: "所属课程" });
+    const trigger = screen.getByRole("button", { name: "Comisión" });
     expect(trigger).not.toHaveAttribute("role", "combobox");
   });
 
@@ -426,16 +426,16 @@ describe("CourseSearchSelect", () => {
     renderSelect(makeCourses(3));
 
     await openPopover(user);
-    await screen.findByRole("option", { name: /课程0/ });
+    await screen.findByRole("option", { name: /Comisión0/ });
 
     // ArrowDown to first option — it should have data-active="true".
     await user.keyboard("{ArrowDown}");
-    const firstOption = screen.getByRole("option", { name: /课程0/ });
+    const firstOption = screen.getByRole("option", { name: /Comisión0/ });
     expect(firstOption).toHaveAttribute("data-active", "true");
 
     // ArrowDown to second option.
     await user.keyboard("{ArrowDown}");
-    const secondOption = screen.getByRole("option", { name: /课程1/ });
+    const secondOption = screen.getByRole("option", { name: /Comisión1/ });
     expect(secondOption).toHaveAttribute("data-active", "true");
     expect(firstOption).not.toHaveAttribute("data-active", "true");
   });

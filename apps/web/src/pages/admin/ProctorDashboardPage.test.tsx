@@ -54,7 +54,7 @@ function seedPendingAuthority(
       operationId,
       addedSeconds,
       reasonCode: "technical_incident",
-      reasonText: "网络中断",
+      reasonText: "Corte de red",
     },
     revision: 1,
     createdAt: Date.now(),
@@ -263,7 +263,7 @@ describe("ProctorDashboardPage", () => {
     // candidate has an in-progress attemptId (so an Admin WOULD see the full
     // action row), but a user without the business capabilities — here the
     // Maintainer preset, which has zero business permissions — must not see
-    // 延长时间 / 强制交卷 / 标记违规. The backend 403 boundary is covered by
+    // Extender el plazo / Forzar entrega / Marcar irregularidad. The backend 403 boundary is covered by
     // the route-level capability derivation; this test pins the client
     // contract and acts as a canary if a business capability is ever added
     // to the Maintainer preset.
@@ -274,16 +274,16 @@ describe("ProctorDashboardPage", () => {
     renderPageWithUser(maintainerUser);
     await screen.findByText("张三");
     expect(
-      screen.queryByRole("button", { name: "延长时间" }),
+      screen.queryByRole("button", { name: "Extender el plazo" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "强制交卷" }),
+      screen.queryByRole("button", { name: "Forzar entrega" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "标记违规" }),
+      screen.queryByRole("button", { name: "Marcar irregularidad" }),
     ).not.toBeInTheDocument();
     // The grant dialog must not open either (no capability to reach it).
-    expect(screen.queryByText("延长考试时间")).not.toBeInTheDocument();
+    expect(screen.queryByText("Extender el tiempo del examen")).not.toBeInTheDocument();
   });
 
   it("does NOT POST force-submit from the hydrated banner for a user without AttemptForceSubmit", async () => {
@@ -301,7 +301,7 @@ describe("ProctorDashboardPage", () => {
         command: {
           attemptId: "att-1",
           operationId: "00000000-0000-4000-8000-000000000abc",
-          reason: "管理员强制交卷",
+          reason: "Entrega forzada por un administrador",
           examId: "exam-1",
           candidateName: "张三",
         },
@@ -317,12 +317,12 @@ describe("ProctorDashboardPage", () => {
     await screen.findByTestId("pending-force-submit-banner");
     await act(async () => {
       fireEvent.click(
-        screen.getByRole("button", { name: "重试未确认强制交卷" }),
+        screen.getByRole("button", { name: "Reintentar la entrega sin confirmar" }),
       );
     });
     expect(apiPost).not.toHaveBeenCalled();
     // Dismiss still clears the stale record.
-    fireEvent.click(screen.getByRole("button", { name: "清除未确认命令" }));
+    fireEvent.click(screen.getByRole("button", { name: "Descartar comando" }));
     expect(
       sessionStorage.getItem("exam.pendingForceSubmit:org-1:maint-1"),
     ).toBeNull();
@@ -337,16 +337,16 @@ describe("ProctorDashboardPage", () => {
   describe("operator time-grant dialog", () => {
     /** Opens the grant dialog for the first candidate's extend button. */
     async function openGrantDialog() {
-      // The card's extend button label ("延长时间").
-      const extendBtn = await screen.findByRole("button", { name: "延长时间" });
+      // The card's extend button label ("Extender el plazo").
+      const extendBtn = await screen.findByRole("button", { name: "Extender el plazo" });
       fireEvent.click(extendBtn);
-      await screen.findByText("延长考试时间");
+      await screen.findByText("Extender el tiempo del examen");
     }
 
     /** Fills the reason textarea and clicks the confirm (10-minute) button. */
     async function submitGrant() {
-      const reason = await screen.findByPlaceholderText("请说明延长原因");
-      fireEvent.change(reason, { target: { value: "网络中断" } });
+      const reason = await screen.findByPlaceholderText("Explicá por qué se suma tiempo");
+      fireEvent.change(reason, { target: { value: "Corte de red" } });
       const confirm = await screen.findByRole("button", {
         name: "延长 10 分钟",
       });
@@ -369,7 +369,7 @@ describe("ProctorDashboardPage", () => {
           afterDeadline: "2026-01-01T00:10:00Z",
           addedSeconds: 600,
           reasonCode: "technical_incident",
-          reasonText: "网络中断",
+          reasonText: "Corte de red",
           interruptionId: null,
           incidentId: null,
           createdAt: "2026-01-01T00:00:00Z",
@@ -435,7 +435,7 @@ describe("ProctorDashboardPage", () => {
           afterDeadline: "2026-01-01T00:10:00Z",
           addedSeconds: 600,
           reasonCode: "technical_incident",
-          reasonText: "网络中断",
+          reasonText: "Corte de red",
           interruptionId: null,
           incidentId: null,
           createdAt: "2026-01-01T00:00:00Z",
@@ -462,7 +462,7 @@ describe("ProctorDashboardPage", () => {
         expect(toast.warning).toHaveBeenCalled();
       });
       const retryBtn = await screen.findByRole("button", {
-        name: "重试同一加时",
+        name: "Reintentar este tiempo extra",
       });
       fireEvent.click(retryBtn);
 
@@ -487,7 +487,7 @@ describe("ProctorDashboardPage", () => {
         total: 1,
       });
       // The thrown error must carry code=IDEMPOTENCY_CONFLICT for classification.
-      const conflict = Object.assign(new Error("操作标识符与已有请求冲突"), {
+      const conflict = Object.assign(new Error("Ese identificador ya se usó en otro pedido"), {
         status: 409,
         code: "IDEMPOTENCY_CONFLICT",
       });
@@ -507,7 +507,7 @@ describe("ProctorDashboardPage", () => {
           afterDeadline: "2026-01-01T00:10:00Z",
           addedSeconds: 600,
           reasonCode: "technical_incident",
-          reasonText: "网络中断",
+          reasonText: "Corte de red",
           interruptionId: null,
           incidentId: null,
           createdAt: "2026-01-01T00:00:00Z",
@@ -574,7 +574,7 @@ describe("ProctorDashboardPage", () => {
             afterDeadline: "2026-01-01T00:10:00Z",
             addedSeconds: 600,
             reasonCode: "technical_incident",
-            reasonText: "网络中断",
+            reasonText: "Corte de red",
             interruptionId: null,
             incidentId: null,
             createdAt: "2026-01-01T00:00:00Z",
@@ -592,7 +592,7 @@ describe("ProctorDashboardPage", () => {
 
         // Opening the dialog must not throw even without randomUUID.
         await openGrantDialog();
-        expect(screen.getByText("延长考试时间")).toBeInTheDocument();
+        expect(screen.getByText("Extender el tiempo del examen")).toBeInTheDocument();
 
         // Submitting sends a well-formed UUID operationId.
         await submitGrant();
@@ -629,7 +629,7 @@ describe("ProctorDashboardPage", () => {
           afterDeadline: "2026-01-01T00:10:00Z",
           addedSeconds: 600,
           reasonCode: "technical_incident",
-          reasonText: "网络中断",
+          reasonText: "Corte de red",
           interruptionId: null,
           incidentId: null,
           createdAt: "2026-01-01T00:00:00Z",
@@ -651,8 +651,8 @@ describe("ProctorDashboardPage", () => {
       // operationId. Reopen and submit again to capture it.
       await openGrantDialog();
       // The draft was reset — the reason text is empty, so we must fill it.
-      const reason = await screen.findByPlaceholderText("请说明延长原因");
-      fireEvent.change(reason, { target: { value: "设备故障" } });
+      const reason = await screen.findByPlaceholderText("Explicá por qué se suma tiempo");
+      fireEvent.change(reason, { target: { value: "Falla del equipo" } });
       const confirm = await screen.findByRole("button", {
         name: "延长 10 分钟",
       });
@@ -684,7 +684,7 @@ describe("ProctorDashboardPage", () => {
       renderPage();
       await screen.findByText("张三");
 
-      const extendBtn = await screen.findByRole("button", { name: "延长时间" });
+      const extendBtn = await screen.findByRole("button", { name: "Extender el plazo" });
       fireEvent.click(extendBtn);
 
       // Must fail closed: error toast shown, dialog NOT opened.
@@ -693,7 +693,7 @@ describe("ProctorDashboardPage", () => {
           expect.stringContaining("无法安全协调"),
         );
       });
-      expect(screen.queryByText("延长考试时间")).not.toBeInTheDocument();
+      expect(screen.queryByText("Extender el tiempo del examen")).not.toBeInTheDocument();
       // No grant request was ever sent.
       expect(apiPost).not.toHaveBeenCalled();
     });
@@ -721,7 +721,7 @@ describe("ProctorDashboardPage", () => {
       renderPage();
       await screen.findByText("张三");
 
-      const extendBtn = await screen.findByRole("button", { name: "延长时间" });
+      const extendBtn = await screen.findByRole("button", { name: "Extender el plazo" });
       fireEvent.click(extendBtn);
 
       // Must fail closed: error toast shown, dialog NOT opened.
@@ -730,7 +730,7 @@ describe("ProctorDashboardPage", () => {
           expect.stringContaining("无法安全协调"),
         );
       });
-      expect(screen.queryByText("延长考试时间")).not.toBeInTheDocument();
+      expect(screen.queryByText("Extender el tiempo del examen")).not.toBeInTheDocument();
       // No grant request was ever sent.
       expect(apiPost).not.toHaveBeenCalled();
 
@@ -760,12 +760,12 @@ describe("ProctorDashboardPage", () => {
         // Open the dialog: the coordinator's getCurrent restores the frozen
         // command as indeterminate (retry button visible).
         const extendBtn = await screen.findByRole("button", {
-          name: "延长时间",
+          name: "Extender el plazo",
         });
         fireEvent.click(extendBtn);
-        await screen.findByText("延长考试时间");
+        await screen.findByText("Extender el tiempo del examen");
         const retryBtn = await screen.findByRole("button", {
-          name: "重试同一加时",
+          name: "Reintentar este tiempo extra",
         });
         expect(retryBtn).toBeInTheDocument();
 
@@ -803,12 +803,12 @@ describe("ProctorDashboardPage", () => {
         await screen.findByText("张三");
 
         const extendBtn = await screen.findByRole("button", {
-          name: "延长时间",
+          name: "Extender el plazo",
         });
         fireEvent.click(extendBtn);
-        await screen.findByText("延长考试时间");
+        await screen.findByText("Extender el tiempo del examen");
         const retryBtn = await screen.findByRole("button", {
-          name: "重试同一加时",
+          name: "Reintentar este tiempo extra",
         });
 
         fireEvent.click(retryBtn);
@@ -819,7 +819,7 @@ describe("ProctorDashboardPage", () => {
         expect(body.operationId).toBe(seeded.operationId);
         expect(body.addedSeconds).toBe(seeded.addedSeconds);
         expect(body.reasonCode).toBe("technical_incident");
-        expect(body.reasonText).toBe("网络中断");
+        expect(body.reasonText).toBe("Corte de red");
 
         // Confirmed result (idempotent_replay) clears the authority and
         // surfaces the replay toast — no false "second grant".
@@ -849,7 +849,7 @@ describe("ProctorDashboardPage", () => {
         // First POST captured → indeterminate, retry affordance appears.
         await waitFor(() => expect(apiPost).toHaveBeenCalledTimes(1));
         const retryBtn = await screen.findByRole("button", {
-          name: "重试同一加时",
+          name: "Reintentar este tiempo extra",
         });
         fireEvent.click(retryBtn);
 
@@ -864,7 +864,7 @@ describe("ProctorDashboardPage", () => {
         });
         // The frozen command is retained → retry affordance still present.
         expect(
-          await screen.findByRole("button", { name: "重试同一加时" }),
+          await screen.findByRole("button", { name: "Reintentar este tiempo extra" }),
         ).toBeInTheDocument();
       });
 
@@ -880,10 +880,10 @@ describe("ProctorDashboardPage", () => {
         renderPage();
         await screen.findByText("张三");
         const extendBtn = await screen.findByRole("button", {
-          name: "延长时间",
+          name: "Extender el plazo",
         });
         fireEvent.click(extendBtn);
-        await screen.findByText("延长考试时间");
+        await screen.findByText("Extender el tiempo del examen");
 
         // Corrupt the shared authority so claimForSend fails closed.
         localStorage.setItem(
@@ -892,7 +892,7 @@ describe("ProctorDashboardPage", () => {
         );
 
         const retryBtn = await screen.findByRole("button", {
-          name: "重试同一加时",
+          name: "Reintentar este tiempo extra",
         });
         fireEvent.click(retryBtn);
 
@@ -939,13 +939,13 @@ describe("ProctorDashboardPage", () => {
         renderPage();
         await screen.findByText("张三");
         const extendBtn = await screen.findByRole("button", {
-          name: "延长时间",
+          name: "Extender el plazo",
         });
         fireEvent.click(extendBtn);
-        await screen.findByText("延长考试时间");
+        await screen.findByText("Extender el tiempo del examen");
         // Retry the frozen command (claimForSend → POST).
         const retryBtn = await screen.findByRole("button", {
-          name: "重试同一加时",
+          name: "Reintentar este tiempo extra",
         });
         fireEvent.click(retryBtn);
 
@@ -959,7 +959,7 @@ describe("ProctorDashboardPage", () => {
         // No hidden local indeterminate state survived: the dialog was reset to
         // a fresh draft (retry affordance gone).
         expect(
-          screen.queryByRole("button", { name: "重试同一加时" }),
+          screen.queryByRole("button", { name: "Reintentar este tiempo extra" }),
         ).not.toBeInTheDocument();
 
         // Reopen the grant dialog for the SAME candidate. Because the local
@@ -967,13 +967,13 @@ describe("ProctorDashboardPage", () => {
         // now empty, openGrantDialog reads the authority first and opens a
         // FRESH draft — NOT a retry. No blockedByPending warning either.
         fireEvent.click(extendBtn);
-        await screen.findByText("延长考试时间");
-        // Fresh draft → confirm button shows "延长 10 分钟", NOT "重试同一加时".
+        await screen.findByText("Extender el tiempo del examen");
+        // Fresh draft → confirm button shows "延长 10 分钟", NOT "Reintentar este tiempo extra".
         expect(
           screen.getByRole("button", { name: "延长 10 分钟" }),
         ).toBeInTheDocument();
         expect(
-          screen.queryByRole("button", { name: "重试同一加时" }),
+          screen.queryByRole("button", { name: "Reintentar este tiempo extra" }),
         ).not.toBeInTheDocument();
         expect(toast.warning).not.toHaveBeenCalledWith(
           expect.stringContaining("存在未确认的加时命令"),
@@ -984,17 +984,17 @@ describe("ProctorDashboardPage", () => {
 
   describe("force-submit retry identity", () => {
     async function openForceSubmitDialog() {
-      const trigger = await screen.findByRole("button", { name: "强制交卷" });
+      const trigger = await screen.findByRole("button", { name: "Forzar entrega" });
       fireEvent.click(trigger);
       // The dialog content renders after the click.
-      await screen.findByText("确认强制交卷");
+      await screen.findByText("Confirmar entrega forzada");
     }
 
     async function confirmForceSubmit() {
-      // The confirm button label differs by state: "确认" on a fresh action,
-      // "重试强制交卷" when an indeterminate command is being retried.
+      // The confirm button label differs by state: "Confirmar" on a fresh action,
+      // "Reintentar entrega forzada" when an indeterminate command is being retried.
       const confirmBtn = await screen.findByRole("button", {
-        name: /确认|重试强制交卷/,
+        name: /Confirmar|Reintentar entrega forzada/,
       });
       // The click handler is async: `handleForceSubmitConfirm` → POST →
       // continuation state updates, and on success a chained `loadStatus()`.
@@ -1029,7 +1029,7 @@ describe("ProctorDashboardPage", () => {
       await waitFor(() => expect(apiPost).toHaveBeenCalledTimes(1));
       const firstBody = apiPost.mock.calls[0]![1] as Record<string, unknown>;
       const firstOpId = firstBody.operationId as string;
-      expect(firstBody.reason).toBe("管理员强制交卷");
+      expect(firstBody.reason).toBe("Entrega forzada por un administrador");
 
       // After the indeterminate failure, the pending command is RETAINED.
       await waitFor(() => {
@@ -1048,7 +1048,7 @@ describe("ProctorDashboardPage", () => {
       // of candidate live status). Retry from the banner.
       const banner = await pendingBanner();
       const retryBtn = screen.getByRole("button", {
-        name: "重试未确认强制交卷",
+        name: "Reintentar la entrega sin confirmar",
       });
       // The banner retry handler is async (POST → continuation → chained
       // loadStatus); flush it inside act() so no render lands outside it.
@@ -1064,7 +1064,7 @@ describe("ProctorDashboardPage", () => {
       // Confirmed success clears the pending command + banner.
       await waitFor(() => {
         expect(toast.success).toHaveBeenCalledWith(
-          expect.stringContaining("已强制交卷"),
+          expect.stringContaining("Entrega forzada enviada"),
         );
       });
       expect(
@@ -1125,7 +1125,7 @@ describe("ProctorDashboardPage", () => {
           command: {
             attemptId: "att-1",
             operationId: pendingOpId,
-            reason: "管理员强制交卷",
+            reason: "Entrega forzada por un administrador",
             examId: "exam-1",
             candidateName: "张三",
           },
@@ -1151,7 +1151,7 @@ describe("ProctorDashboardPage", () => {
       // candidate's graded status — the card has no force-submit button.
       const banner = await pendingBanner();
       expect(
-        screen.queryByRole("button", { name: "强制交卷" }),
+        screen.queryByRole("button", { name: "Forzar entrega" }),
       ).not.toBeInTheDocument();
 
       // Retry from the banner reuses the persisted operationId verbatim.
@@ -1159,13 +1159,13 @@ describe("ProctorDashboardPage", () => {
       // loadStatus); flush it inside act() so no render lands outside it.
       await act(async () => {
         fireEvent.click(
-          screen.getByRole("button", { name: "重试未确认强制交卷" }),
+          screen.getByRole("button", { name: "Reintentar la entrega sin confirmar" }),
         );
       });
       await waitFor(() => expect(apiPost).toHaveBeenCalledTimes(1));
       const body = apiPost.mock.calls[0]![1] as Record<string, unknown>;
       expect(body.operationId).toBe(pendingOpId);
-      expect(body.reason).toBe("管理员强制交卷");
+      expect(body.reason).toBe("Entrega forzada por un administrador");
 
       // Confirmed outcome clears the banner + sessionStorage.
       await waitFor(() => {
@@ -1190,7 +1190,7 @@ describe("ProctorDashboardPage", () => {
           command: {
             attemptId: "att-1",
             operationId: pendingOpId,
-            reason: "管理员强制交卷",
+            reason: "Entrega forzada por un administrador",
             examId: "exam-1",
             candidateName: "张三",
           },
@@ -1210,7 +1210,7 @@ describe("ProctorDashboardPage", () => {
       // loadStatus); flush it inside act() so no render lands outside it.
       await act(async () => {
         fireEvent.click(
-          screen.getByRole("button", { name: "重试未确认强制交卷" }),
+          screen.getByRole("button", { name: "Reintentar la entrega sin confirmar" }),
         );
       });
 
@@ -1231,7 +1231,7 @@ describe("ProctorDashboardPage", () => {
           command: {
             attemptId: "att-1",
             operationId: pendingOpId,
-            reason: "管理员强制交卷",
+            reason: "Entrega forzada por un administrador",
             examId: "exam-1",
             candidateName: "张三",
           },
@@ -1247,7 +1247,7 @@ describe("ProctorDashboardPage", () => {
 
       renderPage();
       await pendingBanner();
-      fireEvent.click(screen.getByRole("button", { name: "清除未确认命令" }));
+      fireEvent.click(screen.getByRole("button", { name: "Descartar comando" }));
 
       await waitFor(() => {
         expect(screen.queryByTestId("pending-force-submit-banner")).toBeNull();
@@ -1281,7 +1281,7 @@ describe("ProctorDashboardPage", () => {
           command: {
             attemptId: "att-1",
             operationId: pendingOpId,
-            reason: "管理员强制交卷",
+            reason: "Entrega forzada por un administrador",
             examId: "exam-1",
             candidateName: "张三",
           },
@@ -1309,17 +1309,17 @@ describe("ProctorDashboardPage", () => {
       // Click B's force-submit → the dialog opens but is BLOCKED by the
       // pending A (the global per-admin slot holds at most one command).
       const forceSubmitButtons = screen.getAllByRole("button", {
-        name: "强制交卷",
+        name: "Forzar entrega",
       });
       expect(forceSubmitButtons).toHaveLength(1); // only B's card has one
       fireEvent.click(forceSubmitButtons[0]!);
-      await screen.findByText("确认强制交卷");
+      await screen.findByText("Confirmar entrega forzada");
       await screen.findAllByText(
-        "存在未确认的强制交卷命令，请先解决后再操作。",
+        "Hay una entrega forzada sin confirmar. Resolvela antes de seguir.",
       );
 
       // Close the B dialog (cancel).
-      fireEvent.click(screen.getByRole("button", { name: "取消" }));
+      fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
 
       // The banner for A is STILL visible AND still offers retry —
       // opening/blocking/closing B must not have discarded A's recovery
@@ -1327,10 +1327,10 @@ describe("ProctorDashboardPage", () => {
       // the dismiss-only cleanup_failed phase.
       expect(banner).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "重试未确认强制交卷" }),
+        screen.getByRole("button", { name: "Reintentar la entrega sin confirmar" }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "清除未确认命令" }),
+        screen.getByRole("button", { name: "Descartar comando" }),
       ).toBeInTheDocument();
 
       // Retry from the banner → POST replays op-A for att-1 verbatim.
@@ -1338,14 +1338,14 @@ describe("ProctorDashboardPage", () => {
       // loadStatus); flush it inside act() so no render lands outside it.
       await act(async () => {
         fireEvent.click(
-          screen.getByRole("button", { name: "重试未确认强制交卷" }),
+          screen.getByRole("button", { name: "Reintentar la entrega sin confirmar" }),
         );
       });
       await waitFor(() => expect(apiPost).toHaveBeenCalledTimes(1));
       const body = apiPost.mock.calls[0]![1] as Record<string, unknown>;
       expect(apiPost.mock.calls[0]![0]).toContain("/att-1/force-submit");
       expect(body.operationId).toBe(pendingOpId);
-      expect(body.reason).toBe("管理员强制交卷");
+      expect(body.reason).toBe("Entrega forzada por un administrador");
     });
 
     // ── Re-review P2: save read-back is byte-for-byte. A storage layer that
@@ -1403,7 +1403,7 @@ describe("ProctorDashboardPage", () => {
           command: {
             attemptId: "att-1",
             operationId: pendingOpId,
-            reason: "管理员强制交卷",
+            reason: "Entrega forzada por un administrador",
             examId: "exam-1",
             candidateName: "张三",
           },
@@ -1423,7 +1423,7 @@ describe("ProctorDashboardPage", () => {
 
       renderPage();
       await pendingBanner();
-      fireEvent.click(screen.getByRole("button", { name: "清除未确认命令" }));
+      fireEvent.click(screen.getByRole("button", { name: "Descartar comando" }));
 
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith(
@@ -1458,7 +1458,7 @@ describe("ProctorDashboardPage", () => {
           command: {
             attemptId: "att-1",
             operationId: pendingOpId,
-            reason: "管理员强制交卷",
+            reason: "Entrega forzada por un administrador",
             examId: "exam-1",
             candidateName: "张三",
           },
@@ -1483,14 +1483,14 @@ describe("ProctorDashboardPage", () => {
       // loadStatus); flush it inside act() so no render lands outside it.
       await act(async () => {
         fireEvent.click(
-          screen.getByRole("button", { name: "重试未确认强制交卷" }),
+          screen.getByRole("button", { name: "Reintentar la entrega sin confirmar" }),
         );
       });
 
       // Confirmed success: success toast + warning about the failed cleanup.
       await waitFor(() => {
         expect(toast.success).toHaveBeenCalledWith(
-          expect.stringContaining("已强制交卷"),
+          expect.stringContaining("Entrega forzada enviada"),
         );
       });
       expect(toast.warning).toHaveBeenCalledWith(
@@ -1503,10 +1503,10 @@ describe("ProctorDashboardPage", () => {
       expect(banner).toHaveTextContent("清理失败");
       // Only dismiss button, no retry (POST is pointless on confirmed outcome).
       expect(
-        screen.queryByRole("button", { name: "重试未确认强制交卷" }),
+        screen.queryByRole("button", { name: "Reintentar la entrega sin confirmar" }),
       ).toBeNull();
       expect(
-        screen.getByRole("button", { name: "清除未确认命令" }),
+        screen.getByRole("button", { name: "Descartar comando" }),
       ).toBeInTheDocument();
       // The stale durable record is still present.
       expect(
@@ -1545,7 +1545,7 @@ describe("ProctorDashboardPage", () => {
           command: {
             attemptId: "att-1",
             operationId: pendingOpId,
-            reason: "管理员强制交卷",
+            reason: "Entrega forzada por un administrador",
             examId: "exam-1",
             candidateName: "张三",
           },
@@ -1565,7 +1565,7 @@ describe("ProctorDashboardPage", () => {
       await pendingBanner();
       await act(async () => {
         fireEvent.click(
-          screen.getByRole("button", { name: "重试未确认强制交卷" }),
+          screen.getByRole("button", { name: "Reintentar la entrega sin confirmar" }),
         );
       });
       await waitFor(() => {
@@ -1578,33 +1578,33 @@ describe("ProctorDashboardPage", () => {
       const banner = screen.getByTestId("pending-force-submit-banner");
       expect(banner).toHaveTextContent("清理失败");
       expect(
-        screen.queryByRole("button", { name: "重试未确认强制交卷" }),
+        screen.queryByRole("button", { name: "Reintentar la entrega sin confirmar" }),
       ).toBeNull();
 
       // Click B's force-submit → blocked, but the phase is KEPT as
       // cleanup_failed — the in-session confirmed fact is not discarded.
       const forceSubmitButtons = screen.getAllByRole("button", {
-        name: "强制交卷",
+        name: "Forzar entrega",
       });
       expect(forceSubmitButtons).toHaveLength(1); // only B's card has one
       fireEvent.click(forceSubmitButtons[0]!);
-      await screen.findByText("确认强制交卷");
+      await screen.findByText("Confirmar entrega forzada");
       await screen.findAllByText(
-        "存在未确认的强制交卷命令，请先解决后再操作。",
+        "Hay una entrega forzada sin confirmar. Resolvela antes de seguir.",
       );
 
       // Close the B dialog (cancel) — the banner must STILL be cleanup_failed:
       // "清理失败" copy, dismiss-only, no retry (the open modal would make
       // the page aria-hidden and hide the banner buttons from role queries).
-      fireEvent.click(screen.getByRole("button", { name: "取消" }));
+      fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
       expect(
         screen.getByTestId("pending-force-submit-banner"),
       ).toHaveTextContent("清理失败");
       expect(
-        screen.queryByRole("button", { name: "重试未确认强制交卷" }),
+        screen.queryByRole("button", { name: "Reintentar la entrega sin confirmar" }),
       ).toBeNull();
       expect(
-        screen.getByRole("button", { name: "清除未确认命令" }),
+        screen.getByRole("button", { name: "Descartar comando" }),
       ).toBeInTheDocument();
       // No POST was sent for the blocked B dialog.
       expect(apiPost).toHaveBeenCalledTimes(1);
@@ -1632,7 +1632,7 @@ describe("ProctorDashboardPage", () => {
           command: {
             attemptId: "att-9",
             operationId: pendingOpId,
-            reason: "管理员强制交卷",
+            reason: "Entrega forzada por un administrador",
             examId: "exam-9",
             candidateName: "王五",
           },
@@ -1655,20 +1655,20 @@ describe("ProctorDashboardPage", () => {
 
       // NO destructive retry on the wrong exam page.
       expect(
-        screen.queryByRole("button", { name: "重试未确认强制交卷" }),
+        screen.queryByRole("button", { name: "Reintentar la entrega sin confirmar" }),
       ).toBeNull();
       // Navigation back to the owning exam + dismiss are available.
       expect(
-        screen.getByRole("button", { name: "返回原考试页面" }),
+        screen.getByRole("button", { name: "Volver a ese examen" }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "清除未确认命令" }),
+        screen.getByRole("button", { name: "Descartar comando" }),
       ).toBeInTheDocument();
       // No POST was ever sent — the pending command stays untouched.
       expect(apiPost).not.toHaveBeenCalled();
 
       // Dismiss from the banner clears the stale storage record.
-      fireEvent.click(screen.getByRole("button", { name: "清除未确认命令" }));
+      fireEvent.click(screen.getByRole("button", { name: "Descartar comando" }));
       await waitFor(() => {
         expect(
           sessionStorage.getItem("exam.pendingForceSubmit:org-1:admin-1"),
@@ -1697,7 +1697,7 @@ describe("ProctorDashboardPage", () => {
           command: {
             attemptId: "att-1",
             operationId: pendingOpId,
-            reason: "管理员强制交卷",
+            reason: "Entrega forzada por un administrador",
             examId: "exam-1",
             candidateName: "张三",
           },
@@ -1722,7 +1722,7 @@ describe("ProctorDashboardPage", () => {
         await pendingBanner();
         await act(async () => {
           fireEvent.click(
-            screen.getByRole("button", { name: "重试未确认强制交卷" }),
+            screen.getByRole("button", { name: "Reintentar la entrega sin confirmar" }),
           );
         });
         await waitFor(() => {
@@ -1736,7 +1736,7 @@ describe("ProctorDashboardPage", () => {
           screen.getByTestId("pending-force-submit-banner"),
         ).toHaveTextContent("清理失败");
         expect(
-          screen.queryByRole("button", { name: "重试未确认强制交卷" }),
+          screen.queryByRole("button", { name: "Reintentar la entrega sin confirmar" }),
         ).toBeNull();
 
         // Language round-trip changes the `t` identity (react-i18next
@@ -1750,7 +1750,7 @@ describe("ProctorDashboardPage", () => {
           screen.getByTestId("pending-force-submit-banner"),
         ).toHaveTextContent("清理失败");
         expect(
-          screen.queryByRole("button", { name: "重试未确认强制交卷" }),
+          screen.queryByRole("button", { name: "Reintentar la entrega sin confirmar" }),
         ).toBeNull();
         // The retry from earlier is the ONLY POST — the downgraded path must
         // not have sent anything.
@@ -1808,7 +1808,7 @@ describe("ProctorDashboardPage", () => {
           command: {
             attemptId: "att-1",
             operationId: pendingOpId,
-            reason: "管理员强制交卷",
+            reason: "Entrega forzada por un administrador",
             examId: "exam-1",
             candidateName: "张三",
           },
@@ -1821,13 +1821,13 @@ describe("ProctorDashboardPage", () => {
       // as indeterminate — NOT cleanup_failed (storage cannot prove the
       // outcome was confirmed).
       const forceSubmitButtons = screen.getAllByRole("button", {
-        name: "强制交卷",
+        name: "Forzar entrega",
       });
       expect(forceSubmitButtons).toHaveLength(1); // only B's card has one
       fireEvent.click(forceSubmitButtons[0]!);
-      await screen.findByText("确认强制交卷");
+      await screen.findByText("Confirmar entrega forzada");
       await screen.findAllByText(
-        "存在未确认的强制交卷命令，请先解决后再操作。",
+        "Hay una entrega forzada sin confirmar. Resolvela antes de seguir.",
       );
 
       // The banner is now visible and NOT the cleanup-failed copy (the open
@@ -1840,12 +1840,12 @@ describe("ProctorDashboardPage", () => {
       // Close the B dialog (cancel) — the indeterminate banner must STILL
       // offer retry + dismiss (mutations to `cleanup_failed` or `idle` fail
       // here).
-      fireEvent.click(screen.getByRole("button", { name: "取消" }));
+      fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
       expect(
-        screen.getByRole("button", { name: "重试未确认强制交卷" }),
+        screen.getByRole("button", { name: "Reintentar la entrega sin confirmar" }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "清除未确认命令" }),
+        screen.getByRole("button", { name: "Descartar comando" }),
       ).toBeInTheDocument();
 
       // Retry from the banner → POST replays op-A for att-1 verbatim.
@@ -1853,19 +1853,19 @@ describe("ProctorDashboardPage", () => {
       // loadStatus); flush it inside act() so no render lands outside it.
       await act(async () => {
         fireEvent.click(
-          screen.getByRole("button", { name: "重试未确认强制交卷" }),
+          screen.getByRole("button", { name: "Reintentar la entrega sin confirmar" }),
         );
       });
       await waitFor(() => expect(apiPost).toHaveBeenCalledTimes(1));
       const body = apiPost.mock.calls[0]![1] as Record<string, unknown>;
       expect(apiPost.mock.calls[0]![0]).toContain("/att-1/force-submit");
       expect(body.operationId).toBe(pendingOpId);
-      expect(body.reason).toBe("管理员强制交卷");
+      expect(body.reason).toBe("Entrega forzada por un administrador");
 
       // Confirmed replay outcome clears the banner + the durable record.
       await waitFor(() => {
         expect(toast.success).toHaveBeenCalledWith(
-          expect.stringContaining("已强制交卷"),
+          expect.stringContaining("Entrega forzada enviada"),
         );
       });
       expect(screen.queryByTestId("pending-force-submit-banner")).toBeNull();
@@ -1943,7 +1943,7 @@ describe("ProctorDashboardPage", () => {
           command: {
             attemptId: "att-1",
             operationId: "00000000-0000-4000-8000-000000000fff",
-            reason: "管理员强制交卷",
+            reason: "Entrega forzada por un administrador",
             examId: "exam-1",
             candidateName: "张三",
           },
@@ -1982,16 +1982,16 @@ describe("ProctorDashboardPage", () => {
   describe("misconduct retry identity", () => {
     /** Opens the misconduct dialog for the first candidate's flag button. */
     async function openMisconductDialog() {
-      const flagBtn = await screen.findByRole("button", { name: "标记违规" });
+      const flagBtn = await screen.findByRole("button", { name: "Marcar irregularidad" });
       fireEvent.click(flagBtn);
       await screen.findByText("为考生 张三 标记违规行为");
     }
 
     /** Fills the notes textarea and clicks the confirm button. */
     async function submitMisconduct(notes: string) {
-      const notesInput = await screen.findByPlaceholderText("请填写违规说明");
+      const notesInput = await screen.findByPlaceholderText("Describí la irregularidad");
       fireEvent.change(notesInput, { target: { value: notes } });
-      const confirm = await screen.findByRole("button", { name: "确认标记" });
+      const confirm = await screen.findByRole("button", { name: "Confirmar" });
       await act(async () => {
         fireEvent.click(confirm);
       });
@@ -2020,17 +2020,17 @@ describe("ProctorDashboardPage", () => {
 
       // After the indeterminate failure, the severity/notes inputs are LOCKED
       // so the payload cannot drift on retry. The confirm button relabels to
-      // "重试违规标记".
+      // "Reintentar la marca".
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith(
           expect.stringContaining("未确认违规标记"),
         );
       });
       const retryBtn = await screen.findByRole("button", {
-        name: "重试违规标记",
+        name: "Reintentar la marca",
       });
       // The notes textarea is now read-only (disabled).
-      const notesInput = screen.getByPlaceholderText("请填写违规说明");
+      const notesInput = screen.getByPlaceholderText("Describí la irregularidad");
       expect(notesInput).toBeDisabled();
 
       await act(async () => {
@@ -2048,7 +2048,7 @@ describe("ProctorDashboardPage", () => {
       // Confirmed success clears the pending command.
       await waitFor(() => {
         expect(toast.success).toHaveBeenCalledWith(
-          expect.stringContaining("已标记违规"),
+          expect.stringContaining("Irregularidad marcada"),
         );
       });
       expect(
@@ -2130,7 +2130,7 @@ describe("ProctorDashboardPage", () => {
       // cleanup_failed is dismiss-only — no retry button (POST is pointless on
       // a confirmed outcome).
       expect(
-        screen.queryByRole("button", { name: "重试未确认违规标记" }),
+        screen.queryByRole("button", { name: "Reintentar la marca sin confirmar" }),
       ).toBeNull();
 
       removerSpy.mockRestore();

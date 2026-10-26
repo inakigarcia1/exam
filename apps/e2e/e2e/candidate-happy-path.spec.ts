@@ -59,7 +59,7 @@ test.describe("candidate happy path", () => {
     await submitExam(page);
 
     // ResultPage shows graded score (correct answer → full score 100)
-    await expect(page.getByText("已通过")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Aprobado")).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId("result-total-score")).toHaveText("100");
   });
 });

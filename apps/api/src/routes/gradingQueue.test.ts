@@ -1534,7 +1534,7 @@ describe("grading queue routes", () => {
   it("exposes only text_response work in a mixed exam, including a text_response with non-null standardAnswer", async () => {
     const textWithRef: QuestionSnapshot = {
       ...subjectiveQuestion("q-ref", 20),
-      standardAnswer: "参考答案：评分要点",
+      standardAnswer: "Respuesta de referencia：评分要点",
     };
     const { attemptId } = await seedAttempt(ctx, {
       questions: [objectiveQuestion("q-obj", 40), textWithRef],

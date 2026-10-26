@@ -16,7 +16,7 @@ const admin: MeResponse = {
   id: "00000000-0000-4000-8000-000000000001",
   organizationId: "00000000-0000-4000-8000-000000000010",
   username: "admin",
-  name: "管理员",
+  name: "Administrador",
   role: "Admin",
   capabilities: [...permissionsForRole("Admin")],
 };
@@ -25,7 +25,7 @@ const candidate: MeResponse = {
   ...admin,
   id: "00000000-0000-4000-8000-000000000002",
   username: "candidate",
-  name: "考生",
+  name: "Alumno",
   role: "Candidate",
   capabilities: [...permissionsForRole("Candidate")],
 };
@@ -34,7 +34,7 @@ const teacher: MeResponse = {
   ...admin,
   id: "a",
   username: "t",
-  name: "教师",
+  name: "Docente",
   role: "Teacher",
   capabilities: [...permissionsForRole("Teacher")],
 };
@@ -42,7 +42,7 @@ const grader: MeResponse = {
   ...admin,
   id: "b",
   username: "g",
-  name: "评分员",
+  name: "Corrector",
   role: "Grader",
   capabilities: [...permissionsForRole("Grader")],
 };
@@ -50,7 +50,7 @@ const proctor: MeResponse = {
   ...admin,
   id: "c",
   username: "p",
-  name: "监考员",
+  name: "Supervisor",
   role: "Proctor",
   capabilities: [...permissionsForRole("Proctor")],
 };
@@ -60,7 +60,7 @@ const candidateTeacher: MeResponse = {
   ...admin,
   id: "d",
   username: "ct",
-  name: "考生+教师",
+  name: "Alumno+Docente",
   role: "Candidate",
   capabilities: [
     ...permissionsForRole("Candidate"),
@@ -72,7 +72,7 @@ const teacherCandidate: MeResponse = {
   ...admin,
   id: "e",
   username: "tc",
-  name: "教师+考生",
+  name: "Docente+Alumno",
   role: "Teacher",
   capabilities: [
     ...permissionsForRole("Teacher"),
@@ -99,14 +99,14 @@ describe("branding", () => {
     renderWithProviders(<BrandHeader />);
 
     expect(screen.getByTestId("brand-mark")).toBeInTheDocument();
-    expect(screen.getByText("考试平台")).toBeInTheDocument();
+    expect(screen.getByText("Aki")).toBeInTheDocument();
   });
 
   it("keeps BrandMark visible in compact mode", () => {
     renderWithProviders(<BrandHeader compact />);
 
     expect(screen.getByTestId("brand-mark")).toBeInTheDocument();
-    expect(screen.getByText("考试平台")).toHaveClass("sr-only");
+    expect(screen.getByText("Aki")).toHaveClass("sr-only");
   });
 });
 
@@ -115,7 +115,7 @@ describe("AppSidebar role visibility", () => {
     renderWithProviders(
       <AppSidebar user={admin} collapsed={false} onLogout={() => {}} />,
     );
-    expect(screen.getByText("平台设置")).toBeInTheDocument();
+    expect(screen.getByText("Configuración de la plataforma")).toBeInTheDocument();
     expect(screen.queryByText("机构管理")).not.toBeInTheDocument();
   });
 
@@ -123,54 +123,54 @@ describe("AppSidebar role visibility", () => {
     renderWithProviders(
       <AppSidebar user={candidate} collapsed={false} onLogout={() => {}} />,
     );
-    expect(screen.queryByText("管理")).not.toBeInTheDocument();
+    expect(screen.queryByText("Administración")).not.toBeInTheDocument();
   });
 
   it("hides question bank group for candidate role (candidate sees no admin nav)", () => {
     renderWithProviders(
       <AppSidebar user={candidate} collapsed={false} onLogout={() => {}} />,
     );
-    expect(screen.queryByText("题库")).not.toBeInTheDocument();
-    expect(screen.queryByText("课程管理")).not.toBeInTheDocument();
-    expect(screen.queryByText("题目管理")).not.toBeInTheDocument();
+    expect(screen.queryByText("Banco de preguntas")).not.toBeInTheDocument();
+    expect(screen.queryByText("Gestión de comisiones")).not.toBeInTheDocument();
+    expect(screen.queryByText("Gestión de preguntas")).not.toBeInTheDocument();
   });
 
   it("shows question bank group for admin role", () => {
     renderWithProviders(
       <AppSidebar user={admin} collapsed={false} onLogout={() => {}} />,
     );
-    expect(screen.getByText("题库")).toBeInTheDocument();
-    expect(screen.getByText("课程管理")).toBeInTheDocument();
-    expect(screen.getByText("题目管理")).toBeInTheDocument();
+    expect(screen.getByText("Banco de preguntas")).toBeInTheDocument();
+    expect(screen.getByText("Gestión de comisiones")).toBeInTheDocument();
+    expect(screen.getByText("Gestión de preguntas")).toBeInTheDocument();
   });
 
   it("hides exam group for candidate role (candidate sees no admin nav)", () => {
     renderWithProviders(
       <AppSidebar user={candidate} collapsed={false} onLogout={() => {}} />,
     );
-    expect(screen.queryByText("考试")).not.toBeInTheDocument();
-    expect(screen.queryByText("考试管理")).not.toBeInTheDocument();
-    expect(screen.queryByText("成绩查询")).not.toBeInTheDocument();
+    expect(screen.queryByText("Exámenes")).not.toBeInTheDocument();
+    expect(screen.queryByText("Gestión de exámenes")).not.toBeInTheDocument();
+    expect(screen.queryByText("Calificaciones")).not.toBeInTheDocument();
   });
 
   it("shows exam group for admin role", () => {
     renderWithProviders(
       <AppSidebar user={admin} collapsed={false} onLogout={() => {}} />,
     );
-    expect(screen.getByText("考试")).toBeInTheDocument();
-    expect(screen.getByText("考试管理")).toBeInTheDocument();
-    expect(screen.getByText("成绩查询")).toBeInTheDocument();
+    expect(screen.getByText("Exámenes")).toBeInTheDocument();
+    expect(screen.getByText("Gestión de exámenes")).toBeInTheDocument();
+    expect(screen.getByText("Calificaciones")).toBeInTheDocument();
   });
 
   it("collapses to icon-only mode", () => {
     renderWithProviders(
       <AppSidebar user={admin} collapsed={true} onLogout={() => {}} />,
     );
-    expect(screen.queryByText("题库")).not.toBeInTheDocument();
+    expect(screen.queryByText("Banco de preguntas")).not.toBeInTheDocument();
     expect(
-      screen.queryByText("管理", { selector: "p" }),
+      screen.queryByText("Administración", { selector: "p" }),
     ).not.toBeInTheDocument();
-    expect(screen.queryByText("退出")).not.toBeInTheDocument();
+    expect(screen.queryByText("Salir")).not.toBeInTheDocument();
   });
 
   it("separates BrandMark from the expanded collapse control", () => {
@@ -184,8 +184,8 @@ describe("AppSidebar role visibility", () => {
     );
 
     expect(screen.getByTestId("brand-mark")).toBeInTheDocument();
-    expect(screen.getByText("考试平台")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "折叠侧栏" })).toHaveAttribute(
+    expect(screen.getByText("Aki")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Contraer la barra lateral" })).toHaveAttribute(
       "data-testid",
       "sidebar-collapse-button",
     );
@@ -202,8 +202,8 @@ describe("AppSidebar role visibility", () => {
     );
 
     expect(screen.getByTestId("brand-mark")).toBeInTheDocument();
-    expect(screen.getByText("考试平台")).toHaveClass("sr-only");
-    expect(screen.getByRole("button", { name: "展开侧栏" })).toHaveAttribute(
+    expect(screen.getByText("Aki")).toHaveClass("sr-only");
+    expect(screen.getByRole("button", { name: "Expandir la barra lateral" })).toHaveAttribute(
       "data-testid",
       "sidebar-collapse-button",
     );
@@ -213,14 +213,14 @@ describe("AppSidebar role visibility", () => {
     renderWithProviders(
       <AppSidebar user={admin} collapsed={false} onLogout={() => {}} />,
     );
-    expect(screen.getByText("管理员")).toBeInTheDocument();
+    expect(screen.getByText("Administrador")).toBeInTheDocument();
   });
 
   it("hides user name when collapsed", () => {
     renderWithProviders(
       <AppSidebar user={admin} collapsed={true} onLogout={() => {}} />,
     );
-    expect(screen.queryByText("管理员")).not.toBeInTheDocument();
+    expect(screen.queryByText("Administrador")).not.toBeInTheDocument();
   });
 
   // ── P4-4: Teacher/Grader/Proctor nav visibility ──
@@ -228,42 +228,42 @@ describe("AppSidebar role visibility", () => {
     renderWithProviders(
       <AppSidebar user={teacher} collapsed={false} onLogout={() => {}} />,
     );
-    expect(screen.getByText("题库")).toBeInTheDocument();
-    expect(screen.getByText("课程管理")).toBeInTheDocument();
-    expect(screen.getByText("题目管理")).toBeInTheDocument();
-    expect(screen.getByText("题目导入")).toBeInTheDocument();
-    expect(screen.getByText("考试")).toBeInTheDocument();
-    expect(screen.getByText("考试管理")).toBeInTheDocument();
-    expect(screen.getByText("成绩查询")).toBeInTheDocument();
+    expect(screen.getByText("Banco de preguntas")).toBeInTheDocument();
+    expect(screen.getByText("Gestión de comisiones")).toBeInTheDocument();
+    expect(screen.getByText("Gestión de preguntas")).toBeInTheDocument();
+    expect(screen.getByText("Importar preguntas")).toBeInTheDocument();
+    expect(screen.getByText("Exámenes")).toBeInTheDocument();
+    expect(screen.getByText("Gestión de exámenes")).toBeInTheDocument();
+    expect(screen.getByText("Calificaciones")).toBeInTheDocument();
     expect(screen.queryByText("评分队列")).not.toBeInTheDocument();
-    expect(screen.queryByText("用户管理")).not.toBeInTheDocument();
-    expect(screen.queryByText("仪表盘")).not.toBeInTheDocument();
+    expect(screen.queryByText("Gestión de usuarios")).not.toBeInTheDocument();
+    expect(screen.queryByText("Panel")).not.toBeInTheDocument();
   });
 
   it("Grader sees grading queue but NOT question bank/exams/management", () => {
     renderWithProviders(
       <AppSidebar user={grader} collapsed={false} onLogout={() => {}} />,
     );
-    expect(screen.getByText("待评分")).toBeInTheDocument();
-    expect(screen.queryByText("题库")).not.toBeInTheDocument();
-    expect(screen.queryByText("考试管理")).not.toBeInTheDocument();
-    expect(screen.queryByText("用户管理")).not.toBeInTheDocument();
-    expect(screen.queryByText("仪表盘")).not.toBeInTheDocument();
+    expect(screen.getByText("Por calificar")).toBeInTheDocument();
+    expect(screen.queryByText("Banco de preguntas")).not.toBeInTheDocument();
+    expect(screen.queryByText("Gestión de exámenes")).not.toBeInTheDocument();
+    expect(screen.queryByText("Gestión de usuarios")).not.toBeInTheDocument();
+    expect(screen.queryByText("Panel")).not.toBeInTheDocument();
   });
 
   it("Proctor sees only the monitoring workspace entry", () => {
     renderWithProviders(
       <AppSidebar user={proctor} collapsed={false} onLogout={() => {}} />,
     );
-    expect(screen.getByRole("link", { name: "监考工作台" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Mesa de supervisión" })).toHaveAttribute(
       "href",
       "/admin/proctor",
     );
-    expect(screen.queryByText("题库")).not.toBeInTheDocument();
-    expect(screen.queryByText("考试管理")).not.toBeInTheDocument();
+    expect(screen.queryByText("Banco de preguntas")).not.toBeInTheDocument();
+    expect(screen.queryByText("Gestión de exámenes")).not.toBeInTheDocument();
     expect(screen.queryByText("评分队列")).not.toBeInTheDocument();
-    expect(screen.queryByText("用户管理")).not.toBeInTheDocument();
-    expect(screen.queryByText("仪表盘")).not.toBeInTheDocument();
+    expect(screen.queryByText("Gestión de usuarios")).not.toBeInTheDocument();
+    expect(screen.queryByText("Panel")).not.toBeInTheDocument();
   });
 
   it.each([
@@ -276,17 +276,17 @@ describe("AppSidebar role visibility", () => {
       renderWithProviders(
         <AppSidebar user={user} collapsed={false} onLogout={() => {}} />,
       );
-      expect(screen.queryByText("监考工作台")).not.toBeInTheDocument();
+      expect(screen.queryByText("Mesa de supervisión")).not.toBeInTheDocument();
     },
   );
 });
 
 describe("AppSidebar nav links", () => {
-  it("成绩查询 link points to /admin/results", () => {
+  it("Calificaciones link points to /admin/results", () => {
     renderWithProviders(
       <AppSidebar user={admin} collapsed={false} onLogout={() => {}} />,
     );
-    const link = screen.getByRole("link", { name: "成绩查询" });
+    const link = screen.getByRole("link", { name: "Calificaciones" });
     expect(link).toHaveAttribute("href", "/admin/results");
   });
 });
@@ -301,7 +301,7 @@ describe("ExamLayout header navigation", () => {
       </AuthProvider>,
       "/exam/list",
     );
-    const myExamLink = screen.getByRole("link", { name: "我的考试" });
+    const myExamLink = screen.getByRole("link", { name: "Mis exámenes" });
     expect(myExamLink).toHaveAttribute("href", "/exam/list");
   });
 });
@@ -345,7 +345,7 @@ describe("Admin shell viewport-scrolling contract", () => {
     const brandHeader = aside.firstElementChild as HTMLElement;
     expect(brandHeader).toHaveClass("shrink-0");
     const logoutButton = aside.querySelector(
-      'button[aria-label="退出登录"]',
+      'button[aria-label="Cerrar sesión"]',
     ) as HTMLElement;
     expect(logoutButton).not.toBeNull();
     expect(logoutButton.parentElement).toHaveClass("shrink-0");
@@ -614,7 +614,7 @@ describe("layout shells", () => {
     // Privileged page content must NOT render.
     expect(screen.queryByText("users page content")).not.toBeInTheDocument();
     // The 403 access-denied message renders.
-    expect(screen.getByText("您没有权限访问该页面。")).toBeInTheDocument();
+    expect(screen.getByText("No tienes permiso para ver esta página.")).toBeInTheDocument();
   });
 
   it("Teacher direct-URL /admin/grading-queue renders the 403 page", () => {
@@ -632,7 +632,7 @@ describe("layout shells", () => {
       "/admin/grading-queue",
     );
     expect(screen.queryByText("grading queue content")).not.toBeInTheDocument();
-    expect(screen.getByText("您没有权限访问该页面。")).toBeInTheDocument();
+    expect(screen.getByText("No tienes permiso para ver esta página.")).toBeInTheDocument();
   });
 
   it("Teacher ALLOW direct-URL /admin/exams renders the page normally", () => {
@@ -648,7 +648,7 @@ describe("layout shells", () => {
     );
     expect(screen.getByText("exams page content")).toBeInTheDocument();
     expect(
-      screen.queryByText("您没有权限访问该页面。"),
+      screen.queryByText("No tienes permiso para ver esta página."),
     ).not.toBeInTheDocument();
   });
 
@@ -700,7 +700,7 @@ describe("layout shells", () => {
     );
     expect(screen.getByText("exams page content")).toBeInTheDocument();
     expect(
-      screen.queryByText("您没有权限访问该页面。"),
+      screen.queryByText("No tienes permiso para ver esta página."),
     ).not.toBeInTheDocument();
   });
 

@@ -31,7 +31,7 @@ describe("DataWorkbench", () => {
       <DataWorkbench
         toolbar={
           <DataWorkbenchToolbar>
-            <button type="button">搜索</button>
+            <button type="button">Buscar</button>
           </DataWorkbenchToolbar>
         }
         desktopTable={<table aria-label="题目表" />}
@@ -42,11 +42,11 @@ describe("DataWorkbench", () => {
     );
 
     const shell = screen
-      .getByRole("button", { name: "搜索" })
+      .getByRole("button", { name: "Buscar" })
       .closest('[data-slot="data-workbench"]');
     expect(shell).toHaveClass("surface-content", "overflow-hidden");
     // toolbar + footer are both direct-ish regions inside the single shell.
-    expect(shell!.contains(screen.getByRole("button", { name: "搜索" }))).toBe(
+    expect(shell!.contains(screen.getByRole("button", { name: "Buscar" }))).toBe(
       true,
     );
     expect(shell!.contains(screen.getByText("共 0 条"))).toBe(true);

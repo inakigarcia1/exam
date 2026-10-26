@@ -175,7 +175,7 @@ describe("internal return restores the list query (#784 A05 / C2)", () => {
       "/admin/exams/:id",
     );
 
-    await user.click(await screen.findByRole("button", { name: "返回列表" }));
+    await user.click(await screen.findByRole("button", { name: "Volver a la lista" }));
     expect(locationText()).toBe("/admin/exams?status=published&page=3");
   });
 
@@ -197,7 +197,7 @@ describe("internal return restores the list query (#784 A05 / C2)", () => {
         <ExamDetailPage />,
         "/admin/exams/:id",
       );
-      await user.click(await screen.findByRole("button", { name: "返回列表" }));
+      await user.click(await screen.findByRole("button", { name: "Volver a la lista" }));
       expect(locationText()).toBe("/admin/exams");
       view.unmount();
     }
@@ -221,7 +221,7 @@ describe("internal return restores the list query (#784 A05 / C2)", () => {
       "/admin/questions/new",
     );
 
-    await user.click(await screen.findByRole("button", { name: "取消" }));
+    await user.click(await screen.findByRole("button", { name: "Cancelar" }));
     expect(locationText()).toBe("/admin/questions?courseId=course-1&page=2");
   });
 
@@ -243,7 +243,7 @@ describe("internal return restores the list query (#784 A05 / C2)", () => {
       "/admin/questions/new",
     );
 
-    await user.click(await screen.findByRole("button", { name: "取消" }));
+    await user.click(await screen.findByRole("button", { name: "Cancelar" }));
     // The other list's route is not an acceptable target for this exit.
     expect(locationText()).toBe("/admin/questions");
   });
@@ -257,7 +257,7 @@ describe("internal return restores the list query (#784 A05 / C2)", () => {
       "/admin/exams/:id",
     );
 
-    await user.click(await screen.findByRole("button", { name: "返回列表" }));
+    await user.click(await screen.findByRole("button", { name: "Volver a la lista" }));
     expect(locationText()).toBe("/admin/exams");
   });
 
@@ -295,10 +295,10 @@ describe("internal return restores the list query (#784 A05 / C2)", () => {
     // The back control belongs to the RESULT step, so the flow is driven
     // through validation first.
     await user.click(
-      await screen.findByRole("button", { name: "校验导入数据" }),
+      await screen.findByRole("button", { name: "Validar la importación" }),
     );
     await user.click(
-      await screen.findByRole("button", { name: "返回题目列表" }),
+      await screen.findByRole("button", { name: "Volver a las preguntas" }),
     );
     // The carried query is preserved verbatim (a non-ASCII tag would come back
     // percent-encoded, which is the same target, not a different one).
@@ -335,10 +335,10 @@ describe("internal return restores the list query (#784 A05 / C2)", () => {
     // The back control belongs to the RESULT step, so the flow is driven
     // through validation first.
     await user.click(
-      await screen.findByRole("button", { name: "校验导入数据" }),
+      await screen.findByRole("button", { name: "Validar la importación" }),
     );
     await user.click(
-      await screen.findByRole("button", { name: "返回题目列表" }),
+      await screen.findByRole("button", { name: "Volver a las preguntas" }),
     );
     // The other list's route is not an acceptable target for this exit.
     expect(locationText()).toBe("/admin/questions");
@@ -356,7 +356,7 @@ describe("internal return restores the list query (#784 A05 / C2)", () => {
       "/admin/exams/new",
     );
 
-    await user.click(await screen.findByRole("button", { name: "取消" }));
+    await user.click(await screen.findByRole("button", { name: "Cancelar" }));
     expect(locationText()).toBe("/admin/exams?status=published&page=2");
   });
 
@@ -372,7 +372,7 @@ describe("internal return restores the list query (#784 A05 / C2)", () => {
       "/admin/exams/new",
     );
 
-    await user.click(await screen.findByRole("button", { name: "取消" }));
+    await user.click(await screen.findByRole("button", { name: "Cancelar" }));
     expect(locationText()).toBe("/admin/exams");
   });
 
@@ -388,7 +388,7 @@ describe("internal return restores the list query (#784 A05 / C2)", () => {
       "/admin/exams/:id",
     );
 
-    await user.click(await screen.findByRole("button", { name: "返回列表" }));
+    await user.click(await screen.findByRole("button", { name: "Volver a la lista" }));
     await waitFor(() => expect(locationText()).toBe("/admin/exams"));
   });
 });
