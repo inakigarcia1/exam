@@ -270,7 +270,7 @@ function validateQuestionType(
 export const QuestionSchema = z.object({
   id: z.string().uuid(),
   organizationId: z.string().uuid(),
-  courseId: z.string().uuid(),
+  courseId: z.string().uuid().nullable(),
   type: QuestionTypeEnum,
   content: z.string(),
   contentDocument: ContentSlotSchema,
@@ -337,7 +337,7 @@ export const QuestionTagsSchema = z
  */
 export const CreateQuestionRequestSchema = z
   .object({
-    courseId: z.string().uuid(),
+    courseId: z.string().uuid().optional(),
     type: QuestionTypeEnum,
     content: z.string().optional(),
     contentDocument: ContentSlotSchema,

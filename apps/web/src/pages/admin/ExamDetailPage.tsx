@@ -545,6 +545,18 @@ export function ExamDetailPage() {
                 {t("admin.examDetail.actions.edit")}
               </Button>
             )}
+            {exam.status === "draft" && exam.inscriptionToken && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const link = `${window.location.origin}/inscripcion/${exam.inscriptionToken}`;
+                  void navigator.clipboard.writeText(link);
+                  toast.success("Link de inscripción copiado");
+                }}
+              >
+                Copiar link de inscripción
+              </Button>
+            )}
             {exam.status === "draft" && mayPublishExam && (
               <Button
                 onClick={() => void handlePublish()}
@@ -691,6 +703,13 @@ export function ExamDetailPage() {
           </div>
         }
       />
+
+      {exam.status === "draft" && exam.inscriptionToken && (
+        <p className="type-secondary break-all">
+          Link de inscripción: {window.location.origin}/inscripcion/
+          {exam.inscriptionToken}
+        </p>
+      )}
 
       {publishError && <InlineErrorBanner>{publishError}</InlineErrorBanner>}
 

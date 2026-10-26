@@ -15,6 +15,7 @@ export const routes = {
     settings: "/admin/settings",
     candidateFields: "/admin/candidate-fields",
     courses: "/admin/courses",
+    subjects: "/admin/subjects",
     questions: "/admin/questions",
     questionsNew: "/admin/questions/new",
     questionEdit: (id: string) => `/admin/questions/${id}/edit`,

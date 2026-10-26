@@ -53,6 +53,7 @@ export const ROUTE_PAGE_ROLES: readonly RoutePageRole[] = [
     role: "admin-standard",
   },
   { route: "/admin/courses", page: "CoursePage", role: "admin-standard" },
+  { route: "/admin/subjects", page: "SubjectPage", role: "admin-standard" },
   { route: "/admin/questions", page: "QuestionPage", role: "admin-dense" },
   {
     route: "/admin/questions/new",

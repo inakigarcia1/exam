@@ -68,6 +68,7 @@ const ControlFlagsSchema = z.object({
   restrictIp: z.boolean().default(false),
   requireLockdown: z.boolean().default(false),
   showResultImmediately: z.boolean().default(true),
+  restrictSimultaneousAccess: z.boolean().default(false),
 });
 
 /**
@@ -80,6 +81,8 @@ export const ExamSchema = z.object({
   title: z.string(),
   description: z.string(),
   courseId: z.string().uuid(),
+  subjectId: z.string().uuid().nullable().optional(),
+  inscriptionToken: z.string().nullable().optional(),
   status: ExamStatusEnum,
   timingMode: TimingModeEnum,
   // null duration = no personal time limit (deadline/untimed);
@@ -188,6 +191,7 @@ export const CreateExamRequestBaseSchema = z.object({
   // behavior is unchanged.
   description: z.string().max(2000).optional(),
   courseId: z.string().uuid(),
+  subjectId: z.string().uuid().optional(),
   // Full wire enum: `timed_sync` is accepted syntactically and rejected with a
   // structured EXAM_TIMING_MODE_INVALID conflict by the canonical engine
   // validator — the ONE matrix authority (no duplicated enum gate here).

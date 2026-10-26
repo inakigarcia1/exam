@@ -81,25 +81,32 @@ export function createQuestionResolver(
             repoCtx(ctx),
             ref.id,
           );
-          return row
-            ? {
-                resourceId: row.questionId,
-                resourceOrganizationId: row.questionOrganizationId,
-                organizationIds: [
-                  row.questionOrganizationId,
-                  row.courseOrganizationId,
-                  row.organizationId,
-                ],
-                chain: [
-                  { type: "question", id: row.questionId },
-                  {
-                    type: "course",
-                    id: row.courseId,
-                    linkedId: row.linkedCourseId,
-                  },
-                ],
-              }
-            : null;
+          if (!row) return null;
+          if (!row.courseId) {
+            return {
+              resourceId: row.questionId,
+              resourceOrganizationId: row.questionOrganizationId,
+              organizationIds: [row.questionOrganizationId],
+              chain: [{ type: "question", id: row.questionId }],
+            };
+          }
+          return {
+            resourceId: row.questionId,
+            resourceOrganizationId: row.questionOrganizationId,
+            organizationIds: [
+              row.questionOrganizationId,
+              row.courseOrganizationId,
+              row.organizationId,
+            ],
+            chain: [
+              { type: "question", id: row.questionId },
+              {
+                type: "course",
+                id: row.courseId,
+                linkedId: row.linkedCourseId,
+              },
+            ],
+          };
         },
       });
     },

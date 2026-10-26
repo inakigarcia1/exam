@@ -130,6 +130,12 @@ const groups: NavGroup[] = [
         visible: canSeeCourses,
       },
       {
+        labelKey: "nav.items.subjects",
+        to: routes.admin.subjects,
+        icon: BookOpen,
+        visible: canSeeCourses,
+      },
+      {
         labelKey: "nav.items.questions",
         to: routes.admin.questions,
         icon: BookOpen,

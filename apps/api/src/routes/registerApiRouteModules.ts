@@ -9,6 +9,7 @@ import userRoutes from "./user.js";
 import roleAssignmentRoutes from "./roleAssignments.js";
 import candidateRoutes from "./candidate.js";
 import courseRoutes from "./course.js";
+import subjectRoutes from "./subject.js";
 import questionRoutes from "./question.js";
 import examRoutes from "./exam.js";
 import examProfileRoutes from "./examProfile.js";
@@ -54,6 +55,7 @@ export async function registerApiRouteModules(
   await api.register(roleAssignmentRoutes);
   await api.register(candidateRoutes);
   await api.register(courseRoutes);
+  await api.register(subjectRoutes);
   await api.register(questionRoutes);
   await api.register(examRoutes);
   await api.register(examProfileRoutes);

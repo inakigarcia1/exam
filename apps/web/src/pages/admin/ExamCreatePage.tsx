@@ -39,6 +39,7 @@ import { RowActions } from "@/components/shared/RowActions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -193,6 +194,11 @@ export function ExamCreatePage() {
 
   const [state, setState] = useState<WizardState>(initialWizardState);
   const [courses, setCourses] = useState<CourseRow[]>([]);
+  const [subjects, setSubjects] = useState<Array<{ id: string; name: string }>>([]);
+  const [subjectId, setSubjectId] = useState("");
+  const [newSubjectName, setNewSubjectName] = useState("");
+  const [newCommissionName, setNewCommissionName] = useState("");
+  const [restrictSimultaneous, setRestrictSimultaneous] = useState(false);
   const [questions, setQuestions] = useState<QuestionRow[]>([]);
   const [profiles, setProfiles] = useState<ExamProfileDTO[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -210,12 +216,14 @@ export function ExamCreatePage() {
     setError(null);
     setIsLoading(true);
     try {
-      const [cData, pData, questions] = await Promise.all([
+      const [cData, pData, questions, subjectData] = await Promise.all([
         api.get<PaginatedResponse<CourseRow>>("/api/courses"),
         api.get<ExamProfileDTO[]>("/api/exam-profiles"),
         fetchAllPickerQuestions(),
+        api.get<{ items: Array<{ id: string; name: string }> }>("/api/subjects"),
       ]);
       setCourses(cData.items);
+      setSubjects(subjectData.items);
       setProfiles(pData);
       setState((prev) =>
         prev.courseId ? prev : { ...prev, courseId: cData.items[0]?.id ?? "" },
@@ -312,7 +320,9 @@ export function ExamCreatePage() {
     if (state.step === 1) {
       if (!state.title.trim())
         errors.title = t("admin.examWizard.validation.titleRequired");
-      if (!state.courseId)
+      if (!subjectId && !newSubjectName.trim())
+        errors.subjectId = "Elegí o creá una materia";
+      if (!state.courseId && !newCommissionName.trim())
         errors.courseId = t("admin.examWizard.validation.courseRequired");
     }
     if (state.step === 2) {
@@ -375,7 +385,32 @@ export function ExamCreatePage() {
     setSaveError(null);
     setFieldErrors({});
     try {
-      const payload = buildCreateExamPayload(state, preview.resolved);
+      let nextSubjectId = subjectId;
+      if (newSubjectName.trim()) {
+        const created = await api.post<{ id: string }>("/api/subjects", {
+          name: newSubjectName.trim(),
+        });
+        nextSubjectId = created.id;
+      }
+      let nextCourseId = state.courseId;
+      if (newCommissionName.trim()) {
+        const created = await api.post<{ id: string }>("/api/courses", {
+          name: newCommissionName.trim(),
+          code: `C${Date.now().toString().slice(-8)}`,
+          description: "",
+        });
+        nextCourseId = created.id;
+      }
+      const payload = {
+        ...buildCreateExamPayload(
+          { ...state, courseId: nextCourseId },
+          preview.resolved,
+        ),
+        subjectId: nextSubjectId,
+        ...(restrictSimultaneous
+          ? { controlFlags: { restrictSimultaneousAccess: true } }
+          : {}),
+      };
       const exam = await api.post<{ id: string }>("/api/exams", payload);
       toast.success(t("admin.examWizard.feedback.createSuccess"));
       void navigate(`/admin/exams/${exam.id}`);
@@ -464,6 +499,28 @@ export function ExamCreatePage() {
               />
               <FieldError>{fieldErrors.title}</FieldError>
             </Field>
+            <Field>
+              <Label htmlFor="wiz-subject">Materia</Label>
+              <Select value={subjectId} onValueChange={setSubjectId}>
+                <SelectTrigger id="wiz-subject" aria-label="Materia">
+                  <SelectValue placeholder="Elegí una materia" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subjects.map((subject) => (
+                    <SelectItem key={subject.id} value={subject.id}>
+                      {subject.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                className="mt-2"
+                value={newSubjectName}
+                placeholder="O creá una materia nueva"
+                onChange={(e) => setNewSubjectName(e.target.value)}
+              />
+              <FieldError>{fieldErrors.subjectId}</FieldError>
+            </Field>
             <FieldRow>
               <Field>
                 <Label htmlFor="wiz-course">
@@ -493,7 +550,13 @@ export function ExamCreatePage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <FieldError>{fieldErrors.courseId}</FieldError>
+                <Input
+                className="mt-2"
+                value={newCommissionName}
+                placeholder="O creá una comisión nueva"
+                onChange={(e) => setNewCommissionName(e.target.value)}
+              />
+              <FieldError>{fieldErrors.courseId}</FieldError>
               </Field>
             </FieldRow>
             <Field>
@@ -557,13 +620,25 @@ export function ExamCreatePage() {
 
       {/* Step 2 — policy fields (profile-safe, enforced dimensions only) */}
       {state.step === 2 && (
-        <WizardPolicyFields
-          state={state}
-          selectedProfile={selectedProfile}
-          fieldErrors={fieldErrors}
-          setOverride={onSetOverride}
-          clearOverride={onClearOverride}
-        />
+        <>
+          <WizardPolicyFields
+            state={state}
+            selectedProfile={selectedProfile}
+            fieldErrors={fieldErrors}
+            setOverride={onSetOverride}
+            clearOverride={onClearOverride}
+          />
+          <div className="mt-4 flex items-center gap-2">
+            <Checkbox
+              id="wiz-simultaneous"
+              checked={restrictSimultaneous}
+              onCheckedChange={(v) => setRestrictSimultaneous(v === true)}
+            />
+            <Label htmlFor="wiz-simultaneous" className="font-normal">
+              Restringir acceso simultáneo
+            </Label>
+          </div>
+        </>
       )}
 
       {/* Step 3 — questions + scores */}

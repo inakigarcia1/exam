@@ -48,6 +48,7 @@ export const ADMIN_NAV_FAMILIES: readonly NavFamily[] = [
   { to: "/admin/operations", patterns: ["operations"] },
   { to: "/admin/system", patterns: ["system"] },
   { to: "/admin/courses", patterns: ["courses"] },
+  { to: "/admin/subjects", patterns: ["subjects"] },
   {
     to: "/admin/questions",
     patterns: ["questions", "questions/new", "questions/:id/edit"],

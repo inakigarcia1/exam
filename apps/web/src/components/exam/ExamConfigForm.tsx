@@ -55,6 +55,7 @@ export interface ExamConfigData {
     restrictIp: boolean;
     requireLockdown: boolean;
     showResultImmediately: boolean;
+    restrictSimultaneousAccess?: boolean;
   };
   retakePolicy: "unlimited" | "max_attempts" | "pass_then_stop";
   scoreStrategy: "highest" | "latest" | "first";
@@ -434,6 +435,17 @@ export function ExamConfigForm({
         title={t("admin.forms.exam.sectionControl")}
         contentClassName="flex flex-col gap-3"
       >
+        <div className="flex items-center gap-2">
+          <Checkbox
+            checked={data.controlFlags.restrictSimultaneousAccess === true}
+            onCheckedChange={(v) =>
+              updateFlags({ restrictSimultaneousAccess: v === true })
+            }
+          />
+          <Label className="font-normal">
+            {t("admin.forms.exam.restrictSimultaneousAccess")}
+          </Label>
+        </div>
         <div className="flex items-center gap-2">
           <Checkbox
             checked={data.controlFlags.shuffleQuestions}

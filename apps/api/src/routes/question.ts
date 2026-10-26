@@ -287,15 +287,17 @@ const questionRoutes: FastifyPluginAsync = async (fastify) => {
           .send(buildValidationErrorResponse(request.id, parsed.error));
       }
       const data = parsed.data;
-      if (!(await createCourseRepo(fastify.db).findById(ctx, data.courseId))) {
+      if (
+        data.courseId &&
+        !(await createCourseRepo(fastify.db).findById(ctx, data.courseId))
+      ) {
         return reply.code(400).send(
           buildErrorResponse(request.id, "VALIDATION_ERROR", {
             fields: [
               {
                 field: "courseId",
                 code: "RESOURCE_NOT_FOUND",
-                // i18n-copy-allow: wire-compat — non-authoritative field compatibility message on the wire; field code+params are the contract
-                message: "课程不存在",
+                message: "La comisión no existe",
               },
             ],
           }),
@@ -314,7 +316,7 @@ const questionRoutes: FastifyPluginAsync = async (fastify) => {
       });
 
       const question = await createQuestionRepo(fastify.db).create(ctx, {
-        courseId: data.courseId,
+        courseId: data.courseId ?? null,
         type: data.type,
         content: resolved.content,
         contentDocument: resolved.contentDocument,
@@ -401,6 +403,7 @@ const questionRoutes: FastifyPluginAsync = async (fastify) => {
         ...data,
       });
       if (
+        validated.courseId &&
         !(await createCourseRepo(fastify.db).findById(ctx, validated.courseId))
       ) {
         return reply.code(400).send(
@@ -421,7 +424,7 @@ const questionRoutes: FastifyPluginAsync = async (fastify) => {
       // course needs its own active assignment for non-Admin actors. The
       // denial mirrors the missing-course shape exactly (anti-enumeration:
       // an unassigned destination is indistinguishable from a missing one).
-      if (validated.courseId !== existing.courseId) {
+      if (validated.courseId && validated.courseId !== existing.courseId) {
         const scope = await resolveTeacherCourseScope(fastify.db, ctx);
         if (scope && !scope.includes(validated.courseId)) {
           return reply.code(400).send(

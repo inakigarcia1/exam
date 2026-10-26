@@ -182,6 +182,21 @@ export const candidateProfiles = pgTable(
   ],
 );
 
+/** Subjects (materias). A subject is only a name. */
+export const subjects = pgTable(
+  "subjects",
+  {
+    id: id(),
+    organizationId: organizationId().references(() => organizations.id),
+    name: text("name").notNull(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    uniqueIndex("subjects_org_name_unique").on(table.organizationId, table.name),
+  ],
+);
+
 /** Courses table — stores course definitions grouped by code. */
 export const courses = pgTable(
   "courses",
@@ -210,9 +225,7 @@ export const questions = pgTable(
   {
     id: id(),
     organizationId: organizationId().references(() => organizations.id),
-    courseId: text("course_id")
-      .notNull()
-      .references(() => courses.id),
+    courseId: text("course_id"),
     type: text("type").notNull(),
     content: text("content").notNull(),
     // Dual-mode content authority. NULL → Plain (`content` is the
@@ -271,6 +284,8 @@ export const exams = pgTable(
     courseId: text("course_id")
       .notNull()
       .references(() => courses.id),
+    subjectId: text("subject_id"),
+    inscriptionToken: text("inscription_token"),
     // Typed against the domain lifecycle vocabulary; the DB-side value
     // set is enforced by `exams_status_check` (drift between the two is
     // caught by the status-contract test, not by this marker).

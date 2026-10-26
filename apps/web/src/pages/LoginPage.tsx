@@ -24,11 +24,15 @@ export function LoginPage() {
   const { login, isSubmittingLogin, error } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [asStudent, setAsStudent] = useState(true);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const validate = () => {
     const errors: Record<string, string> = {};
-    if (!username.trim()) errors.username = t("auth.login.usernameRequired");
+    if (!username.trim())
+      errors.username = asStudent
+        ? "Ingresa tu legajo"
+        : t("auth.login.usernameRequired");
     if (!password.trim()) errors.password = t("auth.login.passwordRequired");
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
@@ -56,14 +60,36 @@ export function LoginPage() {
             )}
             <form onSubmit={handleSubmit}>
               <FieldGroup className="gap-4">
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={asStudent ? "default" : "outline"}
+                    onClick={() => setAsStudent(true)}
+                  >
+                    Alumno
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={asStudent ? "outline" : "default"}
+                    onClick={() => setAsStudent(false)}
+                  >
+                    Docente
+                  </Button>
+                </div>
                 <Field>
                   <Label htmlFor="username">
-                    {t("auth.login.usernameLabel")}
+                    {asStudent
+                      ? t("auth.login.legajoLabel")
+                      : t("auth.login.usernameLabel")}
                   </Label>
                   <Input
                     id="username"
                     type="text"
-                    placeholder={t("auth.login.usernamePlaceholder")}
+                    placeholder={
+                      asStudent
+                        ? t("auth.login.legajoPlaceholder")
+                        : t("auth.login.usernamePlaceholder")
+                    }
                     value={username}
                     onChange={(e) => {
                       setUsername(e.target.value);

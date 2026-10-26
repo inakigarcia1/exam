@@ -84,6 +84,7 @@ export const ADMIN_ROUTE_CAPABILITIES: readonly AdminRouteCapability[] = [
 
   // Courses
   { pattern: "courses", capability: Permission.CourseView, label: "courses" },
+  { pattern: "subjects", capability: Permission.CourseView, label: "subjects" },
 
   // Questions
   {

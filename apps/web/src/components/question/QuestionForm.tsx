@@ -32,8 +32,6 @@ import {
   type ContentDocumentV1,
 } from "@exam/domain";
 import { RichContentEditorLazy } from "@/components/shared/content/RichContentEditorLazy";
-import { CourseSearchSelect } from "./CourseSearchSelect";
-
 /** A single option within a question, with an ID, display content, and correctness flag. */
 interface Option {
   id: string;
@@ -131,7 +129,7 @@ function hasFormatting(document: ContentDocumentV1): boolean {
  * a lazy WYSIWYG editor; the plain textarea remains the Plain-mode editor.
  */
 export function QuestionForm({
-  courses,
+  courses: _courses,
   initial,
   onChange,
 }: QuestionFormProps) {
@@ -267,16 +265,6 @@ export function QuestionForm({
   return (
     <div className="flex flex-col gap-6">
       <FieldRow>
-        <Field>
-          <Label>{t("admin.forms.question.course")}</Label>
-          <CourseSearchSelect
-            courses={courses}
-            value={form.courseId}
-            onChange={(v) => update({ courseId: v })}
-            placeholder={t("admin.forms.question.coursePlaceholder")}
-          />
-        </Field>
-
         <Field>
           <Label>{t("admin.forms.question.type")}</Label>
           <Select

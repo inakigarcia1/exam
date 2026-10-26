@@ -26,6 +26,7 @@ import { CandidateFieldsPage } from "@/pages/admin/CandidateFieldsPage";
 import { UsersPage } from "@/pages/admin/UsersPage";
 import { CandidatesPage } from "@/pages/admin/CandidatesPage";
 import { CoursePage } from "@/pages/admin/CoursePage";
+import { SubjectPage } from "@/pages/admin/SubjectPage";
 import { QuestionPage } from "@/pages/admin/QuestionPage";
 import { QuestionEditPage } from "@/pages/admin/QuestionEditPage";
 import { QuestionImportPage } from "@/pages/admin/QuestionImportPage";
@@ -96,6 +97,7 @@ export function AppRoutes() {
         <Route path="users" element={<UsersPage />} />
         <Route path="candidates" element={<CandidatesPage />} />
         <Route path="courses" element={<CoursePage />} />
+        <Route path="subjects" element={<SubjectPage />} />
         <Route path="questions" element={<QuestionPage />} />
         <Route path="questions/new" element={<QuestionEditPage />} />
         <Route path="questions/:id/edit" element={<QuestionEditPage />} />

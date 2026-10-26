@@ -132,7 +132,7 @@ export interface Course {
 export interface Question {
   id: string;
   organizationId: string;
-  courseId: string;
+  courseId: string | null;
   type: QuestionType;
   content: string;
   /**
@@ -264,6 +264,7 @@ export interface ControlFlags {
   restrictIp: boolean;
   requireLockdown: boolean;
   showResultImmediately: boolean;
+  restrictSimultaneousAccess?: boolean;
 }
 
 // ── Submit source (ADR-005) ────────────────────────────────────────
@@ -295,6 +296,8 @@ export interface Exam {
   title: string;
   description: string;
   courseId: string;
+  subjectId?: string | null;
+  inscriptionToken?: string | null;
   status: ExamStatus;
   timingMode: TimingMode;
   // null duration = no personal time limit (deadline/untimed);

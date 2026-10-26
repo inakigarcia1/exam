@@ -183,7 +183,7 @@ export function QuestionEditPage() {
     // plain options OMIT the optional contentDocument key, and the prompt
     // document is sent explicitly (null = Plain / Rich→Plain upgrade).
     const common = {
-      courseId: formData.courseId,
+      ...(formData.courseId ? { courseId: formData.courseId } : {}),
       type: formData.type,
       content: formData.content,
       contentDocument: formData.contentDocument ?? null,

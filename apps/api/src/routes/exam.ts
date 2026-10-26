@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import {
   FastifyPluginAsync,
   type FastifyRequest,
@@ -96,6 +97,8 @@ function toExamResponse(exam: Exam) {
     title: exam.title,
     description: exam.description,
     courseId: exam.courseId,
+    subjectId: exam.subjectId ?? null,
+    inscriptionToken: exam.inscriptionToken ?? null,
     status: exam.status,
     timingMode: exam.timingMode,
     durationMinutes: exam.durationMinutes,
@@ -872,6 +875,8 @@ const examRoutes: FastifyPluginAsync = async (fastify) => {
         title: data.title,
         description: data.description,
         courseId: data.courseId,
+        subjectId: data.subjectId ?? null,
+        inscriptionToken: randomBytes(18).toString("hex"),
         status: "draft",
         timingMode: data.timingMode,
         durationMinutes: data.durationMinutes ?? null,
