@@ -1,0 +1,32 @@
+---
+description: Vocabulario de Aki. Español en la interfaz, inglés en el código, y cómo se relacionan alumno, materia, comisión, cursado y examen.
+alwaysApply: true
+---
+
+# Dominio Aki
+
+La plataforma se llama Aki. La interfaz está en español. El código, las tablas y los roles están en inglés. La autoridad de los nombres es `docs/domain/entities.md`.
+
+| Se dice | Se escribe en código |
+| --- | --- |
+| Alumno | `Candidate` |
+| Materia | `Subject` |
+| Comisión | `Commission` |
+| Comisión de materia | `CommissionSubject` |
+| Cursado | `Registration` |
+| Inscripción al examen | `ExamEnrollment` |
+| Examen en una comisión de materia | `ExamCommissionSubject` |
+| Legajo | `users.username` del alumno |
+
+No uses `Enrollment` para el cursado. `ExamEnrollment` ya es la inscripción al examen.
+
+Reglas que no se negocian:
+
+- Una pregunta no pertenece a una comisión. Puede estar en cero o varias materias. El examen la suma con `questionIds`.
+- `CommissionSubject` une una comisión y una materia. Unique `(commission_id, subject_id)`.
+- `Registration` une un alumno con una sola `CommissionSubject`. Un alumno no cursa la misma materia en dos comisiones.
+- Un examen tiene al menos un `ExamCommissionSubject`, todos de la misma materia.
+- Borrar materia o comisión no borra a la otra. Si el vínculo todavía está en uso, el borrado se rechaza.
+- El link de inscripción crea cursado e inscripción. La inscripción manual no crea cursado.
+- En borrador, el examen lo ven el docente que lo creó y un admin. No se crea attempt. Publicado, rinde un alumno inscripto, desde cualquier red.
+- "Restringir acceso simultáneo" ata el attempt al dispositivo del login. Revocar sube `auth_epoch` y no toca las respuestas.
