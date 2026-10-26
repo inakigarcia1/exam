@@ -104,7 +104,7 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
         // i18n-copy-allow: data-format — CSV export header/value data contract
         "Calificaciones",
         // i18n-copy-allow: data-format — CSV export header/value data contract
-        "及格状态",
+        "Aprobado o no",
         // i18n-copy-allow: data-format — CSV export header/value data contract
         "Intentos",
         // i18n-copy-allow: data-format — CSV export header/value data contract
@@ -117,7 +117,7 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
       const notPassedLabel = "No aprobado";
 
       const rows = results.map((r) => ({
-        Nombre del alumno: r.candidateUser.name,
+        "Nombre del alumno": r.candidateUser.name,
         ...fieldPairs.reduce(
           (acc, fp) => {
             acc[fp.label] = r.candidateProfile.fields[fp.key] ?? "";
@@ -126,9 +126,9 @@ export const exportRoutes: FastifyPluginAsync = async (fastify) => {
           {} as Record<string, unknown>,
         ),
         Calificaciones: r.attempt.score,
-        及格状态: r.attempt.passed ? passedLabel : notPassedLabel,
+        "Aprobado o no": r.attempt.passed ? passedLabel : notPassedLabel,
         Intentos: r.attempt.attemptNo,
-        Fecha de entrega: r.attempt.submittedAt?.toISOString() ?? "",
+        "Fecha de entrega": r.attempt.submittedAt?.toISOString() ?? "",
       }));
 
       const csv = "\uFEFF" + generateCSV(headers, rows);

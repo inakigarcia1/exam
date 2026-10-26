@@ -501,27 +501,27 @@ export async function registerAdminAttemptRoutes(fastify: FastifyInstance) {
         // i18n-copy-allow: data-format — CSV export header/value data contract
         "Puntaje máximo",
         // i18n-copy-allow: data-format — CSV export header/value data contract
-        "是否正确",
+        "Correcta",
         // Appended after the frozen columns so positional consumers keep
         // their offsets: the frozen answer mode and the semantic integrity
         // of the stored value (seven §7 read states, canonical tokens).
         // i18n-copy-allow: data-format — CSV export header/value data contract
-        "考生答案模式",
+        "Modo de respuesta",
         // i18n-copy-allow: data-format — CSV export header/value data contract
-        "考生答案状态",
+        "Estado de la respuesta",
       ];
       const csvRows = exportData.questionResults.map((q) => ({
         Número: q.order,
         Tipo: q.type,
         Enunciado: q.content,
-        Respuesta del alumno: csvAnswerCell(q),
-        Respuesta correcta: formatPlainExportValue(q.standardAnswer),
+        "Respuesta del alumno": csvAnswerCell(q),
+        "Respuesta correcta": formatPlainExportValue(q.standardAnswer),
         Puntaje: q.score ?? "—",
-        Puntaje máximo: q.maxScore,
-        是否正确:
+        "Puntaje máximo": q.maxScore,
+        Correcta:
           q.correct == null ? "—" : q.correct ? correctLabel : incorrectLabel,
-        考生答案模式: q.candidateAnswerMode,
-        考生答案状态: q.candidateAnswerIntegrity,
+        "Modo de respuesta": q.candidateAnswerMode,
+        "Estado de la respuesta": q.candidateAnswerIntegrity,
       }));
       const csv = "\uFEFF" + generateCSV(csvHeaders, csvRows);
       reply.header(
