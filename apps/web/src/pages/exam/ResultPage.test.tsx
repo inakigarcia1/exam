@@ -109,7 +109,9 @@ describe("ResultPage", () => {
 
     expect(
       await screen.findByTestId("result-status-message"),
-    ).toHaveTextContent("Ahora no se puede ver la calificación. Inténtalo más tarde.");
+    ).toHaveTextContent(
+      "Ahora no se puede ver la calificación. Inténtalo más tarde.",
+    );
     expect(screen.queryByText("Mínimo para aprobar")).not.toBeInTheDocument();
   });
 
@@ -142,7 +144,9 @@ describe("ResultPage", () => {
 
     expect(
       await screen.findByTestId("result-status-message"),
-    ).toHaveTextContent("La calificación todavía no se puede ver. Vuelve más tarde.");
+    ).toHaveTextContent(
+      "La calificación todavía no se puede ver. Vuelve más tarde.",
+    );
   });
 
   it("falls back to the neutral message when hiddenReason is unknown/missing", async () => {
@@ -159,7 +163,9 @@ describe("ResultPage", () => {
 
     expect(
       await screen.findByTestId("result-status-message"),
-    ).toHaveTextContent("Ahora no se puede ver la calificación. Inténtalo más tarde.");
+    ).toHaveTextContent(
+      "Ahora no se puede ver la calificación. Inténtalo más tarde.",
+    );
   });
 
   it("published (visible) result still displays score details", async () => {
@@ -215,7 +221,9 @@ describe("ResultPage", () => {
 
     expect(
       await screen.findByTestId("result-status-message"),
-    ).toHaveTextContent("Se interrumpió. Vuelve a los exámenes e intenta retomar.");
+    ).toHaveTextContent(
+      "Se interrumpió. Vuelve a los exámenes e intenta retomar.",
+    );
     // Hidden states are not successes — the icon must not render the green
     // success treatment the visible/graded result uses.
     expect(container.querySelector("svg[data-app-icon]")).toHaveClass(
@@ -271,7 +279,9 @@ describe("ResultPage", () => {
 
     expect(
       await screen.findByTestId("result-status-message"),
-    ).toHaveTextContent("Este registro fue anulado. No se puede ver la calificación.");
+    ).toHaveTextContent(
+      "Este registro fue anulado. No se puede ver la calificación.",
+    );
     expect(container.querySelector("svg[data-app-icon]")).toHaveClass(
       "text-destructive",
     );
@@ -393,7 +403,9 @@ describe("ResultPage", () => {
     // The genuinely manual question keeps the manual marker.
     expect(screen.getByText("Abierta")).toBeInTheDocument();
     // No rubric is ever rendered by ResultPage (it is not in the DTO contract).
-    expect(screen.queryByText(/Criterio de corrección|rubric/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Criterio de corrección|rubric/i),
+    ).not.toBeInTheDocument();
   });
 
   it("does not self-release result from grading state when DTO gate is hidden", async () => {
@@ -414,5 +426,36 @@ describe("ResultPage", () => {
     expect(await screen.findByTestId("result-status-message")).toBeVisible();
     expect(screen.queryByTestId("result-total-score")).not.toBeInTheDocument();
     expect(screen.queryByText("Aprobado")).not.toBeInTheDocument();
+  });
+
+  it("labels a text response question as Texto libre", async () => {
+    getMock.mockResolvedValue({
+      attemptId: "attempt-1",
+      status: "graded",
+      showResultImmediately: true,
+      examTitle: "Parcial",
+      passingScore: 10,
+      totalScore: 20,
+      passed: true,
+      gradedAt: "2026-10-27T00:00:00.000Z",
+      questionResults: [
+        {
+          questionId: "q-text",
+          type: "text_response",
+          content: "Explicá el proceso",
+          order: 0,
+          candidateAnswer: "una explicación",
+          manualGraded: true,
+          score: 15,
+          maxScore: 20,
+          correct: true,
+        },
+      ],
+    });
+
+    renderPage();
+
+    expect(await screen.findByText("Texto libre")).toBeInTheDocument();
+    expect(screen.queryByText("text_response")).not.toBeInTheDocument();
   });
 });

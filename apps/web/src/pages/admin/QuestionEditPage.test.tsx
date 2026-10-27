@@ -163,8 +163,12 @@ describe("QuestionEditPage", () => {
 
   it("shows error state when API fails", async () => {
     renderNew(() => Promise.reject(new Error("network")));
-    expect(await screen.findByText("No se pudieron cargar los datos")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Reintentar/ })).toBeInTheDocument();
+    expect(
+      await screen.findByText("No se pudieron cargar los datos"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Reintentar/ }),
+    ).toBeInTheDocument();
   });
 
   it("renders new question form with default values", async () => {
@@ -210,13 +214,19 @@ describe("QuestionEditPage", () => {
 
   it("shows specific save error when API rejects", async () => {
     apiPost.mockRejectedValue(
-      new ApiError(400, "La pregunta no pertenece a la comisión elegida", "QUESTION_COURSE_MISMATCH"),
+      new ApiError(
+        400,
+        "La pregunta no pertenece a la comisión elegida",
+        "QUESTION_COURSE_MISMATCH",
+      ),
     );
     const user = userEvent.setup();
     renderNew();
     await screen.findByText("Nueva pregunta");
     await user.click(screen.getByText("Guardar"));
-    expect(await screen.findByText("La pregunta no pertenece a la comisión elegida")).toBeInTheDocument();
+    expect(
+      await screen.findByText("La pregunta no pertenece a la comisión elegida"),
+    ).toBeInTheDocument();
   });
 
   it("cancel button is clickable and disabled during saving", async () => {
@@ -245,10 +255,12 @@ describe("QuestionEditPage", () => {
 // text_response create payload is proven separately below (P2-1C block).
 
 const CONTENT_PLACEHOLDER = "Escribí el enunciado";
-const CONTENT_FILLBLANK_PLACEHOLDER = "Escribí el enunciado y marcá cada espacio con ____";
+const CONTENT_FILLBLANK_PLACEHOLDER =
+  "Escribí el enunciado y marcá cada espacio con ____";
 const RUBRIC_PLACEHOLDER =
   "Describí qué hay que mirar al corregir: los puntos clave, si está completo, si es exacto o cómo argumenta";
-const REFERENCE_ANSWER_PLACEHOLDER = "Ejemplo para quien corrige. No cambia la corrección automática.";
+const REFERENCE_ANSWER_PLACEHOLDER =
+  "Ejemplo para quien corrige. No cambia la corrección automática.";
 
 /** Open the type <Select> (a11y-labeled Tipo de pregunta) and pick an option. */
 async function selectType(
@@ -353,6 +365,70 @@ describe("QuestionEditPage — objective type create payloads", () => {
     });
   });
 
+  it("tells the author when a fill blank prompt is missing ____", async () => {
+    const user = userEvent.setup();
+    renderNew();
+    await screen.findByText("Nueva pregunta");
+
+    await selectType(user, "Completar espacios");
+    await user.type(
+      screen.getByPlaceholderText(
+        "Escribí el enunciado y marcá cada espacio con ____",
+      ),
+      "El cielo es ___",
+    );
+    await user.type(
+      screen.getByPlaceholderText(
+        "Escribí la respuesta correcta. Si hay varias, separalas con |",
+      ),
+      "azul",
+    );
+    await user.click(screen.getByText("Guardar"));
+
+    expect(
+      await screen.findByText(
+        "El enunciado de completar espacios tiene que incluir ____",
+      ),
+    ).toBeInTheDocument();
+    expect(apiPost).not.toHaveBeenCalled();
+  });
+
+  it("shows the API field message when a question save is rejected", async () => {
+    const user = userEvent.setup();
+    const { ApiError: MockApiError } = await import("@/lib/api");
+    apiPost.mockRejectedValue(
+      new MockApiError(400, "VALIDATION_ERROR", "VALIDATION_ERROR", {
+        fields: [
+          {
+            field: "score",
+            message: "el puntaje tiene que ser mayor que cero",
+          },
+        ],
+      }),
+    );
+    renderNew();
+    await screen.findByText("Nueva pregunta");
+
+    await selectType(user, "Completar espacios");
+    await user.type(
+      screen.getByPlaceholderText(
+        "Escribí el enunciado y marcá cada espacio con ____",
+      ),
+      "El cielo es ____",
+    );
+    await user.type(
+      screen.getByPlaceholderText(
+        "Escribí la respuesta correcta. Si hay varias, separalas con |",
+      ),
+      "azul",
+    );
+    await user.click(screen.getByText("Guardar"));
+
+    expect(
+      await screen.findByText("el puntaje tiene que ser mayor que cero"),
+    ).toBeInTheDocument();
+  });
+
   it("creates fill_blank with string answer and rubric null", async () => {
     const user = userEvent.setup();
     renderNew();
@@ -361,11 +437,15 @@ describe("QuestionEditPage — objective type create payloads", () => {
     await selectType(user, "Completar espacios");
     // fill_blank content uses a distinct placeholder (marks the ____ slot).
     await user.type(
-      screen.getByPlaceholderText("Escribí el enunciado y marcá cada espacio con ____"),
+      screen.getByPlaceholderText(
+        "Escribí el enunciado y marcá cada espacio con ____",
+      ),
       "法国的首都是 ____。",
     );
     await user.type(
-      screen.getByPlaceholderText("Escribí la respuesta correcta. Si hay varias, separalas con |"),
+      screen.getByPlaceholderText(
+        "Escribí la respuesta correcta. Si hay varias, separalas con |",
+      ),
       "巴黎",
     );
     await user.click(screen.getByText("Guardar"));
@@ -459,7 +539,9 @@ describe("QuestionEditPage — text_response authoring", () => {
     // optional reference-answer field IS shown but left blank, so the
     // payload must normalize to standardAnswer: null.
     expect(
-      screen.queryByPlaceholderText("Escribí la respuesta correcta. Si hay varias, separalas con |"),
+      screen.queryByPlaceholderText(
+        "Escribí la respuesta correcta. Si hay varias, separalas con |",
+      ),
     ).not.toBeInTheDocument();
     expect(
       screen.getByPlaceholderText(REFERENCE_ANSWER_PLACEHOLDER),
@@ -577,7 +659,11 @@ describe("QuestionEditPage — text_response authoring", () => {
 
       // The save must be blocked client-side: no API call, error shown.
       expect(apiPost).not.toHaveBeenCalled();
-      expect(await screen.findByText(/El criterio de corrección no puede estar vacío/)).toBeInTheDocument();
+      expect(
+        await screen.findByText(
+          /El criterio de corrección no puede estar vacío/,
+        ),
+      ).toBeInTheDocument();
     },
   );
 
@@ -686,7 +772,9 @@ describe("QuestionEditPage — text_response authoring", () => {
     await selectType(user, "Completar espacios");
     // fill_blank canonical: objective, no rubric in payload
     await user.type(
-      screen.getByPlaceholderText("Escribí la respuesta correcta. Si hay varias, separalas con |"),
+      screen.getByPlaceholderText(
+        "Escribí la respuesta correcta. Si hay varias, separalas con |",
+      ),
       "Fe",
     );
 
@@ -796,7 +884,9 @@ describe("QuestionEditPage — text_response authoring", () => {
       "TCP是什么协议",
     );
     await user.type(
-      screen.getByPlaceholderText("Escribí la respuesta correcta. Si hay varias, separalas con |"),
+      screen.getByPlaceholderText(
+        "Escribí la respuesta correcta. Si hay varias, separalas con |",
+      ),
       "TCP",
     );
     // Switch to text_response — "TCP" must NOT become the reference.
