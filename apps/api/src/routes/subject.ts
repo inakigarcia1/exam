@@ -1,15 +1,14 @@
 import { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { Permission } from "@exam/authz";
-import { subjects } from "@exam/db/schema/pg";
-import { createAsyncTenantCrudRepo } from "@exam/db/repository/baseRepo";
+import { createSubjectRepo } from "@exam/db/repository/subjectRepo";
 import { ensureTargetOrg, getRequestContext } from "./helpers.js";
 import { buildErrorResponse } from "../lib/errorResponse.js";
 
 const cookieAuth = [{ cookieAuth: [] }] as const;
 
 const subjectRoutes: FastifyPluginAsync = async (fastify) => {
-  const repo = () => createAsyncTenantCrudRepo(fastify.db, subjects);
+  const repo = () => createSubjectRepo(fastify.db);
 
   fastify.get(
     "/subjects",
@@ -20,7 +19,7 @@ const subjectRoutes: FastifyPluginAsync = async (fastify) => {
       ],
       schema: { security: cookieAuth },
     },
-    async (request: any) => {
+    async (request) => {
       const ctx = ensureTargetOrg(getRequestContext(request));
       const items = await repo().list(ctx);
       return {
@@ -42,9 +41,11 @@ const subjectRoutes: FastifyPluginAsync = async (fastify) => {
       ],
       schema: { security: cookieAuth },
     },
-    async (request: any, reply: any) => {
+    async (request, reply) => {
       const ctx = ensureTargetOrg(getRequestContext(request));
-      const body = z.object({ name: z.string().min(1).max(200) }).parse(request.body);
+      const body = z
+        .object({ name: z.string().min(1).max(200) })
+        .parse(request.body);
       const created = await repo().create(ctx, {
         name: body.name.trim(),
       });
@@ -61,10 +62,12 @@ const subjectRoutes: FastifyPluginAsync = async (fastify) => {
       ],
       schema: { security: cookieAuth },
     },
-    async (request: any, reply: any) => {
+    async (request, reply) => {
       const ctx = ensureTargetOrg(getRequestContext(request));
       const { id } = request.params as { id: string };
-      const body = z.object({ name: z.string().min(1).max(200) }).parse(request.body);
+      const body = z
+        .object({ name: z.string().min(1).max(200) })
+        .parse(request.body);
       const updated = await repo().update(ctx, id, { name: body.name.trim() });
       if (!updated) {
         return reply
@@ -84,7 +87,7 @@ const subjectRoutes: FastifyPluginAsync = async (fastify) => {
       ],
       schema: { security: cookieAuth },
     },
-    async (request: any, reply: any) => {
+    async (request, reply) => {
       const ctx = ensureTargetOrg(getRequestContext(request));
       const { id } = request.params as { id: string };
       const ok = await repo().delete(ctx, id);

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api";
-import { getApiErrorMessage } from "@/lib/apiErrors";
+import { getApiErrorMessage, getApiFieldErrors } from "@/lib/apiErrors";
 import { resolveListReturnPath } from "@/lib/listReturnNavigation";
 import { routes } from "@/lib/routes";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -161,6 +161,10 @@ export function QuestionEditPage() {
       setSaveError(t("admin.questionEdit.rubricRequired"));
       return;
     }
+    if (formData.type === "fill_blank" && !formData.content.includes("____")) {
+      setSaveError(t("admin.questionEdit.fillBlankPlaceholder"));
+      return;
+    }
 
     // Normalize so incompatible fields never leak into the payload:
     // - objective types carry rubric: null;
@@ -230,8 +234,10 @@ export function QuestionEditPage() {
         resolveListReturnPath(location.state, routes.admin.questions),
       );
     } catch (err) {
+      const fieldMessage = Object.values(getApiFieldErrors(err)).find(Boolean);
       setSaveError(
-        getApiErrorMessage(err, t, t("admin.questionEdit.saveFailed")),
+        fieldMessage ??
+          getApiErrorMessage(err, t, t("admin.questionEdit.saveFailed")),
       );
     } finally {
       setSaving(false);
