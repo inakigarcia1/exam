@@ -6556,6 +6556,190 @@
         }
       }
     },
+    "/api/subjects": {
+      "get": {
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          },
+          "401": {
+            "description": "Unauthorized — missing or invalid authentication cookie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "description": "Stable coarse product-level machine contract (ErrorCode)."
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "Non-authoritative human-readable compatibility text. Clients MUST NOT parse or branch on this value."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          },
+          "401": {
+            "description": "Unauthorized — missing or invalid authentication cookie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "description": "Stable coarse product-level machine contract (ErrorCode)."
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "Non-authoritative human-readable compatibility text. Clients MUST NOT parse or branch on this value."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/subjects/{id}": {
+      "patch": {
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          },
+          "401": {
+            "description": "Unauthorized — missing or invalid authentication cookie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "description": "Stable coarse product-level machine contract (ErrorCode)."
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "Non-authoritative human-readable compatibility text. Clients MUST NOT parse or branch on this value."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          },
+          "401": {
+            "description": "Unauthorized — missing or invalid authentication cookie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "description": "Stable coarse product-level machine contract (ErrorCode)."
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "Non-authoritative human-readable compatibility text. Clients MUST NOT parse or branch on this value."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/questions": {
       "get": {
         "parameters": [
@@ -6651,7 +6835,8 @@
                           },
                           "courseId": {
                             "type": "string",
-                            "format": "uuid"
+                            "format": "uuid",
+                            "nullable": true
                           },
                           "type": {
                             "type": "string",
@@ -9262,7 +9447,7 @@
                     "default": null
                   }
                 },
-                "required": ["courseId", "type", "standardAnswer", "score"],
+                "required": ["type", "standardAnswer", "score"],
                 "additionalProperties": false
               }
             }
@@ -9292,7 +9477,8 @@
                     },
                     "courseId": {
                       "type": "string",
-                      "format": "uuid"
+                      "format": "uuid",
+                      "nullable": true
                     },
                     "type": {
                       "type": "string",
@@ -10801,7 +10987,8 @@
                     },
                     "courseId": {
                       "type": "string",
-                      "format": "uuid"
+                      "format": "uuid",
+                      "nullable": true
                     },
                     "type": {
                       "type": "string",
@@ -13408,7 +13595,8 @@
                     },
                     "courseId": {
                       "type": "string",
-                      "format": "uuid"
+                      "format": "uuid",
+                      "nullable": true
                     },
                     "type": {
                       "type": "string",
@@ -15218,6 +15406,15 @@
                             "type": "string",
                             "format": "uuid"
                           },
+                          "subjectId": {
+                            "type": "string",
+                            "format": "uuid",
+                            "nullable": true
+                          },
+                          "inscriptionToken": {
+                            "type": "string",
+                            "nullable": true
+                          },
                           "status": {
                             "type": "string",
                             "enum": [
@@ -15317,6 +15514,10 @@
                               "showResultImmediately": {
                                 "type": "boolean",
                                 "default": true
+                              },
+                              "restrictSimultaneousAccess": {
+                                "type": "boolean",
+                                "default": false
                               }
                             },
                             "additionalProperties": false
@@ -15575,6 +15776,10 @@
                     "type": "string",
                     "format": "uuid"
                   },
+                  "subjectId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
                   "timingMode": {
                     "type": "string",
                     "enum": [
@@ -15716,6 +15921,15 @@
                       "type": "string",
                       "format": "uuid"
                     },
+                    "subjectId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "nullable": true
+                    },
+                    "inscriptionToken": {
+                      "type": "string",
+                      "nullable": true
+                    },
                     "status": {
                       "type": "string",
                       "enum": [
@@ -15815,6 +16029,10 @@
                         "showResultImmediately": {
                           "type": "boolean",
                           "default": true
+                        },
+                        "restrictSimultaneousAccess": {
+                          "type": "boolean",
+                          "default": false
                         }
                       },
                       "additionalProperties": false
@@ -16091,6 +16309,15 @@
                       "type": "string",
                       "format": "uuid"
                     },
+                    "subjectId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "nullable": true
+                    },
+                    "inscriptionToken": {
+                      "type": "string",
+                      "nullable": true
+                    },
                     "status": {
                       "type": "string",
                       "enum": [
@@ -16190,6 +16417,10 @@
                         "showResultImmediately": {
                           "type": "boolean",
                           "default": true
+                        },
+                        "restrictSimultaneousAccess": {
+                          "type": "boolean",
+                          "default": false
                         }
                       },
                       "additionalProperties": false
@@ -16554,6 +16785,10 @@
                       "showResultImmediately": {
                         "type": "boolean",
                         "default": true
+                      },
+                      "restrictSimultaneousAccess": {
+                        "type": "boolean",
+                        "default": false
                       }
                     },
                     "additionalProperties": false
@@ -16650,6 +16885,15 @@
                     "courseId": {
                       "type": "string",
                       "format": "uuid"
+                    },
+                    "subjectId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "nullable": true
+                    },
+                    "inscriptionToken": {
+                      "type": "string",
+                      "nullable": true
                     },
                     "status": {
                       "type": "string",
@@ -16750,6 +16994,10 @@
                         "showResultImmediately": {
                           "type": "boolean",
                           "default": true
+                        },
+                        "restrictSimultaneousAccess": {
+                          "type": "boolean",
+                          "default": false
                         }
                       },
                       "additionalProperties": false
@@ -17151,6 +17399,15 @@
                       "type": "string",
                       "format": "uuid"
                     },
+                    "subjectId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "nullable": true
+                    },
+                    "inscriptionToken": {
+                      "type": "string",
+                      "nullable": true
+                    },
                     "status": {
                       "type": "string",
                       "enum": [
@@ -17250,6 +17507,10 @@
                         "showResultImmediately": {
                           "type": "boolean",
                           "default": true
+                        },
+                        "restrictSimultaneousAccess": {
+                          "type": "boolean",
+                          "default": false
                         }
                       },
                       "additionalProperties": false
@@ -17506,6 +17767,15 @@
                       "type": "string",
                       "format": "uuid"
                     },
+                    "subjectId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "nullable": true
+                    },
+                    "inscriptionToken": {
+                      "type": "string",
+                      "nullable": true
+                    },
                     "status": {
                       "type": "string",
                       "enum": [
@@ -17605,6 +17875,10 @@
                         "showResultImmediately": {
                           "type": "boolean",
                           "default": true
+                        },
+                        "restrictSimultaneousAccess": {
+                          "type": "boolean",
+                          "default": false
                         }
                       },
                       "additionalProperties": false
@@ -17881,6 +18155,15 @@
                       "type": "string",
                       "format": "uuid"
                     },
+                    "subjectId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "nullable": true
+                    },
+                    "inscriptionToken": {
+                      "type": "string",
+                      "nullable": true
+                    },
                     "status": {
                       "type": "string",
                       "enum": [
@@ -17980,6 +18263,10 @@
                         "showResultImmediately": {
                           "type": "boolean",
                           "default": true
+                        },
+                        "restrictSimultaneousAccess": {
+                          "type": "boolean",
+                          "default": false
                         }
                       },
                       "additionalProperties": false
@@ -18279,6 +18566,15 @@
                       "type": "string",
                       "format": "uuid"
                     },
+                    "subjectId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "nullable": true
+                    },
+                    "inscriptionToken": {
+                      "type": "string",
+                      "nullable": true
+                    },
                     "status": {
                       "type": "string",
                       "enum": [
@@ -18378,6 +18674,10 @@
                         "showResultImmediately": {
                           "type": "boolean",
                           "default": true
+                        },
+                        "restrictSimultaneousAccess": {
+                          "type": "boolean",
+                          "default": false
                         }
                       },
                       "additionalProperties": false
@@ -18671,6 +18971,15 @@
                       "type": "string",
                       "format": "uuid"
                     },
+                    "subjectId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "nullable": true
+                    },
+                    "inscriptionToken": {
+                      "type": "string",
+                      "nullable": true
+                    },
                     "status": {
                       "type": "string",
                       "enum": [
@@ -18770,6 +19079,10 @@
                         "showResultImmediately": {
                           "type": "boolean",
                           "default": true
+                        },
+                        "restrictSimultaneousAccess": {
+                          "type": "boolean",
+                          "default": false
                         }
                       },
                       "additionalProperties": false
@@ -19046,6 +19359,15 @@
                       "type": "string",
                       "format": "uuid"
                     },
+                    "subjectId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "nullable": true
+                    },
+                    "inscriptionToken": {
+                      "type": "string",
+                      "nullable": true
+                    },
                     "status": {
                       "type": "string",
                       "enum": [
@@ -19145,6 +19467,10 @@
                         "showResultImmediately": {
                           "type": "boolean",
                           "default": true
+                        },
+                        "restrictSimultaneousAccess": {
+                          "type": "boolean",
+                          "default": false
                         }
                       },
                       "additionalProperties": false
