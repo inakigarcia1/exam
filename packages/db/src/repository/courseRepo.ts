@@ -1,5 +1,6 @@
+import { randomUUID } from "node:crypto";
 import type { Database, TenantContext } from "../types.js";
-import { courses, organizations } from "../schema/pg.js";
+import { courseSubjects, courses, organizations } from "../schema/pg.js";
 import {
   createAsyncTenantCrudRepo,
   resolveOrganizationId,
@@ -31,6 +32,8 @@ export interface CourseListFilters {
    * Teacher assignment set (an EMPTY array here yields zero rows by contract).
    */
   courseIds?: string[];
+  /** Only commissions linked to this subject. */
+  subjectId?: string;
 }
 
 /** Creates a tenant-scoped CRUD repository for the `courses` table. */
@@ -80,6 +83,22 @@ export function createCourseRepo(db: Database) {
           sql`(position(lower(${term}) in lower(${courses.name})) > 0 or position(lower(${term}) in lower(${courses.code})) > 0 or position(lower(${term}) in lower(${courses.description})) > 0)`,
         );
       }
+      if (filters.subjectId) {
+        conditions.push(
+          inArray(
+            courses.id,
+            db
+              .select({ id: courseSubjects.courseId })
+              .from(courseSubjects)
+              .where(
+                and(
+                  eq(courseSubjects.organizationId, orgId),
+                  eq(courseSubjects.subjectId, filters.subjectId),
+                ),
+              ),
+          ),
+        );
+      }
       if (filters.courseIds) {
         if (filters.courseIds.length === 0) {
           // Scope-contracted empty set: no assigned courses → zero rows
@@ -106,6 +125,70 @@ export function createCourseRepo(db: Database) {
       ]);
 
       return { items: items as CourseSelect[], total };
+    },
+    async findByNormalizedName(
+      ctx: TenantContext | RequestContext,
+      name: string,
+      exceptId?: string,
+    ) {
+      const orgId = resolveOrganizationId(ctx);
+      const normalized = name.trim().toLowerCase();
+      const rows = await db
+        .select({ id: courses.id })
+        .from(courses)
+        .where(
+          and(
+            eq(courses.organizationId, orgId),
+            sql`lower(btrim(${courses.name})) = ${normalized}`,
+          ),
+        )
+        .limit(2);
+      return rows.find((row) => row.id !== exceptId) ?? null;
+    },
+    async subjectIdsByCourse(
+      ctx: TenantContext | RequestContext,
+      courseIds: string[],
+    ) {
+      const map = new Map<string, string>();
+      if (courseIds.length === 0) return map;
+      const orgId = resolveOrganizationId(ctx);
+      const rows = await db
+        .select({
+          courseId: courseSubjects.courseId,
+          subjectId: courseSubjects.subjectId,
+        })
+        .from(courseSubjects)
+        .where(
+          and(
+            eq(courseSubjects.organizationId, orgId),
+            inArray(courseSubjects.courseId, courseIds),
+          ),
+        );
+      for (const row of rows) {
+        if (!map.has(row.courseId)) map.set(row.courseId, row.subjectId);
+      }
+      return map;
+    },
+    async replaceSubject(
+      ctx: TenantContext | RequestContext,
+      courseId: string,
+      subjectId: string,
+    ) {
+      const orgId = resolveOrganizationId(ctx);
+      await db
+        .delete(courseSubjects)
+        .where(
+          and(
+            eq(courseSubjects.organizationId, orgId),
+            eq(courseSubjects.courseId, courseId),
+          ),
+        );
+      await db.insert(courseSubjects).values({
+        id: randomUUID(),
+        organizationId: orgId,
+        courseId,
+        subjectId,
+      });
     },
   };
 }

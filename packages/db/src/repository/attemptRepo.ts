@@ -16,7 +16,7 @@ import {
 import { resolveOrganizationId } from "./baseRepo.js";
 import type { TenantContext } from "../types.js";
 import type { RequestContext } from "@exam/domain";
-import { and, eq, inArray, isNotNull, lte, or, sql } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
 
 type AttemptSelect = typeof examAttempts.$inferSelect;
 type CandidateSelect = typeof candidateProfiles.$inferSelect;
@@ -83,9 +83,68 @@ export function createAttemptRepo(db: Database) {
     return rows as (typeof examAttempts.$inferSelect)[];
   }
 
+  /**
+   * Bind an in-progress attempt to this session. Returns false when another
+   * session already holds it. Finished attempts are not held.
+   */
+  async function claimHolderSession(
+    ctx: TenantContext | RequestContext,
+    attemptId: string,
+    sessionId: string,
+  ) {
+    const orgId = resolveOrganizationId(ctx);
+    const current = await db
+      .select({ status: examAttempts.status })
+      .from(examAttempts)
+      .where(
+        and(
+          eq(examAttempts.organizationId, orgId),
+          eq(examAttempts.id, attemptId),
+        ),
+      )
+      .limit(1);
+    const status = current[0]?.status;
+    if (status !== "in_progress" && status !== "disrupted") return true;
+    const rows = await db
+      .update(examAttempts)
+      .set({ holderSessionId: sessionId, updatedAt: new Date() })
+      .where(
+        and(
+          eq(examAttempts.organizationId, orgId),
+          eq(examAttempts.id, attemptId),
+          inArray(examAttempts.status, ["in_progress", "disrupted"]),
+          or(
+            isNull(examAttempts.holderSessionId),
+            eq(examAttempts.holderSessionId, sessionId),
+          ),
+        ),
+      )
+      .returning({ id: examAttempts.id });
+    return rows.length > 0;
+  }
+
+  async function releaseHolderSessions(
+    ctx: TenantContext | RequestContext,
+    candidateId: string,
+  ) {
+    const orgId = resolveOrganizationId(ctx);
+    await db
+      .update(examAttempts)
+      .set({ holderSessionId: null, updatedAt: new Date() })
+      .where(
+        and(
+          eq(examAttempts.organizationId, orgId),
+          eq(examAttempts.candidateId, candidateId),
+          inArray(examAttempts.status, ["in_progress", "disrupted"]),
+        ),
+      );
+  }
+
   return {
     ...repo,
     findByIds,
+    claimHolderSession,
+    releaseHolderSessions,
     /**
      * O(1) indexed replay-receipt lookup for ONE (attempt, question,
      * clientSeq) key (#669). The composite PK serves the lookup

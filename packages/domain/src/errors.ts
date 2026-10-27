@@ -88,6 +88,15 @@ export class ConflictError extends AppError {
   }
 }
 
+/** Another session already holds the in-progress attempt. */
+export class SimultaneousAccessError extends AppError {
+  constructor(
+    message = "Ya hay una sesión rindiendo este examen. Pedile al docente que revoque la sesión",
+  ) {
+    super(message, "SIMULTANEOUS_ACCESS_BLOCKED", 409);
+  }
+}
+
 /**
  * The same stable `operationId` was replayed with a differing payload (HTTP 409).
  *

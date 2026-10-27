@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 
 import authRoutes from "./auth.js";
+import inscriptionRoutes from "./inscription.js";
 import launchpadRoutes from "./launchpad.js";
 import settingsRoutes from "./settings.js";
 import candidateFieldRoutes from "./candidateField.js";
@@ -47,6 +48,7 @@ export async function registerApiRouteModules(
   api: FastifyInstance,
 ): Promise<void> {
   await api.register(authRoutes, { prefix: "/auth" });
+  await api.register(inscriptionRoutes);
   await api.register(launchpadRoutes);
   await api.register(settingsRoutes);
   await api.register(candidateFieldRoutes);

@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageContainer } from "@/components/shared/PageContainer";
-import { Users, Plus, Trash2 } from "lucide-react";
+import { Users, Plus, Trash2, LogOut } from "lucide-react";
 import {
   EnrollmentPicker,
   type CandidateItem,
@@ -156,6 +156,8 @@ export function ExamDetailPage() {
     (value: string): string =>
       map[value] ?? value;
   const [exam, setExam] = useState<ExamDetail | null>(null);
+  const [titleDraft, setTitleDraft] = useState("");
+  const [savingTitle, setSavingTitle] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
@@ -203,6 +205,7 @@ export function ExamDetailPage() {
     try {
       const data = await api.get<ExamDetail>(`/api/exams/${id}`);
       setExam(data);
+      setTitleDraft(data.title);
       return true;
     } catch {
       setError(t("admin.examDetail.errors.loadFailed"));
@@ -305,6 +308,20 @@ export function ExamDetailPage() {
     }
   }
 
+  async function handleRevokeSession(enrollmentId: string) {
+    if (!id) return;
+    try {
+      await api.post(
+        `/api/exams/${id}/enrollments/${enrollmentId}/revoke-session`,
+      );
+      toast.success("Sesión revocada. Las respuestas siguen guardadas.");
+    } catch (err) {
+      toast.error(
+        getApiErrorMessage(err, t, "No se pudo revocar la sesión"),
+      );
+    }
+  }
+
   // Single-source column declarations: the desktop table and the mobile card
   // list both derive from this array.
   const columns = useMemo<DataViewColumnDef<EnrollmentItem>[]>(
@@ -350,14 +367,30 @@ export function ExamDetailPage() {
         cell: ({ row }) => (
           <RowActions
             row={row.original}
-            actions={
-              mayManageEnrollments && row.original.status === "assigned"
+            actions={[
+              ...(exam?.controlFlags?.restrictSimultaneousAccess === true &&
+              mayManageEnrollments
+                ? [
+                    {
+                      id: "revoke-session",
+                      label: "Revocar sesión",
+                      icon: LogOut,
+                      confirm: {
+                        title: "Revocar sesión",
+                        description: `Se cierra la sesión de ${row.original.candidateDisplayName}. Las respuestas quedan.`,
+                      },
+                      onSelect: () =>
+                        void handleRevokeSession(row.original.id),
+                    },
+                  ]
+                : []),
+              ...(mayManageEnrollments && row.original.status === "assigned"
                 ? [
                     {
                       id: "remove-candidate",
                       label: t("admin.examDetail.confirm.removeCandidate"),
                       icon: Trash2,
-                      tone: "destructive",
+                      tone: "destructive" as const,
                       confirm: {
                         title: t("admin.examDetail.confirm.removeTitle"),
                         description: t(
@@ -372,13 +405,13 @@ export function ExamDetailPage() {
                         void handleRemoveEnrollment(row.original.id),
                     },
                   ]
-                : []
-            }
+                : []),
+            ]}
           />
         ),
       },
     ],
-    [t, mayManageEnrollments, handleRemoveEnrollment],
+    [t, mayManageEnrollments, handleRemoveEnrollment, exam, id],
   );
 
   /** Publishes the exam, making it available to enrolled candidates. */
@@ -504,6 +537,22 @@ export function ExamDetailPage() {
     }
   }
 
+  async function handleRename() {
+    if (!id || !exam) return;
+    const next = titleDraft.trim();
+    if (!next || next === exam.title) return;
+    setSavingTitle(true);
+    try {
+      await api.patch(`/api/exams/${id}`, { title: next });
+      toast.success("Nombre actualizado");
+      await loadExam();
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t, "No se pudo cambiar el nombre"));
+    } finally {
+      setSavingTitle(false);
+    }
+  }
+
   /** Cancel: published/open → canceled (ADR-005 §3.5). */
   async function handleCancel() {
     if (!id || canceling) return;
@@ -533,6 +582,25 @@ export function ExamDetailPage() {
 
   return (
     <PageContainer role="admin-standard" className="flex flex-col gap-6">
+      {mayUpdateExam && (
+        <div className="flex max-w-xl items-end gap-2">
+          <div className="flex-1">
+            <Label htmlFor="exam-title">Nombre del examen</Label>
+            <Input
+              id="exam-title"
+              value={titleDraft}
+              onChange={(event) => setTitleDraft(event.target.value)}
+            />
+          </div>
+          <Button
+            variant="outline"
+            disabled={savingTitle || titleDraft.trim() === exam.title || !titleDraft.trim()}
+            onClick={() => void handleRename()}
+          >
+            Guardar nombre
+          </Button>
+        </div>
+      )}
       <PageHeader
         title={exam.title}
         actions={

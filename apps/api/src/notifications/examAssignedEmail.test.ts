@@ -25,7 +25,7 @@ describe("renderExamAssignedEmail", () => {
     });
     expect(rendered.bodyText).toContain("期中考试");
     expect(rendered.bodyText).toContain(`${ORIGIN}/exam/list`);
-    expect(rendered.bodyText).toContain("Lista de exámenes");
+    expect(rendered.bodyText).toContain("Entra a la lista");
     expect(rendered.bodyHtml).toContain(`${ORIGIN}/exam/list`);
     expect(rendered.bodyHtml).toContain("期中考试");
   });

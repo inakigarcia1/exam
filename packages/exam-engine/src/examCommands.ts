@@ -211,14 +211,6 @@ export async function publishExam(
   // remain here because they need DB-loaded question facts.
   assertExamPolicyValid(exam);
 
-  if (
-    questions.some(
-      (question) => question.courseId && question.courseId !== exam.courseId,
-    )
-  ) {
-    throw new ValidationError("Exam questions must belong to its course");
-  }
-
   // Publish validation (CONTEXT.md "Publish validation"):
   //   - auto questions (single_choice/multiple_choice/true_false/fill_blank)
   //     require a non-empty, non-placeholder standardAnswer.

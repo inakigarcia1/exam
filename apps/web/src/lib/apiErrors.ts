@@ -64,6 +64,7 @@ const ERROR_CODE_KEYS: Record<ErrorCode, keyof typeof es.errors.codes> = {
   ATTEMPT_START_SUBMIT_INFEASIBLE: "attemptStartSubmitInfeasible",
   ENROLLMENT_NOT_REMOVABLE: "enrollmentNotRemovable",
   QUESTION_COURSE_MISMATCH: "questionCourseMismatch",
+  SIMULTANEOUS_ACCESS_BLOCKED: "simultaneousAccessBlocked",
   MAX_ATTEMPTS_REACHED: "maxAttemptsReached",
   EXAM_ALREADY_PASSED: "examAlreadyPassed",
   IDEMPOTENCY_CONFLICT: "idempotencyConflict",

@@ -24,8 +24,9 @@ export type CourseDTO = z.infer<typeof CourseSchema>;
  */
 export const CreateCourseRequestSchema = z.object({
   name: z.string().min(1).max(200),
-  code: z.string().min(1).max(50),
+  code: z.string().min(1).max(50).optional(),
   description: z.string().max(2000).default(""),
+  subjectId: z.string().uuid().optional(),
 });
 
 /** Type for a create-course request. */
@@ -38,6 +39,7 @@ export const UpdateCourseRequestSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   code: z.string().min(1).max(50).optional(),
   description: z.string().max(2000).optional(),
+  subjectId: z.string().uuid().optional(),
 });
 
 /** Type for an update-course request. */

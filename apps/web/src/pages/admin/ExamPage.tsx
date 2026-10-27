@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/select";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { PageContainer } from "@/components/shared/PageContainer";
-import { ClipboardList, Eye, Plus, Trash2 } from "lucide-react";
+import { ClipboardList, Copy, Eye, Plus, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { canCreateExam, canDeleteExam } from "@/lib/capabilities";
 import { getApiErrorMessage } from "@/lib/apiErrors";
@@ -297,6 +297,16 @@ export function ExamPage() {
     writeParams(next, { push: true });
   }
 
+  async function handleDuplicate(id: string) {
+    try {
+      await api.post(`/api/exams/${id}/duplicate`);
+      toast.success("Examen duplicado");
+      await loadExams();
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t, "No se pudo duplicar el examen"));
+    }
+  }
+
   async function handleDelete(id: string) {
     try {
       await api.delete(`/api/exams/${id}`);
@@ -482,6 +492,16 @@ export function ExamPage() {
           <RowActions
             row={exam}
             actions={[
+              ...(mayCreateExam
+                ? [
+                    {
+                      id: "duplicate",
+                      label: "Duplicar",
+                      icon: Copy,
+                      onSelect: () => void handleDuplicate(exam.id),
+                    },
+                  ]
+                : []),
               {
                 id: "view",
                 label: t("admin.exams.viewDetail"),

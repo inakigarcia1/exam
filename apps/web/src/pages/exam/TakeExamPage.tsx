@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api";
+import { getApiErrorMessage } from "@/lib/apiErrors";
 import { ContentRenderer } from "@/components/shared/content/ContentRenderer";
 import { toast } from "sonner";
 import { LoadingState } from "@/components/shared/LoadingState";
@@ -499,7 +500,7 @@ export function TakeExamPage() {
         return;
       }
       applySnapshot(data);
-    } catch {
+    } catch (err) {
       if (
         generation !== loadGenerationRef.current ||
         currentAttemptIdRef.current !== requestedAttemptId
@@ -511,7 +512,9 @@ export function TakeExamPage() {
         { outcome: "failed" },
         { attemptId, level: "warn" },
       );
-      setLoadError(t("candidateRuntime.errors.loadFailed"));
+      setLoadError(
+        getApiErrorMessage(err, t, t("candidateRuntime.errors.loadFailed")),
+      );
     } finally {
       if (
         generation === loadGenerationRef.current &&
@@ -1362,7 +1365,7 @@ export function TakeExamPage() {
         role="exam-runtime"
         className="flex w-full flex-1 flex-col gap-4 px-4 py-4 xl:flex-row xl:items-start"
       >
-        <aside className="rounded-lg border bg-card p-3 xl:sticky xl:top-24 xl:max-h-[calc(100vh-8rem)] xl:w-24 xl:overflow-y-auto">
+        <aside className="rounded-lg border bg-card p-3 xl:sticky xl:top-24 xl:max-h-[calc(100vh-8rem)] xl:w-48 xl:shrink-0 xl:overflow-y-auto">
           <div className="mb-2 flex items-center justify-between type-metadata xl:block">
             <span>{t("candidateRuntime.navigator.questionId")}</span>
             <span className="xl:hidden">

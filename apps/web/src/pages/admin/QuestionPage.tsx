@@ -327,11 +327,6 @@ export function QuestionPage() {
   const courseResolving =
     queryState.courseId !== "" && !courseKnown && !courseProbeFailed;
 
-  const courseMap = useMemo(
-    () => new Map(courseOptions.map((c) => [c.id, c.name])),
-    [courseOptions],
-  );
-
   /**
    * The parameter set every write starts from. Reading the ref (not the
    * rendered `searchParams`) is what makes the write atomic across two commits
@@ -748,12 +743,6 @@ export function QuestionPage() {
       ),
     },
     {
-      id: "course",
-      meta: { role: "secondary-text" },
-      header: t("admin.questions.columns.course" as never),
-      cell: ({ row }) => courseMap.get(row.original.courseId) ?? "-",
-    },
-    {
       id: "score",
       // priority "normal": the card shows score as a labeled meta line, not a
       // bare header-cluster value (issue 457 audit; role "score" defaults high).
@@ -914,31 +903,6 @@ export function QuestionPage() {
                 </>
               }
             >
-              <Select
-                value={queryState.courseId === "" ? ALL : queryState.courseId}
-                onValueChange={(value) =>
-                  commitFilters({ courseId: value === ALL ? "" : value })
-                }
-              >
-                <ToolbarFilter size="wide">
-                  <SelectTrigger>
-                    <SelectValue
-                      placeholder={t("admin.questions.filterCourse" as never)}
-                    />
-                  </SelectTrigger>
-                </ToolbarFilter>
-                <SelectContent>
-                  <SelectItem value={ALL}>
-                    {t("admin.questions.filterAllCourses" as never)}
-                  </SelectItem>
-                  {courseOptions.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
               <Select
                 value={filterType === "" ? ALL : filterType}
                 onValueChange={(value) =>

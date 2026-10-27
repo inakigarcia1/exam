@@ -57,7 +57,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { TableBody, TableHeader, TableRow } from "@/components/ui/table";
-import { BookOpen, Trash2 } from "lucide-react";
+import { BookOpen, Plus, Trash2 } from "lucide-react";
 import { getTypeLabel } from "@/lib/constants";
 import { WizardStepper } from "@/components/exam/wizard/WizardStepper";
 import { WizardPolicyFields } from "@/components/exam/wizard/WizardPolicyFields";
@@ -197,7 +197,10 @@ export function ExamCreatePage() {
   const [subjects, setSubjects] = useState<Array<{ id: string; name: string }>>([]);
   const [subjectId, setSubjectId] = useState("");
   const [newSubjectName, setNewSubjectName] = useState("");
-  const [newCommissionName, setNewCommissionName] = useState("");
+  const [commissionOpen, setCommissionOpen] = useState(false);
+  const [commissionName, setCommissionName] = useState("");
+  const [commissionSubjectId, setCommissionSubjectId] = useState("");
+  const [savingCommission, setSavingCommission] = useState(false);
   const [restrictSimultaneous, setRestrictSimultaneous] = useState(false);
   const [questions, setQuestions] = useState<QuestionRow[]>([]);
   const [profiles, setProfiles] = useState<ExamProfileDTO[]>([]);
@@ -216,18 +219,13 @@ export function ExamCreatePage() {
     setError(null);
     setIsLoading(true);
     try {
-      const [cData, pData, questions, subjectData] = await Promise.all([
-        api.get<PaginatedResponse<CourseRow>>("/api/courses"),
+      const [pData, questions, subjectData] = await Promise.all([
         api.get<ExamProfileDTO[]>("/api/exam-profiles"),
         fetchAllPickerQuestions(),
         api.get<{ items: Array<{ id: string; name: string }> }>("/api/subjects"),
       ]);
-      setCourses(cData.items);
       setSubjects(subjectData.items);
       setProfiles(pData);
-      setState((prev) =>
-        prev.courseId ? prev : { ...prev, courseId: cData.items[0]?.id ?? "" },
-      );
       setQuestions(questions);
     } catch {
       setError(t("admin.examWizard.feedback.loadDataFailed"));
@@ -239,6 +237,35 @@ export function ExamCreatePage() {
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    if (!subjectId) {
+      setCourses([]);
+      setState((current) => ({ ...current, courseId: "" }));
+      return;
+    }
+    let cancelled = false;
+    void api
+      .get<PaginatedResponse<CourseRow>>(
+        `/api/courses?subjectId=${subjectId}&pageSize=100`,
+      )
+      .then((data) => {
+        if (cancelled) return;
+        setCourses(data.items);
+        setState((current) => ({
+          ...current,
+          courseId: data.items.some((course) => course.id === current.courseId)
+            ? current.courseId
+            : "",
+        }));
+      })
+      .catch(() => {
+        if (!cancelled) setCourses([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [subjectId]);
 
   const selectedProfile: WizardProfileLike | null = useMemo(() => {
     if (!state.profileId) return null;
@@ -322,7 +349,7 @@ export function ExamCreatePage() {
         errors.title = t("admin.examWizard.validation.titleRequired");
       if (!subjectId && !newSubjectName.trim())
         errors.subjectId = "Elegí o creá una materia";
-      if (!state.courseId && !newCommissionName.trim())
+      if (!state.courseId)
         errors.courseId = t("admin.examWizard.validation.courseRequired");
     }
     if (state.step === 2) {
@@ -380,30 +407,68 @@ export function ExamCreatePage() {
     setStep(state.step - 1);
   }
 
+  async function openCommissionDialog() {
+    let nextSubjectId = subjectId;
+    if (!nextSubjectId && newSubjectName.trim()) {
+      const created = await api.post<{ id: string }>("/api/subjects", {
+        name: newSubjectName.trim(),
+      });
+      nextSubjectId = created.id;
+      setSubjects((current) => [
+        ...current,
+        { id: created.id, name: newSubjectName.trim() },
+      ]);
+      setSubjectId(created.id);
+      setNewSubjectName("");
+    }
+    if (!nextSubjectId) return;
+    setCommissionName("");
+    setCommissionSubjectId(nextSubjectId);
+    setCommissionOpen(true);
+  }
+
+  async function saveCommission() {
+    const name = commissionName.trim();
+    if (!name || !commissionSubjectId) return;
+    setSavingCommission(true);
+    try {
+      const created = await api.post<{ id: string }>("/api/courses", {
+        name,
+        description: "",
+        subjectId: commissionSubjectId,
+      });
+      setCommissionOpen(false);
+      if (commissionSubjectId === subjectId) {
+        const data = await api.get<PaginatedResponse<CourseRow>>(
+          `/api/courses?subjectId=${subjectId}&pageSize=100`,
+        );
+        setCourses(data.items);
+        setState((current) => ({ ...current, courseId: created.id }));
+      } else {
+        toast.success("Comisión creada");
+      }
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t, t("admin.common.saveFailed")));
+    } finally {
+      setSavingCommission(false);
+    }
+  }
+
   async function handleCreate() {
     setSaving(true);
     setSaveError(null);
     setFieldErrors({});
     try {
       let nextSubjectId = subjectId;
-      if (newSubjectName.trim()) {
+      if (!nextSubjectId && newSubjectName.trim()) {
         const created = await api.post<{ id: string }>("/api/subjects", {
           name: newSubjectName.trim(),
         });
         nextSubjectId = created.id;
       }
-      let nextCourseId = state.courseId;
-      if (newCommissionName.trim()) {
-        const created = await api.post<{ id: string }>("/api/courses", {
-          name: newCommissionName.trim(),
-          code: `C${Date.now().toString().slice(-8)}`,
-          description: "",
-        });
-        nextCourseId = created.id;
-      }
       const payload = {
         ...buildCreateExamPayload(
-          { ...state, courseId: nextCourseId },
+          state,
           preview.resolved,
         ),
         subjectId: nextSubjectId,
@@ -521,25 +586,29 @@ export function ExamCreatePage() {
               />
               <FieldError>{fieldErrors.subjectId}</FieldError>
             </Field>
-            <FieldRow>
-              <Field>
-                <Label htmlFor="wiz-course">
-                  {t("admin.examWizard.fields.course")}
-                </Label>
+            <Field>
+              <Label htmlFor="wiz-course">
+                {t("admin.examWizard.fields.course")}
+              </Label>
+              <div className="flex gap-2">
                 <Select
                   value={state.courseId}
                   onValueChange={(v) =>
                     setState((s) => ({ ...s, courseId: v }))
                   }
+                  disabled={!subjectId}
                 >
                   <SelectTrigger
                     id="wiz-course"
                     aria-label={t("admin.examWizard.fields.course")}
+                    className="flex-1"
                   >
                     <SelectValue
-                      placeholder={t(
-                        "admin.examWizard.fields.coursePlaceholder",
-                      )}
+                      placeholder={
+                        subjectId
+                          ? t("admin.examWizard.fields.coursePlaceholder")
+                          : "Primero elegí una materia"
+                      }
                     />
                   </SelectTrigger>
                   <SelectContent>
@@ -550,15 +619,19 @@ export function ExamCreatePage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Input
-                className="mt-2"
-                value={newCommissionName}
-                placeholder="O creá una comisión nueva"
-                onChange={(e) => setNewCommissionName(e.target.value)}
-              />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label="Nueva comisión"
+                  disabled={!subjectId && !newSubjectName.trim()}
+                  onClick={() => void openCommissionDialog()}
+                >
+                  <AppIcon icon={Plus} size="inline" />
+                </Button>
+              </div>
               <FieldError>{fieldErrors.courseId}</FieldError>
-              </Field>
-            </FieldRow>
+            </Field>
             <Field>
               <Label htmlFor="wiz-description">
                 {t("admin.examWizard.fields.description")}
@@ -1036,6 +1109,54 @@ export function ExamCreatePage() {
           footer close button is this dialog's single close control, so the
           built-in corner X is suppressed to avoid a duplicated accessible
           name. */}
+      <Dialog open={commissionOpen} onOpenChange={setCommissionOpen}>
+        <DialogContent aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>Nueva comisión</DialogTitle>
+          </DialogHeader>
+          <FieldGroup>
+            <Field>
+              <Label htmlFor="new-commission-name">Nombre</Label>
+              <Input
+                id="new-commission-name"
+                value={commissionName}
+                onChange={(event) => setCommissionName(event.target.value)}
+              />
+            </Field>
+            <Field>
+              <Label htmlFor="new-commission-subject">Materia</Label>
+              <Select
+                value={commissionSubjectId}
+                onValueChange={setCommissionSubjectId}
+              >
+                <SelectTrigger id="new-commission-subject" aria-label="Materia de la comisión">
+                  <SelectValue placeholder="Elegí una materia" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subjects.map((subject) => (
+                    <SelectItem key={subject.id} value={subject.id}>
+                      {subject.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          </FieldGroup>
+          <DialogFooter>
+            <Button
+              onClick={() => void saveCommission()}
+              disabled={
+                savingCommission ||
+                !commissionName.trim() ||
+                !commissionSubjectId
+              }
+            >
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={questionDialogOpen} onOpenChange={setQuestionDialogOpen}>
         <DialogContent
           aria-describedby={undefined}

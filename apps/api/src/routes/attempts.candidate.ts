@@ -35,6 +35,7 @@ import {
   InvalidStateTransitionError,
   ConflictError,
   PermissionDeniedError,
+  SimultaneousAccessError,
   RetakeDeferredError,
 } from "@exam/domain";
 import {
@@ -721,6 +722,14 @@ export async function registerCandidateAttemptRoutes(fastify: FastifyInstance) {
                 },
               },
             );
+            if (exam.controlFlags?.restrictSimultaneousAccess === true) {
+              const claimed = await createAttemptRepo(tx).claimHolderSession(
+                ctx,
+                result.attempt.id,
+                ctx.sessionId,
+              );
+              if (!claimed) throw new SimultaneousAccessError();
+            }
             return result;
           },
           "read committed",
@@ -910,6 +919,14 @@ export async function registerCandidateAttemptRoutes(fastify: FastifyInstance) {
       // resultPublicationMode, resultsPublishedAt, closeAt, and timingMode
       // (serialized as the canonical client countdown gate).
       const exam = examRow as unknown as Exam;
+      if (exam.controlFlags?.restrictSimultaneousAccess === true) {
+        const claimed = await createAttemptRepo(fastify.db).claimHolderSession(
+          ctx,
+          attempt.id,
+          ctx.sessionId,
+        );
+        if (!claimed) throw new SimultaneousAccessError();
+      }
 
       // D2 (#669): accepted clientSeq bookkeeping lives in
       // exam_answer_save_receipts, not the draft JSONB. MAX(clientSeq)
@@ -990,7 +1007,7 @@ export async function registerCandidateAttemptRoutes(fastify: FastifyInstance) {
         );
         if (!candidateProfile) {
           // i18n-copy-allow: developer-diagnostic — thrown message never reaches the client; the error handler serializes the code only
-          throw new NotFoundError("候选人资料不存在");
+          throw new NotFoundError("Candidate profile not found");
         }
 
         const { exams, enrollments, attempts } = createExamEngineRepos(
@@ -1063,7 +1080,7 @@ export async function registerCandidateAttemptRoutes(fastify: FastifyInstance) {
           );
         if (currentAttempt.candidateId !== candidateProfile.id) {
           // i18n-copy-allow: developer-diagnostic — thrown message never reaches the client; the error handler serializes the code only
-          throw new NotFoundError("尝试不存在");
+          throw new NotFoundError("Attempt not found");
         }
 
         // #301 §21 + canonical Save ordering (#301 §5, order

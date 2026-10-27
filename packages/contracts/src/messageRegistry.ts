@@ -47,6 +47,8 @@ export const errorMessages = {
     "No queda tiempo suficiente para empezar un intento nuevo",
   ENROLLMENT_NOT_REMOVABLE: "No se puede quitar una inscripción ya empezada",
   QUESTION_COURSE_MISMATCH: "La pregunta no pertenece a la comisión elegida",
+  SIMULTANEOUS_ACCESS_BLOCKED:
+    "Ya hay una sesión rindiendo este examen. Pedile al docente que revoque la sesión",
   MAX_ATTEMPTS_REACHED: "Ya usaste todos los intentos",
   EXAM_ALREADY_PASSED: "Este examen ya está aprobado",
   IDEMPOTENCY_CONFLICT: "Ese identificador ya se usó en otro pedido",

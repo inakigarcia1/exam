@@ -219,6 +219,28 @@ export const courses = pgTable(
   ],
 );
 
+/** A commission belongs to one or more subjects. The create form writes one row. */
+export const courseSubjects = pgTable(
+  "course_subjects",
+  {
+    id: id(),
+    organizationId: organizationId().references(() => organizations.id),
+    courseId: text("course_id")
+      .notNull()
+      .references(() => courses.id),
+    subjectId: text("subject_id")
+      .notNull()
+      .references(() => subjects.id),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    uniqueIndex("course_subjects_pair_unique").on(
+      table.courseId,
+      table.subjectId,
+    ),
+  ],
+);
+
 /** Questions table — stores question bank items with options, scoring, and grading rules. */
 export const questions = pgTable(
   "questions",
@@ -598,6 +620,9 @@ export const examAttempts = pgTable(
     // Why the attempt was submitted. Null for legacy rows (treated as
     // unknown); every submit path populates it.
     submissionReason: text("submission_reason"),
+    // Session that currently holds an in-progress attempt when the exam
+    // forbids simultaneous access. Null means nobody holds it.
+    holderSessionId: text("holder_session_id"),
     interruptionPolicySnapshotVersion: integer(
       "interruption_policy_snapshot_version",
     )
@@ -2452,6 +2477,7 @@ export const schema = {
   candidateProfiles,
   userRoleAssignments,
   courses,
+  courseSubjects,
   questions,
   exams,
   examEnrollments,

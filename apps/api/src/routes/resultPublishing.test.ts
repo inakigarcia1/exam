@@ -764,9 +764,9 @@ describe("result publishing policy", () => {
     expect(inboxRows).toHaveLength(1);
     expect(inboxRows[0]!.recipientUserId).toBe(ctx.candidate.id);
     expect(inboxRows[0]!.type).toBe("result_published");
-    expect(inboxRows[0]!.title).toBe("考试结果已发布");
+    expect(inboxRows[0]!.title).toBe("Ya están las calificaciones");
     expect(inboxRows[0]!.body).toBe(
-      `您参加的考试「${examTitle}」的结果已发布，点击查看。`,
+      `Ya se publicaron las calificaciones de «${examTitle}». Entrá para verlas.`,
     );
     // The deep link is scoped to the recipient's own attempt.
     expect(inboxRows[0]!.actionPath).toBe(`/exam/${attemptAId}/result`);
@@ -781,14 +781,13 @@ describe("result publishing policy", () => {
       );
     expect(outboxRows).toHaveLength(1);
     expect(outboxRows[0]!.recipientUserId).toBe(ctx.candidate.id);
-    expect(outboxRows[0]!.subject).toBe("考试结果已发布");
-    // Structural pin: the prose is exactly the fixed publication copy — the
-    // only variable part is the attempt-scoped link. No result facts
-    // (score, pass/fail wording) can appear anywhere in the body.
-    const [prose, rest] = outboxRows[0]!.bodyText.split("请登录考试平台查看：");
-    expect(prose).toBe(`您参加的考试「${examTitle}」的结果已发布。\n`);
+    expect(outboxRows[0]!.subject).toBe("Ya están las calificaciones");
+    const [prose, rest] = outboxRows[0]!.bodyText.split("Míralas en Aki: ");
+    expect(prose).toBe(
+      `Ya se publicaron las calificaciones de «${examTitle}».\n`,
+    );
     expect(rest).toMatch(
-      /^http\S+\n\n（本邮件由系统自动发送，请勿直接回复。）$/,
+      /^http\S+\n\n\(Mensaje automático\. No respondas\.\)$/,
     );
     expect(outboxRows[0]!.bodyHtml).toContain(`<a href="`);
   });

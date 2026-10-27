@@ -41,6 +41,14 @@ export function createExamRepo(db: Database) {
 
   return {
     ...repo,
+    async findByInscriptionToken(token: string) {
+      const rows = await db
+        .select()
+        .from(exams)
+        .where(eq(exams.inscriptionToken, token))
+        .limit(1);
+      return (rows[0] as ExamSelect | undefined) ?? null;
+    },
     /**
      * Proctor-discoverable exams (J4-I1B, ADR-015 §8). Admin callers list all
      * in-org exams; when `assignedProctorUserId` is provided the query filters

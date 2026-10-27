@@ -406,7 +406,7 @@ describe("exam_assigned notifications on enrollment (#299)", () => {
     const inbox = await inboxRowsFor(candidateUserId);
     expect(inbox).toHaveLength(1);
     expect(inbox[0]!.type).toBe("exam_assigned");
-    expect(inbox[0]!.title).toBe("考试已安排");
+    expect(inbox[0]!.title).toBe("Te asignaron un examen");
     expect(inbox[0]!.body).toContain("Notification Exam");
     // The action path is the authorized candidate exam list.
     expect(inbox[0]!.actionPath).toBe("/exam/list");
@@ -416,7 +416,7 @@ describe("exam_assigned notifications on enrollment (#299)", () => {
     expect(outbox[0]!.type).toBe("exam_notification");
     expect(outbox[0]!.notificationId).toBe(inbox[0]!.id);
     expect(outbox[0]!.recipientEmail).toBe("with@example.com");
-    expect(outbox[0]!.subject).toBe("考试已安排");
+    expect(outbox[0]!.subject).toBe("Te asignaron un examen");
     expect(outbox[0]!.bodyText).toContain("/exam/list");
   });
 

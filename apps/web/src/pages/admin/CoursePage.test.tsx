@@ -81,6 +81,7 @@ const mockCourses = [
     id: "c1",
     name: "数学",
     code: "MATH101",
+    subjectId: "s1",
     description: "高等数学",
     createdAt: "2025-01-01",
     updatedAt: "2025-01-01",
@@ -89,6 +90,7 @@ const mockCourses = [
     id: "c2",
     name: "英语",
     code: "ENG101",
+    subjectId: "s1",
     description: "大学英语",
     createdAt: "2025-01-02",
     updatedAt: "2025-01-02",
@@ -104,6 +106,11 @@ describe("CoursePage", () => {
     // #785: the list is server-searched and server-paginated — the default
     // mock honors page/pageSize/search like the real route.
     apiGet.mockImplementation((path: string) => {
+      if (path.startsWith("/api/subjects")) {
+        return Promise.resolve({
+          items: [{ id: "s1", name: "Álgebra" }],
+        });
+      }
       if (!path.startsWith("/api/courses")) {
         return Promise.resolve({});
       }
@@ -138,7 +145,7 @@ describe("CoursePage", () => {
     // scope to the desktop table representation.
     const table = await screen.findByRole("table");
     expect(within(table).getByText("数学")).toBeInTheDocument();
-    expect(within(table).getByText("MATH101")).toBeInTheDocument();
+    expect(within(table).queryByText("MATH101")).not.toBeInTheDocument();
     expect(within(table).getByText("英语")).toBeInTheDocument();
   });
 
@@ -149,7 +156,7 @@ describe("CoursePage", () => {
     const dialog = screen.getByRole("dialog");
     expect(dialog).toBeInTheDocument();
     expect(within(dialog).getByLabelText(/Nombre/)).toHaveValue("");
-    expect(within(dialog).getByLabelText(/Código/)).toHaveValue("");
+    expect(within(dialog).getByLabelText("Materia")).toBeInTheDocument();
   });
 
   it("exposes required state and hides the visual asterisk from AT", async () => {
@@ -158,14 +165,13 @@ describe("CoursePage", () => {
     await user.click(await screen.findByRole("button", { name: "Nueva comisión" }));
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getByLabelText(/Nombre/)).toBeRequired();
-    expect(within(dialog).getByLabelText(/Código/)).toBeRequired();
     const nameLabel = within(dialog).getByText("Nombre").closest("label")!;
-    const codeLabel = within(dialog).getByText("Código").closest("label")!;
+    const subjectLabel = within(dialog).getByText("Materia").closest("label")!;
     expect(within(nameLabel).getByText("*")).toHaveAttribute(
       "aria-hidden",
       "true",
     );
-    expect(within(codeLabel).getByText("*")).toHaveAttribute(
+    expect(within(subjectLabel).getByText("*")).toHaveAttribute(
       "aria-hidden",
       "true",
     );
@@ -177,7 +183,7 @@ describe("CoursePage", () => {
     await user.click(await screen.findByRole("button", { name: "Nueva comisión" }));
     await user.click(screen.getByRole("button", { name: "Guardar" }));
     expect(screen.getByText("Ingresa el nombre de la comisión")).toBeInTheDocument();
-    expect(screen.getByText("Ingresa el código de la comisión")).toBeInTheDocument();
+    expect(screen.getByText("Elegí la materia")).toBeInTheDocument();
   });
 
   it("creates a new course", async () => {
@@ -185,13 +191,14 @@ describe("CoursePage", () => {
     renderPage();
     await user.click(await screen.findByRole("button", { name: "Nueva comisión" }));
     await user.type(screen.getByLabelText(/Nombre/), "物理");
-    await user.type(screen.getByLabelText(/Código/), "PHY101");
+    await user.click(screen.getByLabelText("Materia"));
+    await user.click(await screen.findByRole("option", { name: "Álgebra" }));
     await user.type(screen.getByLabelText("Descripción"), "大学物理");
     await user.click(screen.getByRole("button", { name: "Guardar" }));
     expect(apiPost).toHaveBeenCalledWith("/api/courses", {
       name: "物理",
-      code: "PHY101",
       description: "大学物理",
+      subjectId: "s1",
     });
   });
 
@@ -212,7 +219,6 @@ describe("CoursePage", () => {
     await user.click(editButtons[0]!);
     expect(screen.getByText("Editar comisión")).toBeInTheDocument();
     expect(screen.getByLabelText(/Nombre/)).toHaveValue("数学");
-    expect(screen.getByLabelText(/Código/)).toHaveValue("MATH101");
   });
 
   it("saves edited course", async () => {
@@ -226,8 +232,8 @@ describe("CoursePage", () => {
     await user.click(screen.getByRole("button", { name: "Guardar" }));
     expect(apiPatch).toHaveBeenCalledWith("/api/courses/c1", {
       name: "高等数学A",
-      code: "MATH101",
       description: "高等数学",
+      subjectId: "s1",
     });
   });
 
@@ -246,7 +252,7 @@ describe("CoursePage", () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByRole("table");
-    await user.type(screen.getByPlaceholderText("Buscar por nombre o código..."), "数");
+    await user.type(screen.getByPlaceholderText("Buscar comisión por nombre..."), "数");
     await waitFor(() => {
       const [lastUrl] = apiGet.mock.lastCall!;
       expect(
@@ -269,7 +275,7 @@ describe("CoursePage", () => {
     renderPage();
     await screen.findByRole("table");
     await user.type(
-      screen.getByPlaceholderText("Buscar por nombre o código..."),
+      screen.getByPlaceholderText("Buscar comisión por nombre..."),
       "ENG",
     );
     await waitFor(() => {
@@ -292,7 +298,7 @@ describe("CoursePage", () => {
     renderPage();
     await screen.findByRole("table");
     await user.type(
-      screen.getByPlaceholderText("Buscar por nombre o código..."),
+      screen.getByPlaceholderText("Buscar comisión por nombre..."),
       "不存在",
     );
     expect(
@@ -358,7 +364,8 @@ describe("CoursePage", () => {
     renderPage();
     await user.click(await screen.findByRole("button", { name: "Nueva comisión" }));
     await user.type(screen.getByLabelText(/Nombre/), "物理");
-    await user.type(screen.getByLabelText(/Código/), "PHY101");
+    await user.click(screen.getByLabelText("Materia"));
+    await user.click(await screen.findByRole("option", { name: "Álgebra" }));
     await user.click(screen.getByRole("button", { name: "Guardar" }));
     expect(screen.getByText("Guardando...")).toBeInTheDocument();
     resolveSave!({ id: "c3" });
@@ -392,7 +399,7 @@ describe("CoursePage", () => {
     renderPage();
     await screen.findByRole("heading", { name: "No hay comisiones" });
     expect(
-      screen.queryByPlaceholderText("Buscar por nombre o código..."),
+      screen.queryByPlaceholderText("Buscar comisión por nombre..."),
     ).not.toBeInTheDocument();
   });
 });
@@ -417,6 +424,9 @@ describe("CoursePage #785 server-side search and pagination (BDD L2)", () => {
   /** Serves /api/courses with real pagination shapes, honoring page and search. */
   function mockCourseApi(all: ReturnType<typeof courseRow>[]) {
     apiGet.mockImplementation(async (url: string) => {
+      if (url.startsWith("/api/subjects")) {
+        return { items: [{ id: "s1", name: "Álgebra" }] };
+      }
       if (!url.startsWith("/api/courses")) {
         throw new Error(`unexpected GET ${url}`);
       }

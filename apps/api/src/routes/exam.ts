@@ -216,7 +216,7 @@ function getScoreViewMeta(exam: Exam, gradedAttemptCount: number, now: Date) {
     return {
       canViewScores: false,
       // i18n-copy-allow: wire-compat — legacy natural-language status reason on the wire; machine code/reason fields are the contract
-      scoreViewDisabledReason: "El examen todavía no termina，暂不能查看成绩",
+      scoreViewDisabledReason: "El examen todavía no termina, así que no se pueden ver las calificaciones",
       scoreViewDisabledReasonCode: "EXAM_NOT_FINISHED",
     } as const;
   }
@@ -250,7 +250,7 @@ function getDeleteMeta(exam: Exam) {
   return {
     canDelete: false,
     // i18n-copy-allow: wire-compat — legacy natural-language status reason on the wire; machine code/reason fields are the contract
-    deleteDisabledReason: "仅草稿状态的考试允许删除",
+    deleteDisabledReason: "Solo se puede borrar un examen en borrador",
     deleteDisabledReasonCode: "EXAM_NOT_DRAFT",
   } as const;
 }
@@ -627,7 +627,7 @@ const examRoutes: FastifyPluginAsync = async (fastify) => {
                 // can localize without reading compatibility prose.
                 params: { resource: "course" },
                 // i18n-copy-allow: wire-compat — non-authoritative field compatibility message on the wire; field code+params are the contract
-                message: "课程不存在",
+                message: "La comisión no existe",
               },
             ],
           }),
@@ -650,27 +650,12 @@ const examRoutes: FastifyPluginAsync = async (fastify) => {
                 // as the course/examProfile references above).
                 params: { resource: "question" },
                 // i18n-copy-allow: wire-compat — non-authoritative field compatibility message on the wire; field code+params are the contract
-                message: "题目不存在",
+                message: "La pregunta no existe",
               },
             ],
           }),
         );
       }
-      if (questionChecks.some((q) => q?.courseId !== data.courseId)) {
-        return reply.code(400).send(
-          buildErrorResponse(request.id, "VALIDATION_ERROR", {
-            fields: [
-              {
-                field: "questionIds",
-                code: "QUESTION_COURSE_MISMATCH",
-                // i18n-copy-allow: wire-compat — non-authoritative field compatibility message on the wire; field code+params are the contract
-                message: "La pregunta no pertenece a la comisión elegida",
-              },
-            ],
-          }),
-        );
-      }
-
       // Optional exam policy profile (authoring template). When
       // selected, the profile's typed defaults are COPY-ON-APPLY'd into the
       // concrete Exam columns below — the created Exam never depends on the
@@ -703,7 +688,7 @@ const examRoutes: FastifyPluginAsync = async (fastify) => {
                   code: "RESOURCE_NOT_FOUND",
                   params: { resource: "examProfile" },
                   // i18n-copy-allow: wire-compat — non-authoritative field compatibility message on the wire; field code+params are the contract
-                  message: "考试策略模板不存在",
+                  message: "La plantilla no existe",
                 },
               ],
             }),
@@ -923,6 +908,59 @@ const examRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  fastify.post(
+    "/exams/:id/duplicate",
+    {
+      preHandler: [
+        fastify.authenticate,
+        fastify.requireCapability(Permission.ExamCreate),
+      ],
+      schema: {
+        params: idParamsSchema,
+        security: cookieAuth,
+        response: { 201: ExamSchema, 404: ErrorResponseSchema },
+      },
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const ctx = ensureTargetOrg(getRequestContext(request));
+      const { id } = request.params as { id: string };
+      const source = (await createExamRepo(fastify.db).findById(ctx, id)) as Exam | null;
+      if (!source) {
+        return reply.code(404).send(buildErrorResponse(request.id, "RESOURCE_NOT_FOUND"));
+      }
+      const suffix = " (Copia)";
+      const title = `${source.title.slice(0, 200 - suffix.length)}${suffix}`;
+      const copy = await createExamRepo(fastify.db).create(ctx, {
+        title,
+        description: source.description,
+        courseId: source.courseId,
+        subjectId: source.subjectId ?? null,
+        inscriptionToken: randomBytes(18).toString("hex"),
+        status: "draft",
+        timingMode: source.timingMode,
+        durationMinutes: source.durationMinutes,
+        openAt: source.openAt,
+        closeAt: source.closeAt,
+        passingScore: source.passingScore,
+        totalScore: source.totalScore,
+        questionSelectionMode: source.questionSelectionMode,
+        questionIds: source.questionIds,
+        questionSnapshot: [],
+        controlFlags: source.controlFlags,
+        retakePolicy: source.retakePolicy,
+        scoreStrategy: source.scoreStrategy,
+        maxAttempts: source.maxAttempts,
+        latestStartOffsetMinutes: source.latestStartOffsetMinutes,
+        minSubmitAfterStartMinutes: source.minSubmitAfterStartMinutes,
+        resultPublicationMode: source.resultPublicationMode,
+        interruptionTimePolicy: source.interruptionTimePolicy,
+        interruptionGracePerIncidentSeconds: source.interruptionGracePerIncidentSeconds,
+        interruptionGracePerAttemptSeconds: source.interruptionGracePerAttemptSeconds,
+      });
+      return reply.code(201).send(toExamResponse(copy as Exam));
+    },
+  );
+
   fastify.patch(
     "/exams/:id",
     {
@@ -995,6 +1033,25 @@ const examRoutes: FastifyPluginAsync = async (fastify) => {
           );
           const exam = reconciled?.exam ?? existing;
 
+          const presentFields = Object.keys(data).filter(
+            (key) => data[key as keyof typeof data] !== undefined,
+          );
+          if (
+            presentFields.length === 1 &&
+            presentFields[0] === "title" &&
+            typeof data.title === "string" &&
+            exam.status !== "canceled" &&
+            exam.status !== "archived"
+          ) {
+            const updated = await repo.update(ctx, id, {
+              title: data.title.trim(),
+            });
+            return {
+              exam: (updated ?? exam) as Exam,
+              draftObservation: false,
+            };
+          }
+
           // 3. State guard on the RECONCILED status.
           if (exam.status !== "draft" && exam.status !== "published") {
             throw new ExamUpdateNotAllowedError();
@@ -1047,27 +1104,14 @@ const examRoutes: FastifyPluginAsync = async (fastify) => {
             // existence. Deletion is NOT blocked and the reference is NOT
             // silently repaired; publish stays fail-closed on the same null.
             if (questionChecks.some((q) => q == null)) {
-              throw new ValidationError("题目不存在", {
+              throw new ValidationError("La pregunta no existe", {
                 fields: [
                   {
                     field: "questionIds",
                     code: "RESOURCE_NOT_FOUND",
                     params: { resource: "question" },
                     // i18n-copy-allow: wire-compat — non-authoritative field compatibility message on the wire; field code+params are the contract
-                    message: "题目不存在",
-                  },
-                ],
-              });
-            }
-            if (questionChecks.some((q) => q!.courseId !== exam.courseId)) {
-              // i18n-copy-allow: developer-diagnostic — thrown message never reaches the client; the error handler serializes the code only
-              throw new ValidationError("La pregunta no pertenece a la comisión elegida", {
-                fields: [
-                  {
-                    field: "questionIds",
-                    code: "QUESTION_COURSE_MISMATCH",
-                    // i18n-copy-allow: wire-compat — non-authoritative field compatibility message on the wire; field code+params are the contract
-                    message: "La pregunta no pertenece a la comisión elegida",
+                    message: "La pregunta no existe",
                   },
                 ],
               });
@@ -2027,6 +2071,61 @@ const examRoutes: FastifyPluginAsync = async (fastify) => {
           };
         }),
       );
+    },
+  );
+
+  fastify.post(
+    "/exams/:examId/enrollments/:enrollmentId/revoke-session",
+    {
+      preHandler: [
+        fastify.authenticate,
+        fastify.requireScopedCapability(
+          Permission.ExamEnrollmentManage,
+          "exam",
+          "examId",
+          { teacherAccess: "course_assignment_scoped" },
+        ),
+      ],
+      schema: {
+        params: z.object({
+          examId: z.string().uuid(),
+          enrollmentId: z.string().uuid(),
+        }),
+        security: cookieAuth,
+        "x-role": ["Admin", "Teacher"],
+        response: { 204: z.null(), 404: ErrorResponseSchema },
+      },
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const ctx = ensureTargetOrg(getRequestContext(request));
+      const { examId, enrollmentId } = request.params as {
+        examId: string;
+        enrollmentId: string;
+      };
+      const enrollment = await createEnrollmentRepo(fastify.db).findById(
+        ctx,
+        enrollmentId,
+      );
+      if (!enrollment || enrollment.examId !== examId) {
+        return reply
+          .code(404)
+          .send(buildErrorResponse(request.id, "RESOURCE_NOT_FOUND"));
+      }
+      const candidate = await createCandidateRepo(fastify.db).findById(
+        ctx,
+        enrollment.candidateId,
+      );
+      if (!candidate) {
+        return reply
+          .code(404)
+          .send(buildErrorResponse(request.id, "RESOURCE_NOT_FOUND"));
+      }
+      await createAttemptRepo(fastify.db).releaseHolderSessions(
+        ctx,
+        enrollment.candidateId,
+      );
+      await createUserRepo(fastify.db).advanceAuthEpoch(ctx, candidate.userId);
+      return reply.code(204).send();
     },
   );
 

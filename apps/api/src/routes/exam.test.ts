@@ -380,17 +380,7 @@ describe("exam routes", () => {
       },
       cookies: { "auth-token": ctx.adminToken },
     });
-    expect(res.statusCode).toBe(400);
-    const body = res.json();
-    expect(body.error.code).toBe("VALIDATION_ERROR");
-    expect(body.error.details.fields).toEqual([
-      expect.objectContaining({
-        field: "questionIds",
-        code: "QUESTION_COURSE_MISMATCH",
-      }),
-    ]);
-    // T6: the compatibility message remains required on the wire.
-    expect(body.error.details.fields[0].message.length).toBeGreaterThan(0);
+    expect(res.statusCode).toBe(201);
   });
 
   describe("dangling draft question references (EXSEM-004/OBS-03)", () => {
@@ -465,7 +455,7 @@ describe("exam routes", () => {
       ]);
     });
 
-    it("PATCH reports an existing wrong-course question as QUESTION_COURSE_MISMATCH", async () => {
+    it("PATCH accepts a question that is not tied to the exam commission", async () => {
       const otherCourseRes = await ctx.app.inject({
         method: "POST",
         url: "/api/courses",
@@ -498,14 +488,8 @@ describe("exam routes", () => {
         payload: { questionIds: [foreignRes.json().id] },
         cookies: { "auth-token": ctx.adminToken },
       });
-      expect(res.statusCode).toBe(400);
-      const fields = res.json().error.details.fields;
-      expect(fields).toEqual([
-        expect.objectContaining({
-          field: "questionIds",
-          code: "QUESTION_COURSE_MISMATCH",
-        }),
-      ]);
+      expect(res.statusCode).toBe(200);
+      expect(res.json().questionIds).toEqual([foreignRes.json().id]);
     });
 
     it("PATCH reports a cross-org question id as missing without existence leak", async () => {
@@ -815,7 +799,7 @@ describe("exam close (ADR-005 Slice 1)", () => {
           scoreViewDisabledReason: "No hay datos de calificaciones",
           scoreViewDisabledReasonCode: "NO_GRADED_ATTEMPTS",
           canDelete: false,
-          deleteDisabledReason: "仅草稿状态的考试允许删除",
+          deleteDisabledReason: "Solo se puede borrar un examen en borrador",
           deleteDisabledReasonCode: "EXAM_NOT_DRAFT",
         }),
       ]),
@@ -852,7 +836,8 @@ describe("exam close (ADR-005 Slice 1)", () => {
         expect.objectContaining({
           id: examId,
           canViewScores: false,
-          scoreViewDisabledReason: "El examen todavía no termina，暂不能查看成绩",
+          scoreViewDisabledReason:
+            "El examen todavía no termina, así que no se pueden ver las calificaciones",
           scoreViewDisabledReasonCode: "EXAM_NOT_FINISHED",
           canDelete: true,
           deleteDisabledReason: null,

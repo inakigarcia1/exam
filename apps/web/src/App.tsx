@@ -16,6 +16,7 @@ import { DateTimeProvider } from "@/contexts/DateTimeContext";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { getDocumentTitle } from "@/lib/pageMeta";
 import { LoginPage } from "@/pages/LoginPage";
+import { InscriptionPage } from "@/pages/InscriptionPage";
 import { LaunchpadPage } from "@/pages/LaunchpadPage";
 import { InviteAcceptPage } from "@/pages/InviteAcceptPage";
 import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
@@ -79,6 +80,7 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/inscripcion/:token" element={<InscriptionPage />} />
       <Route path="/launchpad" element={<LaunchpadPage />} />
       <Route path="/invite/accept" element={<InviteAcceptPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />

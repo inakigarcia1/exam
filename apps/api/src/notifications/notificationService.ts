@@ -106,9 +106,9 @@ export async function dispatchResultPublishedToRecipient(
       recipientUserId: recipient.userId,
       type,
       // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-      title: "考试结果已发布",
+      title: "Ya están las calificaciones",
       // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-      body: `您参加的考试「${examTitle}」的结果已发布，点击查看。`,
+      body: `Ya se publicaron las calificaciones de «${examTitle}». Entrá para verlas.`,
       actionPath,
       dedupeKey: inboxDedupeKey(examId),
     },
@@ -275,9 +275,9 @@ export async function dispatchExamAssigned(
       recipientUserId,
       type,
       // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-      title: "考试已安排",
+      title: "Te asignaron un examen",
       // i18n-copy-allow: server-rendered — Email/Inbox copy rendered server-side; independent localization boundary, never routed through web i18n
-      body: `您已被安排参加考试「${examTitle}」，请进入考试列表查看详情。`,
+      body: `Te asignaron el examen «${examTitle}». Entrá a la lista de exámenes para ver el detalle.`,
       actionPath,
       dedupeKey: assignmentDedupeKey(enrollmentId),
     },

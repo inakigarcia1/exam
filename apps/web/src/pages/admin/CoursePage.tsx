@@ -31,6 +31,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import {
   Dialog,
@@ -53,6 +60,7 @@ interface CourseRow {
   name: string;
   code: string;
   description: string;
+  subjectId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -76,13 +84,16 @@ interface PaginatedResponse<T> {
 export function CoursePage() {
   const { t } = useTranslation();
   const [courses, setCourses] = useState<CourseRow[]>([]);
+  const [subjects, setSubjects] = useState<Array<{ id: string; name: string }>>(
+    [],
+  );
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<CourseRow | null>(null);
   const [formName, setFormName] = useState("");
-  const [formCode, setFormCode] = useState("");
+  const [formSubjectId, setFormSubjectId] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -142,6 +153,13 @@ export function CoursePage() {
     loadCourses();
   }, [loadCourses]);
 
+  useEffect(() => {
+    void api
+      .get<{ items: Array<{ id: string; name: string }> }>("/api/subjects")
+      .then((data) => setSubjects(data.items))
+      .catch(() => setSubjects([]));
+  }, []);
+
   /** A search commit is a new query: it resets to the first page (#785). */
   function handleSearchCommit(term: string) {
     setCommittedSearch(term);
@@ -158,7 +176,7 @@ export function CoursePage() {
   function openCreate() {
     setEditingCourse(null);
     setFormName("");
-    setFormCode("");
+    setFormSubjectId("");
     setFormDescription("");
     setFieldErrors({});
     setDialogOpen(true);
@@ -168,7 +186,7 @@ export function CoursePage() {
   function openEdit(course: CourseRow) {
     setEditingCourse(course);
     setFormName(course.name);
-    setFormCode(course.code);
+    setFormSubjectId(course.subjectId ?? "");
     setFormDescription(course.description);
     setFieldErrors({});
     setDialogOpen(true);
@@ -179,8 +197,8 @@ export function CoursePage() {
     const errors: Record<string, string> = {};
     if (!formName.trim())
       errors.name = t("admin.courses.validation.nameRequired");
-    if (!formCode.trim())
-      errors.code = t("admin.courses.validation.codeRequired");
+    if (!formSubjectId)
+      errors.subjectId = t("admin.courses.validation.subjectRequired");
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
   }
@@ -192,15 +210,15 @@ export function CoursePage() {
     try {
       if (editingCourse) {
         await api.patch(`/api/courses/${editingCourse.id}`, {
-          name: formName,
-          code: formCode,
+          name: formName.trim(),
           description: formDescription,
+          subjectId: formSubjectId,
         });
       } else {
         await api.post("/api/courses", {
-          name: formName,
-          code: formCode,
+          name: formName.trim(),
           description: formDescription,
+          subjectId: formSubjectId,
         });
       }
       setDialogOpen(false);
@@ -296,15 +314,12 @@ export function CoursePage() {
       cell: ({ row }) => row.original.name,
     },
     {
-      id: "code",
-      meta: { role: "short-id" },
-      header: t("admin.courses.columns.code"),
-      cell: ({ row }) => (
-        <DataTableOverflowText
-          mode="truncate-middle"
-          value={row.original.code}
-        />
-      ),
+      id: "subject",
+      meta: { role: "secondary-text" },
+      header: t("admin.courses.columns.subject"),
+      cell: ({ row }) =>
+        subjects.find((subject) => subject.id === row.original.subjectId)
+          ?.name ?? "-",
     },
     {
       id: "description",
@@ -447,24 +462,27 @@ export function CoursePage() {
                 <FieldError>{fieldErrors.name}</FieldError>
               </Field>
               <Field>
-                <Label htmlFor="course-code">
-                  {t("admin.courses.dialog.code")}
+                <Label htmlFor="course-subject">
+                  {t("admin.courses.dialog.subject")}
                   <span aria-hidden="true" className="ml-1 text-destructive">
                     *
                   </span>
                 </Label>
-                <Input
-                  id="course-code"
-                  required
-                  value={formCode}
-                  onChange={(e) => {
-                    setFormCode(e.target.value);
-                    if (fieldErrors.code)
-                      setFieldErrors((prev) => ({ ...prev, code: "" }));
-                  }}
-                  placeholder={t("admin.courses.dialog.codePlaceholder")}
-                />
-                <FieldError>{fieldErrors.code}</FieldError>
+                <Select value={formSubjectId} onValueChange={setFormSubjectId}>
+                  <SelectTrigger id="course-subject" aria-label="Materia">
+                    <SelectValue
+                      placeholder={t("admin.courses.dialog.subjectPlaceholder")}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subjects.map((subject) => (
+                      <SelectItem key={subject.id} value={subject.id}>
+                        {subject.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FieldError>{fieldErrors.subjectId}</FieldError>
               </Field>
               <Field>
                 <Label htmlFor="course-desc">

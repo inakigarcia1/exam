@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import {
@@ -7,6 +8,8 @@ import {
   ErrorResponseSchema,
 } from "@exam/contracts";
 import { Permission, AuditAction } from "@exam/authz";
+import { subjects } from "@exam/db/schema/pg";
+import { createAsyncTenantCrudRepo } from "@exam/db/repository/baseRepo";
 import { createCourseRepo } from "@exam/db/repository/courseRepo";
 import type { CourseListFilters } from "@exam/db/repository/courseRepo";
 import { createQuestionRepo } from "@exam/db/repository/questionRepo";
@@ -31,6 +34,7 @@ const courseItemSchema = z.object({
   name: z.string(),
   code: z.string(),
   description: z.string(),
+  subjectId: z.string().uuid().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -51,6 +55,7 @@ const CourseListQuerySchema = PaginationParamsSchema.extend({
   // field (course name, max 200); no trim() to avoid changing the matched
   // value (the repo already trims internally).
   search: z.string().max(200).optional(),
+  subjectId: z.string().uuid().optional(),
 });
 
 /** Zod schema for route params containing a UUID `id`. */
@@ -64,6 +69,34 @@ const idParamsSchema = z.object({ id: z.string().uuid() });
  * race path, and the rename path must all resolve to this same predicate so
  * one domain failure always carries the same reason on the wire.
  */
+export function isCourseNameConflict(err: unknown): boolean {
+  let current: unknown = err;
+  const visited = new Set<unknown>();
+  while (current && typeof current === "object" && !visited.has(current)) {
+    visited.add(current);
+    const e = current as Record<string, unknown>;
+    const constraint = e.constraint ?? e.constraint_name;
+    if (e.code === "23505" && constraint === "courses_org_name_ci_unique") {
+      return true;
+    }
+    current = e.cause;
+  }
+  return false;
+}
+
+function nameConflict(requestId: string) {
+  return buildErrorResponse(requestId, "RESOURCE_CONFLICT", {
+    reason: "COURSE_NAME_EXISTS",
+    fields: [
+      {
+        field: "name",
+        code: "RESOURCE_CONFLICT",
+        message: "Ya existe una comisión con ese nombre",
+      },
+    ],
+  });
+}
+
 export function isCourseCodeConflict(err: unknown): boolean {
   let current: unknown = err;
   const visited = new Set<unknown>();
@@ -98,12 +131,13 @@ const courseRoutes: FastifyPluginAsync = async (fastify) => {
     /** List courses with pagination and optional search. Teacher actors see only their assigned courses (SQL-side, before pagination). */
     async (request: any) => {
       const ctx = ensureTargetOrg(getRequestContext(request));
-      const { page, pageSize, search } = CourseListQuerySchema.parse(
+      const { page, pageSize, search, subjectId } = CourseListQuerySchema.parse(
         request.query,
       );
       const repo = createCourseRepo(fastify.db);
       const filters: CourseListFilters = {};
       if (search) filters.search = search;
+      if (subjectId) filters.subjectId = subjectId;
       // Issue #286 LIST scope: Admin → org-wide (null); Teacher → active
       // assigned course ids, filtered in SQL before pagination/count.
       const scope = await resolveTeacherCourseScope(fastify.db, ctx);
@@ -123,6 +157,10 @@ const courseRoutes: FastifyPluginAsync = async (fastify) => {
         page,
         pageSize,
       });
+      const subjectsByCourse = await repo.subjectIdsByCourse(
+        ctx,
+        items.map((item) => item.id),
+      );
 
       return {
         items: items.map((c) => ({
@@ -131,6 +169,7 @@ const courseRoutes: FastifyPluginAsync = async (fastify) => {
           name: c.name,
           code: c.code,
           description: c.description,
+          subjectId: subjectsByCourse.get(c.id) ?? null,
           createdAt: c.createdAt.toISOString(),
           updatedAt: c.updatedAt.toISOString(),
         })),
@@ -169,12 +208,14 @@ const courseRoutes: FastifyPluginAsync = async (fastify) => {
           .code(404)
           .send(buildErrorResponse(request.id, "RESOURCE_NOT_FOUND"));
       }
+      const subjectsByCourse = await repo.subjectIdsByCourse(ctx, [course.id]);
       return {
         id: course.id,
         organizationId: course.organizationId,
         name: course.name,
         code: course.code,
         description: course.description,
+        subjectId: subjectsByCourse.get(course.id) ?? null,
         createdAt: course.createdAt.toISOString(),
         updatedAt: course.updatedAt.toISOString(),
       };
@@ -200,9 +241,33 @@ const courseRoutes: FastifyPluginAsync = async (fastify) => {
       const ctx = ensureTargetOrg(getRequestContext(request));
       const data = CreateCourseRequestSchema.parse(request.body);
       const repo = createCourseRepo(fastify.db);
+      const name = data.name.trim();
+      if (await repo.findByNormalizedName(ctx, name)) {
+        return reply.code(409).send(nameConflict(request.id));
+      }
+      if (data.subjectId) {
+        const subject = await createAsyncTenantCrudRepo(
+          fastify.db,
+          subjects,
+        ).findById(ctx, data.subjectId);
+        if (!subject) {
+          return reply.code(400).send(
+            buildErrorResponse(request.id, "VALIDATION_ERROR", {
+              fields: [
+                {
+                  field: "subjectId",
+                  code: "RESOURCE_NOT_FOUND",
+                  message: "La materia no existe",
+                },
+              ],
+            }),
+          );
+        }
+      }
+      const code = data.code?.trim() || `c-${randomUUID().slice(0, 8)}`;
 
       const existing = await repo.list(ctx);
-      if (existing.some((c) => c.code === data.code)) {
+      if (data.code && existing.some((c) => c.code === data.code)) {
         return reply.code(409).send(
           buildErrorResponse(request.id, "RESOURCE_CONFLICT", {
             // Machine semantics per message contract D0.3/D0.4: the specific
@@ -231,10 +296,17 @@ const courseRoutes: FastifyPluginAsync = async (fastify) => {
       try {
         const course = await executeInTransaction(fastify.db, async (tx) => {
           const created = await createCourseRepo(tx).create(ctx, {
-            name: data.name,
-            code: data.code,
+            name,
+            code,
             description: data.description,
           });
+          if (data.subjectId) {
+            await createCourseRepo(tx).replaceSubject(
+              ctx,
+              created.id,
+              data.subjectId,
+            );
+          }
           if (isSelfAssigning) {
             const now = fastify.now();
             const assignment = await createTeacherCourseAssignmentRepo(
@@ -274,6 +346,7 @@ const courseRoutes: FastifyPluginAsync = async (fastify) => {
           name: course.name,
           code: course.code,
           description: course.description,
+          subjectId: data.subjectId ?? null,
           createdAt: course.createdAt.toISOString(),
           updatedAt: course.updatedAt.toISOString(),
         });
@@ -282,6 +355,9 @@ const courseRoutes: FastifyPluginAsync = async (fastify) => {
         // the courses_org_code_unique index decides. A create that loses the
         // concurrent-insert race must carry the same reason as the pre-check
         // path (message contract D0.3 stability invariant).
+        if (isCourseNameConflict(err)) {
+          return reply.code(409).send(nameConflict(request.id));
+        }
         if (isCourseCodeConflict(err)) {
           return reply.code(409).send(
             buildErrorResponse(request.id, "RESOURCE_CONFLICT", {
@@ -332,29 +408,39 @@ const courseRoutes: FastifyPluginAsync = async (fastify) => {
       const ctx = ensureTargetOrg(getRequestContext(request));
       const { id } = request.params as { id: string };
       const data = UpdateCourseRequestSchema.parse(request.body);
+      const repo = createCourseRepo(fastify.db);
+      const name = data.name?.trim();
+      if (name && (await repo.findByNormalizedName(ctx, name, id))) {
+        return reply.code(409).send(nameConflict(request.id));
+      }
+      const { subjectId, ...courseFields } = data;
+      if (name) courseFields.name = name;
       try {
-        const updated = await createCourseRepo(fastify.db).update(
+        const updated = await repo.update(
           ctx,
           id,
-          data as Record<string, unknown>,
+          courseFields as Record<string, unknown>,
         );
         if (!updated) {
           return reply
             .code(404)
             .send(buildErrorResponse(request.id, "RESOURCE_NOT_FOUND"));
         }
+        if (subjectId) await repo.replaceSubject(ctx, id, subjectId);
         recordBestEffortAudit(fastify, request, ctx, {
           action: "course.update",
           targetType: "course",
           targetId: id,
           metadata: { changedFields: Object.keys(data) },
         });
+        const linked = await repo.subjectIdsByCourse(ctx, [updated.id]);
         return {
           id: updated.id,
           organizationId: updated.organizationId,
           name: updated.name,
           code: updated.code,
           description: updated.description,
+          subjectId: linked.get(updated.id) ?? null,
           createdAt: updated.createdAt.toISOString(),
           updatedAt: updated.updatedAt.toISOString(),
         };
@@ -365,6 +451,9 @@ const courseRoutes: FastifyPluginAsync = async (fastify) => {
         // stability invariant). The UPDATE only writes `code` when
         // data.code is provided, so the (organization_id, code) violation
         // implies data.code is the colliding value.
+        if (isCourseNameConflict(err)) {
+          return reply.code(409).send(nameConflict(request.id));
+        }
         if (isCourseCodeConflict(err) && data.code !== undefined) {
           return reply.code(409).send(
             buildErrorResponse(request.id, "RESOURCE_CONFLICT", {

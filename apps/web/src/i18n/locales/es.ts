@@ -254,6 +254,8 @@ const es = {
       enrollmentNotRemovable:
         "No se puede quitar una inscripción que ya empezó",
       questionCourseMismatch: "La pregunta no pertenece a la comisión elegida",
+      simultaneousAccessBlocked:
+        "Ya hay una sesión rindiendo este examen. Pedile al docente que revoque la sesión",
       maxAttemptsReached: "Llegaste al máximo de intentos",
       examAlreadyPassed: "Ya aprobaste este examen",
       idempotencyConflict: "Esta solicitud entra en conflicto con una anterior",
@@ -1063,12 +1065,13 @@ const es = {
         "Todavía no hay comisiones. Crea una con el botón de arriba.",
       noMatch: "Ninguna comisión coincide",
       noMatchDescription: "Ninguna comisión coincide con «{{q}}».",
-      searchPlaceholder: "Buscar comisión por nombre o código...",
+      searchPlaceholder: "Buscar comisión por nombre...",
       searchLabel: "Buscar comisiones",
       clearSearchLabel: "Borrar búsqueda de comisiones",
       columns: {
         name: "Nombre",
         code: "Código",
+        subject: "Materia",
         description: "Descripción",
         actions: "Acciones",
       },
@@ -1080,12 +1083,16 @@ const es = {
         edit: "Editar comisión",
         name: "Nombre",
         code: "Código",
+        subject: "Materia",
         namePlaceholder: "Ingresa el nombre de la comisión",
         codePlaceholder: "Ingresa el código de la comisión",
+        subjectPlaceholder: "Elegí una materia",
       },
       validation: {
         nameRequired: "Ingresa el nombre de la comisión",
         codeRequired: "Ingresa el código de la comisión",
+        subjectRequired: "Elegí la materia",
+        nameTaken: "Ya existe una comisión con ese nombre",
       },
       toast: {
         updated: "Comisión actualizada",

@@ -476,7 +476,7 @@ describe("QuestionPage", () => {
     expect(within(mobile).getByText("题目一内容")).toBeInTheDocument();
     // meta line: labeled course/score/difficulty (score is NOT a bare
     // header value — the score column carries priority "normal").
-    expect(within(mobile).getByText("Comisión: 课程一")).toBeInTheDocument();
+    expect(within(mobile).queryByText("Comisión: 课程一")).not.toBeInTheDocument();
     expect(within(mobile).getByText("Puntaje: 10")).toBeInTheDocument();
     expect(within(mobile).getByText("Dificultad: 1")).toBeInTheDocument();
     // tag-list defaults low: tags stay off the card.

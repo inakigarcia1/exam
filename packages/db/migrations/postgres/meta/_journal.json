@@ -328,6 +328,13 @@
       "when": 1788900000011,
       "tag": "0046_subjects_and_optional_question_course",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1788900000012,
+      "tag": "0047_course_subjects_and_attempt_holder",
+      "breakpoints": true
     }
   ]
 }
