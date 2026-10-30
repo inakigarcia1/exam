@@ -438,7 +438,19 @@ export function ExamPage() {
       id: "title",
       meta: { role: "primary-text" },
       header: t("admin.exams.columns.title"),
-      cell: ({ row }) => row.original.title,
+      cell: ({ row }) => (
+        <button
+          type="button"
+          className="cursor-pointer text-left underline-offset-2 hover:underline"
+          onClick={() =>
+            void navigate(`/admin/exams/${row.original.id}`, {
+              state: listReturnState(location),
+            })
+          }
+        >
+          {row.original.title}
+        </button>
+      ),
     },
     {
       id: "status",

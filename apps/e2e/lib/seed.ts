@@ -242,7 +242,6 @@ export async function seedExam(
   const courseId = course.id as string;
 
   const question = await adminPost(request, baseURL, token, "/api/questions", {
-    courseId,
     type: "true_false",
     content: `Verdadero o falso-${unique}`,
     standardAnswer: opts.questionAnswer ?? true,
@@ -260,7 +259,6 @@ export async function seedExam(
   const textResponseQuestionIds: string[] = [];
   for (const tr of opts.textResponseQuestions ?? []) {
     const created = await adminPost(request, baseURL, token, "/api/questions", {
-      courseId,
       type: "text_response",
       content: tr.content ?? `论述题-${unique}`,
       standardAnswer: tr.standardAnswer ?? null,

@@ -66,7 +66,6 @@ const existingQuestion = {
     { id: "B", content: "2", isCorrect: true },
   ],
   standardAnswer: "B",
-  score: 10,
   difficulty: 2,
   tags: ["基础"],
   gradingRule: {
@@ -674,7 +673,6 @@ describe("QuestionEditPage — text_response authoring", () => {
       content: "请阐述你的观点",
       options: [],
       standardAnswer: null,
-      score: 20,
       difficulty: 3,
       tags: [],
       gradingRule: {
@@ -795,7 +793,6 @@ describe("QuestionEditPage — text_response authoring", () => {
       content: "请阐述你的观点",
       options: [],
       standardAnswer: "参考要点一\n参考要点二",
-      score: 20,
       difficulty: 3,
       tags: [],
       gradingRule: {

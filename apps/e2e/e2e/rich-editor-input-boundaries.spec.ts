@@ -55,7 +55,6 @@ async function seedRichExam(
   });
   const courseId = ((await courseRes.json()) as { id: string }).id;
   const questionRes = await adminPost(request, adminToken, "/api/questions", {
-    courseId,
     type: "text_response",
     content: `Rich 编辑器题-${tag}-${STAMP}`,
     standardAnswer: null,

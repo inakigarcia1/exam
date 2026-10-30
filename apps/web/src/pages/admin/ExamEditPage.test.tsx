@@ -33,6 +33,7 @@ const { apiGet, apiPatch } = vi.hoisted(() => {
     totalScore: 100,
     questionSelectionMode: "manual",
     questionIds: ["q1"],
+    questionScores: { q1: 100 },
     controlFlags: {},
     retakePolicy: "unlimited",
     scoreStrategy: "highest",
@@ -46,7 +47,11 @@ const { apiGet, apiPatch } = vi.hoisted(() => {
       if (path.includes("/api/courses"))
         return Promise.resolve({ items: mockCourses, total: 1 });
       if (path.includes("/api/questions"))
-        return Promise.resolve({ items: mockQuestions, total: 1 });
+        return Promise.resolve({
+          items: mockQuestions,
+          total: 1,
+          totalPages: 1,
+        });
       if (path.includes("/api/exams/exam-1")) return Promise.resolve(mockExam);
       return Promise.resolve({});
     }),

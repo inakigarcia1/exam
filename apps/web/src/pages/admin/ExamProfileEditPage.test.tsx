@@ -63,6 +63,7 @@ const existing: ExamProfileDTO = {
   interruptionTimePolicy: "bounded_grace",
   interruptionGracePerIncidentSeconds: 200,
   interruptionGracePerAttemptSeconds: 400,
+  restrictSimultaneousAccess: false,
   createdAt: "2026-08-01T00:00:00.000Z",
   updatedAt: "2026-08-10T00:00:00.000Z",
 };
@@ -80,7 +81,9 @@ describe("ExamProfileEditPage — create path", () => {
       screen.getByRole("heading", { name: "Nueva plantilla de política" }),
     ).toBeInTheDocument();
     // Default duration is 60.
-    expect(screen.getByLabelText("Duración del examen (minutos)")).toHaveValue(60);
+    expect(screen.getByLabelText("Duración del examen (minutos)")).toHaveValue(
+      60,
+    );
   });
 
   it("requires a name and shows a field error", async () => {
@@ -88,7 +91,9 @@ describe("ExamProfileEditPage — create path", () => {
       renderPage();
     });
     await userEvent.click(screen.getByRole("button", { name: "Guardar" }));
-    expect(await screen.findByText("Ingresa el nombre de la plantilla")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Ingresa el nombre de la plantilla"),
+    ).toBeInTheDocument();
     expect(api.post).not.toHaveBeenCalled();
   });
 
@@ -97,7 +102,10 @@ describe("ExamProfileEditPage — create path", () => {
     await act(async () => {
       renderPage();
     });
-    await userEvent.type(screen.getByLabelText("Nombre de la plantilla"), "我的模板");
+    await userEvent.type(
+      screen.getByLabelText("Nombre de la plantilla"),
+      "我的模板",
+    );
     await userEvent.click(screen.getByRole("button", { name: "Guardar" }));
     expect(api.post).toHaveBeenCalledWith(
       "/api/exam-profiles",
@@ -123,7 +131,9 @@ describe("ExamProfileEditPage — create path", () => {
     const dialog = await screen.findByRole("dialog");
     // Two starter recipes present.
     expect(within(dialog).getByText("Prueba básica")).toBeInTheDocument();
-    expect(within(dialog).getByText("Examen en línea estándar")).toBeInTheDocument();
+    expect(
+      within(dialog).getByText("Examen en línea estándar"),
+    ).toBeInTheDocument();
     // Pick the standard-online card via its stable data-starter-recipe hook
     // (not button index), then use its Usar esta plantilla button.
     const standardCard = within(dialog)
@@ -136,20 +146,35 @@ describe("ExamProfileEditPage — create path", () => {
       }),
     );
     // After prefill, the bounded_grace caps inputs are visible.
-    expect(screen.getByLabelText("Tope de tiempo extra por interrupción (segundos)")).toBeInTheDocument();
-    expect(screen.getByLabelText("Duración del examen (minutos)")).toHaveValue(60);
+    expect(
+      screen.getByLabelText("Tope de tiempo extra por interrupción (segundos)"),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Duración del examen (minutos)")).toHaveValue(
+      60,
+    );
   });
 
   it("maps a 409 duplicate-name server error to a friendly message", async () => {
     // Production ApiError shape: status 409 + code RESOURCE_CONFLICT.
-    const err = new ApiError(409, "El estado del recurso cambió", "RESOURCE_CONFLICT");
+    const err = new ApiError(
+      409,
+      "El estado del recurso cambió",
+      "RESOURCE_CONFLICT",
+    );
     vi.mocked(api.post).mockRejectedValueOnce(err);
     await act(async () => {
       renderPage();
     });
-    await userEvent.type(screen.getByLabelText("Nombre de la plantilla"), "dup");
+    await userEvent.type(
+      screen.getByLabelText("Nombre de la plantilla"),
+      "dup",
+    );
     await userEvent.click(screen.getByRole("button", { name: "Guardar" }));
-    expect(await screen.findByText("Ya existe una plantilla de política con ese nombre")).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        "Ya existe una plantilla de política con ese nombre",
+      ),
+    ).toBeInTheDocument();
   });
 });
 
@@ -159,7 +184,9 @@ describe("ExamProfileEditPage — conditional fields", () => {
       renderPage();
     });
     // Default retakePolicy is unlimited → maxAttempts input absent.
-    expect(screen.queryByLabelText("Máximo de intentos")).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText("Máximo de intentos"),
+    ).not.toBeInTheDocument();
   });
 
   it("shows maxAttempts when retakePolicy becomes max_attempts", async () => {
@@ -167,11 +194,15 @@ describe("ExamProfileEditPage — conditional fields", () => {
       renderPage();
     });
     // Open the retake policy select (Radix combobox).
-    await userEvent.click(screen.getByRole("combobox", { name: "Política de reintentos" }));
+    await userEvent.click(
+      screen.getByRole("combobox", { name: "Política de reintentos" }),
+    );
     await userEvent.click(
       await screen.findByRole("option", { name: "Cantidad limitada" }),
     );
-    expect(await screen.findByLabelText("Máximo de intentos")).toBeInTheDocument();
+    expect(
+      await screen.findByLabelText("Máximo de intentos"),
+    ).toBeInTheDocument();
   });
 
   it("hides grace caps when interruption policy is strict", async () => {
@@ -179,7 +210,9 @@ describe("ExamProfileEditPage — conditional fields", () => {
       renderPage();
     });
     expect(
-      screen.queryByLabelText("Tope de tiempo extra por interrupción (segundos)"),
+      screen.queryByLabelText(
+        "Tope de tiempo extra por interrupción (segundos)",
+      ),
     ).not.toBeInTheDocument();
   });
 
@@ -194,9 +227,13 @@ describe("ExamProfileEditPage — conditional fields", () => {
       await screen.findByRole("option", { name: "Tiempo extra limitado" }),
     );
     expect(
-      await screen.findByLabelText("Tope de tiempo extra por interrupción (segundos)"),
+      await screen.findByLabelText(
+        "Tope de tiempo extra por interrupción (segundos)",
+      ),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("Tope acumulado de tiempo extra (segundos)")).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Tope acumulado de tiempo extra (segundos)"),
+    ).toBeInTheDocument();
   });
 });
 
@@ -207,10 +244,16 @@ describe("ExamProfileEditPage — edit path", () => {
       renderPage("/admin/exam-profiles/p-1/edit");
     });
     expect(
-      await screen.findByRole("heading", { name: "Editar plantilla de política" }),
+      await screen.findByRole("heading", {
+        name: "Editar plantilla de política",
+      }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("Duración del examen (minutos)")).toHaveValue(90);
-    expect(screen.getByLabelText("Nombre de la plantilla")).toHaveValue("Examen en línea estándar");
+    expect(screen.getByLabelText("Duración del examen (minutos)")).toHaveValue(
+      90,
+    );
+    expect(screen.getByLabelText("Nombre de la plantilla")).toHaveValue(
+      "Examen en línea estándar",
+    );
   });
 
   it("retry after a load failure clears the stale error and renders the form", async () => {
@@ -239,11 +282,16 @@ describe("ExamProfileEditPage — edit path", () => {
     await act(async () => {
       renderPage("/admin/exam-profiles/p-1/edit");
     });
-    await screen.findByRole("heading", { name: "Editar plantilla de política" });
+    await screen.findByRole("heading", {
+      name: "Editar plantilla de política",
+    });
     await userEvent.click(screen.getByRole("button", { name: "Guardar" }));
     expect(api.patch).toHaveBeenCalledWith(
       "/api/exam-profiles/p-1",
-      expect.objectContaining({ name: "Examen en línea estándar", durationMinutes: 90 }),
+      expect.objectContaining({
+        name: "Examen en línea estándar",
+        durationMinutes: 90,
+      }),
     );
   });
 });

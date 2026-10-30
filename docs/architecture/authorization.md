@@ -173,8 +173,10 @@ resource gates remain the security authority.
   [`docs/archive/audits/M11-I1-PROCTOR-EXAM-ASSIGNMENTS-CLOSEOUT.md`](../archive/audits/M11-I1-PROCTOR-EXAM-ASSIGNMENTS-CLOSEOUT.md).
 - **Teacher → Course** (#286, PR #347 — `teacher_course_assignments` carrier,
   `teacherAccess: "course_assignment_scoped"` gates, SQL-side LIST filtering
-  before pagination/count across courses, questions, exams, candidates, and
-  scores, Admin assignment API + UsersPage dialog).
+  before pagination/count across courses, exams, candidates, and scores;
+  the **question bank is organization-wide** (any Teacher with
+  `question.*` capabilities sees and edits all questions in the org).
+  Admin assignment API + UsersPage dialog).
 - **Grader → Exam** (#296, PR #348 — `grader_exam_assignments` carrier,
   `graderAccess: "exam_assignment_scoped"` gates on grading detail/write,
   grading-queue LIST filtering before pagination/count, Admin assignment API +

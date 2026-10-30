@@ -49,7 +49,6 @@ interface ImportRow {
   optionC?: string;
   optionD?: string;
   standardAnswer: unknown;
-  score: number;
   difficulty?: number;
   tags?: string;
 }
@@ -132,9 +131,8 @@ export function QuestionImportPage() {
         optionC: cols[4] || undefined,
         optionD: cols[5] || undefined,
         standardAnswer: parseStandardAnswer(cols[6] ?? "", cols[0] ?? ""),
-        score: Number(cols[7]) || 10,
-        difficulty: cols[8] ? Number(cols[8]) : undefined,
-        tags: cols[9] || undefined,
+        difficulty: cols[7] ? Number(cols[7]) : undefined,
+        tags: cols[8] || undefined,
       });
     }
     return rows;
@@ -192,11 +190,10 @@ export function QuestionImportPage() {
    * confirmed insertion, and stores the result.
    */
   async function handleImport(confirm: boolean) {
-    if (!selectedCourse || parsedRows.length === 0) return;
+    if (parsedRows.length === 0) return;
     setImporting(true);
     try {
       const result = await api.post<ImportResult>("/api/questions/import", {
-        courseId: selectedCourse,
         rows: parsedRows,
         confirm,
       });
@@ -220,14 +217,15 @@ export function QuestionImportPage() {
     // CSV template header — import column contract (not UI copy).
     const header =
       // i18n-copy-allow: data-format — CSV template headers, parser tokens, example rows
-      "Tipo,Enunciado,OpciónA,OpciónB,OpciónC,OpciónD,Respuesta correcta,Puntaje,Dificultad,Etiqueta";
+      "Tipo,Enunciado,OpciónA,OpciónB,OpciónC,OpciónD,Respuesta correcta,Dificultad,Etiqueta";
     // CSV template example rows (fixture content, not UI copy).
     // i18n-copy-allow: data-format — CSV template headers, parser tokens, example rows
-    const example1 = "single_choice,1+1=?,1,2,3,4,B,10,1,基础";
+    const example1 = "single_choice,1+1=?,1,2,3,4,B,1,aritmetica";
     // i18n-copy-allow: data-format — CSV template headers, parser tokens, example rows
-    const example2 = "true_false,地球是圆的,,,,,true,5,1,常识";
+    const example2 = "true_false,La Tierra es redonda,,,,,true,1,geografia";
     // i18n-copy-allow: data-format — CSV template headers, parser tokens, example rows
-    const example3 = "fill_blank,法国首都____,,,,,巴黎,10,2,地理";
+    const example3 =
+      "fill_blank,La capital de Francia es ____,,,,,Paris,2,geografia";
     const csv = [header, example1, example2, example3].join("\n");
     const blob = new Blob(["\uFEFF" + csv], {
       type: "text/csv;charset=utf-8;",
@@ -293,7 +291,7 @@ export function QuestionImportPage() {
                 { role: "number" },
                 { role: "type" },
                 { role: "long-text", overflow: "truncate" },
-                { role: "score" },
+                { role: "number" },
               ]}
             >
               <TableHeader>
@@ -307,8 +305,8 @@ export function QuestionImportPage() {
                   <DataTableHead role="long-text">
                     {t("admin.questionImport.previewColumns.content")}
                   </DataTableHead>
-                  <DataTableHead role="score">
-                    {t("admin.questionImport.previewColumns.score")}
+                  <DataTableHead role="number">
+                    {t("admin.forms.question.difficulty")}
                   </DataTableHead>
                 </TableRow>
               </TableHeader>
@@ -329,7 +327,9 @@ export function QuestionImportPage() {
                         value={row.content}
                       />
                     </DataTableCell>
-                    <DataTableCell role="score">{row.score}</DataTableCell>
+                    <DataTableCell role="number">
+                      {row.difficulty ?? "—"}
+                    </DataTableCell>
                   </TableRow>
                 ))}
               </TableBody>

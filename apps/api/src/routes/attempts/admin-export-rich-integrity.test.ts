@@ -103,7 +103,6 @@ describe("attempt export — Rich answer integrity (D4 / F-05)", () => {
     await ctx.db.insert(schema.questions).values({
       id: RICH_QUESTION_ID,
       organizationId: ctx.org.id,
-      courseId,
       type: "text_response",
       content: RICH_PROMPT,
       contentDocument: {
@@ -118,7 +117,6 @@ describe("attempt export — Rich answer integrity (D4 / F-05)", () => {
       options: [],
       standardAnswer: null,
       attachments: [],
-      score: 50,
       difficulty: 1,
       tags: [],
       gradingRule: {
@@ -132,7 +130,6 @@ describe("attempt export — Rich answer integrity (D4 / F-05)", () => {
     await ctx.db.insert(schema.questions).values({
       id: PLAIN_QUESTION_ID,
       organizationId: ctx.org.id,
-      courseId,
       type: "text_response",
       content: PLAIN_PROMPT,
       contentDocument: null,
@@ -141,7 +138,6 @@ describe("attempt export — Rich answer integrity (D4 / F-05)", () => {
       options: [],
       standardAnswer: "reference answer",
       attachments: [],
-      score: 30,
       difficulty: 1,
       tags: [],
       gradingRule: {
@@ -155,7 +151,6 @@ describe("attempt export — Rich answer integrity (D4 / F-05)", () => {
     await ctx.db.insert(schema.questions).values({
       id: CHOICE_QUESTION_ID,
       organizationId: ctx.org.id,
-      courseId,
       type: "multiple_choice",
       content: CHOICE_PROMPT,
       contentDocument: null,
@@ -167,7 +162,6 @@ describe("attempt export — Rich answer integrity (D4 / F-05)", () => {
       ],
       standardAnswer: ["a"],
       attachments: [],
-      score: 20,
       difficulty: 1,
       tags: [],
       gradingRule: {

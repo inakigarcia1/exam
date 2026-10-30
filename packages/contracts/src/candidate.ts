@@ -85,6 +85,10 @@ export const CandidateExamSummarySchema = z.object({
   bestScorePercent: z.number().optional(),
   availabilityStatus: AvailabilityStatusEnum,
   primaryAction: PrimaryActionEnum,
+  // Absent on older payloads. Draft exams hide timing and attempt facts.
+  status: z
+    .enum(["draft", "published", "open", "closed", "canceled", "archived"])
+    .optional(),
 });
 
 /** Candidate's summary view of a single exam. */

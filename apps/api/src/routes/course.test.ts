@@ -313,7 +313,7 @@ describe("course routes", () => {
     expect(body.error.details?.params).toEqual({ courseCode: codeA });
   });
 
-  it("DELETE /api/courses/:id rejects a course that still has questions with a machine reason (C1-B)", async () => {
+  it("DELETE /api/courses/:id succeeds when the org question bank has rows (questions are not tied to courses)", async () => {
     const createRes = await ctx.app.inject({
       method: "POST",
       url: "/api/courses",
@@ -329,13 +329,11 @@ describe("course routes", () => {
     await ctx.db.insert(schema.questions).values({
       id: crypto.randomUUID(),
       organizationId: ctx.org.id,
-      courseId,
       type: "single_choice",
       content: "Choose A",
       options: [{ id: "a", content: "A" }],
       standardAnswer: "a",
       attachments: [],
-      score: 10,
       difficulty: 1,
       tags: [],
       gradingRule: {
@@ -351,10 +349,6 @@ describe("course routes", () => {
       url: `/api/courses/${courseId}`,
       cookies: { "auth-token": ctx.adminToken },
     });
-    expect(res.statusCode).toBe(409);
-    const body = res.json();
-    expect(body.error.code).toBe("RESOURCE_CONFLICT");
-    expect(body.error.details?.reason).toBe("COURSE_HAS_QUESTIONS");
-    expect(body.error.details?.params?.questionCount).toBe(1);
+    expect(res.statusCode).toBe(204);
   });
 });

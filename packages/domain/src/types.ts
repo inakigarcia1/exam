@@ -132,7 +132,6 @@ export interface Course {
 export interface Question {
   id: string;
   organizationId: string;
-  courseId: string | null;
   type: QuestionType;
   content: string;
   /**
@@ -149,7 +148,6 @@ export interface Question {
   options: Option[];
   standardAnswer: unknown;
   attachments: Attachment[];
-  score: number;
   difficulty: number;
   tags: string[];
   gradingRule: GradingRule;
@@ -310,6 +308,8 @@ export interface Exam {
   totalScore: number;
   questionSelectionMode: QuestionSelectionMode;
   questionIds: string[];
+  /** Points for each selected question. Frozen into the snapshot at publish. */
+  questionScores?: Record<string, number>;
   questionSnapshot: QuestionSnapshot[];
   controlFlags: ControlFlags;
   retakePolicy: RetakePolicy;

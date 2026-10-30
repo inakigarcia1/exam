@@ -99,9 +99,9 @@ A row with an ID and repository is **not** automatically an aggregate root. The 
 ### 4.1 Question (live authoring entity)
 
 - **Identity**: `questions.id` (UUID, app-generated)
-- **Owner**: Aggregate root, scoped by `organizationId`
+- **Owner**: Aggregate root, scoped by `organizationId` (shared question bank per org; not tied to a Course)
 - **Mutable fields**: `content`, `options`, `standardAnswer`, `rubric`, `score`, `difficulty`, `tags`, `gradingRule`, `attachments`
-- **Immutable fields**: `id`, `organizationId`, `courseId`, `type`, `createdAt`
+- **Immutable fields**: `id`, `organizationId`, `type`, `createdAt`
 - **Creation command**: Question create route (`POST /api/questions`)
 - **Mutation commands**: Question update route (`PATCH /api/questions/:id`)
 - **Deletion**: Question delete route (`DELETE /api/questions/:id`) — **ACCEPTED LIMITATION**: no referential integrity guard against deletion of questions referenced by existing snapshots (snapshots are copies, so deletion does not break historical attempts)

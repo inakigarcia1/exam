@@ -61,13 +61,11 @@ describe("repo round-trip: text_response + submitted_answers", () => {
 
   it("persists a text_response question with rubric and reads it back", async () => {
     const created = await questionRepo.create(ctx, {
-      courseId,
       type: "text_response",
       content: "请阐述你的观点",
       options: [],
       standardAnswer: null,
       attachments: [],
-      score: 20,
       difficulty: 3,
       tags: [],
       gradingRule: {
@@ -88,13 +86,11 @@ describe("repo round-trip: text_response + submitted_answers", () => {
     // nullable with no default; the read should yield null, not undefined,
     // so downstream Question.rubric typing (string | null) holds.
     const created = await questionRepo.create(ctx, {
-      courseId,
       type: "true_false",
       content: "1+1=2?",
       options: [],
       standardAnswer: true,
       attachments: [],
-      score: 1,
       difficulty: 1,
       tags: [],
       gradingRule: {

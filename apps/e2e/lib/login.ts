@@ -114,7 +114,8 @@ export async function loginViaUi(
       .then(() => "alert" as const)
       .catch(() => null);
 
-    await page.getByLabel(/Usuario/).fill(username);
+    // The Alumno/Docente toggle relabels this field (Legajo vs Usuario).
+    await page.locator("#username").fill(username);
     await page.getByLabel(/Contraseña/).fill(password);
     await page.getByRole("button", { name: /^Iniciar sesión$/ }).click();
 

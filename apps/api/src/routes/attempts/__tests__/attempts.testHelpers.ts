@@ -168,7 +168,6 @@ export async function buildSharedAttemptFixture(): Promise<SharedAttemptFixture>
   await ctx.db.insert(schema.questions).values({
     id: questionId,
     organizationId: ctx.org.id,
-    courseId,
     type: "single_choice",
     content: "What is 1+1?",
     options: [
@@ -178,7 +177,6 @@ export async function buildSharedAttemptFixture(): Promise<SharedAttemptFixture>
     ],
     standardAnswer: "b",
     attachments: [],
-    score: 100,
     difficulty: 1,
     tags: [],
     gradingRule: {
@@ -192,13 +190,11 @@ export async function buildSharedAttemptFixture(): Promise<SharedAttemptFixture>
   await ctx.db.insert(schema.questions).values({
     id: fillBlankQuestionId,
     organizationId: ctx.org.id,
-    courseId,
     type: "fill_blank",
     content: "安全出口标识的颜色是____色",
     options: [],
     standardAnswer: "绿",
     attachments: [],
-    score: 100,
     difficulty: 1,
     tags: [],
     gradingRule: {

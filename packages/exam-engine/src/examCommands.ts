@@ -81,12 +81,17 @@ export interface ExamRepository {
 export function buildQuestionSnapshot(
   questionIds: string[],
   questions: Question[],
+  questionScores: Record<string, number> = {},
 ): QuestionSnapshot[] {
   const questionMap = new Map(questions.map((q) => [q.id, q]));
   return questionIds.map((qid, index) => {
     const q = questionMap.get(qid);
     if (!q) {
       throw new ValidationError(`Question ${qid} not found`);
+    }
+    const score = questionScores[q.id];
+    if (!(typeof score === "number" && score > 0)) {
+      throw new ValidationError(`Question ${q.id} has no score on this exam`);
     }
     return {
       originalQuestionId: q.id,
@@ -103,7 +108,7 @@ export function buildQuestionSnapshot(
         contentDocument: o.contentDocument ?? null,
       })),
       standardAnswer: q.standardAnswer,
-      score: q.score,
+      score,
       gradingRule: q.gradingRule,
       order: index,
       // Rubric dual-layer — copy authoring source into the frozen
@@ -302,7 +307,11 @@ export async function publishExam(
   // INVARIANT (D5.1 validation-before-freeze): the frozen snapshot is built
   // only after every per-question trust/invariant check above passes — a
   // corrupt Rich row is never materialized into a provisional snapshot.
-  const questionSnapshot = buildQuestionSnapshot(exam.questionIds, questions);
+  const questionSnapshot = buildQuestionSnapshot(
+    exam.questionIds,
+    questions,
+    exam.questionScores ?? {},
+  );
   const totalScore = questionSnapshot.reduce(
     (sum, question) => sum + question.score,
     0,

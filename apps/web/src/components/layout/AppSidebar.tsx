@@ -1,7 +1,6 @@
 import type { MeResponse } from "@exam/contracts";
 import { Permission } from "@exam/authz";
 import {
-  canImportQuestions,
   canSeeCourses,
   canSeeDashboard,
   canSeeExams,
@@ -23,7 +22,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
-  FileUp,
   Gauge,
   GraduationCap,
   LayoutDashboard,
@@ -140,12 +138,6 @@ const groups: NavGroup[] = [
         to: routes.admin.questions,
         icon: BookOpen,
         visible: canSeeQuestions,
-      },
-      {
-        labelKey: "nav.items.questionsImport",
-        to: routes.admin.questionsImport,
-        icon: FileUp,
-        visible: canImportQuestions,
       },
     ],
   },
@@ -366,11 +358,11 @@ export function SidebarContent({
       >
         <nav
           ref={navRef}
-          className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-2 py-2"
+          className="scrollbar-sidebar flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-2 py-2"
         >
           {visibleGroups.map((group, gi) => (
             <section key={group.labelKey} className="flex flex-col gap-0.5">
-              {!collapsed && (
+              {!collapsed && group.labelKey !== "nav.groups.questionBank" && (
                 <p
                   data-testid="nav-group-label"
                   className="px-3 pb-1 pt-2 text-xs font-medium uppercase tracking-wider text-sidebar-muted"
@@ -494,7 +486,7 @@ export function AppSidebar({
         // full page height (which would push Administración/logout below the fold and
         // make the whole page scroll). min-h-0 lets the nav region shrink so
         // overflow-y-auto engages as a real scroll region.
-        "sticky top-0 hidden h-screen min-h-0 shrink-0 self-start flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] lg:flex",
+        "sticky top-0 hidden h-screen min-h-0 shrink-0 self-start flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] xl:flex",
         collapsed ? "w-14" : "w-[232px]",
       )}
     >

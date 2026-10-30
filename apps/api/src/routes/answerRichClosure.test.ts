@@ -92,7 +92,6 @@ describe("rich answer canonical closure (save-answer route)", () => {
         },
         options: [],
         standardAnswer: null,
-        score: 10,
         difficulty: 1,
         rubric: "r",
       },

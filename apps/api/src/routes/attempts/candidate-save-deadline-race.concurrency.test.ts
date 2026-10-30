@@ -221,7 +221,6 @@ async function setupFixture(
       .values({
         id: randomUUID(),
         organizationId: org.id,
-        courseId: course.id,
         type: "single_choice" as const,
         content: "EXAM-543",
         options: [
@@ -230,7 +229,6 @@ async function setupFixture(
         ],
         standardAnswer: "a",
         attachments: [],
-        score: 100,
         difficulty: 1,
         tags: [],
         gradingRule: {
@@ -271,7 +269,7 @@ async function setupFixture(
             attachments: [],
             options: question.options,
             standardAnswer: question.standardAnswer,
-            score: question.score,
+            score: 100,
             gradingRule: question.gradingRule,
             order: 0,
             rubric: null,

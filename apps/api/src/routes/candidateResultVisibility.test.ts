@@ -56,7 +56,6 @@ describe("candidate result visibility projection", () => {
     await ctx.db.insert(schema.questions).values({
       id: questionId,
       organizationId: ctx.org.id,
-      courseId,
       type: "single_choice",
       content: "Choose A",
       options: [
@@ -65,7 +64,6 @@ describe("candidate result visibility projection", () => {
       ],
       standardAnswer: "a",
       attachments: [],
-      score: 10,
       difficulty: 1,
       tags: [],
       gradingRule: {

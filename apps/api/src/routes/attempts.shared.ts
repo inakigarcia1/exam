@@ -1,4 +1,9 @@
-import type { ExamAttempt, AnswerRecord, Exam } from "@exam/domain";
+import type {
+  ExamAttempt,
+  AnswerRecord,
+  Exam,
+  QuestionSnapshot,
+} from "@exam/domain";
 import type { GradingStatus } from "@exam/domain";
 import {
   computeEffectiveDeadline,
@@ -45,6 +50,36 @@ function getInputMode(
  */
 function computeAnswerVisibility(): "hidden" | "visible" {
   return "hidden";
+}
+
+/** Maps a frozen question snapshot row to the candidate take question DTO. */
+export function toCandidateTakeQuestion(
+  q: QuestionSnapshot,
+  answer: {
+    answerValue: unknown;
+    answerSource: "draft" | "submitted" | "none";
+    currentClientSeq?: number | undefined;
+    currentVersion?: number | undefined;
+  },
+) {
+  return {
+    id: q.originalQuestionId,
+    type: q.type,
+    prompt: q.content,
+    promptDocument: q.contentDocument ?? null,
+    answerMode: q.answerMode ?? "plain",
+    options: q.options.map((o) => ({
+      id: o.id,
+      content: o.content,
+      contentDocument: o.contentDocument ?? null,
+    })),
+    inputMode: getInputMode(q.type),
+    maxScore: q.score,
+    answerValue: answer.answerValue,
+    answerSource: answer.answerSource,
+    currentClientSeq: answer.currentClientSeq,
+    currentVersion: answer.currentVersion,
+  };
 }
 
 /**
@@ -231,27 +266,12 @@ export function buildCandidateTakeSnapshot(
     }
     // not_started, queued, voided → answerSource = "none", answerValue = null
 
-    return {
-      id: q.originalQuestionId,
-      type: q.type,
-      prompt: q.content,
-      // #301: frozen rich prompt + the author-defined answer input mode.
-      // Legacy/plain snapshots project null/"plain" so the client keeps the
-      // plain fast path.
-      promptDocument: q.contentDocument ?? null,
-      answerMode: q.answerMode ?? "plain",
-      options: q.options.map((o) => ({
-        id: o.id,
-        content: o.content,
-        contentDocument: o.contentDocument ?? null,
-      })),
-      inputMode: getInputMode(q.type),
-      maxScore: q.score,
+    return toCandidateTakeQuestion(q, {
       answerValue,
       answerSource,
       currentClientSeq,
       currentVersion,
-    };
+    });
   });
 
   const resultVisibility = resolveCandidateResultVisibility(exam, attempt)

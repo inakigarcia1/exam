@@ -139,7 +139,6 @@ async function buildFixture(
   await db.insert(schema.questions).values({
     id: questionId,
     organizationId: orgId,
-    courseId,
     type: "single_choice",
     content: "1+1=?",
     options: [
@@ -149,7 +148,6 @@ async function buildFixture(
     ],
     standardAnswer: "b",
     attachments: [],
-    score: 100,
     difficulty: 1,
     tags: [],
     gradingRule: {

@@ -5,7 +5,6 @@ export interface PickerQuestion {
   id: string;
   type: string;
   content: string;
-  score: number;
 }
 
 interface PaginatedQuestions {

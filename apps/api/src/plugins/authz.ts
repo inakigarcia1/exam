@@ -30,10 +30,7 @@ import {
   createAttemptResolver,
   createExamResolver,
 } from "../authz/resolvers/attemptResolver.js";
-import {
-  createCourseResolver,
-  createQuestionResolver,
-} from "../authz/resolvers/courseResolver.js";
+import { createCourseResolver } from "../authz/resolvers/courseResolver.js";
 import { createIncidentResolver } from "../authz/resolvers/incidentResolver.js";
 import { createProctorAssignmentRepo } from "@exam/db/repository/proctorAssignmentRepo";
 import { createTeacherCourseAssignmentRepo } from "@exam/db/repository/teacherCourseAssignmentRepo";
@@ -67,7 +64,6 @@ const authzScopedPlugin: FastifyPluginAsync = async (fastify) => {
     attempt: createAttemptResolver(fastify.db, fastify.log),
     exam: createExamResolver(fastify.db, fastify.log),
     course: createCourseResolver(fastify.db, fastify.log),
-    question: createQuestionResolver(fastify.db, fastify.log),
     incident: createIncidentResolver(fastify.db, fastify.log),
     // NOTE: the `score` family is NOT a generic ScopeResolver — its resolution
     // carries ownership facts the generic interface cannot express, so the

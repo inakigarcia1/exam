@@ -61,13 +61,11 @@ describe("score routes", () => {
     await ctx.db.insert(schema.questions).values({
       id: questionId,
       organizationId: ctx.org.id,
-      courseId,
       type: "single_choice",
       content: "Choose A",
       options: [{ id: "a", content: "A" }],
       standardAnswer: "a",
       attachments: [],
-      score: 10,
       difficulty: 1,
       tags: [],
       gradingRule: {
@@ -480,7 +478,6 @@ describe("J8: score list routes", () => {
     await ctx.db.insert(schema.questions).values({
       id: questionId,
       organizationId: ctx.org.id,
-      courseId,
       type: "single_choice",
       content: "Choose A",
       options: [
@@ -489,7 +486,6 @@ describe("J8: score list routes", () => {
       ],
       standardAnswer: "a",
       attachments: [],
-      score: 10,
       difficulty: 1,
       tags: [],
       gradingRule: {
@@ -1059,7 +1055,6 @@ describe("candidate result / answer visibility boundaries", () => {
     await ctx.db.insert(schema.questions).values({
       id: singleChoiceId,
       organizationId: ctx.org.id,
-      courseId,
       type: "single_choice",
       content: "result-visibility objective",
       options: [
@@ -1068,7 +1063,6 @@ describe("candidate result / answer visibility boundaries", () => {
       ],
       standardAnswer: "a",
       attachments: [],
-      score: 10,
       difficulty: 1,
       tags: [],
       gradingRule: {
@@ -1083,13 +1077,11 @@ describe("candidate result / answer visibility boundaries", () => {
     await ctx.db.insert(schema.questions).values({
       id: textResponseId,
       organizationId: ctx.org.id,
-      courseId,
       type: "text_response",
       content: "result-visibility essay prompt",
       options: [],
       standardAnswer: "参考论述内容",
       attachments: [],
-      score: 20,
       difficulty: 3,
       tags: [],
       gradingRule: {
@@ -1104,13 +1096,11 @@ describe("candidate result / answer visibility boundaries", () => {
     await ctx.db.insert(schema.questions).values({
       id: textResponseNullId,
       organizationId: ctx.org.id,
-      courseId,
       type: "text_response",
       content: "result-visibility essay prompt null answer",
       options: [],
       standardAnswer: null,
       attachments: [],
-      score: 20,
       difficulty: 3,
       tags: [],
       gradingRule: {
@@ -1498,7 +1488,6 @@ describe("admin frozen result view", () => {
     await ctx.db.insert(schema.questions).values({
       id: singleChoiceId,
       organizationId: ctx.org.id,
-      courseId,
       type: "single_choice",
       content: "admin-view objective prompt",
       options: [
@@ -1507,7 +1496,6 @@ describe("admin frozen result view", () => {
       ],
       standardAnswer: "a",
       attachments: [],
-      score: 10,
       difficulty: 1,
       tags: [],
       gradingRule: {
@@ -1521,13 +1509,11 @@ describe("admin frozen result view", () => {
     await ctx.db.insert(schema.questions).values({
       id: textResponseId,
       organizationId: ctx.org.id,
-      courseId,
       type: "text_response",
       content: "admin-view essay prompt",
       options: [],
       standardAnswer: "admin-view frozen reference answer",
       attachments: [],
-      score: 20,
       difficulty: 3,
       tags: [],
       gradingRule: {

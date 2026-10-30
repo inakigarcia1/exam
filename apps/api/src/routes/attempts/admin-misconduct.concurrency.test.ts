@@ -421,7 +421,6 @@ describe("deterministic misconduct-mark operationId races", () => {
         .values({
           id: randomUUID(),
           organizationId: org.id,
-          courseId: course.id,
           type: "single_choice",
           content: "test",
           contentDocument: null,
@@ -432,7 +431,6 @@ describe("deterministic misconduct-mark operationId races", () => {
           ],
           standardAnswer: "a",
           attachments: [],
-          score: 100,
           difficulty: 1,
           tags: [],
           gradingRule: {

@@ -487,7 +487,6 @@ export async function seedDemo(
   const questionDefs = [
     {
       tag: "safety-sc1",
-      courseId: safetyCourseId,
       type: "single_choice" as const,
       content: "灭火器的正确使用步骤是？",
       options: [
@@ -504,7 +503,6 @@ export async function seedDemo(
     },
     {
       tag: "safety-mc1",
-      courseId: safetyCourseId,
       type: "multiple_choice" as const,
       content: "以下哪些属于个人防护装备？",
       options: [
@@ -521,7 +519,6 @@ export async function seedDemo(
     },
     {
       tag: "safety-tf1",
-      courseId: safetyCourseId,
       type: "true_false" as const,
       content: "发生火灾时应乘坐电梯逃生",
       options: [
@@ -536,7 +533,6 @@ export async function seedDemo(
     },
     {
       tag: "safety-fb1",
-      courseId: safetyCourseId,
       type: "fill_blank" as const,
       content: "安全出口标识的颜色是____色",
       options: [],
@@ -548,7 +544,6 @@ export async function seedDemo(
     },
     {
       tag: "safety-sc2",
-      courseId: safetyCourseId,
       type: "single_choice" as const,
       content: "发现火灾应首先拨打哪个电话？",
       options: [
@@ -565,7 +560,6 @@ export async function seedDemo(
     },
     {
       tag: "safety-fb2",
-      courseId: safetyCourseId,
       type: "fill_blank" as const,
       content: "消防通道的宽度不得低于____米",
       options: [],
@@ -577,7 +571,6 @@ export async function seedDemo(
     },
     {
       tag: "skill-sc1",
-      courseId: skillCourseId,
       type: "single_choice" as const,
       content: "以下哪种是正确的操作流程？",
       options: [
@@ -594,7 +587,6 @@ export async function seedDemo(
     },
     {
       tag: "skill-mc1",
-      courseId: skillCourseId,
       type: "multiple_choice" as const,
       content: "质量检查包括哪些环节？",
       options: [
@@ -611,7 +603,6 @@ export async function seedDemo(
     },
     {
       tag: "skill-tf1",
-      courseId: skillCourseId,
       type: "true_false" as const,
       content: "操作前必须进行设备校验",
       options: [
@@ -626,7 +617,6 @@ export async function seedDemo(
     },
     {
       tag: "skill-fb1",
-      courseId: skillCourseId,
       type: "fill_blank" as const,
       content: "标准操作规程的缩写是____",
       options: [],
@@ -638,6 +628,7 @@ export async function seedDemo(
     },
   ];
 
+  const scoreByQuestionId = new Map<string, number>();
   for (const qd of questionDefs) {
     const existing = await db
       .select()
@@ -645,7 +636,6 @@ export async function seedDemo(
       .where(
         and(
           eq(schema.questions.organizationId, ids.orgId),
-          eq(schema.questions.courseId, qd.courseId),
           eq(schema.questions.content, qd.content),
         ),
       );
@@ -654,16 +644,15 @@ export async function seedDemo(
     } else {
       const qId = uuid("q");
       ids.questions[qd.tag] = qId;
+      scoreByQuestionId.set(qId, qd.score);
       await db.insert(schema.questions).values({
         id: qId,
         organizationId: ids.orgId,
-        courseId: qd.courseId,
         type: qd.type,
         content: qd.content,
         options: qd.options,
         standardAnswer: qd.standardAnswer,
         attachments: [],
-        score: qd.score,
         difficulty: qd.difficulty,
         tags: qd.tags,
         gradingRule: qd.gradingRule,
@@ -713,7 +702,7 @@ export async function seedDemo(
           (q.options as Array<{ id: string; content: string }>) ?? []
         ).map((o) => ({ id: o.id, content: o.content })),
         standardAnswer: q.standardAnswer,
-        score: q.score,
+        score: scoreByQuestionId.get(q.id) ?? 10,
         gradingRule: q.gradingRule as GradingRule,
         order: i,
         // demo-seed only creates objective questions; rubric is null.
@@ -729,6 +718,12 @@ export async function seedDemo(
     return snapshots.reduce((sum, s) => sum + s.score, 0);
   }
 
+  function scoresOf(snapshots: QuestionSnapshot[]): Record<string, number> {
+    return Object.fromEntries(
+      snapshots.map((item) => [item.originalQuestionId, item.score]),
+    );
+  }
+
   // ── Helper: upsert exam ───────────────────────────────────────
   type ExamInsert = {
     description: string;
@@ -742,6 +737,7 @@ export async function seedDemo(
     totalScore: number;
     questionSelectionMode: QuestionSelectionMode;
     questionIds: string[];
+    questionScores: Record<string, number>;
     questionSnapshot: QuestionSnapshot[];
     controlFlags: ControlFlags;
     retakePolicy: RetakePolicy;
@@ -805,6 +801,7 @@ export async function seedDemo(
     totalScore: exam1TotalScore,
     questionSelectionMode: "manual",
     questionIds: exam1Questions.map((t) => qid(t)),
+    questionScores: scoresOf(exam1Snapshot),
     questionSnapshot: exam1Snapshot,
     controlFlags: makeDefaultControlFlags(),
     retakePolicy: "max_attempts",
@@ -832,6 +829,7 @@ export async function seedDemo(
     totalScore: exam2TotalScore,
     questionSelectionMode: "manual",
     questionIds: exam2QIds,
+    questionScores: scoresOf(exam2Snapshot),
     questionSnapshot: [],
     controlFlags: makeDefaultControlFlags(),
     retakePolicy: "unlimited",
@@ -858,6 +856,7 @@ export async function seedDemo(
     totalScore: exam3TotalScore,
     questionSelectionMode: "manual",
     questionIds: exam3Questions.map((t) => qid(t)),
+    questionScores: scoresOf(exam3Snapshot),
     questionSnapshot: exam3Snapshot,
     controlFlags: makeDefaultControlFlags(),
     retakePolicy: "max_attempts",
@@ -884,6 +883,7 @@ export async function seedDemo(
     totalScore: exam4TotalScore,
     questionSelectionMode: "manual",
     questionIds: exam4Questions.map((t) => qid(t)),
+    questionScores: scoresOf(exam4Snapshot),
     questionSnapshot: exam4Snapshot,
     controlFlags: makeDefaultControlFlags(),
     retakePolicy: "pass_then_stop",

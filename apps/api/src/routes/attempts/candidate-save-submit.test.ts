@@ -1676,7 +1676,6 @@ describe("attempt routes", () => {
       await ctx.db.insert(schema.questions).values({
         id: mcPartialQuestionId,
         organizationId: ctx.org.id,
-        courseId,
         type: "multiple_choice",
         content: "Select the even numbers",
         options: [
@@ -1687,7 +1686,6 @@ describe("attempt routes", () => {
         ],
         standardAnswer: ["b", "d"],
         attachments: [],
-        score: 100,
         difficulty: 1,
         tags: [],
         gradingRule: {
@@ -1701,7 +1699,6 @@ describe("attempt routes", () => {
       await ctx.db.insert(schema.questions).values({
         id: mcFullQuestionId,
         organizationId: ctx.org.id,
-        courseId,
         type: "multiple_choice",
         content: "Select the even numbers",
         options: [
@@ -1712,7 +1709,6 @@ describe("attempt routes", () => {
         ],
         standardAnswer: ["b", "d"],
         attachments: [],
-        score: 100,
         difficulty: 1,
         tags: [],
         gradingRule: {
@@ -1726,7 +1722,6 @@ describe("attempt routes", () => {
       await ctx.db.insert(schema.questions).values({
         id: tfQuestionId,
         organizationId: ctx.org.id,
-        courseId,
         type: "true_false",
         content: "The sky is blue on a clear day",
         options: [
@@ -1735,7 +1730,6 @@ describe("attempt routes", () => {
         ],
         standardAnswer: true,
         attachments: [],
-        score: 100,
         difficulty: 1,
         tags: [],
         gradingRule: {

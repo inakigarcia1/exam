@@ -81,6 +81,8 @@ vi.mock("sonner", () => ({
 }));
 
 function defaultApiGet(path: string): unknown {
+  if (path.includes("/api/subjects"))
+    return { items: [{ id: "s1", name: "Álgebra" }] };
   if (path.includes("/api/courses"))
     return { items: mockCourses, total: 1, totalPages: 1 };
   if (path.includes("/api/questions"))
@@ -122,21 +124,90 @@ function renderPage() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  apiGet.mockImplementation(defaultApiGet);
+  apiGet.mockImplementation((path: string) =>
+    Promise.resolve(defaultApiGet(path)),
+  );
   apiPost.mockResolvedValue({ id: "exam-1" });
 });
 
 function fillTitle(value: string) {
-  fireEvent.change(screen.getByPlaceholderText("Ingresa el nombre del examen"), {
-    target: { value },
-  });
+  fireEvent.change(
+    screen.getByPlaceholderText("Ingresá el nombre del examen"),
+    {
+      target: { value },
+    },
+  );
 }
+
+describe("ExamCreatePage wizard — materia y comisión", () => {
+  it("creates a subject from the plus button and selects it", async () => {
+    apiPost.mockImplementation((path: string, body: { name?: string }) => {
+      if (path === "/api/subjects") {
+        return { id: "s-new", name: body.name };
+      }
+      return { id: "exam-1" };
+    });
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText("Crear examen");
+    expect(
+      screen.queryByPlaceholderText("O creá una materia nueva"),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Nueva materia" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).getByRole("heading", { name: "Nueva materia" }),
+    ).toBeInTheDocument();
+    expect(within(dialog).queryByText("Comisión")).not.toBeInTheDocument();
+    expect(
+      within(dialog).getByRole("button", { name: "Guardar" }),
+    ).toBeDisabled();
+
+    await user.type(within(dialog).getByLabelText("Nombre"), "Física");
+    await user.click(within(dialog).getByRole("button", { name: "Guardar" }));
+
+    await waitFor(() => {
+      expect(apiPost).toHaveBeenCalledWith("/api/subjects", { name: "Física" });
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole("combobox", { name: "Materia" })).toHaveTextContent(
+      "Física",
+    );
+    expect(apiPost).not.toHaveBeenCalledWith("/api/courses", expect.anything());
+  });
+
+  it("opens a commission only for a subject already chosen", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText("Crear examen");
+    expect(
+      screen.getByRole("button", { name: "Nueva comisión" }),
+    ).toBeDisabled();
+
+    await user.click(screen.getByRole("combobox", { name: "Materia" }));
+    await user.click(await screen.findByRole("option", { name: "Álgebra" }));
+    await user.click(screen.getByRole("button", { name: "Nueva comisión" }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).getByRole("heading", { name: "Nueva comisión" }),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Nombre")).toHaveValue("");
+    expect(
+      within(dialog).getByRole("combobox", { name: "Materia de la comisión" }),
+    ).toHaveTextContent("Álgebra");
+    expect(apiPost).not.toHaveBeenCalled();
+  });
+});
 
 describe("ExamCreatePage wizard — step 1 (basic + profile)", () => {
   it("renders the wizard title and step 1 fields", async () => {
     renderPage();
     expect(await screen.findByText("Crear examen")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Ingresa el nombre del examen")).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText("Ingresa el nombre del examen"),
+    ).toBeInTheDocument();
     // Profile picker is present on step 1.
     expect(
       screen.getByRole("combobox", { name: "Usar plantilla existente" }),
@@ -176,7 +247,9 @@ describe("ExamCreatePage wizard — step 1 (basic + profile)", () => {
     renderPage();
     await screen.findByText("Crear examen");
     await user.click(screen.getByRole("button", { name: /Siguiente/ }));
-    expect(await screen.findByText("Ingresa el nombre del examen")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Ingresa el nombre del examen"),
+    ).toBeInTheDocument();
     // Still on step 1.
     expect(apiPost).not.toHaveBeenCalled();
   });
@@ -196,46 +269,52 @@ describe("ExamCreatePage wizard — step 3 (questions + scores)", () => {
     renderPage();
     await screen.findByText("Crear examen");
     fillTitle("Test Exam");
+    await user.click(screen.getByRole("combobox", { name: "Materia" }));
+    await user.click(await screen.findByRole("option", { name: "Álgebra" }));
+    await user.click(screen.getByRole("combobox", { name: "Comisión" }));
+    await user.click(await screen.findByRole("option", { name: "数学" }));
     // Step 1 → 2 (policy) → 3 (questions). Identify step 3 by its unique
     // question-picker button rather than the heading (which also appears in
     // the stepper).
     await user.click(screen.getByRole("button", { name: /Siguiente/ }));
     await user.click(screen.getByRole("button", { name: /Siguiente/ }));
-    await screen.findByRole("button", { name: "Elegir preguntas" });
+    await screen.findByRole("button", { name: "Agregar del banco" });
   }
 
   it("opens the question picker dialog and adds a question", async () => {
     const user = userEvent.setup();
     await goToStep3(user);
-    await user.click(screen.getByRole("button", { name: "Elegir preguntas" }));
+    await user.click(screen.getByRole("button", { name: "Agregar del banco" }));
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByText("2+2=4")).toBeInTheDocument();
-    const addButtons = within(dialog).getAllByRole("button", { name: "Agregar" });
+    const addButtons = within(dialog).getAllByRole("button", {
+      name: "Agregar",
+    });
     await user.click(addButtons[0]!);
     await waitFor(() => {
-      expect(screen.getByText("已选题目 (1)")).toBeInTheDocument();
+      expect(screen.getByText("Preguntas elegidas (1)")).toBeInTheDocument();
     });
   });
 
   it("removes a selected question", async () => {
     const user = userEvent.setup();
     await goToStep3(user);
-    await user.click(screen.getByRole("button", { name: "Elegir preguntas" }));
+    await user.click(screen.getByRole("button", { name: "Agregar del banco" }));
     const dialog = await screen.findByRole("dialog");
     await user.click(
       within(dialog).getAllByRole("button", { name: "Agregar" })[0]!,
     );
     await user.click(within(dialog).getByRole("button", { name: "Cerrar" }));
     await waitFor(() =>
-      expect(screen.getByText("已选题目 (1)")).toBeInTheDocument(),
+      expect(screen.getByText("Preguntas elegidas (1)")).toBeInTheDocument(),
     );
-    await user.click(screen.getByRole("button", { name: "Eliminar pregunta" }));
+    await user.click(screen.getByRole("button", { name: "Quitar del examen" }));
     const confirmDialog = await screen.findByRole("alertdialog");
     await user.click(
-      within(confirmDialog).getByRole("button", { name: "Confirmar" }),
+      within(confirmDialog).getByRole("button", { name: "Quitar" }),
     );
     await waitFor(() =>
-      expect(screen.getByText("已选题目 (0)")).toBeInTheDocument(),
+      expect(screen.getByText("Preguntas elegidas (0)")).toBeInTheDocument(),
     );
   });
 
@@ -243,7 +322,7 @@ describe("ExamCreatePage wizard — step 3 (questions + scores)", () => {
     apiGet.mockImplementation((path: string) => {
       if (path.includes("/api/questions")) {
         if (path.includes("page=2"))
-          return {
+          return Promise.resolve({
             items: [
               {
                 id: "q3",
@@ -254,14 +333,18 @@ describe("ExamCreatePage wizard — step 3 (questions + scores)", () => {
             ],
             total: 3,
             totalPages: 2,
-          };
-        return { items: mockQuestions, total: 3, totalPages: 2 };
+          });
+        return Promise.resolve({
+          items: mockQuestions,
+          total: 3,
+          totalPages: 2,
+        });
       }
-      return defaultApiGet(path);
+      return Promise.resolve(defaultApiGet(path));
     });
     const user = userEvent.setup();
     await goToStep3(user);
-    await user.click(screen.getByRole("button", { name: "Elegir preguntas" }));
+    await user.click(screen.getByRole("button", { name: "Agregar del banco" }));
     const dialog = await screen.findByRole("dialog");
     // Page 1 and page 2 items are both selectable in the picker.
     expect(within(dialog).getByText("2+2=4")).toBeInTheDocument();
@@ -274,22 +357,29 @@ describe("ExamCreatePage wizard — step 3 (questions + scores)", () => {
   it("auto-calculates totalScore from the selected questions (10 + 15 = 25)", async () => {
     const user = userEvent.setup();
     await goToStep3(user);
-    await user.click(screen.getByRole("button", { name: "Elegir preguntas" }));
+    await user.click(screen.getByRole("button", { name: "Agregar del banco" }));
     const dialog = await screen.findByRole("dialog");
     // Add BOTH fixture questions (scores 10 and 15).
-    const addButtons = within(dialog).getAllByRole("button", { name: "Agregar" });
+    const addButtons = within(dialog).getAllByRole("button", {
+      name: "Agregar",
+    });
     await user.click(addButtons[0]!);
     await user.click(addButtons[1]!);
     await user.click(within(dialog).getByRole("button", { name: "Cerrar" }));
-    // Auto mode: the Puntaje total input shows the sum and the auto-calc hint appears.
-    // (getByLabelText matches both the section title and the input — scope to
-    // the input element.)
-    await waitFor(() => {
-      expect(screen.getByLabelText("Puntaje total", { selector: "input" })).toHaveValue(
-        25,
-      );
+    const scoreInputs = screen.getAllByLabelText("Puntos", {
+      selector: "input",
     });
-    expect(screen.getByText("Cálculo automático：25 分")).toBeInTheDocument();
+    fireEvent.change(scoreInputs[0]!, { target: { value: "10" } });
+    fireEvent.change(scoreInputs[1]!, { target: { value: "15" } });
+    // Auto mode: the Puntaje total input shows the sum and the auto-calc hint appears.
+    await waitFor(() => {
+      expect(
+        screen.getByLabelText("Puntaje total", { selector: "input" }),
+      ).toHaveValue(25);
+    });
+    expect(
+      screen.getByText("Cálculo automático: 25 puntos"),
+    ).toBeInTheDocument();
   });
 
   it("auto-adjusts the untouched default Puntaje de aprobación when it exceeds the auto total (born-in-error fix)", async () => {
@@ -297,21 +387,32 @@ describe("ExamCreatePage wizard — step 3 (questions + scores)", () => {
     await goToStep3(user);
     // Default Puntaje de aprobación is 60; adding questions totaling 25 would leave
     // passingScore > totalScore, blocking Siguiente with an unexplained error.
-    await user.click(screen.getByRole("button", { name: "Elegir preguntas" }));
+    await user.click(screen.getByRole("button", { name: "Agregar del banco" }));
     const dialog = await screen.findByRole("dialog");
-    const addButtons = within(dialog).getAllByRole("button", { name: "Agregar" });
+    const addButtons = within(dialog).getAllByRole("button", {
+      name: "Agregar",
+    });
     await user.click(addButtons[0]!);
     await user.click(addButtons[1]!);
     await user.click(within(dialog).getByRole("button", { name: "Cerrar" }));
-    // Puntaje de aprobación follows the auto total down to 60% (25 * 0.6 = 15).
+    const scoreInputs = screen.getAllByLabelText("Puntos", {
+      selector: "input",
+    });
+    fireEvent.change(scoreInputs[0]!, { target: { value: "10" } });
+    fireEvent.change(scoreInputs[1]!, { target: { value: "15" } });
+    // Puntaje para aprobar follows the auto total down to 60% (25 * 0.6 = 15).
     await waitFor(() => {
       expect(
-        screen.getByLabelText("Puntaje de aprobación", { selector: "input" }),
+        screen.getByLabelText("Puntaje para aprobar", { selector: "input" }),
       ).toHaveValue(15);
     });
     // The step is no longer born in an error state: no validation message and
     // Siguiente proceeds to the schedule step.
-    expect(screen.queryByText("El puntaje de aprobación no puede superar el puntaje total")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        "El puntaje de aprobación no puede superar el puntaje total",
+      ),
+    ).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Siguiente/ }));
     await screen.findByLabelText("Inicio");
   });
@@ -319,19 +420,24 @@ describe("ExamCreatePage wizard — step 3 (questions + scores)", () => {
   it("never overwrites an explicitly edited Puntaje de aprobación", async () => {
     const user = userEvent.setup();
     await goToStep3(user);
-    await user.click(screen.getByRole("button", { name: "Elegir preguntas" }));
+    await user.click(screen.getByRole("button", { name: "Agregar del banco" }));
     const dialog = await screen.findByRole("dialog");
-    // User sets Puntaje de aprobación = 8 BEFORE picking questions.
-    fireEvent.change(screen.getByLabelText("Puntaje de aprobación", { selector: "input" }), {
-      target: { value: "8" },
+    // User sets Puntaje para aprobar = 8 BEFORE picking questions.
+    fireEvent.change(
+      screen.getByLabelText("Puntaje para aprobar", { selector: "input" }),
+      {
+        target: { value: "8" },
+      },
+    );
+    const addButtons = within(dialog).getAllByRole("button", {
+      name: "Agregar",
     });
-    const addButtons = within(dialog).getAllByRole("button", { name: "Agregar" });
     await user.click(addButtons[0]!);
     await user.click(within(dialog).getByRole("button", { name: "Cerrar" }));
     // The explicit value (8) survives question selection (8 <= 25 is valid).
     await waitFor(() => {
       expect(
-        screen.getByLabelText("Puntaje de aprobación", { selector: "input" }),
+        screen.getByLabelText("Puntaje para aprobar", { selector: "input" }),
       ).toHaveValue(8);
     });
   });
@@ -386,6 +492,7 @@ describe("ExamCreatePage wizard — profile path", () => {
     interruptionTimePolicy: "bounded_grace",
     interruptionGracePerIncidentSeconds: 300,
     interruptionGracePerAttemptSeconds: 600,
+    restrictSimultaneousAccess: false,
     createdAt: "2026-08-01T00:00:00.000Z",
     updatedAt: "2026-08-10T00:00:00.000Z",
   };
@@ -400,7 +507,9 @@ describe("ExamCreatePage wizard — profile path", () => {
     await screen.findByText("Crear examen");
     fillTitle("Profiled Exam");
     // Select the profile.
-    await user.click(screen.getByRole("combobox", { name: "Usar plantilla existente" }));
+    await user.click(
+      screen.getByRole("combobox", { name: "Usar plantilla existente" }),
+    );
     await user.click(
       await screen.findByRole("option", { name: "Examen en línea estándar" }),
     );
@@ -411,11 +520,13 @@ describe("ExamCreatePage wizard — profile path", () => {
     // Go to step 2.
     await user.click(screen.getByRole("button", { name: /Siguiente/ }));
     // Profile duration (90) shown; at least one field badge says 来自「Examen en línea estándar」.
-    const durationInput = screen.getByLabelText("Duración del examen (minutos)");
-    expect(durationInput).toHaveValue(90);
-    expect(screen.getAllByText("来自「Examen en línea estándar」").length).toBeGreaterThan(
-      0,
+    const durationInput = screen.getByLabelText(
+      "Duración del examen (minutos)",
     );
+    expect(durationInput).toHaveValue(90);
+    expect(
+      screen.getAllByText("来自「Examen en línea estándar」").length,
+    ).toBeGreaterThan(0);
     // Override duration → badge switches to Con cambios for that field.
     fireEvent.change(durationInput, { target: { value: 45 } });
     expect(screen.getAllByText("Con cambios").length).toBeGreaterThan(0);
@@ -434,7 +545,9 @@ describe("ExamCreatePage wizard — profile path", () => {
     renderPage();
     await screen.findByText("Crear examen");
     fillTitle("Profiled Exam 2");
-    await user.click(screen.getByRole("combobox", { name: "Usar plantilla existente" }));
+    await user.click(
+      screen.getByRole("combobox", { name: "Usar plantilla existente" }),
+    );
     await user.click(
       await screen.findByRole("option", { name: "Examen en línea estándar" }),
     );
@@ -445,9 +558,12 @@ describe("ExamCreatePage wizard — profile path", () => {
       target: { value: 120 },
     });
     // Override latestStartOffsetMinutes → explicit null (clear the field).
-    fireEvent.change(screen.getByLabelText("Último ingreso (minutos desde el inicio)"), {
-      target: { value: "" },
-    });
+    fireEvent.change(
+      screen.getByLabelText("Último ingreso (minutos desde el inicio)"),
+      {
+        target: { value: "" },
+      },
+    );
     // Walk to review and create.
     for (let i = 0; i < 3; i++) {
       await user.click(screen.getByRole("button", { name: /Siguiente/ }));
@@ -489,7 +605,9 @@ describe("ExamCreatePage wizard — profile path", () => {
     renderPage();
     await screen.findByText("Crear examen");
     fillTitle("Reset Exam");
-    await user.click(screen.getByRole("combobox", { name: "Usar plantilla existente" }));
+    await user.click(
+      screen.getByRole("combobox", { name: "Usar plantilla existente" }),
+    );
     await user.click(
       await screen.findByRole("option", { name: "Examen en línea estándar" }),
     );
@@ -498,12 +616,16 @@ describe("ExamCreatePage wizard — profile path", () => {
       target: { value: 45 },
     });
     // Reset.
-    await user.click(screen.getByRole("button", { name: "Volver a la plantilla" }));
-    // Field reverted to profile value; at least one badge is from template.
-    expect(screen.getByLabelText("Duración del examen (minutos)")).toHaveValue(90);
-    expect(screen.getAllByText("来自「Examen en línea estándar」").length).toBeGreaterThan(
-      0,
+    await user.click(
+      screen.getByRole("button", { name: "Volver a la plantilla" }),
     );
+    // Field reverted to profile value; at least one badge is from template.
+    expect(screen.getByLabelText("Duración del examen (minutos)")).toHaveValue(
+      90,
+    );
+    expect(
+      screen.getAllByText("来自「Examen en línea estándar」").length,
+    ).toBeGreaterThan(0);
   });
 });
 
@@ -554,19 +676,22 @@ describe("ExamCreatePage wizard — validation routing", () => {
     // fields[].message is producer-local compat. Both differ from the
     // Web-catalog semantic the field renders.
     apiPost.mockRejectedValueOnce(
-      Object.assign(new Error("Hay datos incorrectos. Revísalos e inténtalo de nuevo."), {
-        code: "VALIDATION_ERROR",
-        details: {
-          fields: [
-            {
-              field: "courseId",
-              code: "RESOURCE_NOT_FOUND",
-              params: { resource: "course" },
-              message: "SERVER COMPAT WORDING",
-            },
-          ],
+      Object.assign(
+        new Error("Hay datos incorrectos. Revísalos e inténtalo de nuevo."),
+        {
+          code: "VALIDATION_ERROR",
+          details: {
+            fields: [
+              {
+                field: "courseId",
+                code: "RESOURCE_NOT_FOUND",
+                params: { resource: "course" },
+                message: "SERVER COMPAT WORDING",
+              },
+            ],
+          },
         },
-      }),
+      ),
     );
     renderPage();
     await screen.findByText("Crear examen");
@@ -590,7 +715,9 @@ describe("ExamCreatePage wizard — validation routing", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText("SERVER COMPAT WORDING")).not.toBeInTheDocument();
     // stepForField routes courseId back to step 1.
-    expect(await screen.findByLabelText("Nombre del examen")).toBeInTheDocument();
+    expect(
+      await screen.findByLabelText("Nombre del examen"),
+    ).toBeInTheDocument();
   });
 
   it("stepper future steps are disabled — forward validation cannot be bypassed", async () => {
@@ -598,9 +725,15 @@ describe("ExamCreatePage wizard — validation routing", () => {
     await screen.findByText("Crear examen");
     // On step 1, steps 2–5 are locked; only Siguiente advances.
     // (Stepper buttons expose an explicit aria-label with a number + label.)
-    expect(screen.getByRole("button", { name: /5 Revisar y crear/ })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /2 Política del examen/ })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /1 Datos básicos/ })).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: /5 Revisar y crear/ }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /2 Política del examen/ }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /1 Datos básicos/ }),
+    ).toBeEnabled();
   });
 
   it("fixed validation errors do not linger as ghosts after re-validation", async () => {
@@ -609,12 +742,16 @@ describe("ExamCreatePage wizard — validation routing", () => {
     await screen.findByText("Crear examen");
     // Trigger the title-required error.
     await user.click(screen.getByRole("button", { name: /Siguiente/ }));
-    expect(await screen.findByText("Ingresa el nombre del examen")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Ingresa el nombre del examen"),
+    ).toBeInTheDocument();
     // Fix the title and advance — the error must be gone (we land on step 2).
     fillTitle("Fixed Title");
     await user.click(screen.getByRole("button", { name: /Siguiente/ }));
     await screen.findByLabelText("Duración del examen (minutos)");
-    expect(screen.queryByText("Ingresa el nombre del examen")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Ingresa el nombre del examen"),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -636,6 +773,7 @@ describe("ExamCreatePage wizard — interruption policy override semantics", () 
       interruptionTimePolicy: "bounded_grace",
       interruptionGracePerIncidentSeconds: 300,
       interruptionGracePerAttemptSeconds: 600,
+      restrictSimultaneousAccess: false,
       createdAt: "2026-08-01T00:00:00.000Z",
       updatedAt: "2026-08-10T00:00:00.000Z",
     };
@@ -647,13 +785,19 @@ describe("ExamCreatePage wizard — interruption policy override semantics", () 
     renderPage();
     await screen.findByText("Crear examen");
     fillTitle("Strict Exam");
-    await user.click(screen.getByRole("combobox", { name: "Usar plantilla existente" }));
+    await user.click(
+      screen.getByRole("combobox", { name: "Usar plantilla existente" }),
+    );
     await user.click(await screen.findByRole("option", { name: "宽限模板" }));
     // Step 1 → 2.
     await user.click(screen.getByRole("button", { name: /Siguiente/ }));
     // Switch policy from bounded_grace to strict (Sin tiempo extra).
-    await user.click(screen.getByRole("combobox", { name: "Política si se interrumpe" }));
-    await user.click(await screen.findByRole("option", { name: "Sin tiempo extra" }));
+    await user.click(
+      screen.getByRole("combobox", { name: "Política si se interrumpe" }),
+    );
+    await user.click(
+      await screen.findByRole("option", { name: "Sin tiempo extra" }),
+    );
     // Walk to review and create.
     for (let i = 0; i < 3; i++) {
       await user.click(screen.getByRole("button", { name: /Siguiente/ }));

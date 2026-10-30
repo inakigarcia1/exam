@@ -23,6 +23,7 @@ export const routes = {
     exams: "/admin/exams",
     examsNew: "/admin/exams/new",
     examDetail: (id: string) => `/admin/exams/${id}`,
+    examPreview: (id: string) => `/preview/exams/${id}`,
     examEdit: (id: string) => `/admin/exams/${id}/edit`,
     examScores: (id: string) => `/admin/exams/${id}/scores`,
     examProfiles: "/admin/exam-profiles",

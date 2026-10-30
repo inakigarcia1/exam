@@ -60,13 +60,11 @@ describe("candidate take leak protection for text_response", () => {
     await ctx.db.insert(schema.questions).values({
       id: textQuestionId,
       organizationId: ctx.org.id,
-      courseId,
       type: "text_response",
       content: "请阐述闭卷考试的安全边界。",
       options: [],
       standardAnswer: "参考要点一\n参考要点二\n参考要点三",
       attachments: [],
-      score: 30,
       difficulty: 3,
       tags: [],
       gradingRule: {
@@ -287,13 +285,11 @@ describe("snapshot freeze: post-publish live edit does not affect grading", () =
     await ctx.db.insert(schema.questions).values({
       id: snapshotQuestionId,
       organizationId: ctx.org.id,
-      courseId,
       type: "text_response",
       content: "快照冻结测试题",
       options: [],
       standardAnswer: "原始参考答案",
       attachments: [],
-      score: 20,
       difficulty: 2,
       tags: [],
       gradingRule: {

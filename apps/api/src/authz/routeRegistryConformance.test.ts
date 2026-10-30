@@ -547,43 +547,6 @@ describe("registry/runtime conformance", () => {
       resolverKey: "course",
       resourceIdKey: "id",
     },
-    // questions (detail/write resolve through the durable parent course)
-    {
-      method: "GET",
-      path: "/questions/:id",
-      permission: "question.view",
-      resolverKey: "question",
-      resourceIdKey: "id",
-    },
-    {
-      method: "PATCH",
-      path: "/questions/:id",
-      permission: "question.update",
-      resolverKey: "question",
-      resourceIdKey: "id",
-    },
-    {
-      method: "DELETE",
-      path: "/questions/:id",
-      permission: "question.delete",
-      resolverKey: "question",
-      resourceIdKey: "id",
-    },
-    // question create/import source the parent course from the BODY
-    {
-      method: "POST",
-      path: "/questions",
-      permission: "question.create",
-      resolverKey: "course",
-      resourceIdKey: "courseId",
-    },
-    {
-      method: "POST",
-      path: "/questions/import",
-      permission: "question.import",
-      resolverKey: "course",
-      resourceIdKey: "courseId",
-    },
     // exams (course chain) — create sources courseId from the BODY
     {
       method: "GET",

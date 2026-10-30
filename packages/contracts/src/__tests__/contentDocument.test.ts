@@ -21,7 +21,6 @@ function doc(content: unknown[]): ContentDocumentV1 {
 }
 
 const RICH_TEXT_RESPONSE_CREATE = {
-  courseId: "11111111-1111-4111-8111-111111111111",
   type: "text_response",
   contentDocument: doc([
     {

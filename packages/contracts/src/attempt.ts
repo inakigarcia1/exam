@@ -1182,6 +1182,17 @@ export const CandidateTakeSnapshotSchema = z.object({
 });
 export type CandidateTakeSnapshot = z.infer<typeof CandidateTakeSnapshotSchema>;
 
+/** Draft exam preview for teachers — candidate-safe questions, no attempt. */
+export const ExamPreviewResponseSchema = z.object({
+  examId: z.string().uuid(),
+  title: z.string(),
+  description: z.string(),
+  timingMode: TimingModeEnum,
+  durationMinutes: z.number().int().nullable(),
+  questions: z.array(CandidateTakeQuestionSchema),
+});
+export type ExamPreviewResponse = z.infer<typeof ExamPreviewResponseSchema>;
+
 // ── Candidate Status (Admin / Proctor) ──────────────────────────
 
 /**

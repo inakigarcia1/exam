@@ -39,6 +39,7 @@ export interface ExamConfigData {
   totalScore: number;
   questionSelectionMode: "manual" | "random";
   questionIds: string[];
+  questionScores: Record<string, number>;
   resultPublicationMode: "immediate" | "after_grading" | "manual";
   // Round-trip shape of the exam's controlFlags: the control section only
   // authors runtime-enforced behavior (shuffle*) plus showResultImmediately,
@@ -86,9 +87,13 @@ export function ExamConfigForm({
   const { t } = useTranslation();
   const [manualTotalScore, setManualTotalScore] = useState(false);
 
-  const computedTotal = questions
-    .filter((q) => data.questionIds.includes(q.id))
-    .reduce((sum, q) => sum + q.score, 0);
+  const scoreById = new Map(
+    questions.map((question) => [question.id, question.score]),
+  );
+  const computedTotal = data.questionIds.reduce(
+    (sum, id) => sum + (data.questionScores?.[id] ?? scoreById.get(id) ?? 1),
+    0,
+  );
   const hasQuestions = data.questionIds.length > 0;
   const showWarning =
     hasQuestions && manualTotalScore && data.totalScore !== computedTotal;

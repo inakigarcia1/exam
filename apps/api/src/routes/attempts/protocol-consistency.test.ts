@@ -516,13 +516,11 @@ describe("protocol boundary consistency", () => {
       await ctx.db.insert(schema.questions).values({
         id: trQId,
         organizationId: ctx.org.id,
-        courseId,
         type: "text_response",
         content: "请阐述你的观点",
         options: [],
         standardAnswer: null,
         attachments: [],
-        score: 100,
         difficulty: 3,
         tags: [],
         gradingRule: {

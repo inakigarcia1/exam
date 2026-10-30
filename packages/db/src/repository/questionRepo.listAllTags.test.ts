@@ -29,18 +29,6 @@ async function insertOrg(
   `);
 }
 
-async function insertCourse(
-  db: Database,
-  id: string,
-  organizationId: string,
-): Promise<void> {
-  const now = new Date().toISOString();
-  await db.execute(sql`
-    insert into courses (id, organization_id, name, code, description, created_at, updated_at)
-    values (${id}, ${organizationId}, ${id}, ${id.slice(0, 8)}, '', ${now}::timestamptz, ${now}::timestamptz)
-  `);
-}
-
 /**
  * Inserts a question row directly with a RAW jsonb `tags` value, bypassing
  * the typed repo, to simulate a legacy row whose tags column is not an array
@@ -49,16 +37,15 @@ async function insertCourse(
 async function insertQuestionWithRawTags(
   db: Database,
   organizationId: string,
-  courseId: string,
   content: string,
   tagsJson: string,
 ): Promise<void> {
   const now = new Date().toISOString();
   await db.execute(sql`
-    insert into questions (id, organization_id, course_id, type, content, options,
-      standard_answer, rubric, attachments, score, difficulty, tags, grading_rule, created_at, updated_at)
-    values (${randomUUID()}, ${organizationId}, ${courseId}, 'true_false', ${content},
-      '[]'::jsonb, null, null, '[]'::jsonb, 1, 1, ${tagsJson}::jsonb, '{}'::jsonb, ${now}::timestamptz, ${now}::timestamptz)
+    insert into questions (id, organization_id, type, content, options,
+      standard_answer, rubric, attachments, difficulty, tags, grading_rule, created_at, updated_at)
+    values (${randomUUID()}, ${organizationId}, 'true_false', ${content},
+      '[]'::jsonb, null, null, '[]'::jsonb, 1, ${tagsJson}::jsonb, '{}'::jsonb, ${now}::timestamptz, ${now}::timestamptz)
   `);
 }
 
@@ -72,8 +59,6 @@ describe("questionRepo.listAllTags (vocabulary resilience)", () => {
   let cleanup: () => Promise<void>;
   const orgA = randomUUID();
   const orgB = randomUUID();
-  const courseA = randomUUID();
-  const courseB = randomUUID();
   let ctxA: RequestContext;
   let ctxB: RequestContext;
   let repo: ReturnType<typeof createQuestionRepo>;
@@ -88,17 +73,13 @@ describe("questionRepo.listAllTags (vocabulary resilience)", () => {
 
     await insertOrg(db, orgA, `orga-${orgA.slice(0, 8)}`);
     await insertOrg(db, orgB, `orgb-${orgB.slice(0, 8)}`);
-    await insertCourse(db, courseA, orgA);
-    await insertCourse(db, courseB, orgB);
 
     await repo.create(ctxA, {
-      courseId: courseA,
       type: "true_false",
       content: "vocab one",
       options: [],
       standardAnswer: true,
       attachments: [],
-      score: 1,
       difficulty: 1,
       tags: ["beta", "alpha"],
       gradingRule: {
@@ -107,13 +88,11 @@ describe("questionRepo.listAllTags (vocabulary resilience)", () => {
       },
     });
     await repo.create(ctxA, {
-      courseId: courseA,
       type: "true_false",
       content: "vocab two",
       options: [],
       standardAnswer: true,
       attachments: [],
-      score: 1,
       difficulty: 1,
       tags: ["alpha", "gamma"],
       gradingRule: {
@@ -124,24 +103,11 @@ describe("questionRepo.listAllTags (vocabulary resilience)", () => {
     // legacy non-array tags: a scalar and an object, plus an array containing
     // a jsonb null element and an empty string (not produced by the API, but
     // survivable shapes for the expansion).
+    await insertQuestionWithRawTags(db, orgA, "legacy scalar", '"scalar"');
+    await insertQuestionWithRawTags(db, orgA, "legacy object", '{"k":1}');
     await insertQuestionWithRawTags(
       db,
       orgA,
-      courseA,
-      "legacy scalar",
-      '"scalar"',
-    );
-    await insertQuestionWithRawTags(
-      db,
-      orgA,
-      courseA,
-      "legacy object",
-      '{"k":1}',
-    );
-    await insertQuestionWithRawTags(
-      db,
-      orgA,
-      courseA,
       "mixed elements",
       '["real", null, ""]',
     );
@@ -149,7 +115,6 @@ describe("questionRepo.listAllTags (vocabulary resilience)", () => {
     await insertQuestionWithRawTags(
       db,
       orgB,
-      courseB,
       "org b question",
       '["orgb-only"]',
     );

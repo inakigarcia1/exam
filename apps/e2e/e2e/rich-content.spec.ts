@@ -191,15 +191,14 @@ test.describe("formula persistence in the real editor", () => {
     await page.getByRole("button", { name: /Nueva pregunta/ }).click();
     await page.waitForURL(/\/admin\/questions\/new/);
 
-    await page.getByRole("button", { name: "Comisión" }).click();
-    await page.getByPlaceholder("Buscar por nombre o código...").fill("基础安全培训");
-    await page.getByRole("option", { name: "基础安全培训" }).click();
     await pickSelect(page, "Tipo de pregunta", "Respuesta de texto");
 
     const PROMPT = `676独立公式作答题-${STAMP}`;
     await page.getByPlaceholder("Escribí el enunciado").fill(PROMPT);
     await page
-      .getByPlaceholder("Describí qué hay que mirar al corregir: los puntos clave, si está completo, si es exacto o cómo argumenta")
+      .getByPlaceholder(
+        "Describí qué hay que mirar al corregir: los puntos clave, si está completo, si es exacto o cómo argumenta",
+      )
       .fill(RUBRIC);
     await page.getByRole("spinbutton").fill("20");
     await pickSelect(page, "Cómo responde", "Texto enriquecido");
@@ -326,14 +325,13 @@ async function setupProsePlusFormula(
   await page.goto("/admin/questions");
   await page.getByRole("button", { name: /Nueva pregunta/ }).click();
   await page.waitForURL(/\/admin\/questions\/new/);
-  await page.getByRole("button", { name: "Comisión" }).click();
-  await page.getByPlaceholder("Buscar por nombre o código...").fill("基础安全培训");
-  await page.getByRole("option", { name: "基础安全培训" }).click();
   await pickSelect(page, "Tipo de pregunta", "Respuesta de texto");
   const PROMPT = `${tag}-${STAMP}`;
   await page.getByPlaceholder("Escribí el enunciado").fill(PROMPT);
   await page
-    .getByPlaceholder("Describí qué hay que mirar al corregir: los puntos clave, si está completo, si es exacto o cómo argumenta")
+    .getByPlaceholder(
+      "Describí qué hay que mirar al corregir: los puntos clave, si está completo, si es exacto o cómo argumenta",
+    )
     .fill(RUBRIC);
   await page.getByRole("spinbutton").fill("20");
   await pickSelect(page, "Cómo responde", "Texto enriquecido");
@@ -630,7 +628,6 @@ test.describe("adversarial math render security", () => {
     const adminToken = await adminApiToken(request);
     const courseId = await seedCourseId(request, adminToken);
     const createRes = await adminPost(request, adminToken, "/api/questions", {
-      courseId,
       score: 5,
       difficulty: 1,
       type: "single_choice",

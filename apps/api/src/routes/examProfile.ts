@@ -77,6 +77,7 @@ function toExamProfileResponse(profile: ExamProfile) {
       profile.interruptionGracePerIncidentSeconds ?? null,
     interruptionGracePerAttemptSeconds:
       profile.interruptionGracePerAttemptSeconds ?? null,
+    restrictSimultaneousAccess: profile.restrictSimultaneousAccess === true,
     createdAt: profile.createdAt.toISOString(),
     updatedAt: profile.updatedAt.toISOString(),
   };
@@ -217,6 +218,7 @@ const examProfileRoutes: FastifyPluginAsync = async (fastify) => {
             interruptionPolicy.perIncidentCapSeconds,
           interruptionGracePerAttemptSeconds:
             interruptionPolicy.perAttemptAggregateCapSeconds,
+          restrictSimultaneousAccess: data.restrictSimultaneousAccess,
         })) as ExamProfile;
 
         recordBestEffortAudit(fastify, request, ctx, {

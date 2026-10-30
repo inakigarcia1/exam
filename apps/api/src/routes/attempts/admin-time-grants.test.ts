@@ -177,7 +177,6 @@ describe("attempt routes", () => {
           .values({
             id: crypto.randomUUID(),
             organizationId: org.id,
-            courseId: course.id,
             type: "single_choice",
             content: "What is 1+1?",
             options: [
@@ -187,7 +186,6 @@ describe("attempt routes", () => {
             ],
             standardAnswer: "b",
             attachments: [],
-            score: 100,
             difficulty: 1,
             tags: [],
             gradingRule: {

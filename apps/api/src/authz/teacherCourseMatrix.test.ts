@@ -109,27 +109,23 @@ describe("Teacher@Course scope matrix (issue #286)", () => {
     courseAId = await createCourse("Matrix Course A", `MA-${uniquePrefix()}`);
     courseBId = await createCourse("Matrix Course B", `MB-${uniquePrefix()}`);
 
-    const createQuestion = async (courseId: string, content: string) => {
+    const createQuestion = async (tag: string, content: string) => {
       const res = await ctx.app.inject({
         method: "POST",
         url: "/api/questions",
         payload: {
-          courseId,
           type: "true_false",
           content,
           standardAnswer: true,
-          // Match the exam totalScore (100) so Exam A passes the publish
-          // totalScore==sum(questions) invariant.
-          score: 100,
-          tags: [courseId === courseAId ? "matrix-tag-a" : "matrix-tag-b"],
+          tags: [tag],
         },
         cookies: { "auth-token": ctx.adminToken },
       });
       expect(res.statusCode).toBe(201);
       return (res.json() as { id: string }).id;
     };
-    questionAId = await createQuestion(courseAId, "Matrix question A");
-    questionBId = await createQuestion(courseBId, "Matrix question B");
+    questionAId = await createQuestion("matrix-tag-a", "Matrix question A");
+    questionBId = await createQuestion("matrix-tag-b", "Matrix question B");
 
     const createExamWithQuestions = (
       courseId: string,
@@ -328,114 +324,58 @@ describe("Teacher@Course scope matrix (issue #286)", () => {
     expect((res.json() as { id: string }).id).toBe(courseAId);
   });
 
-  // ── Questions ──
+  // ── Questions (organization-wide bank) ──
 
-  it("LIST /questions — only Course A questions; explicit Course B filter is empty", async () => {
+  it("LIST /questions — Teacher sees the org question bank", async () => {
     const all = await tGet("/api/questions");
     expect(all.statusCode).toBe(200);
-    const contents = (all.json().items as Array<{ id: string }>).map(
-      (q) => q.id,
-    );
-    expect(contents).toContain(questionAId);
-    expect(contents).not.toContain(questionBId);
-
-    const filtered = await tGet(`/api/questions?courseId=${courseBId}`);
-    expect(filtered.statusCode).toBe(200);
-    expect(filtered.json().items).toHaveLength(0);
-    expect(filtered.json().total).toBe(0);
+    const ids = (all.json().items as Array<{ id: string }>).map((q) => q.id);
+    expect(ids).toContain(questionAId);
+    expect(ids).toContain(questionBId);
   });
 
-  it("LIST /questions — scope filters BEFORE pagination (pageSize=1 keeps scoped total)", async () => {
-    const created = await ctx.app.inject({
-      method: "POST",
-      url: "/api/questions",
-      payload: {
-        courseId: courseAId,
-        type: "true_false",
-        content: "Matrix question A2",
-        standardAnswer: true,
-        score: 100,
-        tags: ["matrix-tag-a"],
-      },
-      cookies: { "auth-token": ctx.adminToken },
-    });
-    expect(created.statusCode).toBe(201);
-
-    const paged = await tGet("/api/questions?page=1&pageSize=1");
-    expect(paged.statusCode).toBe(200);
-    const body = paged.json() as {
-      items: Array<{ id: string }>;
-      total: number;
-    };
-    expect(body.items).toHaveLength(1);
-    // Out-of-scope Course B question exists but never inflates the total.
-    expect(body.total).toBe(2);
-  });
-  it("question detail/update/delete on Course B question → 404", async () => {
-    expect((await tGet(`/api/questions/${questionBId}`)).statusCode).toBe(404);
+  it("question detail/update/delete — org-wide for Teacher", async () => {
+    expect((await tGet(`/api/questions/${questionBId}`)).statusCode).toBe(200);
     const patched = await tPatch(`/api/questions/${questionBId}`, {
-      content: "hijack",
+      content: "Matrix teacher edit",
     });
-    expect(patched.statusCode).toBe(404);
+    expect(patched.statusCode).toBe(200);
     expect((await tDelete(`/api/questions/${questionBId}`)).statusCode).toBe(
-      404,
+      204,
     );
+    questionBId = await ctx.app
+      .inject({
+        method: "POST",
+        url: "/api/questions",
+        payload: {
+          type: "true_false",
+          content: "Matrix question B restored",
+          standardAnswer: true,
+          tags: ["matrix-tag-b"],
+        },
+        cookies: { "auth-token": ctx.adminToken },
+      })
+      .then((r: { statusCode: number; json: () => unknown }) => {
+        expect(r.statusCode).toBe(201);
+        return (r.json() as { id: string }).id;
+      });
   });
 
-  it("create question — Course A 201; Course B 404", async () => {
+  it("create question — Teacher with QuestionCreate succeeds", async () => {
     const ok = await tPost("/api/questions", {
-      courseId: courseAId,
       type: "true_false",
-      content: "Matrix in-scope create",
+      content: "Matrix teacher create",
       standardAnswer: false,
-      score: 5,
     });
     expect(ok.statusCode).toBe(201);
-
-    const denied = await tPost("/api/questions", {
-      courseId: courseBId,
-      type: "true_false",
-      content: "Matrix out-of-scope create",
-      standardAnswer: false,
-      score: 5,
-    });
-    expect(denied.statusCode).toBe(404);
   });
 
-  it("course MOVE — moving question A into Course B → 400 (destination unassigned)", async () => {
-    const res = await tPatch(`/api/questions/${questionAId}`, {
-      courseId: courseBId,
-    });
-    expect(res.statusCode).toBe(400);
-    expect(res.json().error.code).toBe("VALIDATION_ERROR");
-    // The question was NOT moved.
-    const readback = await tGet(`/api/questions/${questionAId}`);
-    expect(readback.json().courseId).toBe(courseAId);
-  });
-
-  it("import into Course B → 404", async () => {
-    const res = await tPost("/api/questions/import", {
-      courseId: courseBId,
-      confirm: false,
-      rows: [
-        {
-          type: "true_false",
-          content: "import probe",
-          standardAnswer: "true",
-          score: 5,
-          difficulty: 1,
-        },
-      ],
-    });
-    expect(res.statusCode).toBe(404);
-  });
-
-  it("tags vocabulary — Course B tags never leak", async () => {
+  it("tags vocabulary — org-wide for Teacher", async () => {
     const res = await tGet("/api/questions/tags");
     expect(res.statusCode).toBe(200);
     const tags = res.json().tags as string[];
     expect(tags).toContain("matrix-tag-a");
-    expect(tags).not.toContain("matrix-tag-b");
+    expect(tags).toContain("matrix-tag-b");
   });
 
   // ── Exams ──

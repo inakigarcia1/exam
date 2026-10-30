@@ -153,7 +153,7 @@ describe("DashboardPage", () => {
       apiGet.mockResolvedValue(mockDashboardData);
     });
 
-    it("renders quick action buttons for creating exam and importing questions", async () => {
+    it("renders quick action button for creating exam", async () => {
       renderPage();
       await screen.findByRole("table");
 
@@ -161,8 +161,8 @@ describe("DashboardPage", () => {
         screen.getByRole("button", { name: "Crear examen" }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "Importar preguntas" }),
-      ).toBeInTheDocument();
+        screen.queryByRole("button", { name: "Importar preguntas" }),
+      ).not.toBeInTheDocument();
     });
 
     it("navigates to exam creation on create button click", async () => {
@@ -197,9 +197,41 @@ describe("DashboardPage", () => {
       renderPage();
       const table = await screen.findByRole("table");
       const viewButtons = within(table).getAllByRole("button", {
-        name: /查看考试/,
+        name: /Ver examen/,
       });
       expect(viewButtons).toHaveLength(3);
+    });
+
+    it("navigates to exam detail when clicking the title", async () => {
+      apiGet.mockResolvedValue(mockDashboardData);
+      render(
+        <MemoryRouter initialEntries={["/admin/dashboard"]}>
+          <AuthProvider
+            initialUser={{
+              id: "1",
+              username: "admin",
+              name: "Admin",
+              role: "Admin",
+              organizationId: "org1",
+              capabilities: [...permissionsForRole("Admin")],
+            }}
+          >
+            <BrandProvider>
+              <Routes>
+                <Route path="/admin/dashboard" element={<DashboardPage />} />
+                <Route
+                  path="/admin/exams/:id"
+                  element={<div>exam detail</div>}
+                />
+              </Routes>
+            </BrandProvider>
+          </AuthProvider>
+        </MemoryRouter>,
+      );
+      const table = await screen.findByRole("table");
+      const user = userEvent.setup();
+      await user.click(within(table).getByRole("button", { name: "期中考试" }));
+      expect(screen.getByText("exam detail")).toBeInTheDocument();
     });
 
     // Characterization (UI-MIGRATE-N-W3): the "Exámenes recientes" heading names the
@@ -239,7 +271,9 @@ describe("DashboardPage", () => {
     it("shows error message when dashboard load fails", async () => {
       apiGet.mockRejectedValue(new Error("network error"));
       renderPage();
-      expect(await screen.findByText("No se pudo cargar el panel")).toBeInTheDocument();
+      expect(
+        await screen.findByText("No se pudo cargar el panel"),
+      ).toBeInTheDocument();
     });
 
     it("shows retry button on error", async () => {
@@ -359,10 +393,14 @@ describe("DashboardPage", () => {
       renderPage();
       const grading = await todoCard("Calificación manual pendiente");
       await within(grading).findByText("0");
-      expect(within(grading).getByText("No hay entregas pendientes de calificar")).toBeInTheDocument();
+      expect(
+        within(grading).getByText("No hay entregas pendientes de calificar"),
+      ).toBeInTheDocument();
       const incidents = await todoCard("Incidentes pendientes");
       await within(incidents).findByText("0");
-      expect(within(incidents).getByText("No hay incidentes sin resolver")).toBeInTheDocument();
+      expect(
+        within(incidents).getByText("No hay incidentes sin resolver"),
+      ).toBeInTheDocument();
     });
 
     it("a failed grading source never renders a fake zero and keeps the incident card intact (B05/B06)", async () => {
@@ -384,7 +422,9 @@ describe("DashboardPage", () => {
 
       const incidents = await todoCard("Incidentes pendientes");
       await within(incidents).findByText("2");
-      expect(within(incidents).queryByText("No se pudo obtener")).not.toBeInTheDocument();
+      expect(
+        within(incidents).queryByText("No se pudo obtener"),
+      ).not.toBeInTheDocument();
     });
 
     it("a failed incident source leaves the grading card untouched (B06, reverse direction)", async () => {
@@ -427,8 +467,12 @@ describe("DashboardPage", () => {
       );
       await screen.findByText("Total de preguntas");
       expect(screen.queryByText("Pendientes")).not.toBeInTheDocument();
-      expect(screen.queryByText("Calificación manual pendiente")).not.toBeInTheDocument();
-      expect(screen.queryByText("Incidentes pendientes")).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("Calificación manual pendiente"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("Incidentes pendientes"),
+      ).not.toBeInTheDocument();
       // A capability-hidden card must not fire its request at all — no
       // guaranteed 403 behind a hidden surface.
       const todoCalls = apiGet.mock.calls

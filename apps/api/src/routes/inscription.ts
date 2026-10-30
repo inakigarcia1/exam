@@ -1,6 +1,10 @@
 import { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
-import { LoginResponseSchema, ErrorResponseSchema, passwordField } from "@exam/contracts";
+import {
+  LoginResponseSchema,
+  ErrorResponseSchema,
+  passwordLoginField,
+} from "@exam/contracts";
 import { hashPassword, verifyPassword } from "@exam/auth/password";
 import { signJWT } from "@exam/auth/session";
 import { createExamRepo } from "@exam/db/repository/examRepo";
@@ -21,7 +25,8 @@ const legajoBody = z.object({
   legajo: z.string().trim().min(3).max(50),
 });
 const joinBody = legajoBody.extend({
-  password: passwordField(),
+  password: passwordLoginField(),
+  name: z.string().trim().min(1).max(100).optional(),
 });
 
 function ctxFor(organizationId: string, actorId: string): RequestContext {
@@ -38,12 +43,24 @@ function ctxFor(organizationId: string, actorId: string): RequestContext {
 const inscriptionRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get(
     "/auth/inscriptions/:token",
-    { schema: { params: tokenParams, response: { 200: z.object({ title: z.string() }), 404: ErrorResponseSchema } } },
+    {
+      schema: {
+        params: tokenParams,
+        response: {
+          200: z.object({ title: z.string() }),
+          404: ErrorResponseSchema,
+        },
+      },
+    },
     async (request, reply) => {
       const { token } = tokenParams.parse(request.params);
-      const exam = await createExamRepo(fastify.db).findByInscriptionToken(token);
+      const exam = await createExamRepo(fastify.db).findByInscriptionToken(
+        token,
+      );
       if (!exam || exam.status === "canceled" || exam.status === "archived") {
-        return reply.code(404).send(buildErrorResponse(request.id, "RESOURCE_NOT_FOUND"));
+        return reply
+          .code(404)
+          .send(buildErrorResponse(request.id, "RESOURCE_NOT_FOUND"));
       }
       return { title: exam.title };
     },
@@ -51,15 +68,30 @@ const inscriptionRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post(
     "/auth/inscriptions/:token/lookup",
-    { schema: { params: tokenParams, body: legajoBody, response: { 200: z.object({ exists: z.boolean() }), 404: ErrorResponseSchema } } },
+    {
+      schema: {
+        params: tokenParams,
+        body: legajoBody,
+        response: {
+          200: z.object({ exists: z.boolean() }),
+          404: ErrorResponseSchema,
+        },
+      },
+    },
     async (request, reply) => {
       const { token } = tokenParams.parse(request.params);
       const { legajo } = legajoBody.parse(request.body);
-      const exam = await createExamRepo(fastify.db).findByInscriptionToken(token);
+      const exam = await createExamRepo(fastify.db).findByInscriptionToken(
+        token,
+      );
       if (!exam || exam.status === "canceled" || exam.status === "archived") {
-        return reply.code(404).send(buildErrorResponse(request.id, "RESOURCE_NOT_FOUND"));
+        return reply
+          .code(404)
+          .send(buildErrorResponse(request.id, "RESOURCE_NOT_FOUND"));
       }
-      const user = await createUserRepo(fastify.db).findByOrganizationAndUsername(
+      const user = await createUserRepo(
+        fastify.db,
+      ).findByOrganizationAndUsername(
         ctxFor(exam.organizationId, "inscription"),
         legajo,
       );
@@ -73,15 +105,24 @@ const inscriptionRoutes: FastifyPluginAsync = async (fastify) => {
       schema: {
         params: tokenParams,
         body: joinBody,
-        response: { 200: LoginResponseSchema, 400: ErrorResponseSchema, 401: ErrorResponseSchema, 404: ErrorResponseSchema },
+        response: {
+          200: LoginResponseSchema,
+          400: ErrorResponseSchema,
+          401: ErrorResponseSchema,
+          404: ErrorResponseSchema,
+        },
       },
     },
     async (request, reply) => {
       const { token } = tokenParams.parse(request.params);
-      const { legajo, password } = joinBody.parse(request.body);
-      const exam = await createExamRepo(fastify.db).findByInscriptionToken(token);
+      const { legajo, password, name } = joinBody.parse(request.body);
+      const exam = await createExamRepo(fastify.db).findByInscriptionToken(
+        token,
+      );
       if (!exam || exam.status === "canceled" || exam.status === "archived") {
-        return reply.code(404).send(buildErrorResponse(request.id, "RESOURCE_NOT_FOUND"));
+        return reply
+          .code(404)
+          .send(buildErrorResponse(request.id, "RESOURCE_NOT_FOUND"));
       }
       const orgCtx = ctxFor(exam.organizationId, "inscription");
       const userRepo = createUserRepo(fastify.db);
@@ -89,11 +130,50 @@ const inscriptionRoutes: FastifyPluginAsync = async (fastify) => {
       if (user) {
         const matches = await verifyPassword(password, user.passwordHash);
         if (!user.isActive || !matches) {
-          return reply.code(401).send(buildErrorResponse(request.id, "AUTH_INVALID_CREDENTIALS"));
+          return reply.code(400).send(
+            buildErrorResponse(request.id, "VALIDATION_ERROR", {
+              fields: [
+                {
+                  field: "password",
+                  code: "INVALID",
+                  message: "Contraseña incorrecta",
+                },
+              ],
+            }),
+          );
         }
       } else {
+        if (password.length < 8) {
+          return reply.code(400).send(
+            buildErrorResponse(request.id, "VALIDATION_ERROR", {
+              fields: [
+                {
+                  field: "password",
+                  code: "TOO_SHORT",
+                  message:
+                    "La contraseña tiene que tener al menos 8 caracteres",
+                },
+              ],
+            }),
+          );
+        }
+        if (!name) {
+          return reply.code(400).send(
+            buildErrorResponse(request.id, "VALIDATION_ERROR", {
+              fields: [
+                {
+                  field: "name",
+                  code: "REQUIRED",
+                  message: "Ingresá tu nombre",
+                },
+              ],
+            }),
+          );
+        }
         const passwordHash = await hashPassword(password);
-        const configured = await createCandidateFieldRepo(fastify.db).list(orgCtx);
+        const configured = await createCandidateFieldRepo(fastify.db).list(
+          orgCtx,
+        );
         const fields: Record<string, unknown> = {};
         for (const field of configured) {
           if (field.required || field.unique) fields[field.name] = legajo;
@@ -102,18 +182,22 @@ const inscriptionRoutes: FastifyPluginAsync = async (fastify) => {
           const createdUser = await createUserRepo(tx).createUnique(orgCtx, {
             username: legajo,
             passwordHash,
-            name: legajo,
+            name,
             role: "Candidate" as const,
             isActive: true,
             email: null,
           });
           const actorCtx = ctxFor(exam.organizationId, createdUser.id);
-          await createUserRoleAssignmentRepo(tx).assignWithinTransaction(tx, actorCtx, {
-            userId: createdUser.id,
-            role: "Candidate",
-            isPrimary: true,
-            isActive: true,
-          });
+          await createUserRoleAssignmentRepo(tx).assignWithinTransaction(
+            tx,
+            actorCtx,
+            {
+              userId: createdUser.id,
+              role: "Candidate",
+              isPrimary: true,
+              isActive: true,
+            },
+          );
           await createCandidateRepo(tx).create(actorCtx, {
             userId: createdUser.id,
             fields,
@@ -123,9 +207,14 @@ const inscriptionRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       const actorCtx = ctxFor(exam.organizationId, user.id);
-      const candidate = await createCandidateRepo(fastify.db).findByUserId(actorCtx, user.id);
+      const candidate = await createCandidateRepo(fastify.db).findByUserId(
+        actorCtx,
+        user.id,
+      );
       if (!candidate) {
-        return reply.code(400).send(buildErrorResponse(request.id, "VALIDATION_ERROR"));
+        return reply
+          .code(400)
+          .send(buildErrorResponse(request.id, "VALIDATION_ERROR"));
       }
       const enrollmentRepo = createEnrollmentRepo(fastify.db);
       const existing = await enrollmentRepo.listByExam(actorCtx, exam.id);
@@ -152,9 +241,15 @@ const inscriptionRoutes: FastifyPluginAsync = async (fastify) => {
         });
       }
 
-      const authority = await loadAssignmentAuthority(fastify.db, actorCtx, user.id);
+      const authority = await loadAssignmentAuthority(
+        fastify.db,
+        actorCtx,
+        user.id,
+      );
       if (!authority.ok) {
-        return reply.code(401).send(buildErrorResponse(request.id, "AUTH_INVALID_CREDENTIALS"));
+        return reply
+          .code(401)
+          .send(buildErrorResponse(request.id, "AUTH_INVALID_CREDENTIALS"));
       }
       const tokenJwt = signJWT(
         {

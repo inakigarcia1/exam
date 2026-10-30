@@ -44,7 +44,6 @@ describe("exam routes", () => {
       method: "POST",
       url: "/api/questions",
       payload: {
-        courseId,
         type: "true_false",
         content: "Test question.",
         standardAnswer: true,
@@ -80,6 +79,41 @@ describe("exam routes", () => {
     expect(body.title).toBe("Test Exam");
     expect(body.status).toBe("draft");
     expect(body).toHaveProperty("id");
+  });
+
+  it("GET /api/exams/:id/preview returns presentation for a draft exam", async () => {
+    const createRes = await ctx.app.inject({
+      method: "POST",
+      url: "/api/exams",
+      payload: {
+        title: "Preview Draft",
+        courseId,
+        durationMinutes: 45,
+        openAt: new Date().toISOString(),
+        closeAt: new Date(Date.now() + 86400000).toISOString(),
+        passingScore: 60,
+        totalScore: 100,
+        questionIds: [questionId],
+      },
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    expect(createRes.statusCode).toBe(201);
+    const examId = createRes.json().id as string;
+
+    const res = await ctx.app.inject({
+      method: "GET",
+      url: `/api/exams/${examId}/preview`,
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.examId).toBe(examId);
+    expect(body.questions).toHaveLength(1);
+    expect(body.questions[0]).toMatchObject({
+      id: questionId,
+      answerValue: null,
+    });
+    expect(res.headers["cache-control"]).toBe("no-store");
   });
 
   it("GET /api/exams returns list", async () => {
@@ -520,13 +554,11 @@ describe("exam routes", () => {
       await ctx.db.insert(schema.questions).values({
         id: otherQuestionId,
         organizationId: otherOrgId,
-        courseId: otherCourseId,
         type: "true_false",
         content: "Cross-org question.",
         options: [],
         standardAnswer: true,
         attachments: [],
-        score: 100,
         difficulty: 1,
         tags: [],
         gradingRule: {
@@ -888,7 +920,8 @@ describe("exam close (ADR-005 Slice 1)", () => {
         expect.objectContaining({
           id: examId,
           canViewScores: false,
-          scoreViewDisabledReason: "Un examen cancelado no tiene calificaciones",
+          scoreViewDisabledReason:
+            "Un examen cancelado no tiene calificaciones",
           scoreViewDisabledReasonCode: "EXAM_CANCELED",
         }),
       ]),

@@ -70,7 +70,6 @@ async function seedPublishedExam(
   const courseId = ((await course.json()) as { id: string }).id;
 
   const question = await adminPost(request, token, "/api/questions", {
-    courseId,
     type: "true_false",
     content: `${title} Verdadero o falso`,
     standardAnswer: true,
@@ -250,11 +249,15 @@ test.describe
     await expect(page.getByText(/共 1 条/)).toBeVisible();
 
     // Clearing restores the full-set pagination.
-    await page.getByRole("button", { name: "Borrar búsqueda de alumnos" }).click();
+    await page
+      .getByRole("button", { name: "Borrar búsqueda de alumnos" })
+      .click();
     await expect
       .poll(() => page.getByText(/共 \d+ 条/).textContent())
       .not.toContain("共 1 条");
-    await expect(page.getByRole("button", { name: "Página siguiente" })).toBeEnabled();
+    await expect(
+      page.getByRole("button", { name: "Página siguiente" }),
+    ).toBeEnabled();
   });
 
   test("B01: exams page — all 21 seeded exams are reachable across pages", async ({
@@ -264,7 +267,9 @@ test.describe
     await loginAsAdmin(page);
     await page.goto("/admin/exams");
     await expect(page.getByRole("table")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Página siguiente" })).toBeEnabled();
+    await expect(
+      page.getByRole("button", { name: "Página siguiente" }),
+    ).toBeEnabled();
 
     const expectedPages = await fetchTotalPages(
       request,
@@ -324,7 +329,9 @@ test.describe
     await overviewRequest;
 
     // 21 newly published exams ⇒ the filtered set spans pages.
-    await expect(page.getByRole("button", { name: "Página siguiente" })).toBeEnabled();
+    await expect(
+      page.getByRole("button", { name: "Página siguiente" }),
+    ).toBeEnabled();
 
     const expectedPages = await fetchTotalPages(
       request,

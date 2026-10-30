@@ -270,7 +270,6 @@ function validateQuestionType(
 export const QuestionSchema = z.object({
   id: z.string().uuid(),
   organizationId: z.string().uuid(),
-  courseId: z.string().uuid().nullable(),
   type: QuestionTypeEnum,
   content: z.string(),
   contentDocument: ContentSlotSchema,
@@ -278,7 +277,6 @@ export const QuestionSchema = z.object({
   options: z.array(OptionSchema),
   standardAnswer: StandardAnswerSchema,
   attachments: z.array(AttachmentSchema),
-  score: z.number().positive(),
   difficulty: z.number().int().min(1).max(5),
   tags: z.array(z.string()),
   gradingRule: GradingRuleSchema,
@@ -337,7 +335,6 @@ export const QuestionTagsSchema = z
  */
 export const CreateQuestionRequestSchema = z
   .object({
-    courseId: z.string().uuid().optional(),
     type: QuestionTypeEnum,
     content: z.string().optional(),
     contentDocument: ContentSlotSchema,
@@ -345,7 +342,6 @@ export const CreateQuestionRequestSchema = z
     options: z.array(OptionInputSchema).optional(),
     standardAnswer: StandardAnswerSchema,
     attachments: z.array(AttachmentSchema).default([]),
-    score: QuestionScoreSchema,
     difficulty: z.number().int().min(1).max(5).default(3),
     tags: QuestionTagsSchema.default([]),
     gradingRule: GradingRuleSchema.default({
@@ -427,7 +423,6 @@ function validateQuestionUpdate(
  */
 export const UpdateQuestionRequestSchema = z
   .object({
-    courseId: z.string().uuid().optional(),
     type: QuestionTypeEnum.optional(),
     content: z.string().min(1).optional(),
     contentDocument: ContentSlotSchema,
@@ -435,7 +430,6 @@ export const UpdateQuestionRequestSchema = z
     options: z.array(OptionInputSchema).optional(),
     standardAnswer: StandardAnswerSchema.optional(),
     attachments: z.array(AttachmentSchema).optional(),
-    score: QuestionScoreSchema.optional(),
     difficulty: z.number().int().min(1).max(5).optional(),
     tags: QuestionTagsSchema.optional(),
     gradingRule: GradingRuleSchema.optional(),
@@ -459,7 +453,6 @@ export const QuestionImportRowSchema = z.object({
   optionC: z.string().optional(),
   optionD: z.string().optional(),
   standardAnswer: StandardAnswerSchema,
-  score: QuestionScoreSchema,
   difficulty: z.number().int().min(1).max(5).optional(),
   tags: z.string().optional(),
   gradingRule: GradingRuleSchema.default({
@@ -479,7 +472,6 @@ export type QuestionImportRow = z.infer<typeof QuestionImportRowSchema>;
  * splitting tags), which is also the single score write authority.
  */
 export const QuestionImportRequestSchema = z.object({
-  courseId: z.string().uuid(),
   rows: z.array(z.record(z.unknown())).min(1).max(500),
   confirm: z.boolean().default(false),
 });

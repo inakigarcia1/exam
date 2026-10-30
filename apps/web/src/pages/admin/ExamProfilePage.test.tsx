@@ -73,6 +73,7 @@ const standardProfile: ExamProfileDTO = {
   interruptionTimePolicy: "bounded_grace",
   interruptionGracePerIncidentSeconds: 300,
   interruptionGracePerAttemptSeconds: 600,
+  restrictSimultaneousAccess: false,
   createdAt: "2026-08-01T00:00:00.000Z",
   updatedAt: "2026-08-10T00:00:00.000Z",
 };
@@ -93,6 +94,7 @@ const basicProfile: ExamProfileDTO = {
   interruptionTimePolicy: "strict",
   interruptionGracePerIncidentSeconds: null,
   interruptionGracePerAttemptSeconds: null,
+  restrictSimultaneousAccess: false,
   createdAt: "2026-08-01T00:00:00.000Z",
   updatedAt: "2026-08-09T00:00:00.000Z",
 };
@@ -114,7 +116,9 @@ describe("ExamProfilePage (list)", () => {
     // Row content renders twice by design (desktop table + mobile cards);
     // scope to the desktop table representation.
     const table = await screen.findByRole("table");
-    expect(within(table).getByText("Examen en línea estándar")).toBeInTheDocument();
+    expect(
+      within(table).getByText("Examen en línea estándar"),
+    ).toBeInTheDocument();
     expect(within(table).getByText("Prueba básica")).toBeInTheDocument();
   });
 
@@ -138,7 +142,9 @@ describe("ExamProfilePage (list)", () => {
     await act(async () => {
       renderPage();
     });
-    expect(await screen.findByText("No hay plantillas de política")).toBeInTheDocument();
+    expect(
+      await screen.findByText("No hay plantillas de política"),
+    ).toBeInTheDocument();
   });
 
   it("shows COPY-ON-APPLY wording in the delete confirm dialog", async () => {
@@ -165,7 +171,9 @@ describe("ExamProfilePage (list)", () => {
       renderPage();
     });
     const table = await screen.findByRole("table");
-    await userEvent.click(within(table).getByRole("button", { name: "Eliminar" }));
+    await userEvent.click(
+      within(table).getByRole("button", { name: "Eliminar" }),
+    );
     const dialog = await screen.findByRole("alertdialog");
     await userEvent.click(
       within(dialog).getByRole("button", { name: "Confirmar eliminación" }),
@@ -177,7 +185,9 @@ describe("ExamProfilePage (list)", () => {
       expect(api.get).toHaveBeenCalledTimes(2);
       expect(api.get).toHaveBeenLastCalledWith("/api/exam-profiles");
     });
-    expect(await screen.findByText("No hay plantillas de política")).toBeInTheDocument();
+    expect(
+      await screen.findByText("No hay plantillas de política"),
+    ).toBeInTheDocument();
   });
 
   it("shows an error state when the list fails to load", async () => {
@@ -186,6 +196,10 @@ describe("ExamProfilePage (list)", () => {
     await act(async () => {
       renderPage();
     });
-    expect(await screen.findByText("No se pudieron cargar las plantillas de política")).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        "No se pudieron cargar las plantillas de política",
+      ),
+    ).toBeInTheDocument();
   });
 });

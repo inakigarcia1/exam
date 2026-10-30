@@ -429,6 +429,7 @@ export async function registerCandidateAttemptRoutes(fastify: FastifyInstance) {
             ...(bestScorePercent != null ? { bestScorePercent } : {}),
             availabilityStatus,
             primaryAction,
+            status: exam.status,
           });
         }),
       ).then((results) =>

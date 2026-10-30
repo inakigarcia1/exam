@@ -193,7 +193,10 @@ export const subjects = pgTable(
     updatedAt: updatedAt(),
   },
   (table) => [
-    uniqueIndex("subjects_org_name_unique").on(table.organizationId, table.name),
+    uniqueIndex("subjects_org_name_unique").on(
+      table.organizationId,
+      table.name,
+    ),
   ],
 );
 
@@ -247,7 +250,6 @@ export const questions = pgTable(
   {
     id: id(),
     organizationId: organizationId().references(() => organizations.id),
-    courseId: text("course_id"),
     type: text("type").notNull(),
     content: text("content").notNull(),
     // Dual-mode content authority. NULL → Plain (`content` is the
@@ -279,7 +281,6 @@ export const questions = pgTable(
     // Copied into QuestionSnapshot.rubric at attempt creation.
     rubric: text("rubric"),
     attachments: jsonb("attachments").$type<Attachment[]>().notNull(),
-    score: doublePrecision("score").notNull(),
     difficulty: integer("difficulty").notNull(),
     tags: jsonb("tags").$type<string[]>().notNull(),
     gradingRule: jsonb("grading_rule").$type<GradingRule>().notNull(),
@@ -287,7 +288,6 @@ export const questions = pgTable(
     updatedAt: updatedAt(),
   },
   (table) => [
-    index("questions_org_course_idx").on(table.organizationId, table.courseId),
     check(
       "questions_answer_mode_check",
       sql`${table.answerMode} in ('plain', 'rich')`,
@@ -338,6 +338,10 @@ export const exams = pgTable(
     totalScore: doublePrecision("total_score").notNull(),
     questionSelectionMode: text("question_selection_mode").notNull(),
     questionIds: jsonb("question_ids").$type<string[]>().notNull(),
+    questionScores: jsonb("question_scores")
+      .$type<Record<string, number>>()
+      .notNull()
+      .default({}),
     questionSnapshot: jsonb("question_snapshot")
       .$type<QuestionSnapshot[]>()
       .notNull(),
@@ -475,6 +479,9 @@ export const examPolicyProfiles = pgTable(
     interruptionGracePerAttemptSeconds: integer(
       "interruption_grace_per_attempt_seconds",
     ),
+    restrictSimultaneousAccess: boolean("restrict_simultaneous_access")
+      .notNull()
+      .default(false),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },

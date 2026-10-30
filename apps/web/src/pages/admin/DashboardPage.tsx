@@ -43,7 +43,6 @@ import {
   ListChecks,
   LifeBuoy,
   PlusCircle,
-  Upload,
 } from "lucide-react";
 
 /** Page size 1: the grading card consumes only the authoritative `total`,
@@ -136,7 +135,15 @@ export function DashboardPage() {
       id: "title",
       meta: { role: "primary-text" },
       header: t("admin.dashboard.recent.columns.title"),
-      cell: ({ row }) => row.original.title,
+      cell: ({ row }) => (
+        <button
+          type="button"
+          className="cursor-pointer text-left underline-offset-2 hover:underline"
+          onClick={() => navigate(`/admin/exams/${row.original.id}`)}
+        >
+          {row.original.title}
+        </button>
+      ),
     },
     {
       id: "status",
@@ -257,13 +264,6 @@ export function DashboardPage() {
         <Button onClick={() => navigate("/admin/exams/new")}>
           <AppIcon icon={PlusCircle} size="inline" />
           {t("admin.dashboard.actions.createExam")}
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => navigate("/admin/questions/import")}
-        >
-          <AppIcon icon={Upload} size="inline" />
-          {t("admin.dashboard.actions.importQuestions")}
         </Button>
       </div>
 

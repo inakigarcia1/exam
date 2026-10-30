@@ -54,6 +54,7 @@ export interface WizardState {
   totalScore: number;
   passingScore: number;
   questionIds: string[];
+  questionScores: Record<string, number>;
 }
 
 /** Initial wizard state. */
@@ -70,6 +71,7 @@ export function initialWizardState(): WizardState {
     totalScore: 100,
     passingScore: 60,
     questionIds: [],
+    questionScores: {},
   };
 }
 
@@ -196,6 +198,7 @@ export function buildCreateExamPayload(
     passingScore: state.passingScore,
     totalScore: state.totalScore,
     questionIds: state.questionIds,
+    questionScores: state.questionScores,
   };
   if (state.profileId) {
     payload.profileId = state.profileId;

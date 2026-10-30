@@ -70,6 +70,7 @@ export interface ExamProfile extends ExamProfilePolicyDefaults {
   organizationId: string;
   name: string;
   description: string;
+  restrictSimultaneousAccess?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -335,6 +335,20 @@
       "when": 1788900000012,
       "tag": "0047_course_subjects_and_attempt_holder",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1788900000013,
+      "tag": "0048_exam_question_scores",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1788900000014,
+      "tag": "0049_drop_questions_course_id",
+      "breakpoints": true
     }
   ]
 }

@@ -135,58 +135,29 @@ export async function verifyDemoSeed(
     assert(rows.length > 0, `Course '${code}' not found`);
   }
 
-  // 7. Non-empty courses have questions
-  const safetyCourseId = ids.courses["SAFETY-101"];
-  const skillCourseId = ids.courses["SKILL-201"];
-  const emptyCourseId = ids.courses["EMPTY-001"];
-
-  if (safetyCourseId) {
-    const safetyQuestions = await db
-      .select()
-      .from(schema.questions)
-      .where(
-        and(
-          eq(schema.questions.organizationId, ids.orgId),
-          eq(schema.questions.courseId, safetyCourseId),
-        ),
-      );
-    assert(
-      safetyQuestions.length >= 6,
-      `SAFETY-101 should have >= 6 questions, found ${safetyQuestions.length}`,
-    );
-  }
-
-  if (skillCourseId) {
-    const skillQuestions = await db
-      .select()
-      .from(schema.questions)
-      .where(
-        and(
-          eq(schema.questions.organizationId, ids.orgId),
-          eq(schema.questions.courseId, skillCourseId),
-        ),
-      );
-    assert(
-      skillQuestions.length >= 4,
-      `SKILL-201 should have >= 4 questions, found ${skillQuestions.length}`,
-    );
-  }
-
-  if (emptyCourseId) {
-    const emptyQuestions = await db
-      .select()
-      .from(schema.questions)
-      .where(
-        and(
-          eq(schema.questions.organizationId, ids.orgId),
-          eq(schema.questions.courseId, emptyCourseId),
-        ),
-      );
-    assert(
-      emptyQuestions.length === 0,
-      `EMPTY-001 should have 0 questions, found ${emptyQuestions.length}`,
-    );
-  }
+  // 7. Demo question bank
+  const allOrgQuestions = await db
+    .select()
+    .from(schema.questions)
+    .where(eq(schema.questions.organizationId, ids.orgId));
+  assert(
+    allOrgQuestions.length >= 10,
+    `demo org should have >= 10 questions, found ${allOrgQuestions.length}`,
+  );
+  const safetyTagged = allOrgQuestions.filter((q) =>
+    (q.tags as string[]).includes("safety"),
+  );
+  const skillTagged = allOrgQuestions.filter((q) =>
+    (q.tags as string[]).includes("skill"),
+  );
+  assert(
+    safetyTagged.length >= 6,
+    `demo should have >= 6 safety-tagged questions, found ${safetyTagged.length}`,
+  );
+  assert(
+    skillTagged.length >= 4,
+    `demo should have >= 4 skill-tagged questions, found ${skillTagged.length}`,
+  );
 
   // 8. Question type coverage
   const allQuestions = await db

@@ -39,7 +39,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageContainer } from "@/components/shared/PageContainer";
-import { Users, Plus, Trash2, LogOut } from "lucide-react";
+import { Users, Plus, Trash2, LogOut, Pencil } from "lucide-react";
 import {
   EnrollmentPicker,
   type CandidateItem,
@@ -157,7 +157,15 @@ export function ExamDetailPage() {
       map[value] ?? value;
   const [exam, setExam] = useState<ExamDetail | null>(null);
   const [titleDraft, setTitleDraft] = useState("");
+  const [editingTitle, setEditingTitle] = useState(false);
   const [savingTitle, setSavingTitle] = useState(false);
+  const [questionPreview, setQuestionPreview] = useState<
+    Array<{
+      id: string;
+      content: string;
+      options?: Array<{ id: string; content: string }>;
+    }>
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
@@ -218,6 +226,29 @@ export function ExamDetailPage() {
   useEffect(() => {
     loadExam();
   }, [loadExam]);
+
+  useEffect(() => {
+    if (!exam) return;
+    let cancelled = false;
+    void Promise.all(
+      exam.questionIds.map((questionId) =>
+        api.get<{
+          id: string;
+          content: string;
+          options?: Array<{ id: string; content: string }>;
+        }>(`/api/questions/${questionId}`),
+      ),
+    )
+      .then((items) => {
+        if (!cancelled) setQuestionPreview(items);
+      })
+      .catch(() => {
+        if (!cancelled) setQuestionPreview([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [exam]);
 
   /** Fetches the enrollment list for this exam. */
   const loadEnrollments = useCallback(async () => {
@@ -316,9 +347,7 @@ export function ExamDetailPage() {
       );
       toast.success("Sesión revocada. Las respuestas siguen guardadas.");
     } catch (err) {
-      toast.error(
-        getApiErrorMessage(err, t, "No se pudo revocar la sesión"),
-      );
+      toast.error(getApiErrorMessage(err, t, "No se pudo revocar la sesión"));
     }
   }
 
@@ -379,8 +408,7 @@ export function ExamDetailPage() {
                         title: "Revocar sesión",
                         description: `Se cierra la sesión de ${row.original.candidateDisplayName}. Las respuestas quedan.`,
                       },
-                      onSelect: () =>
-                        void handleRevokeSession(row.original.id),
+                      onSelect: () => void handleRevokeSession(row.original.id),
                     },
                   ]
                 : []),
@@ -540,13 +568,17 @@ export function ExamDetailPage() {
   async function handleRename() {
     if (!id || !exam) return;
     const next = titleDraft.trim();
-    if (!next || next === exam.title) return;
+    setEditingTitle(false);
+    if (!next || next === exam.title) {
+      setTitleDraft(exam.title);
+      return;
+    }
     setSavingTitle(true);
     try {
       await api.patch(`/api/exams/${id}`, { title: next });
-      toast.success("Nombre actualizado");
       await loadExam();
     } catch (err) {
+      setTitleDraft(exam.title);
       toast.error(getApiErrorMessage(err, t, "No se pudo cambiar el nombre"));
     } finally {
       setSavingTitle(false);
@@ -582,27 +614,45 @@ export function ExamDetailPage() {
 
   return (
     <PageContainer role="admin-standard" className="flex flex-col gap-6">
-      {mayUpdateExam && (
-        <div className="flex max-w-xl items-end gap-2">
-          <div className="flex-1">
-            <Label htmlFor="exam-title">Nombre del examen</Label>
-            <Input
-              id="exam-title"
-              value={titleDraft}
-              onChange={(event) => setTitleDraft(event.target.value)}
-            />
-          </div>
-          <Button
-            variant="outline"
-            disabled={savingTitle || titleDraft.trim() === exam.title || !titleDraft.trim()}
-            onClick={() => void handleRename()}
-          >
-            Guardar nombre
-          </Button>
-        </div>
-      )}
       <PageHeader
-        title={exam.title}
+        title={
+          editingTitle ? (
+            <input
+              aria-label="Nombre del examen"
+              className="w-full min-w-0 bg-transparent outline-none"
+              value={titleDraft}
+              autoFocus
+              disabled={savingTitle}
+              onChange={(event) => setTitleDraft(event.target.value)}
+              onBlur={() => void handleRename()}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") event.currentTarget.blur();
+                if (event.key === "Escape") {
+                  setTitleDraft(exam.title);
+                  setEditingTitle(false);
+                }
+              }}
+            />
+          ) : (
+            exam.title
+          )
+        }
+        titleAddon={
+          mayUpdateExam && !editingTitle ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Cambiar nombre"
+              onClick={() => {
+                setTitleDraft(exam.title);
+                setEditingTitle(true);
+              }}
+            >
+              <AppIcon icon={Pencil} size="inline" />
+            </Button>
+          ) : undefined
+        }
         actions={
           <div className="flex gap-2">
             {exam.status === "draft" && mayUpdateExam && (
@@ -611,6 +661,17 @@ export function ExamDetailPage() {
                 onClick={() => void navigate(routes.admin.examEdit(id!))}
               >
                 {t("admin.examDetail.actions.edit")}
+              </Button>
+            )}
+            {exam.status === "draft" && mayUpdateExam && (
+              <Button variant="outline" asChild>
+                <a
+                  href={routes.admin.examPreview(id!)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {t("admin.examDetail.actions.preview")}
+                </a>
               </Button>
             )}
             {exam.status === "draft" && exam.inscriptionToken && (
@@ -856,6 +917,7 @@ export function ExamDetailPage() {
           <TabsTrigger value="scores">
             {t("admin.examDetail.tabs.scores")}
           </TabsTrigger>
+          <TabsTrigger value="questions">Preguntas</TabsTrigger>
         </TabsList>
 
         <TabsContent value="enrollment" className="flex flex-col gap-4">
@@ -919,6 +981,28 @@ export function ExamDetailPage() {
               {t("admin.examDetail.scoresTab.goToScores")}
             </Button>
           </PageSection>
+        </TabsContent>
+
+        <TabsContent value="questions" className="flex flex-col gap-4">
+          {questionPreview.length === 0 ? (
+            <p className="type-secondary">Este examen no tiene preguntas.</p>
+          ) : (
+            questionPreview.map((question, index) => (
+              <article key={question.id} className="rounded-lg border p-4">
+                <p className="type-metadata mb-2">Pregunta {index + 1}</p>
+                <p className="whitespace-pre-wrap">{question.content}</p>
+                {question.options && question.options.length > 0 && (
+                  <ol className="mt-3 flex flex-col gap-1">
+                    {question.options.map((option) => (
+                      <li key={option.id}>
+                        {option.id}. {option.content}
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </article>
+            ))
+          )}
         </TabsContent>
       </Tabs>
 

@@ -18,26 +18,13 @@ import {
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { LoadingState } from "@/components/shared/LoadingState";
-import { EmptyState } from "@/components/shared/EmptyState";
-import { AppIcon } from "@/components/shared/AppIcon";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { InlineErrorBanner } from "@/components/shared/InlineErrorBanner";
 import { FormSection } from "@/components/shared/FormSection";
-import { DataToolbar } from "@/components/shared/DataToolbar";
 import { FieldGroup, Field, FieldRow } from "@/components/shared/FieldGroup";
 import { FieldError } from "@/components/shared/FieldError";
 import { DefinitionList } from "@/components/shared/DefinitionList";
-import {
-  DataTableCell,
-  DataTableSurface,
-  DataTableHead,
-  DataTableOverflowText,
-} from "@/components/shared/DataTableContract";
-import { DataTableShell } from "@/components/shared/DataTableShell";
-import { TableAllocationRegion } from "@/components/shared/TableScrollSurface";
-import { RowActions } from "@/components/shared/RowActions";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -56,10 +43,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { TableBody, TableHeader, TableRow } from "@/components/ui/table";
-import { BookOpen, Plus, Trash2 } from "lucide-react";
-import { getTypeLabel } from "@/lib/constants";
+import { Plus } from "lucide-react";
+import { AppIcon } from "@/components/shared/AppIcon";
 import { WizardStepper } from "@/components/exam/wizard/WizardStepper";
+import { ExamQuestionsEditor } from "@/components/exam/ExamQuestionsEditor";
 import { WizardPolicyFields } from "@/components/exam/wizard/WizardPolicyFields";
 import { PageContainer } from "@/components/shared/PageContainer";
 import {
@@ -85,7 +72,6 @@ interface QuestionRow {
   id: string;
   type: string;
   content: string;
-  score: number;
 }
 interface PaginatedResponse<T> {
   items: T[];
@@ -194,9 +180,13 @@ export function ExamCreatePage() {
 
   const [state, setState] = useState<WizardState>(initialWizardState);
   const [courses, setCourses] = useState<CourseRow[]>([]);
-  const [subjects, setSubjects] = useState<Array<{ id: string; name: string }>>([]);
+  const [subjects, setSubjects] = useState<Array<{ id: string; name: string }>>(
+    [],
+  );
   const [subjectId, setSubjectId] = useState("");
-  const [newSubjectName, setNewSubjectName] = useState("");
+  const [subjectOpen, setSubjectOpen] = useState(false);
+  const [subjectName, setSubjectName] = useState("");
+  const [savingSubject, setSavingSubject] = useState(false);
   const [commissionOpen, setCommissionOpen] = useState(false);
   const [commissionName, setCommissionName] = useState("");
   const [commissionSubjectId, setCommissionSubjectId] = useState("");
@@ -209,7 +199,6 @@ export function ExamCreatePage() {
   const [saving, setSaving] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [questionDialogOpen, setQuestionDialogOpen] = useState(false);
   const [manualTotalScore, setManualTotalScore] = useState(false);
   // The Puntaje de aprobación default (60) follows the auto-calculated Puntaje total until the user
   // edits it explicitly (see the auto-calc effect below).
@@ -222,7 +211,9 @@ export function ExamCreatePage() {
       const [pData, questions, subjectData] = await Promise.all([
         api.get<ExamProfileDTO[]>("/api/exam-profiles"),
         fetchAllPickerQuestions(),
-        api.get<{ items: Array<{ id: string; name: string }> }>("/api/subjects"),
+        api.get<{ items: Array<{ id: string; name: string }> }>(
+          "/api/subjects",
+        ),
       ]);
       setSubjects(subjectData.items);
       setProfiles(pData);
@@ -266,6 +257,12 @@ export function ExamCreatePage() {
       cancelled = true;
     };
   }, [subjectId]);
+
+  useEffect(() => {
+    const profile = profiles.find((item) => item.id === state.profileId);
+    if (!profile) return;
+    setRestrictSimultaneous(profile.restrictSimultaneousAccess === true);
+  }, [state.profileId, profiles]);
 
   const selectedProfile: WizardProfileLike | null = useMemo(() => {
     if (!state.profileId) return null;
@@ -327,28 +324,13 @@ export function ExamCreatePage() {
   const onClearOverride = (field: keyof ExamProfilePolicyDefaults) =>
     setState((s) => clearOverride(s, field));
 
-  function addQuestion(qId: string) {
-    setState((s) =>
-      s.questionIds.includes(qId)
-        ? s
-        : { ...s, questionIds: [...s.questionIds, qId] },
-    );
-  }
-  function removeQuestion(qId: string) {
-    setState((s) => ({
-      ...s,
-      questionIds: s.questionIds.filter((id) => id !== qId),
-    }));
-  }
-
   // ── per-step validation ──
   function validateCurrentStep(): boolean {
     const errors: Record<string, string> = {};
     if (state.step === 1) {
       if (!state.title.trim())
         errors.title = t("admin.examWizard.validation.titleRequired");
-      if (!subjectId && !newSubjectName.trim())
-        errors.subjectId = "Elegí o creá una materia";
+      if (!subjectId) errors.subjectId = "Elegí una materia";
       if (!state.courseId)
         errors.courseId = t("admin.examWizard.validation.courseRequired");
     }
@@ -407,23 +389,37 @@ export function ExamCreatePage() {
     setStep(state.step - 1);
   }
 
-  async function openCommissionDialog() {
-    let nextSubjectId = subjectId;
-    if (!nextSubjectId && newSubjectName.trim()) {
-      const created = await api.post<{ id: string }>("/api/subjects", {
-        name: newSubjectName.trim(),
-      });
-      nextSubjectId = created.id;
+  function openSubjectDialog() {
+    setSubjectName("");
+    setSubjectOpen(true);
+  }
+
+  async function saveSubject() {
+    const name = subjectName.trim();
+    if (!name) return;
+    setSavingSubject(true);
+    try {
+      const created = await api.post<{ id: string; name: string }>(
+        "/api/subjects",
+        { name },
+      );
       setSubjects((current) => [
         ...current,
-        { id: created.id, name: newSubjectName.trim() },
+        { id: created.id, name: created.name },
       ]);
       setSubjectId(created.id);
-      setNewSubjectName("");
+      setSubjectOpen(false);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t, "No se pudo guardar la materia"));
+    } finally {
+      setSavingSubject(false);
     }
-    if (!nextSubjectId) return;
+  }
+
+  function openCommissionDialog() {
+    if (!subjectId) return;
     setCommissionName("");
-    setCommissionSubjectId(nextSubjectId);
+    setCommissionSubjectId(subjectId);
     setCommissionOpen(true);
   }
 
@@ -459,22 +455,10 @@ export function ExamCreatePage() {
     setSaveError(null);
     setFieldErrors({});
     try {
-      let nextSubjectId = subjectId;
-      if (!nextSubjectId && newSubjectName.trim()) {
-        const created = await api.post<{ id: string }>("/api/subjects", {
-          name: newSubjectName.trim(),
-        });
-        nextSubjectId = created.id;
-      }
       const payload = {
-        ...buildCreateExamPayload(
-          state,
-          preview.resolved,
-        ),
-        subjectId: nextSubjectId,
-        ...(restrictSimultaneous
-          ? { controlFlags: { restrictSimultaneousAccess: true } }
-          : {}),
+        ...buildCreateExamPayload(state, preview.resolved),
+        subjectId,
+        controlFlags: { restrictSimultaneousAccess: restrictSimultaneous },
       };
       const exam = await api.post<{ id: string }>("/api/exams", payload);
       toast.success(t("admin.examWizard.feedback.createSuccess"));
@@ -499,13 +483,10 @@ export function ExamCreatePage() {
     }
   }
 
-  const selectedQuestions = questions.filter((q) =>
-    state.questionIds.includes(q.id),
+  const computedTotal = state.questionIds.reduce(
+    (sum, id) => sum + (state.questionScores[id] ?? 1),
+    0,
   );
-  const availableQuestions = questions.filter(
-    (q) => !state.questionIds.includes(q.id),
-  );
-  const computedTotal = selectedQuestions.reduce((sum, q) => sum + q.score, 0);
   const hasQuestions = state.questionIds.length > 0;
 
   // Auto-calc totalScore from the selected questions whenever the selection
@@ -566,24 +547,33 @@ export function ExamCreatePage() {
             </Field>
             <Field>
               <Label htmlFor="wiz-subject">Materia</Label>
-              <Select value={subjectId} onValueChange={setSubjectId}>
-                <SelectTrigger id="wiz-subject" aria-label="Materia">
-                  <SelectValue placeholder="Elegí una materia" />
-                </SelectTrigger>
-                <SelectContent>
-                  {subjects.map((subject) => (
-                    <SelectItem key={subject.id} value={subject.id}>
-                      {subject.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input
-                className="mt-2"
-                value={newSubjectName}
-                placeholder="O creá una materia nueva"
-                onChange={(e) => setNewSubjectName(e.target.value)}
-              />
+              <div className="flex gap-2">
+                <Select value={subjectId} onValueChange={setSubjectId}>
+                  <SelectTrigger
+                    id="wiz-subject"
+                    aria-label="Materia"
+                    className="flex-1"
+                  >
+                    <SelectValue placeholder="Elegí una materia" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subjects.map((subject) => (
+                      <SelectItem key={subject.id} value={subject.id}>
+                        {subject.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label="Nueva materia"
+                  onClick={openSubjectDialog}
+                >
+                  <AppIcon icon={Plus} size="inline" />
+                </Button>
+              </div>
               <FieldError>{fieldErrors.subjectId}</FieldError>
             </Field>
             <Field>
@@ -624,8 +614,8 @@ export function ExamCreatePage() {
                   variant="outline"
                   size="icon"
                   aria-label="Nueva comisión"
-                  disabled={!subjectId && !newSubjectName.trim()}
-                  onClick={() => void openCommissionDialog()}
+                  disabled={!subjectId}
+                  onClick={openCommissionDialog}
                 >
                   <AppIcon icon={Plus} size="inline" />
                 </Button>
@@ -717,109 +707,17 @@ export function ExamCreatePage() {
       {/* Step 3 — questions + scores */}
       {state.step === 3 && (
         <FieldGroup>
-          {/* The shell IS the data surface (docs/standards/ui-system.md
-              §Surface and elevation): heading, count and the dataset-scoped
-              picker action live in the shell's own bands, never in a second
-              bordered wrapper. */}
-          <DataTableShell
-            archetype="embedded-picker"
-            title={t("admin.examWizard.steps.questions")}
-            meta={
-              <span className="type-secondary">
-                {t("admin.examWizard.questions.selectedCount", {
-                  count: state.questionIds.length,
-                })}
-              </span>
-            }
-            toolbar={
-              <DataToolbar
-                actions={
-                  <Button size="sm" onClick={() => setQuestionDialogOpen(true)}>
-                    {t("admin.examWizard.questions.selectQuestions")}
-                  </Button>
-                }
-              />
-            }
-          >
-            {selectedQuestions.length === 0 ? (
-              <EmptyState
-                icon={<AppIcon icon={BookOpen} size="state" />}
-                title={t("admin.examWizard.questions.noQuestionsTitle")}
-                description={t(
-                  "admin.examWizard.questions.noQuestionsDescription",
-                )}
-              />
-            ) : (
-              <DataTableSurface
-                columns={[
-                  { role: "type" },
-                  { role: "long-text", overflow: "truncate" },
-                  { role: "score" },
-                  { role: "actions" },
-                ]}
-              >
-                <TableHeader>
-                  <TableRow>
-                    <DataTableHead role="type">
-                      {t("admin.examWizard.questions.tableHeaders.type")}
-                    </DataTableHead>
-                    <DataTableHead role="long-text">
-                      {t("admin.examWizard.questions.tableHeaders.content")}
-                    </DataTableHead>
-                    <DataTableHead role="score">
-                      {t("admin.examWizard.questions.tableHeaders.score")}
-                    </DataTableHead>
-                    <DataTableHead role="actions">
-                      {t("admin.examWizard.questions.tableHeaders.actions")}
-                    </DataTableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {selectedQuestions.map((q) => (
-                    <TableRow key={q.id}>
-                      <DataTableCell role="type">
-                        <Badge variant="outline">
-                          {getTypeLabel(q.type, t) ?? q.type}
-                        </Badge>
-                      </DataTableCell>
-                      <DataTableCell role="long-text">
-                        <DataTableOverflowText
-                          mode="truncate"
-                          value={q.content}
-                        />
-                      </DataTableCell>
-                      <DataTableCell role="score">{q.score}</DataTableCell>
-                      <DataTableCell role="actions">
-                        <RowActions
-                          row={q}
-                          actions={[
-                            {
-                              id: "remove-question",
-                              label: t(
-                                "admin.examWizard.questions.ariaDeleteQuestion",
-                              ),
-                              icon: Trash2,
-                              tone: "destructive",
-                              confirm: {
-                                title: t(
-                                  "admin.examWizard.questions.confirmRemoveTitle",
-                                ),
-                                description: t(
-                                  "admin.examWizard.questions.confirmRemoveDescription",
-                                ),
-                                destructive: true,
-                              },
-                              onSelect: () => removeQuestion(q.id),
-                            },
-                          ]}
-                        />
-                      </DataTableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </DataTableSurface>
-            )}
-          </DataTableShell>
+          <FormSection title={t("admin.examWizard.steps.questions")}>
+            <ExamQuestionsEditor
+              questionIds={state.questionIds}
+              questionScores={state.questionScores}
+              bank={questions}
+              onChange={({ questionIds, questionScores }) =>
+                setState((s) => ({ ...s, questionIds, questionScores }))
+              }
+              onBankChange={setQuestions}
+            />
+          </FormSection>
           <FormSection title={t("admin.examWizard.questions.totalScore")}>
             <FieldRow>
               <Field>
@@ -1028,8 +926,7 @@ export function ExamCreatePage() {
                     label: t("admin.examWizard.questions.passingScore"),
                     value: state.passingScore,
                   },
-                  ...(selectedQuestions.length > 0 &&
-                  state.totalScore !== computedTotal
+                  ...(hasQuestions && state.totalScore !== computedTotal
                     ? [
                         {
                           label: (
@@ -1105,10 +1002,32 @@ export function ExamCreatePage() {
         </div>
       </div>
 
-      {/* Question picker dialog (unchanged contract, wizard-local). The
-          footer close button is this dialog's single close control, so the
-          built-in corner X is suppressed to avoid a duplicated accessible
-          name. */}
+      <Dialog open={subjectOpen} onOpenChange={setSubjectOpen}>
+        <DialogContent aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>Nueva materia</DialogTitle>
+          </DialogHeader>
+          <FieldGroup>
+            <Field>
+              <Label htmlFor="new-subject-name">Nombre</Label>
+              <Input
+                id="new-subject-name"
+                value={subjectName}
+                onChange={(event) => setSubjectName(event.target.value)}
+              />
+            </Field>
+          </FieldGroup>
+          <DialogFooter>
+            <Button
+              onClick={() => void saveSubject()}
+              disabled={savingSubject || !subjectName.trim()}
+            >
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={commissionOpen} onOpenChange={setCommissionOpen}>
         <DialogContent aria-describedby={undefined}>
           <DialogHeader>
@@ -1129,7 +1048,10 @@ export function ExamCreatePage() {
                 value={commissionSubjectId}
                 onValueChange={setCommissionSubjectId}
               >
-                <SelectTrigger id="new-commission-subject" aria-label="Materia de la comisión">
+                <SelectTrigger
+                  id="new-commission-subject"
+                  aria-label="Materia de la comisión"
+                >
                   <SelectValue placeholder="Elegí una materia" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1152,88 +1074,6 @@ export function ExamCreatePage() {
               }
             >
               Guardar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={questionDialogOpen} onOpenChange={setQuestionDialogOpen}>
-        <DialogContent
-          aria-describedby={undefined}
-          showCloseButton={false}
-          size="lg"
-        >
-          <DialogHeader>
-            <DialogTitle>
-              {t("admin.examWizard.questions.dialogTitle")}
-            </DialogTitle>
-          </DialogHeader>
-          {/* dialog-body owns the vertical scroll; header/footer fixed. */}
-          <div data-slot="dialog-body">
-            <TableAllocationRegion>
-              <DataTableSurface
-                columns={[
-                  { role: "type" },
-                  { role: "long-text", overflow: "truncate" },
-                  { role: "score" },
-                  { role: "actions" },
-                ]}
-              >
-                <TableHeader>
-                  <TableRow>
-                    <DataTableHead role="type">
-                      {t("admin.examWizard.questions.tableHeaders.type")}
-                    </DataTableHead>
-                    <DataTableHead role="long-text">
-                      {t("admin.examWizard.questions.tableHeaders.content")}
-                    </DataTableHead>
-                    <DataTableHead role="score">
-                      {t("admin.examWizard.questions.tableHeaders.score")}
-                    </DataTableHead>
-                    <DataTableHead role="actions">
-                      {t("admin.examWizard.questions.dialogActions.add")}
-                    </DataTableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {availableQuestions.map((q) => (
-                    <TableRow key={q.id}>
-                      <DataTableCell role="type">
-                        <Badge variant="outline">
-                          {getTypeLabel(q.type, t) ?? q.type}
-                        </Badge>
-                      </DataTableCell>
-                      <DataTableCell role="long-text">
-                        <DataTableOverflowText
-                          mode="truncate"
-                          value={q.content}
-                        />
-                      </DataTableCell>
-                      <DataTableCell role="score">{q.score}</DataTableCell>
-                      <DataTableCell role="actions">
-                        {/* embedded-picker exception (P3 §4.4 (issue 445)): dialog
-                          picker tables keep a text add action — auto layout,
-                          outside the admin shell's icon-only vocabulary. */}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => addQuestion(q.id)}
-                        >
-                          {t("admin.examWizard.questions.dialogActions.add")}
-                        </Button>
-                      </DataTableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </DataTableSurface>
-            </TableAllocationRegion>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setQuestionDialogOpen(false)}
-            >
-              {t("admin.examWizard.questions.dialogActions.close")}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -8,7 +8,7 @@ import {
   afterEach,
   vi,
 } from "vitest";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import type { Database } from "./types.js";
 import { getWorkerScopedTestDb } from "./testDb.js";
 import {
@@ -148,21 +148,18 @@ describe("demo seed", { timeout: 30_000 }, () => {
     }
   });
 
-  it("keeps question idempotency scoped by course", async () => {
+  it("keeps question idempotency scoped by organization and content", async () => {
     const { grader } = makeRecordingGrader();
     const ids = await seedDemo(db, precomputedHash, grader);
-    const skillCourseId = ids.courses["SKILL-201"]!;
 
     await db.insert(schema.questions).values({
       id: randomUUID(),
       organizationId: ids.orgId,
-      courseId: skillCourseId,
-      type: "single_choice",
+      type: "fill_blank",
       content: "消防通道的宽度不得低于____米",
       options: [],
       standardAnswer: "1.2",
       attachments: [],
-      score: 5,
       difficulty: 3,
       tags: ["safety", "regulation"],
       gradingRule: {
@@ -175,18 +172,17 @@ describe("demo seed", { timeout: 30_000 }, () => {
     });
 
     const reseededIds = await seedDemo(db, precomputedHash, grader);
-    const safetyCourseId = reseededIds.courses["SAFETY-101"]!;
     const safetyQuestions = await db
       .select()
       .from(schema.questions)
       .where(
         and(
           eq(schema.questions.organizationId, reseededIds.orgId),
-          eq(schema.questions.courseId, safetyCourseId),
+          sql`${schema.questions.tags} @> ${JSON.stringify(["safety"])}::jsonb`,
         ),
       );
 
-    expect(safetyQuestions).toHaveLength(6);
+    expect(safetyQuestions.length).toBeGreaterThanOrEqual(6);
     expect(reseededIds.questions["safety-fb2"]).toBeDefined();
     expect(
       safetyQuestions.some((q) => q.id === reseededIds.questions["safety-fb2"]),

@@ -161,7 +161,6 @@ describe("attempt routes", () => {
                 .values({
                   id: crypto.randomUUID(),
                   organizationId: org.id,
-                  courseId: course.id,
                   type: "text_response",
                   content: "Explain the meaning of life.",
                   options: [],
@@ -170,7 +169,6 @@ describe("attempt routes", () => {
                   // publish time (standardAnswer is optional for it).
                   rubric: "Score 0–100 by clarity and depth.",
                   attachments: [],
-                  score: 100,
                   difficulty: 1,
                   tags: [],
                   gradingRule: {
@@ -188,7 +186,6 @@ describe("attempt routes", () => {
                 .values({
                   id: crypto.randomUUID(),
                   organizationId: org.id,
-                  courseId: course.id,
                   type: "single_choice",
                   content: "What is 1+1?",
                   options: [
@@ -198,7 +195,6 @@ describe("attempt routes", () => {
                   ],
                   standardAnswer: "b",
                   attachments: [],
-                  score: 100,
                   difficulty: 1,
                   tags: [],
                   gradingRule: {

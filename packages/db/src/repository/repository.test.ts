@@ -167,13 +167,11 @@ describe("repository tenant isolation", () => {
       description: "",
     });
     const question = await questionRepo.create(alphaContext, {
-      courseId: course.id,
       type: "true_false",
       content: "Is this statement correct?",
       options: [],
       standardAnswer: true,
       attachments: [],
-      score: 1,
       difficulty: 1,
       tags: [],
       gradingRule: {

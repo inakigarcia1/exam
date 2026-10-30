@@ -111,7 +111,9 @@ describe("message registry", () => {
 
   it("getErrorMessage returns the registry message for a valid code", () => {
     expect(getErrorMessage("AUTH_REQUIRED")).toBe(errorMessages.AUTH_REQUIRED);
-    expect(getErrorMessage("RATE_LIMITED")).toBe("Demasiados pedidos. Prueba de nuevo en un rato");
+    expect(getErrorMessage("RATE_LIMITED")).toBe(
+      "Demasiados pedidos. Prueba de nuevo en un rato",
+    );
   });
 
   it("every ErrorCode key has a non-empty message", () => {
@@ -616,7 +618,6 @@ describe("RestoreAttemptResponseSchema (frozen contract)", () => {
 describe("question contracts", () => {
   it("CreateQuestionRequestSchema rejects fill_blank without ____", () => {
     const result = CreateQuestionRequestSchema.safeParse({
-      courseId: "550e8400-e29b-41d4-a716-446655440000",
       type: "fill_blank",
       content: "No placeholder",
       standardAnswer: "42",
@@ -627,7 +628,6 @@ describe("question contracts", () => {
 
   it("CreateQuestionRequestSchema rejects single_choice with invalid standardAnswer", () => {
     const result = CreateQuestionRequestSchema.safeParse({
-      courseId: "550e8400-e29b-41d4-a716-446655440000",
       type: "single_choice",
       content: "Pick one",
       options: [
@@ -642,7 +642,6 @@ describe("question contracts", () => {
 
   it("CreateQuestionRequestSchema rejects choice with < 2 options", () => {
     const result = CreateQuestionRequestSchema.safeParse({
-      courseId: "550e8400-e29b-41d4-a716-446655440000",
       type: "single_choice",
       content: "Pick one",
       options: [{ id: "A", content: "Only one" }],
@@ -654,7 +653,6 @@ describe("question contracts", () => {
 
   it("CreateQuestionRequestSchema rejects duplicate option ids", () => {
     const result = CreateQuestionRequestSchema.safeParse({
-      courseId: "550e8400-e29b-41d4-a716-446655440000",
       type: "single_choice",
       content: "Pick one",
       options: [
@@ -672,7 +670,6 @@ describe("question contracts", () => {
 
   it("CreateQuestionRequestSchema rejects an auto-graded type with standardAnswer: null", () => {
     const result = CreateQuestionRequestSchema.safeParse({
-      courseId: "550e8400-e29b-41d4-a716-446655440000",
       type: "true_false",
       content: "Prompt",
       standardAnswer: null,
@@ -714,7 +711,6 @@ describe("question contracts", () => {
     "CreateQuestionRequestSchema accepts %s with a valid typed standardAnswer",
     (type, answer, extra) => {
       const result = CreateQuestionRequestSchema.safeParse({
-        courseId: "550e8400-e29b-41d4-a716-446655440000",
         type,
         content: "Prompt",
         standardAnswer: answer,
@@ -739,7 +735,6 @@ describe("question contracts", () => {
 
   it("CreateQuestionRequestSchema accepts text_response with rubric and null standardAnswer", () => {
     const result = CreateQuestionRequestSchema.safeParse({
-      courseId: "550e8400-e29b-41d4-a716-446655440000",
       type: "text_response",
       content: "请阐述你的观点",
       options: [],
@@ -755,7 +750,6 @@ describe("question contracts", () => {
 
   it("CreateQuestionRequestSchema defaults rubric to null when omitted", () => {
     const result = CreateQuestionRequestSchema.safeParse({
-      courseId: "550e8400-e29b-41d4-a716-446655440000",
       type: "single_choice",
       content: "Pick one",
       options: [
@@ -775,7 +769,6 @@ describe("question contracts", () => {
     const result = QuestionSchema.safeParse({
       id: "550e8400-e29b-41d4-a716-446655440000",
       organizationId: "550e8400-e29b-41d4-a716-446655440001",
-      courseId: "550e8400-e29b-41d4-a716-446655440002",
       type: "text_response",
       content: "请阐述你的观点",
       options: [],
@@ -858,7 +851,6 @@ describe("question contracts", () => {
 
   it("CreateQuestionRequestSchema normalizes tags: trims, drops empties, dedupes in order", () => {
     const result = CreateQuestionRequestSchema.safeParse({
-      courseId: "550e8400-e29b-41d4-a716-446655440000",
       type: "true_false",
       content: "Is 1+1=2?",
       standardAnswer: true,
@@ -873,7 +865,6 @@ describe("question contracts", () => {
 
   it("CreateQuestionRequestSchema rejects comma-containing tags", () => {
     const result = CreateQuestionRequestSchema.safeParse({
-      courseId: "550e8400-e29b-41d4-a716-446655440000",
       type: "true_false",
       content: "Is 1+1=2?",
       standardAnswer: true,
@@ -913,7 +904,6 @@ describe("question contracts", () => {
 
 describe("question score write boundary (#438)", () => {
   const baseCreate = {
-    courseId: "550e8400-e29b-41d4-a716-446655440000",
     type: "true_false",
     content: "Score boundary?",
     standardAnswer: true,

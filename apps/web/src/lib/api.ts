@@ -111,7 +111,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     if (!response.ok) {
       if (
         response.status === 401 &&
-        !ANONYMOUS_LEGAL_PATHS.has(window.location.pathname)
+        !ANONYMOUS_LEGAL_PATHS.has(window.location.pathname) &&
+        !window.location.pathname.startsWith("/inscripcion/")
       ) {
         navigateFn?.("/login");
       }

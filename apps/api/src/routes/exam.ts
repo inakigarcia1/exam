@@ -20,6 +20,7 @@ import {
   DeleteDisabledReasonCodeEnum,
   ExamStatusEnum,
   ScoreViewDisabledReasonCodeEnum,
+  ExamPreviewResponseSchema,
 } from "@exam/contracts";
 import { createExamRepo } from "@exam/db/repository/examRepo";
 import { createExamAdmissionRepo } from "@exam/db/repository/examAdmissionRepo";
@@ -43,6 +44,8 @@ import {
   publishExam,
   publishResults,
   assertExamPolicyInputValid,
+  buildQuestionSnapshot,
+  materializeAttemptPresentation,
 } from "@exam/exam-engine";
 import { Permission } from "@exam/authz";
 import type {
@@ -88,6 +91,7 @@ import {
   dispatchResultPublishedFanOut,
   dispatchExamAssigned,
 } from "../notifications/notificationService.js";
+import { toCandidateTakeQuestion } from "./attempts.shared.js";
 
 /** Convert an Exam domain entity to the API response shape with ISO date strings. */
 function toExamResponse(exam: Exam) {
@@ -108,6 +112,7 @@ function toExamResponse(exam: Exam) {
     totalScore: exam.totalScore,
     questionSelectionMode: exam.questionSelectionMode,
     questionIds: exam.questionIds,
+    questionScores: exam.questionScores ?? {},
     controlFlags: exam.controlFlags,
     retakePolicy: exam.retakePolicy,
     scoreStrategy: exam.scoreStrategy,
@@ -216,7 +221,8 @@ function getScoreViewMeta(exam: Exam, gradedAttemptCount: number, now: Date) {
     return {
       canViewScores: false,
       // i18n-copy-allow: wire-compat — legacy natural-language status reason on the wire; machine code/reason fields are the contract
-      scoreViewDisabledReason: "El examen todavía no termina, así que no se pueden ver las calificaciones",
+      scoreViewDisabledReason:
+        "El examen todavía no termina, así que no se pueden ver las calificaciones",
       scoreViewDisabledReasonCode: "EXAM_NOT_FINISHED",
     } as const;
   }
@@ -565,6 +571,82 @@ const examRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
+  fastify.get(
+    "/exams/:id/preview",
+    {
+      preHandler: [
+        fastify.authenticate,
+        fastify.requireScopedCapability(Permission.ExamView, "exam", "id", {
+          teacherAccess: "course_assignment_scoped",
+        }),
+      ],
+      schema: {
+        params: idParamsSchema,
+        security: cookieAuth,
+        "x-role": ["Admin", "Teacher"],
+        response: {
+          200: ExamPreviewResponseSchema,
+          404: ErrorResponseSchema,
+          409: ErrorResponseSchema,
+        },
+      },
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const ctx = ensureTargetOrg(getRequestContext(request));
+      const { id } = request.params as { id: string };
+      const examRepo = createExamRepo(fastify.db);
+      const questionRepo = createQuestionRepo(fastify.db);
+      const exam = (await examRepo.findById(ctx, id)) as Exam | null;
+      if (!exam) {
+        return reply
+          .code(404)
+          .send(buildErrorResponse(request.id, "RESOURCE_NOT_FOUND"));
+      }
+      if (exam.status !== "draft") {
+        return reply
+          .code(409)
+          .send(buildErrorResponse(request.id, "EXAM_UPDATE_NOT_ALLOWED"));
+      }
+      const questions = (
+        await Promise.all(
+          exam.questionIds.map((qid) => questionRepo.findById(ctx, qid)),
+        )
+      ).filter((q): q is NonNullable<typeof q> => q !== null) as Question[];
+      try {
+        const snapshot = buildQuestionSnapshot(
+          exam.questionIds,
+          questions,
+          exam.questionScores ?? {},
+        );
+        const presented = materializeAttemptPresentation(
+          snapshot,
+          exam.controlFlags,
+        );
+        const body = ExamPreviewResponseSchema.parse({
+          examId: exam.id,
+          title: exam.title,
+          description: exam.description,
+          timingMode: exam.timingMode,
+          durationMinutes: exam.durationMinutes,
+          questions: presented.map((q) =>
+            toCandidateTakeQuestion(q, {
+              answerValue: null,
+              answerSource: "none",
+            }),
+          ),
+        });
+        return reply.header("Cache-Control", "no-store").send(body);
+      } catch (err) {
+        if (err instanceof ValidationError) {
+          return reply
+            .code(400)
+            .send(buildErrorResponse(request.id, "VALIDATION_ERROR"));
+        }
+        throw err;
+      }
+    },
+  );
+
   fastify.post(
     "/exams",
     {
@@ -874,8 +956,15 @@ const examRoutes: FastifyPluginAsync = async (fastify) => {
         totalScore: data.totalScore,
         questionSelectionMode: data.questionSelectionMode,
         questionIds: data.questionIds,
+        questionScores: data.questionScores ?? {},
         questionSnapshot: [],
-        controlFlags: data.controlFlags,
+        controlFlags: {
+          ...data.controlFlags,
+          ...(profile?.restrictSimultaneousAccess &&
+          rawBody.controlFlags == null
+            ? { restrictSimultaneousAccess: true }
+            : {}),
+        },
         retakePolicy: data.retakePolicy,
         scoreStrategy: data.scoreStrategy,
         maxAttempts: data.maxAttempts,
@@ -924,9 +1013,14 @@ const examRoutes: FastifyPluginAsync = async (fastify) => {
     async (request: FastifyRequest, reply: FastifyReply) => {
       const ctx = ensureTargetOrg(getRequestContext(request));
       const { id } = request.params as { id: string };
-      const source = (await createExamRepo(fastify.db).findById(ctx, id)) as Exam | null;
+      const source = (await createExamRepo(fastify.db).findById(
+        ctx,
+        id,
+      )) as Exam | null;
       if (!source) {
-        return reply.code(404).send(buildErrorResponse(request.id, "RESOURCE_NOT_FOUND"));
+        return reply
+          .code(404)
+          .send(buildErrorResponse(request.id, "RESOURCE_NOT_FOUND"));
       }
       const suffix = " (Copia)";
       const title = `${source.title.slice(0, 200 - suffix.length)}${suffix}`;
@@ -945,6 +1039,7 @@ const examRoutes: FastifyPluginAsync = async (fastify) => {
         totalScore: source.totalScore,
         questionSelectionMode: source.questionSelectionMode,
         questionIds: source.questionIds,
+        questionScores: source.questionScores ?? {},
         questionSnapshot: [],
         controlFlags: source.controlFlags,
         retakePolicy: source.retakePolicy,
@@ -954,8 +1049,10 @@ const examRoutes: FastifyPluginAsync = async (fastify) => {
         minSubmitAfterStartMinutes: source.minSubmitAfterStartMinutes,
         resultPublicationMode: source.resultPublicationMode,
         interruptionTimePolicy: source.interruptionTimePolicy,
-        interruptionGracePerIncidentSeconds: source.interruptionGracePerIncidentSeconds,
-        interruptionGracePerAttemptSeconds: source.interruptionGracePerAttemptSeconds,
+        interruptionGracePerIncidentSeconds:
+          source.interruptionGracePerIncidentSeconds,
+        interruptionGracePerAttemptSeconds:
+          source.interruptionGracePerAttemptSeconds,
       });
       return reply.code(201).send(toExamResponse(copy as Exam));
     },
@@ -2060,10 +2157,7 @@ const examRoutes: FastifyPluginAsync = async (fastify) => {
             examId: enrollment.examId,
             candidateId: enrollment.candidateId,
             candidateDisplayName: user?.name ?? "-",
-            candidateIdentity:
-              Object.values(candidate?.fields ?? {})
-                .map(String)
-                .join(" / ") || undefined,
+            candidateIdentity: user?.username ?? undefined,
             status: enrollment.status,
             attemptCount: enrollment.attemptCount,
             finalScore: enrollment.finalScore ?? null,

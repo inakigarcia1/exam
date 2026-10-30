@@ -35,6 +35,7 @@ import { ExamPage } from "@/pages/admin/ExamPage";
 import { ExamCreatePage } from "@/pages/admin/ExamCreatePage";
 import { ExamDetailPage } from "@/pages/admin/ExamDetailPage";
 import { ExamEditPage } from "@/pages/admin/ExamEditPage";
+import { ExamPreviewPage } from "@/pages/admin/ExamPreviewPage";
 import { ExamProfilePage } from "@/pages/admin/ExamProfilePage";
 import { ExamProfileEditPage } from "@/pages/admin/ExamProfileEditPage";
 import { ExamListPage } from "@/pages/exam/ExamListPage";
@@ -85,6 +86,7 @@ export function AppRoutes() {
       <Route path="/invite/accept" element={<InviteAcceptPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/preview/exams/:id" element={<ExamPreviewPage />} />
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<AdminIndexRoute />} />
         <Route path="dashboard" element={<DashboardPage />} />

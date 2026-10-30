@@ -99,7 +99,6 @@ describe("candidate submit rollback consistency (EXSEM-008/009, F11c)", () => {
         ],
         standardAnswer: "a",
         attachments: [],
-        score: 100,
         difficulty: 1,
         tags: [],
       },

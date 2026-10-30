@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +24,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Plus, Trash2 } from "lucide-react";
+import { api } from "@/lib/api";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { AppIcon } from "@/components/shared/AppIcon";
 import { FieldRow, FieldGroup, Field } from "@/components/shared/FieldGroup";
 import {
@@ -42,7 +50,6 @@ interface Option {
 
 /** Complete form data shape for creating or editing a question. */
 export interface QuestionFormData {
-  courseId: string;
   type:
     | "single_choice"
     | "multiple_choice"
@@ -63,7 +70,6 @@ export interface QuestionFormData {
   answerMode: "plain" | "rich";
   options: Option[];
   standardAnswer: unknown;
-  score: number;
   difficulty: number;
   tags: string[];
   gradingRule: {
@@ -78,14 +84,12 @@ export interface QuestionFormData {
 
 /** Props for the QuestionForm component. */
 interface QuestionFormProps {
-  courses: Array<{ id: string; name: string; code: string }>;
   initial?: Partial<QuestionFormData>;
   onChange: (data: QuestionFormData) => void;
 }
 
 /** Default form values for a new question. */
 const defaultForm: QuestionFormData = {
-  courseId: "",
   type: "single_choice",
   content: "",
   contentDocument: null,
@@ -95,7 +99,6 @@ const defaultForm: QuestionFormData = {
     { id: "B", content: "" },
   ],
   standardAnswer: "",
-  score: 10,
   difficulty: 3,
   tags: [],
   gradingRule: {
@@ -128,11 +131,7 @@ function hasFormatting(document: ContentDocumentV1): boolean {
  * answers, scoring, and grading rules. Rich mode edits the prompt/options in
  * a lazy WYSIWYG editor; the plain textarea remains the Plain-mode editor.
  */
-export function QuestionForm({
-  courses: _courses,
-  initial,
-  onChange,
-}: QuestionFormProps) {
+export function QuestionForm({ initial, onChange }: QuestionFormProps) {
   const { t } = useTranslation();
   const [form, setForm] = useState<QuestionFormData>({
     ...defaultForm,
@@ -146,6 +145,16 @@ export function QuestionForm({
   const [pendingToPlain, setPendingToPlain] = useState<
     "content" | "fillBlankSwitch" | number | null
   >(null);
+  const [tagOptions, setTagOptions] = useState<string[]>([]);
+  const [tagDialogOpen, setTagDialogOpen] = useState(false);
+  const [newTag, setNewTag] = useState("");
+
+  useEffect(() => {
+    void api
+      .get<{ tags: string[] }>("/api/questions/tags")
+      .then((data) => setTagOptions(data.tags))
+      .catch(() => setTagOptions([]));
+  }, []);
 
   function update(partial: Partial<QuestionFormData>) {
     const next = { ...form, ...partial };
@@ -588,16 +597,7 @@ export function QuestionForm({
         </>
       )}
 
-      <div className="grid grid-cols-3 gap-4">
-        <Field>
-          <Label>{t("admin.forms.question.score")}</Label>
-          <Input
-            type="number"
-            value={form.score}
-            onChange={(e) => update({ score: Number(e.target.value) })}
-            min={1}
-          />
-        </Field>
+      <div className="grid grid-cols-2 gap-4">
         <Field>
           <Label>{t("admin.forms.question.difficulty")}</Label>
           <Select
@@ -618,18 +618,63 @@ export function QuestionForm({
         </Field>
         <Field>
           <Label>{t("admin.forms.question.tags")}</Label>
-          <Input
-            value={form.tags.join(",")}
-            onChange={(e) =>
-              update({
-                tags: e.target.value
-                  .split(",")
-                  .map((tag) => tag.trim())
-                  .filter(Boolean),
-              })
-            }
-            placeholder={t("admin.forms.question.tagsPlaceholder")}
-          />
+          <div className="flex gap-2">
+            <Select
+              value=""
+              onValueChange={(tag) => {
+                if (!form.tags.includes(tag))
+                  update({ tags: [...form.tags, tag] });
+              }}
+            >
+              <SelectTrigger aria-label="Etiquetas" className="flex-1">
+                <SelectValue
+                  placeholder={
+                    form.tags.length > 0
+                      ? form.tags.join(", ")
+                      : "Elegí una etiqueta"
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {tagOptions
+                  .filter((tag) => !form.tags.includes(tag))
+                  .map((tag) => (
+                    <SelectItem key={tag} value={tag}>
+                      {tag}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label="Nueva etiqueta"
+              onClick={() => {
+                setNewTag("");
+                setTagDialogOpen(true);
+              }}
+            >
+              <AppIcon icon={Plus} size="inline" />
+            </Button>
+          </div>
+          {form.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {form.tags.map((tag) => (
+                <Button
+                  key={tag}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    update({ tags: form.tags.filter((item) => item !== tag) })
+                  }
+                >
+                  {tag}
+                </Button>
+              ))}
+            </div>
+          )}
         </Field>
       </div>
 
@@ -730,6 +775,35 @@ export function QuestionForm({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <Dialog open={tagDialogOpen} onOpenChange={setTagDialogOpen}>
+        <DialogContent aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle>Nueva etiqueta</DialogTitle>
+          </DialogHeader>
+          <Input
+            value={newTag}
+            onChange={(event) => setNewTag(event.target.value)}
+            placeholder="Nombre de la etiqueta"
+          />
+          <DialogFooter>
+            <Button
+              type="button"
+              disabled={!newTag.trim()}
+              onClick={() => {
+                const tag = newTag.trim();
+                if (!form.tags.includes(tag))
+                  update({ tags: [...form.tags, tag] });
+                setTagOptions((current) =>
+                  current.includes(tag) ? current : [...current, tag],
+                );
+                setTagDialogOpen(false);
+              }}
+            >
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

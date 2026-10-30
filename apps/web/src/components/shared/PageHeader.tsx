@@ -10,12 +10,14 @@ export function PageHeader({
   description,
   status,
   actions,
+  titleAddon,
   className,
 }: {
-  title: string;
+  title: ReactNode;
   description?: string;
   status?: ReactNode;
   actions?: ReactNode;
+  titleAddon?: ReactNode;
   className?: string;
 }) {
   return (
@@ -31,6 +33,7 @@ export function PageHeader({
               contain long unbroken tokens; without overflow-wrap they force
               document-level horizontal escape at narrow viewports. */}
           <h1 className="type-page-title min-w-0 break-words">{title}</h1>
+          {titleAddon}
           {status}
         </div>
         {description && (

@@ -108,7 +108,6 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
     // One shared question doubles as every exam's only item, so the fixture
     // cost stays linear in exams rather than in (exam × question).
     const first = await adminPost(request, adminToken, "/api/questions", {
-      courseId,
       type: "true_false",
       content: `${KEYWORD} Pregunta 01`,
       standardAnswer: true,
@@ -120,7 +119,6 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
 
     for (let i = 2; i <= KEYWORD_QUESTIONS; i += 1) {
       const res = await adminPost(request, adminToken, "/api/questions", {
-        courseId,
         type: "true_false",
         content: `${KEYWORD} Pregunta ${String(i).padStart(2, "0")}`,
         standardAnswer: true,
@@ -179,7 +177,9 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
     const filterUrl = new URL(
       await (async () => {
         const pending = nextListResponse(page, EXAMS_LIST);
-        await page.getByRole("combobox", { name: "Filtrar por estado" }).click();
+        await page
+          .getByRole("combobox", { name: "Filtrar por estado" })
+          .click();
         await page.getByRole("option", { name: "Publicado" }).click();
         return pending;
       })(),
@@ -239,9 +239,9 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
     );
     // The status control and the footer agree with the URL, not with a
     // remembered value.
-    await expect(page.getByRole("combobox", { name: "Filtrar por estado" })).toHaveText(
-      "Publicado",
-    );
+    await expect(
+      page.getByRole("combobox", { name: "Filtrar por estado" }),
+    ).toHaveText("Publicado");
     await expect(page.getByText(/显示 41-/)).toBeVisible();
 
     // Walk back through the entries the app created. Back1=detail kills a
@@ -359,7 +359,9 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
               r.url().includes(`search=${KEYWORD}`) &&
               r.url().includes("difficulty=2"),
           );
-          await page.getByRole("combobox", { name: "Filtrar por dificultad" }).click();
+          await page
+            .getByRole("combobox", { name: "Filtrar por dificultad" })
+            .click();
           await page.getByRole("option", { name: "Dificultad 2" }).click();
           return pending;
         })()
@@ -416,9 +418,13 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
     await expect(page.getByText(/共 21 条/)).toBeVisible();
     await expect(page.getByText(/显示 1-20 条/)).toBeVisible();
     await expect(
-      page.getByRole("table").getByText(`${KEYWORD} Pregunta 01`, { exact: true }),
+      page
+        .getByRole("table")
+        .getByText(`${KEYWORD} Pregunta 01`, { exact: true }),
     ).toBeVisible();
-    await expect(page.getByRole("button", { name: "Página anterior" })).toBeDisabled();
+    await expect(
+      page.getByRole("button", { name: "Página anterior" }),
+    ).toBeDisabled();
 
     // ⑥ Back from the committed state LEAVES the list. A filter commit is a
     //    history REPLACEMENT, so the query the user committed over is not an
@@ -528,7 +534,9 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
         window.history.replaceState({ ...state, usr: { from } }, "");
       }, hostile);
       await page.reload();
-      await expect(page.getByRole("button", { name: "Cancelar" })).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Cancelar" }),
+      ).toBeVisible();
       await page.getByRole("button", { name: "Cancelar" }).click();
       await expect(page).toHaveURL(`${origin}/admin/questions`);
       expect(new URL(page.url()).origin).toBe(origin);
@@ -603,7 +611,9 @@ test.describe.serial("admin list URL query state (#784 A3 BDD L3)", () => {
     // The pending window must not show the old identity's rows and must not
     // show an empty state — while the list region keeps its height.
     await expect(
-      page.getByRole("table").getByText(`${KEYWORD} Pregunta 01`, { exact: true }),
+      page
+        .getByRole("table")
+        .getByText(`${KEYWORD} Pregunta 01`, { exact: true }),
     ).toHaveCount(0);
     await expect(page.getByText("Ninguna pregunta coincide")).toHaveCount(0);
     await expect(page.getByText("No hay preguntas")).toHaveCount(0);

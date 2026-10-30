@@ -53,7 +53,6 @@ describe("result publishing policy", () => {
     await ctx.db.insert(schema.questions).values({
       id: questionId,
       organizationId: ctx.org.id,
-      courseId,
       type: "single_choice",
       content: "Choose A",
       options: [
@@ -62,7 +61,6 @@ describe("result publishing policy", () => {
       ],
       standardAnswer: "a",
       attachments: [],
-      score: 10,
       difficulty: 1,
       tags: [],
       gradingRule: {
@@ -833,7 +831,6 @@ describe("Teacher publish-results capability", () => {
     await ctx.db.insert(schema.questions).values({
       id: questionId,
       organizationId: ctx.org.id,
-      courseId,
       type: "single_choice",
       content: "Choose A",
       options: [
@@ -842,7 +839,6 @@ describe("Teacher publish-results capability", () => {
       ],
       standardAnswer: "a",
       attachments: [],
-      score: 10,
       difficulty: 1,
       tags: [],
       gradingRule: {

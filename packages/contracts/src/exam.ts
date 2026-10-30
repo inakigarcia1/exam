@@ -94,6 +94,7 @@ export const ExamSchema = z.object({
   totalScore: z.number().positive(),
   questionSelectionMode: QuestionSelectionModeEnum,
   questionIds: z.array(z.string().uuid()),
+  questionScores: z.record(z.string().uuid(), z.number().positive()).optional(),
   controlFlags: ControlFlagsSchema,
   retakePolicy: RetakePolicyEnum,
   scoreStrategy: ScoreStrategyEnum,
@@ -203,6 +204,7 @@ export const CreateExamRequestBaseSchema = z.object({
   totalScore: z.number().positive(),
   questionSelectionMode: AuthoringQuestionSelectionModeEnum.optional(),
   questionIds: z.array(z.string().uuid()).optional(),
+  questionScores: z.record(z.string().uuid(), z.number().positive()).optional(),
   // Raw passthrough at the fastify boundary: ControlFlagsSchema applies nested
   // defaults (showResultImmediately etc.), which would make the route's legacy
   // showResultImmediately presence check see a defaulted flag as explicit
@@ -306,6 +308,7 @@ export const UpdateExamRequestBaseSchema = z.object({
   passingScore: z.number().min(0).optional(),
   totalScore: z.number().positive().optional(),
   questionIds: z.array(z.string().uuid()).optional(),
+  questionScores: z.record(z.string().uuid(), z.number().positive()).optional(),
   controlFlags: ControlFlagsSchema.partial().optional(),
   retakePolicy: AuthoringRetakePolicyEnum.optional(),
   scoreStrategy: ScoreStrategyEnum.optional(),

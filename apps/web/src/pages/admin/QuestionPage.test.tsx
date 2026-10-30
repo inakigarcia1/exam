@@ -16,18 +16,6 @@ import { permissionsForRole } from "@exam/authz";
 
 const { apiGet } = vi.hoisted(() => ({
   apiGet: vi.fn().mockImplementation((path: string) => {
-    if (path.startsWith("/api/courses")) {
-      return Promise.resolve({
-        items: [
-          { id: "course-1", name: "课程一", code: "C1" },
-          { id: "course-2", name: "课程二", code: "C2" },
-        ],
-        total: 2,
-        page: 1,
-        pageSize: 20,
-        totalPages: 1,
-      });
-    }
     if (path === "/api/questions/tags") {
       return Promise.resolve({ tags: ["代数", "几何", "概率"] });
     }
@@ -36,10 +24,8 @@ const { apiGet } = vi.hoisted(() => ({
       items: [
         {
           id: "q1",
-          courseId: "course-1",
           type: "single_choice",
           content: "题目一内容",
-          score: 10,
           difficulty: 1,
           tags: ["tag1"],
         },
@@ -64,10 +50,8 @@ const questionsCalls = () =>
 type QuestionListPayload = {
   items: Array<{
     id: string;
-    courseId: string;
     type: string;
     content: string;
-    score: number;
     difficulty: number;
     tags: string[];
   }>;
@@ -96,10 +80,8 @@ function questionListPayload(
     items: [
       {
         id: `q-${content}`,
-        courseId: "course-1",
         type: "true_false",
         content,
-        score: 2,
         difficulty: 1,
         tags: ["tag1"],
       },
@@ -229,18 +211,6 @@ describe("QuestionPage", () => {
     expect(screen.getByText("Cargando…")).toBeInTheDocument();
 
     apiGet.mockImplementation((path: string) => {
-      if (path.startsWith("/api/courses")) {
-        return Promise.resolve({
-          items: [
-            { id: "course-1", name: "课程一", code: "C1" },
-            { id: "course-2", name: "课程二", code: "C2" },
-          ],
-          total: 2,
-          page: 1,
-          pageSize: 20,
-          totalPages: 1,
-        });
-      }
       // Keep the tag-vocabulary branch: mockImplementation persists across
       // tests, and later tests rely on the vocabulary fixture.
       if (path === "/api/questions/tags") {
@@ -251,10 +221,8 @@ describe("QuestionPage", () => {
         items: [
           {
             id: "q1",
-            courseId: "course-1",
             type: "single_choice",
             content: "题目一内容",
-            score: 10,
             difficulty: 1,
             tags: ["tag1"],
           },
@@ -270,7 +238,9 @@ describe("QuestionPage", () => {
       target: { value: "Pregunta" },
     });
     // Select one tag through the structured filter, then clear all filters.
-    await user.click(screen.getByRole("button", { name: "Filtro de etiquetas" }));
+    await user.click(
+      screen.getByRole("button", { name: "Filtro de etiquetas" }),
+    );
     await user.click(await screen.findByRole("checkbox", { name: "代数" }));
     await user.click(screen.getByRole("button", { name: "Limpiar filtros" }));
 
@@ -278,9 +248,9 @@ describe("QuestionPage", () => {
       // The tag filter trigger is back to its empty placeholder state and
       // the free-text search box is empty again.
       expect(
-        within(screen.getByRole("button", { name: "Filtro de etiquetas" })).getByText(
-          "Etiqueta",
-        ),
+        within(
+          screen.getByRole("button", { name: "Filtro de etiquetas" }),
+        ).getByText("Etiqueta"),
       ).toBeInTheDocument();
       expect(screen.getByLabelText("Buscar preguntas")).toHaveValue("");
       expect(screen.getByText(/共 21 条/)).toBeInTheDocument();
@@ -292,7 +262,9 @@ describe("QuestionPage", () => {
     renderPage();
     await screen.findByText("Gestión de preguntas");
 
-    await user.click(screen.getByRole("button", { name: "Filtro de etiquetas" }));
+    await user.click(
+      screen.getByRole("button", { name: "Filtro de etiquetas" }),
+    );
     await user.click(await screen.findByRole("checkbox", { name: "代数" }));
     await user.click(screen.getByRole("checkbox", { name: "几何" }));
 
@@ -301,7 +273,9 @@ describe("QuestionPage", () => {
       expect(decodeURIComponent(last)).toContain("tags=代数,几何");
     });
     // AND hint is visible so the multi-tag behavior is not a guess.
-    expect(screen.getByText("Si eliges varias, la pregunta debe incluir todas")).toBeInTheDocument();
+    expect(
+      screen.getByText("Si eliges varias, la pregunta debe incluir todas"),
+    ).toBeInTheDocument();
   });
 
   it("narrows the tag vocabulary by search inside the dropdown", async () => {
@@ -309,7 +283,9 @@ describe("QuestionPage", () => {
     renderPage();
     await screen.findByText("Gestión de preguntas");
 
-    await user.click(screen.getByRole("button", { name: "Filtro de etiquetas" }));
+    await user.click(
+      screen.getByRole("button", { name: "Filtro de etiquetas" }),
+    );
     await user.type(await screen.findByLabelText("Buscar etiquetas"), "概率");
     expect(screen.getByRole("checkbox", { name: "概率" })).toBeInTheDocument();
     expect(
@@ -322,7 +298,9 @@ describe("QuestionPage", () => {
     renderPage();
     await screen.findByText("Gestión de preguntas");
 
-    await user.click(screen.getByRole("button", { name: "Filtro de etiquetas" }));
+    await user.click(
+      screen.getByRole("button", { name: "Filtro de etiquetas" }),
+    );
     await user.click(await screen.findByRole("checkbox", { name: "代数" }));
     await user.click(screen.getByRole("checkbox", { name: "几何" }));
     await user.click(screen.getByRole("checkbox", { name: "几何" }));
@@ -339,7 +317,9 @@ describe("QuestionPage", () => {
     renderPage();
     await screen.findByText("Gestión de preguntas");
 
-    await user.click(screen.getByRole("button", { name: "Filtro de etiquetas" }));
+    await user.click(
+      screen.getByRole("button", { name: "Filtro de etiquetas" }),
+    );
     await user.click(await screen.findByRole("checkbox", { name: "代数" }));
     await user.click(screen.getByRole("button", { name: "Quitar selección" }));
 
@@ -383,7 +363,9 @@ describe("QuestionPage", () => {
     const staleA = deferredQuestions();
     const newerAB = deferredQuestions();
 
-    await user.click(screen.getByRole("button", { name: "Filtro de etiquetas" }));
+    await user.click(
+      screen.getByRole("button", { name: "Filtro de etiquetas" }),
+    );
     // 1. select A — request 1 (tags=代数) stays pending
     apiGet.mockImplementationOnce(() => staleA.promise);
     await user.click(await screen.findByRole("checkbox", { name: "代数" }));
@@ -414,8 +396,13 @@ describe("QuestionPage", () => {
     expect(screen.getByText(/共 5 条/)).toBeInTheDocument();
     expect(screen.queryByText(/共 7 条/)).not.toBeInTheDocument();
     // loading is owned by the newest request and already settled
-    expect(screen.getByText("Cargando…")).toHaveAttribute("aria-hidden", "true");
-    expect(screen.queryByText("No se pudo cargar la lista de alumnos")).not.toBeInTheDocument();
+    expect(screen.getByText("Cargando…")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+    expect(
+      screen.queryByText("No se pudo cargar la lista de alumnos"),
+    ).not.toBeInTheDocument();
   });
 
   it("ignores a stale tag-filter request that rejects after a newer one resolved", async () => {
@@ -431,7 +418,9 @@ describe("QuestionPage", () => {
     const staleA = deferredQuestions();
     const newerAB = deferredQuestions();
 
-    await user.click(screen.getByRole("button", { name: "Filtro de etiquetas" }));
+    await user.click(
+      screen.getByRole("button", { name: "Filtro de etiquetas" }),
+    );
     apiGet.mockImplementationOnce(() => staleA.promise);
     await user.click(await screen.findByRole("checkbox", { name: "代数" }));
     apiGet.mockImplementationOnce(() => newerAB.promise);
@@ -454,8 +443,13 @@ describe("QuestionPage", () => {
       within(desktopShell()).getByText("A+B 结果题目"),
     ).toBeInTheDocument();
     expect(screen.getByText(/共 5 条/)).toBeInTheDocument();
-    expect(screen.getByText("Cargando…")).toHaveAttribute("aria-hidden", "true");
-    expect(screen.queryByText("No se pudo cargar la lista de alumnos")).not.toBeInTheDocument();
+    expect(screen.getByText("Cargando…")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+    expect(
+      screen.queryByText("No se pudo cargar la lista de alumnos"),
+    ).not.toBeInTheDocument();
   });
 
   // Issue 457 C4 audit: the derived card must keep the field assignment the
@@ -476,7 +470,9 @@ describe("QuestionPage", () => {
     expect(within(mobile).getByText("题目一内容")).toBeInTheDocument();
     // meta line: labeled course/score/difficulty (score is NOT a bare
     // header value — the score column carries priority "normal").
-    expect(within(mobile).queryByText("Comisión: 课程一")).not.toBeInTheDocument();
+    expect(
+      within(mobile).queryByText("Comisión: 课程一"),
+    ).not.toBeInTheDocument();
     expect(within(mobile).getByText("Puntaje: 10")).toBeInTheDocument();
     expect(within(mobile).getByText("Dificultad: 1")).toBeInTheDocument();
     // tag-list defaults low: tags stay off the card.

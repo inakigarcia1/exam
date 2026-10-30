@@ -30,15 +30,13 @@ import { AccessDeniedPage } from "@/pages/admin/AccessDeniedPage";
 /**
  * Three-state responsive admin shell (DESIGN.md §9):
  *
- *   <lg            mobile/tablet — sidebar removed from flow (CSS hidden),
- *                 navigation in a left Sheet drawer; menu trigger in topbar.
- *   lg … <xl       compact desktop — persistent collapsed icon rail.
- *   >=xl           full desktop — persistent expanded sidebar; the
- *                 user-controlled collapse is available only here.
+ *   <xl            sidebar removed from flow. Navigation is a left drawer
+ *                 with the full option names. Menu trigger in the topbar.
+ *   >=xl           persistent sidebar. The user can collapse it to icons.
  *
- * Width is driven by AppSidebar's `collapsed` prop; visibility below lg is CSS
- * (`hidden lg:flex`). The shell always renders <AppSidebar> (test-visible) and
- * selects `collapsed` from the xl breakpoint. The mobile drawer reuses the same
+ * Width is driven by AppSidebar's `collapsed` prop; visibility below xl is CSS
+ * (`hidden xl:flex`). The shell always renders <AppSidebar> (test-visible).
+ * The drawer reuses the same
  * SidebarContent authority. Redirects unauthenticated or candidate-role users
  * to /login.
  *
@@ -49,17 +47,13 @@ import { AccessDeniedPage } from "@/pages/admin/AccessDeniedPage";
 export function AdminLayout() {
   const { t } = useTranslation();
   const { user, logout, isLoading } = useAuth();
-  // User-controlled collapse only applies at xl+ (full-desktop band). Below xl
-  // the sidebar is the compact rail by design, so userCollapsed is ignored.
   const [userCollapsed, setUserCollapsed] = useState(false);
   const isXl = useMediaQuery("(min-width: 80rem)");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const location = useLocation();
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
-  // In the compact band (lg … <xl) the sidebar is always the 56px rail.
-  // At xl+ it reflects the user's collapse preference.
-  const sidebarCollapsed = isXl ? userCollapsed : true;
+  const sidebarCollapsed = isXl ? userCollapsed : false;
 
   // Close the mobile drawer after route navigation.
   useEffect(() => {
@@ -149,7 +143,7 @@ export function AdminLayout() {
             type="button"
             variant="ghost"
             size="icon-lg"
-            className="lg:hidden"
+            className="xl:hidden"
             data-testid="mobile-nav-trigger"
             aria-label={t("nav.actions.openMenu")}
             aria-expanded={mobileNavOpen}

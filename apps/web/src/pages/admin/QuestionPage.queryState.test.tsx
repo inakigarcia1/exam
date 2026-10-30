@@ -23,8 +23,7 @@ import { permissionsForRole } from "@exam/authz";
 
 /**
  * #784 stage A — QuestionPage URL query-state oracles (A01, A02, A07-L2, A08,
- * A09, A09b, A10, A12, A14, A16, A17-L2, A18) plus the C1 course-probe
- * negative paths.
+ * A09, A09b, A10, A12, A16, A17-L2, A18).
  *
  * Every assertion is bound to THREE facts at once — the URL, the query that was
  * actually issued, and what the user can see (rows, control values, empty
@@ -35,10 +34,8 @@ import { permissionsForRole } from "@exam/authz";
 type QuestionListPayload = {
   items: Array<{
     id: string;
-    courseId: string;
     type: string;
     content: string;
-    score: number;
     difficulty: number;
     tags: string[];
   }>;
@@ -72,10 +69,8 @@ vi.mock("@/lib/api", () => ({
 function questionRow(id: string, content: string) {
   return {
     id,
-    courseId: "course-1",
     type: "true_false",
     content,
-    score: 2,
     difficulty: 1,
     tags: ["tag1"],
   };
@@ -106,27 +101,6 @@ function mockPaginated(total: number, prefix = "第") {
   apiGet.mockImplementation(async (url: string) => {
     if (url.startsWith("/api/questions/tags")) {
       return { tags: ["代数", "几何"] };
-    }
-    if (/^\/api\/courses\/[^/?]+$/.test(url)) {
-      // A listed course must never be probed, but a deep-linked one is; answer
-      // both so the fixture cannot mask the request under test. The answer
-      // carries the SERVER's canonical spelling (a uuid's lowercase form), not
-      // the requested one — echoing the request would hide the case-folding
-      // rule the page has to implement.
-      const id = url.slice("/api/courses/".length).toLowerCase();
-      return { id, name: `Comisión${id}`, code: id.toUpperCase() };
-    }
-    if (url.startsWith("/api/courses")) {
-      return {
-        items: [
-          { id: "course-1", name: "课程一", code: "C1" },
-          { id: "course-2", name: "课程二", code: "C2" },
-        ],
-        total: 2,
-        page: 1,
-        pageSize: 20,
-        totalPages: 1,
-      };
     }
     const params = new URLSearchParams(url.split("?")[1] ?? "");
     return pagePayload(Number(params.get("page") ?? "1"), total, prefix);
@@ -219,15 +193,6 @@ function urlSearch(): string {
   return screen.getByTestId("location-search").textContent ?? "";
 }
 
-/**
- * The course filter control. It carries no aria-label (the shared Select uses
- * its placeholder as the name), so a selected value would change its
- * accessible name — address it by its fixed toolbar position instead.
- */
-function courseTrigger(): HTMLElement {
-  return screen.getAllByRole("combobox")[0] as HTMLElement;
-}
-
 describe("QuestionPage URL query state (#784 A3)", () => {
   beforeEach(() => {
     apiDelete.mockReset();
@@ -237,16 +202,14 @@ describe("QuestionPage URL query state (#784 A3)", () => {
   // ── A01 — a deep link restores the filters AND the controls display them ──
   it("A01: a deep link restores filter, page, controls and rows together", async () => {
     mockPaginated(61);
-    renderPage(
-      "/admin/questions?courseId=course-2&type=fill_blank&difficulty=3&page=3",
-    );
+    renderPage("/admin/questions?type=fill_blank&difficulty=3&page=3");
 
     await screen.findByText("Gestión de preguntas");
     // The request is exactly what the parameter table derives.
     await waitFor(() => {
       const last = questionsCalls().at(-1) ?? "";
       expect(last).toContain(
-        "/api/questions?page=3&pageSize=20&courseId=course-2&type=fill_blank&difficulty=3",
+        "/api/questions?page=3&pageSize=20&type=fill_blank&difficulty=3",
       );
     });
     // The CONTROLS show the applied filters (a request-only implementation
@@ -254,7 +217,6 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     await waitFor(() =>
       expect(within(desktopShell()).getByText("第41题")).toBeInTheDocument(),
     );
-    expect(courseTrigger()).toHaveTextContent("课程二");
     expect(
       screen.getByRole("combobox", { name: "Filtrar por tipo" }),
     ).toHaveTextContent("Completar espacios");
@@ -263,7 +225,19 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     ).toHaveTextContent("Dificultad 3");
     // ...and the URL still carries them.
     expect(urlSearch()).toContain("page=3");
-    expect(urlSearch()).toContain("courseId=course-2");
+    expect(urlSearch()).toContain("type=fill_blank");
+  });
+
+  it("drops legacy courseId from bookmarked URLs without sending it to the API", async () => {
+    mockPaginated(3);
+    renderPage("/admin/questions?courseId=course-2&page=2");
+    await screen.findByText("Gestión de preguntas");
+    await waitFor(() => expect(urlSearch()).not.toContain("courseId="));
+    await waitFor(() => {
+      const last = questionsCalls().at(-1) ?? "";
+      expect(last).not.toContain("courseId=");
+      expect(last).toContain("page=2");
+    });
   });
 
   // ── A02 — multi-tag AND + search + page together ──
@@ -414,22 +388,7 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     apiGet.mockImplementation((url: string) => {
       if (url.startsWith("/api/questions/tags"))
         return Promise.resolve({ tags: [] });
-      if (/^\/api\/courses\/[^/?]+$/.test(url)) {
-        return Promise.resolve({ id: "course-2", name: "课程二", code: "C2" });
-      }
-      if (url.startsWith("/api/courses")) {
-        return Promise.resolve({
-          items: [
-            { id: "course-1", name: "课程一", code: "C1" },
-            { id: "course-2", name: "课程二", code: "C2" },
-          ],
-          total: 2,
-          page: 1,
-          pageSize: 20,
-          totalPages: 1,
-        });
-      }
-      if (decodeURIComponent(url).includes("courseId=course-2")) {
+      if (decodeURIComponent(url).includes("difficulty=3")) {
         return filtered;
       }
       return Promise.resolve(pagePayload(1, 21));
@@ -441,14 +400,20 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     );
 
     const user = userEvent.setup();
-    await user.click(courseTrigger());
-    await user.click(await screen.findByRole("option", { name: "课程二" }));
+    await user.click(
+      screen.getByRole("combobox", { name: "Filtrar por dificultad" }),
+    );
+    await user.click(
+      await screen.findByRole("option", { name: "Dificultad 3" }),
+    );
 
     // The new identity is in flight: no old row anywhere in the document, no
     // empty state, no actionable row control, and no stale row action.
     expect(screen.queryByText("第1题")).not.toBeInTheDocument();
     expect(screen.queryByText("No hay preguntas")).not.toBeInTheDocument();
-    expect(screen.queryByText("Ninguna pregunta coincide")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Ninguna pregunta coincide"),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Editar pregunta" }),
     ).not.toBeInTheDocument();
@@ -514,8 +479,12 @@ describe("QuestionPage URL query state (#784 A3)", () => {
 
     // A cross-identity change: the old rows are gone from the body, so only the
     // reservation can keep the region from collapsing.
-    await user.click(screen.getByRole("combobox", { name: "Filtrar por dificultad" }));
-    await user.click(await screen.findByRole("option", { name: "Dificultad 3" }));
+    await user.click(
+      screen.getByRole("combobox", { name: "Filtrar por dificultad" }),
+    );
+    await user.click(
+      await screen.findByRole("option", { name: "Dificultad 3" }),
+    );
 
     await waitFor(() => expect(box.style.minHeight).toBe(`${measured}px`));
     expect(
@@ -578,7 +547,9 @@ describe("QuestionPage URL query state (#784 A3)", () => {
       desktopShell().querySelector('[aria-busy="true"]'),
     ).toBeInTheDocument();
     expect(screen.queryByText("No hay preguntas")).not.toBeInTheDocument();
-    expect(screen.queryByText("Ninguna pregunta coincide")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Ninguna pregunta coincide"),
+    ).not.toBeInTheDocument();
 
     await act(async () => {
       resolvePage2(pagePayload(2, 41));
@@ -626,7 +597,9 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     expect(calls.map((c) => c.match(/page=(\d+)/)?.[1])).toEqual(["3", "2"]);
     // The URL now names the page that is actually rendered.
     expect(urlSearch()).toContain("page=2");
-    expect(screen.queryByText("Ninguna pregunta coincide")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Ninguna pregunta coincide"),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText("No hay preguntas")).not.toBeInTheDocument();
   });
 
@@ -653,7 +626,9 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     renderPage("/admin/questions?page=4");
     await waitFor(() => expect(urlSearch()).not.toContain("page="));
     await waitFor(() =>
-      expect(within(desktopShell()).getByText("No hay preguntas")).toBeInTheDocument(),
+      expect(
+        within(desktopShell()).getByText("No hay preguntas"),
+      ).toBeInTheDocument(),
     );
   });
 
@@ -712,7 +687,9 @@ describe("QuestionPage URL query state (#784 A3)", () => {
       // survives.
       await act(async () => {
         await vi.advanceTimersByTimeAsync(300);
-        fireEvent.click(screen.getByRole("button", { name: "Página siguiente" }));
+        fireEvent.click(
+          screen.getByRole("button", { name: "Página siguiente" }),
+        );
       });
 
       expect(urlSearch()).toContain("search=");
@@ -773,7 +750,9 @@ describe("QuestionPage URL query state (#784 A3)", () => {
       // to the committed term would also cancel the pending commit, so the term
       // the user typed would never land.
       await act(async () => {
-        fireEvent.click(screen.getByRole("button", { name: "Página siguiente" }));
+        fireEvent.click(
+          screen.getByRole("button", { name: "Página siguiente" }),
+        );
       });
       expect(screen.getByLabelText("Buscar preguntas")).toHaveValue("abcd");
       expect(urlSearch()).toContain("page=2");
@@ -790,291 +769,6 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     } finally {
       vi.useRealTimers();
     }
-  });
-
-  // ── A14 + C1 — an applied course filter must be displayable or dropped ──
-  it("A14: a deep-linked course id outside the loaded options is resolved and displayed", async () => {
-    const probes: string[] = [];
-    apiGet.mockImplementation((url: string) => {
-      if (/^\/api\/courses\/[^/?]+$/.test(url)) {
-        probes.push(url);
-        return Promise.resolve({
-          id: "course-9",
-          name: "第九课程",
-          code: "C9",
-        });
-      }
-      if (url.startsWith("/api/courses")) {
-        return Promise.resolve({
-          items: [{ id: "course-1", name: "课程一", code: "C1" }],
-          total: 1,
-          page: 1,
-          pageSize: 20,
-          totalPages: 1,
-        });
-      }
-      if (url.startsWith("/api/questions/tags"))
-        return Promise.resolve({ tags: [] });
-      return Promise.resolve(pagePayload(1, 3));
-    });
-
-    renderPage("/admin/questions?courseId=course-9");
-
-    await waitFor(() => expect(courseTrigger()).toHaveTextContent("第九课程"));
-    expect(probes).toEqual(["/api/courses/course-9"]);
-    // The list request carries the resolved id and is issued AFTER the probe.
-    const last = questionsCalls().at(-1) ?? "";
-    expect(last).toContain("courseId=course-9");
-  });
-
-  it("A14/C1: a course id already in the options is used without a probe", async () => {
-    const probes: string[] = [];
-    apiGet.mockImplementation((url: string) => {
-      if (/^\/api\/courses\/[^/?]+$/.test(url)) {
-        probes.push(url);
-        return Promise.reject(new Error("must not probe a listed course"));
-      }
-      if (url.startsWith("/api/courses")) {
-        return Promise.resolve({
-          items: [{ id: "course-1", name: "课程一", code: "C1" }],
-          total: 1,
-          page: 1,
-          pageSize: 20,
-          totalPages: 1,
-        });
-      }
-      if (url.startsWith("/api/questions/tags"))
-        return Promise.resolve({ tags: [] });
-      return Promise.resolve(pagePayload(1, 3));
-    });
-
-    renderPage("/admin/questions?courseId=course-1");
-    await waitFor(() =>
-      expect(questionsCalls().at(-1) ?? "").toContain("courseId=course-1"),
-    );
-    expect(probes).toEqual([]);
-  });
-
-  it("C1: a deterministic 404 drops the course filter and normalizes the URL", async () => {
-    apiGet.mockImplementation((url: string) => {
-      if (/^\/api\/courses\/[^/?]+$/.test(url)) {
-        return Promise.reject(new ApiError(404, "not found"));
-      }
-      if (url.startsWith("/api/courses")) {
-        return Promise.resolve({
-          items: [{ id: "course-1", name: "课程一", code: "C1" }],
-          total: 1,
-          page: 1,
-          pageSize: 20,
-          totalPages: 1,
-        });
-      }
-      if (url.startsWith("/api/questions/tags"))
-        return Promise.resolve({ tags: [] });
-      return Promise.resolve(pagePayload(1, 3));
-    });
-
-    renderPage("/admin/questions?courseId=ghost-course&page=2");
-
-    await waitFor(() => expect(urlSearch()).not.toContain("courseId="));
-    await waitFor(() =>
-      expect(questionsCalls().at(-1) ?? "").not.toContain("courseId="),
-    );
-    // Page 2 is preserved: only the undisplayable filter is dropped.
-    expect(urlSearch()).toContain("page=2");
-  });
-
-  it("C1: a transient probe failure keeps the filter and offers retry instead of dropping it", async () => {
-    let failProbe = true;
-    apiGet.mockImplementation((url: string) => {
-      if (/^\/api\/courses\/[^/?]+$/.test(url)) {
-        if (failProbe) return Promise.reject(new Error("network down"));
-        return Promise.resolve({
-          id: "course-9",
-          name: "第九课程",
-          code: "C9",
-        });
-      }
-      if (url.startsWith("/api/courses")) {
-        return Promise.resolve({
-          items: [{ id: "course-1", name: "课程一", code: "C1" }],
-          total: 1,
-          page: 1,
-          pageSize: 20,
-          totalPages: 1,
-        });
-      }
-      if (url.startsWith("/api/questions/tags"))
-        return Promise.resolve({ tags: [] });
-      return Promise.resolve(pagePayload(1, 3));
-    });
-
-    renderPage("/admin/questions?courseId=course-9");
-
-    // The user's intent is preserved: the parameter is still in the URL and the
-    // page offers a retry rather than pretending the course does not exist.
-    expect(await screen.findByRole("alert")).toBeInTheDocument();
-    expect(urlSearch()).toContain("courseId=course-9");
-    // No list request was issued for an identity that is not yet established.
-    expect(questionsCalls()).toHaveLength(0);
-
-    failProbe = false;
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Reintentar" }));
-    await waitFor(() => expect(courseTrigger()).toHaveTextContent("第九课程"));
-    expect(questionsCalls().at(-1) ?? "").toContain("courseId=course-9");
-  });
-
-  it("C1: a course id is encoded before it is probed", async () => {
-    const probes: string[] = [];
-    apiGet.mockImplementation((url: string) => {
-      if (/^\/api\/courses\//.test(url)) {
-        probes.push(url);
-        return Promise.reject(new ApiError(404, "not found"));
-      }
-      if (url.startsWith("/api/questions/tags"))
-        return Promise.resolve({ tags: [] });
-      return Promise.resolve(pagePayload(1, 0));
-    });
-
-    renderPage("/admin/questions?courseId=..%2Fquestions%2Ftags");
-
-    await waitFor(() => expect(probes).toHaveLength(1));
-    // The path is escaped, so the probe cannot address a DIFFERENT endpoint.
-    expect(probes[0]).toBe("/api/courses/..%2Fquestions%2Ftags");
-    expect(probes[0]).not.toContain("/api/questions/tags");
-  });
-
-  it("C1: an uppercase deep link folds onto the server's spelling and stays displayable", async () => {
-    const canonical = "0a1b2c3d-0000-4000-8000-000000000001";
-    const probes: string[] = [];
-    apiGet.mockImplementation((url: string) => {
-      if (/^\/api\/courses\/[^/?]+$/.test(url)) {
-        probes.push(url);
-        // uuid comparison is case-insensitive on zod and Postgres, so the
-        // server honours the uppercase request and answers with its OWN
-        // spelling — which is what the Select's option values are built from.
-        return Promise.resolve({
-          id: canonical,
-          name: "大写课程",
-          code: "U1",
-        });
-      }
-      if (url.startsWith("/api/courses")) {
-        return Promise.resolve({
-          items: [{ id: "course-1", name: "课程一", code: "C1" }],
-          total: 1,
-          page: 1,
-          pageSize: 20,
-          totalPages: 1,
-        });
-      }
-      if (url.startsWith("/api/questions/tags"))
-        return Promise.resolve({ tags: [] });
-      return Promise.resolve(pagePayload(1, 3));
-    });
-
-    renderPage(`/admin/questions?courseId=${canonical.toUpperCase()}`);
-
-    // The applied filter is DISPLAYED. An exact-match implementation would
-    // leave the Select on its placeholder — an applied filter the user can
-    // neither see nor undo — and would keep the page resolving forever.
-    await waitFor(() => expect(courseTrigger()).toHaveTextContent("大写课程"));
-    // URL, control and request name the same course.
-    await waitFor(() => expect(urlSearch()).toContain(`courseId=${canonical}`));
-    expect(urlSearch()).not.toContain(canonical.toUpperCase());
-    expect(questionsCalls().at(-1) ?? "").toContain(`courseId=${canonical}`);
-    expect(probes).toHaveLength(1);
-  });
-
-  it("C1: a transient probe failure stops being reported once the URL no longer carries that course", async () => {
-    apiGet.mockImplementation((url: string) => {
-      if (/^\/api\/courses\/[^/?]+$/.test(url))
-        return Promise.reject(new Error("network down"));
-      if (url.startsWith("/api/courses")) {
-        return Promise.resolve({
-          items: [{ id: "course-1", name: "课程一", code: "C1" }],
-          total: 1,
-          page: 1,
-          pageSize: 20,
-          totalPages: 1,
-        });
-      }
-      if (url.startsWith("/api/questions/tags"))
-        return Promise.resolve({ tags: [] });
-      return Promise.resolve(pagePayload(1, 3));
-    });
-
-    renderPage(["/admin/questions", "/admin/questions?courseId=course-9"]);
-    expect(await screen.findByRole("alert")).toBeInTheDocument();
-
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "后退" }));
-
-    // The failure belonged to one identity. Once the URL stops carrying it, the
-    // error must not keep replacing a query that is not about that course.
-    await waitFor(() =>
-      expect(screen.queryByRole("alert")).not.toBeInTheDocument(),
-    );
-    await waitFor(() =>
-      expect(questionsCalls().at(-1) ?? "").toBe(
-        "/api/questions?page=1&pageSize=20",
-      ),
-    );
-    expect(urlSearch()).toBe("");
-  });
-
-  it("C1: a stale probe result cannot rewrite a course filter the user has moved to", async () => {
-    let releaseProbeA!: () => void;
-    const probeAGate = new Promise<void>((resolve) => {
-      releaseProbeA = resolve;
-    });
-    const probes: string[] = [];
-    apiGet.mockImplementation(async (url: string) => {
-      if (/^\/api\/courses\/[^/?]+$/.test(url)) {
-        const id = url.slice("/api/courses/".length);
-        probes.push(id);
-        if (id === "course-a") {
-          // Held open until the test releases it — after the user has moved on.
-          await probeAGate;
-          throw new ApiError(404, "not found");
-        }
-        return { id: "course-b", name: "课程乙", code: "B" };
-      }
-      if (url.startsWith("/api/courses")) {
-        return { items: [], total: 0, page: 1, pageSize: 20, totalPages: 1 };
-      }
-      if (url.startsWith("/api/questions/tags")) return { tags: [] };
-      return pagePayload(1, 3);
-    });
-
-    renderPage([
-      "/admin/questions?courseId=course-b",
-      "/admin/questions?courseId=course-a",
-    ]);
-    await waitFor(() => expect(probes).toEqual(["course-a"]));
-
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "后退" }));
-    await waitFor(() => expect(courseTrigger()).toHaveTextContent("课程乙"));
-    expect(urlSearch()).toContain("courseId=course-b");
-
-    // The 404 belonged to course A's probe. Landing now, it must not delete the
-    // courseId the user is actually on — a probe result has to be subject to
-    // the navigation identity that is current when it settles.
-    //
-    // The negative fact has to be observable, so the assertions are taken after
-    // the stale continuation has had every chance to run: if it rewrote the URL
-    // the list would refetch for the bare query, which both adds a request and
-    // clears the filter.
-    const callsBefore = questionsCalls().length;
-    releaseProbeA();
-    await act(async () => {});
-    await act(async () => {});
-    expect(probes).toEqual(["course-a", "course-b"]);
-    expect(questionsCalls()).toHaveLength(callsBefore);
-    expect(urlSearch()).toContain("courseId=course-b");
-    expect(courseTrigger()).toHaveTextContent("课程乙");
   });
 
   // ── R1 — a refetch that outlives the render it started in ──
@@ -1095,7 +789,9 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     // Start the delete, then move to page 2 while its confirmation is still in
     // flight.
     await user.click(
-      within(desktopShell()).getAllByRole("button", { name: "Eliminar pregunta" })[0]!,
+      within(desktopShell()).getAllByRole("button", {
+        name: "Eliminar pregunta",
+      })[0]!,
     );
     await user.click(
       within(await screen.findByRole("alertdialog")).getByRole("button", {
@@ -1129,15 +825,6 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     apiGet.mockImplementation((url: string) => {
       if (url.startsWith("/api/questions/tags"))
         return Promise.resolve({ tags: [] });
-      if (url.startsWith("/api/courses")) {
-        return Promise.resolve({
-          items: [],
-          total: 0,
-          page: 1,
-          pageSize: 20,
-          totalPages: 1,
-        });
-      }
       return Promise.reject(new Error("boom"));
     });
 
@@ -1151,19 +838,7 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     apiGet.mockImplementation((url: string) => {
       if (url.startsWith("/api/questions/tags"))
         return Promise.resolve({ tags: [] });
-      if (url.startsWith("/api/courses")) {
-        return Promise.resolve({
-          items: [
-            { id: "course-1", name: "课程一", code: "C1" },
-            { id: "course-2", name: "课程二", code: "C2" },
-          ],
-          total: 2,
-          page: 1,
-          pageSize: 20,
-          totalPages: 1,
-        });
-      }
-      if (decodeURIComponent(url).includes("courseId=course-2")) {
+      if (decodeURIComponent(url).includes("difficulty=3")) {
         return Promise.reject(new Error("boom"));
       }
       return Promise.resolve(pagePayload(1, 21));
@@ -1175,8 +850,12 @@ describe("QuestionPage URL query state (#784 A3)", () => {
       expect(within(desktopShell()).getByText("第1题")).toBeInTheDocument(),
     );
 
-    await user.click(courseTrigger());
-    await user.click(await screen.findByRole("option", { name: "课程二" }));
+    await user.click(
+      screen.getByRole("combobox", { name: "Filtrar por dificultad" }),
+    );
+    await user.click(
+      await screen.findByRole("option", { name: "Dificultad 3" }),
+    );
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("No se pudo cargar la lista de alumnos");
     // The old identity's rows are not shown next to the error, and the shell
@@ -1189,22 +868,7 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     apiGet.mockImplementation((url: string) => {
       if (url.startsWith("/api/questions/tags"))
         return Promise.resolve({ tags: [] });
-      if (/^\/api\/courses\/[^/?]+$/.test(url)) {
-        // Resolvable (so the filter survives normalization) but the LIST
-        // request for it fails — the failure under test.
-        const id = url.slice("/api/courses/".length);
-        return Promise.resolve({ id, name: `Comisión${id}`, code: "G" });
-      }
-      if (url.startsWith("/api/courses")) {
-        return Promise.resolve({
-          items: [],
-          total: 0,
-          page: 1,
-          pageSize: 20,
-          totalPages: 1,
-        });
-      }
-      if (decodeURIComponent(url).includes("courseId=ghost")) {
+      if (decodeURIComponent(url).includes("difficulty=3")) {
         return Promise.reject(new Error("boom"));
       }
       return Promise.resolve(pagePayload(1, 21));
@@ -1212,7 +876,7 @@ describe("QuestionPage URL query state (#784 A3)", () => {
 
     const user = userEvent.setup();
     // Entry 1 is the bare list; entry 2 (current) is the failing query.
-    renderPage(["/admin/questions", "/admin/questions?courseId=ghost"]);
+    renderPage(["/admin/questions", "/admin/questions?difficulty=3"]);
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("No se pudo cargar la lista de alumnos");
 
@@ -1252,7 +916,9 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     // failure — the page-level error path would unmount the toolbar.
     await waitFor(() =>
       expect(
-        within(desktopShell()).getByText("No se pudo cargar la lista de alumnos"),
+        within(desktopShell()).getByText(
+          "No se pudo cargar la lista de alumnos",
+        ),
       ).toBeInTheDocument(),
     );
     expect(screen.getByRole("toolbar")).toBeInTheDocument();
@@ -1287,7 +953,9 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     await user.click(screen.getByRole("button", { name: "Página siguiente" }));
     await waitFor(() =>
       expect(
-        within(desktopShell()).getByText("No se pudo cargar la lista de alumnos"),
+        within(desktopShell()).getByText(
+          "No se pudo cargar la lista de alumnos",
+        ),
       ).toBeInTheDocument(),
     );
 
@@ -1299,7 +967,9 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     await user.click(screen.getByRole("button", { name: "Página siguiente" }));
     await waitFor(() => expect(page3Held).toBe(true));
     expect(
-      within(desktopShell()).queryByText("No se pudo cargar la lista de alumnos"),
+      within(desktopShell()).queryByText(
+        "No se pudo cargar la lista de alumnos",
+      ),
     ).not.toBeInTheDocument();
     expect(
       within(desktopShell()).getByRole("table").querySelector("tbody"),
@@ -1310,7 +980,9 @@ describe("QuestionPage URL query state (#784 A3)", () => {
       expect(within(desktopShell()).getByText("第41题")).toBeInTheDocument(),
     );
     expect(
-      within(desktopShell()).queryByText("No se pudo cargar la lista de alumnos"),
+      within(desktopShell()).queryByText(
+        "No se pudo cargar la lista de alumnos",
+      ),
     ).not.toBeInTheDocument();
   });
 
@@ -1355,7 +1027,9 @@ describe("QuestionPage URL query state (#784 A3)", () => {
     // names, and no empty state may be rendered.
     await waitFor(() => expect(urlSearch()).toContain("page=4"));
     expect(within(desktopShell()).queryByText("第1题")).not.toBeInTheDocument();
-    expect(screen.queryByText("Ninguna pregunta coincide")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Ninguna pregunta coincide"),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText("No hay preguntas")).not.toBeInTheDocument();
 
     releaseClamp();
@@ -1399,15 +1073,6 @@ describe("QuestionPage URL query state (#784 A3)", () => {
       if (url.startsWith("/api/questions/tags")) {
         return Promise.resolve({ tags: ["代数", "几何"] });
       }
-      if (url.startsWith("/api/courses")) {
-        return Promise.resolve({
-          items: [{ id: "course-1", name: "课程一", code: "C1" }],
-          total: 1,
-          page: 1,
-          pageSize: 20,
-          totalPages: 1,
-        });
-      }
       return Promise.resolve(pagePayload(1, 2));
     });
 
@@ -1416,11 +1081,13 @@ describe("QuestionPage URL query state (#784 A3)", () => {
       "/admin/questions?tags=%E4%BB%A3%E6%95%B0,%E9%99%88%E6%97%A7%E6%A0%87%E7%AD%BE",
     );
     await screen.findByText("Gestión de preguntas");
-    expect(screen.getByRole("button", { name: "Filtro de etiquetas" })).toHaveTextContent(
-      "代数 +1",
-    );
+    expect(
+      screen.getByRole("button", { name: "Filtro de etiquetas" }),
+    ).toHaveTextContent("代数 +1");
 
-    await user.click(screen.getByRole("button", { name: "Filtro de etiquetas" }));
+    await user.click(
+      screen.getByRole("button", { name: "Filtro de etiquetas" }),
+    );
     // The non-vocabulary tag is listed as a checked option...
     const stale = await screen.findByRole("checkbox", { name: "陈旧标签" });
     expect(stale).toBeChecked();
@@ -1438,20 +1105,22 @@ describe("QuestionPage URL query state (#784 A3)", () => {
   it("carries the current list query into an edit navigation", async () => {
     mockPaginated(61);
     const user = userEvent.setup();
-    renderPage("/admin/questions?courseId=course-1&page=2");
+    renderPage("/admin/questions?page=2");
     await waitFor(() =>
       expect(within(desktopShell()).getByText("第21题")).toBeInTheDocument(),
     );
 
     await user.click(
-      within(desktopShell()).getAllByRole("button", { name: "Editar pregunta" })[0]!,
+      within(desktopShell()).getAllByRole("button", {
+        name: "Editar pregunta",
+      })[0]!,
     );
     expect(await screen.findByText("编辑页")).toBeInTheDocument();
     // The list URL is CARRIED, not merely left behind: the exit needs it to
     // restore the query without a browser Back. Asserting only that the editor
     // rendered would let a write-side that passes no state pass this test.
     expect(screen.getByTestId("location-state").textContent).toBe(
-      JSON.stringify({ from: "/admin/questions?courseId=course-1&page=2" }),
+      JSON.stringify({ from: "/admin/questions?page=2" }),
     );
   });
 });

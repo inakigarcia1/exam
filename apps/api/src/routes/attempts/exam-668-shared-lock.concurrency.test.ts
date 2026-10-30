@@ -329,7 +329,6 @@ describe("EXAM-668 — shared candidate deadline reader lock relations", () => {
         .values({
           id: randomUUID(),
           organizationId: org.id,
-          courseId: course.id,
           type: "single_choice" as const,
           content: "EXAM-668",
           options: [
@@ -338,7 +337,6 @@ describe("EXAM-668 — shared candidate deadline reader lock relations", () => {
           ],
           standardAnswer: "a",
           attachments: [],
-          score: 100,
           difficulty: 1,
           tags: [],
           gradingRule: {

@@ -8,11 +8,9 @@ import {
   ErrorResponseSchema,
 } from "@exam/contracts";
 import { Permission, AuditAction } from "@exam/authz";
-import { subjects } from "@exam/db/schema/pg";
-import { createAsyncTenantCrudRepo } from "@exam/db/repository/baseRepo";
 import { createCourseRepo } from "@exam/db/repository/courseRepo";
+import { createSubjectRepo } from "@exam/db/repository/subjectRepo";
 import type { CourseListFilters } from "@exam/db/repository/courseRepo";
-import { createQuestionRepo } from "@exam/db/repository/questionRepo";
 import { createTeacherCourseAssignmentRepo } from "@exam/db/repository/teacherCourseAssignmentRepo";
 import { executeInTransaction } from "@exam/db/types";
 import type { RequestContext } from "@exam/domain";
@@ -246,10 +244,10 @@ const courseRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.code(409).send(nameConflict(request.id));
       }
       if (data.subjectId) {
-        const subject = await createAsyncTenantCrudRepo(
-          fastify.db,
-          subjects,
-        ).findById(ctx, data.subjectId);
+        const subject = await createSubjectRepo(fastify.db).findById(
+          ctx,
+          data.subjectId,
+        );
         if (!subject) {
           return reply.code(400).send(
             buildErrorResponse(request.id, "VALIDATION_ERROR", {
@@ -493,32 +491,10 @@ const courseRoutes: FastifyPluginAsync = async (fastify) => {
         },
       },
     },
-    /** Delete a course by ID. Returns 409 if the course still contains questions, 404 if not found. Teacher assignment episodes are removed in the same transaction (issue #286). */
+    /** Delete a course by ID. Returns 404 if not found. Teacher assignment episodes are removed in the same transaction (issue #286). */
     async (request: any, reply: any) => {
       const ctx: RequestContext = ensureTargetOrg(getRequestContext(request));
       const { id } = request.params as { id: string };
-      const questionCount = await createQuestionRepo(
-        fastify.db,
-      ).countByCourseId(ctx, id);
-      if (questionCount > 0) {
-        return reply.code(409).send(
-          buildErrorResponse(request.id, "RESOURCE_CONFLICT", {
-            // Machine semantics per message contract D0.3/D0.4: the specific
-            // condition and the dynamic fact are structured, the prose in
-            // fields[] is non-authoritative compatibility text only.
-            reason: "COURSE_HAS_QUESTIONS",
-            params: { questionCount },
-            fields: [
-              {
-                field: "courseId",
-                code: "RESOURCE_CONFLICT",
-                // i18n-copy-allow: wire-compat — non-authoritative field compatibility message on the wire; field code+params are the contract
-                message: "课程下仍有题目，无法删除",
-              },
-            ],
-          }),
-        );
-      }
       const deleted = await executeInTransaction(fastify.db, async (tx) => {
         // Episodes reference the course by composite FK; remove them first
         // so Admin deletion is not blocked once any assignment exists.

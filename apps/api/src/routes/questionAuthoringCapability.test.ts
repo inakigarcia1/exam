@@ -81,7 +81,6 @@ describe("question routes — Teacher authoring capabilities", () => {
         type: "text_response",
         content: "请阐述你的观点",
         standardAnswer: null,
-        score: 20,
         difficulty: 3,
         rubric: "按逻辑完整性、关键概念、论证质量给分",
       },

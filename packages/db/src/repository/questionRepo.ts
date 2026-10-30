@@ -1,12 +1,12 @@
 import type { Database } from "../types.js";
-import { courses, organizations, questions } from "../schema/pg.js";
+import { questions } from "../schema/pg.js";
 import {
   createAsyncTenantCrudRepo,
   resolveOrganizationId,
 } from "./baseRepo.js";
 import type { TenantContext } from "../types.js";
 import type { RequestContext } from "@exam/domain";
-import { and, count, eq, inArray, sql, type SQL } from "drizzle-orm";
+import { and, count, eq, sql, type SQL } from "drizzle-orm";
 
 type QuestionSelect = typeof questions.$inferSelect;
 
@@ -20,19 +20,11 @@ async function countQuestions(
 
 /** Filter options for listing questions with DB-level filtering. */
 export interface QuestionListFilters {
-  courseId?: string;
   type?: string;
   difficulty?: number;
   tags?: string[];
   /** Case-insensitive substring search over question `content` (trimmed). */
   search?: string;
-  /**
-   * Restrict the listing to these course ids (LIST scope filter).
-   * Applied in SQL BEFORE pagination/count — callers pass the actor's active
-   * Teacher assignment set (an EMPTY array here yields zero rows by contract).
-   * Combined with `courseId` by intersection at the call site.
-   */
-  courseIds?: string[];
 }
 
 /**
@@ -45,38 +37,6 @@ export function createQuestionRepo(db: Database) {
   return {
     ...repo,
     /**
-     * Authorization chain for the question scope resolver:
-     * question → course → organization, org-scoped. Mirrors
-     * examRepo.findAuthorizationChain; a null course id surfaces through the
-     * resolver as a broken parent chain (never silently allowed).
-     */
-    async findAuthorizationChain(
-      ctx: TenantContext | RequestContext,
-      questionId: string,
-    ) {
-      const orgId = resolveOrganizationId(ctx);
-      const rows = await db
-        .select({
-          questionId: questions.id,
-          questionOrganizationId: questions.organizationId,
-          linkedCourseId: questions.courseId,
-          courseId: courses.id,
-          courseOrganizationId: courses.organizationId,
-          organizationId: organizations.id,
-        })
-        .from(questions)
-        .leftJoin(courses, eq(questions.courseId, courses.id))
-        .leftJoin(organizations, eq(courses.organizationId, organizations.id))
-        .where(
-          and(
-            eq(questions.organizationId, orgId),
-            eq(questions.id, questionId),
-          ),
-        )
-        .limit(1);
-      return rows[0] ?? null;
-    },
-    /**
      * Lists questions with optional DB-level filters and pagination.
      * Filtering is done in SQL rather than in-memory for performance.
      */
@@ -88,17 +48,6 @@ export function createQuestionRepo(db: Database) {
       const orgId = resolveOrganizationId(ctx);
       const conditions = [eq(questions.organizationId, orgId)];
 
-      if (filters.courseId) {
-        conditions.push(eq(questions.courseId, filters.courseId));
-      }
-      if (filters.courseIds) {
-        if (filters.courseIds.length === 0) {
-          // Scope-contracted empty set: no assigned courses → zero rows
-          // (both page and total), never an unfiltered listing.
-          return { items: [], total: 0 };
-        }
-        conditions.push(inArray(questions.courseId, filters.courseIds));
-      }
       if (filters.type) {
         conditions.push(eq(questions.type, filters.type));
       }
@@ -155,24 +104,9 @@ export function createQuestionRepo(db: Database) {
      * CASE at the expansion site, so a legacy non-array tags value cannot
      * break the listing regardless of planner qual placement; null and empty
      * elements are excluded so the vocabulary only contains real tags.
-     *
-     * `courseIds` (when provided) restricts the vocabulary to
-     * questions under those courses — SQL-side BEFORE aggregation, so a
-     * Teacher's vocabulary never reveals out-of-scope tags. An EMPTY array
-     * yields an empty vocabulary by contract (never the org-wide set).
      */
-    async listAllTags(
-      ctx: TenantContext | RequestContext,
-      courseIds?: string[],
-    ): Promise<string[]> {
+    async listAllTags(ctx: TenantContext | RequestContext): Promise<string[]> {
       const orgId = resolveOrganizationId(ctx);
-      if (courseIds && courseIds.length === 0) return [];
-      const courseFilter =
-        courseIds &&
-        sql` and ${questions.courseId} in (${sql.join(
-          courseIds.map((id) => sql`${id}`),
-          sql`, `,
-        )})`;
       const rows = await db.execute<{ tag: string }>(sql`
         select distinct tag_value #>> '{}' as tag
         from ${questions},
@@ -181,28 +115,12 @@ export function createQuestionRepo(db: Database) {
                  then ${questions.tags}
                  else '[]'::jsonb end
           ) as tag_value
-        where ${questions.organizationId} = ${orgId}${courseFilter ?? sql``}
+        where ${questions.organizationId} = ${orgId}
           and (tag_value #>> '{}') is not null
           and (tag_value #>> '{}') <> ''
         order by tag
       `);
       return rows.map((row) => row.tag);
-    },
-
-    /**
-     * Returns the count of questions belonging to a specific course,
-     * scoped to the tenant. Used by course deletion guard.
-     */
-    async countByCourseId(
-      ctx: TenantContext | RequestContext,
-      courseId: string,
-    ): Promise<number> {
-      const orgId = resolveOrganizationId(ctx);
-      const where = and(
-        eq(questions.organizationId, orgId),
-        eq(questions.courseId, courseId),
-      )!;
-      return countQuestions(db, where);
     },
   };
 }

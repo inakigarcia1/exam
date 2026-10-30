@@ -38,6 +38,7 @@ import { getTypeLabel, isQuestionType, TYPE_VARIANT } from "@/lib/constants";
 import { parsePageParam, resolveClampTarget } from "@/lib/listQueryState";
 import { listReturnState } from "@/lib/listReturnNavigation";
 import {
+  Download,
   FileUp,
   LoaderCircle,
   Pencil,
@@ -49,19 +50,10 @@ import {
 /** A question record for the admin question list table. */
 interface QuestionRow {
   id: string;
-  courseId: string;
   type: string;
   content: string;
-  score: number;
   difficulty: number;
   tags: string[];
-}
-
-/** A course record used for course name lookup in the question table. */
-interface CourseRow {
-  id: string;
-  name: string;
-  code: string;
 }
 
 /** Generic paginated API response wrapper. */
@@ -83,7 +75,6 @@ const DIFFICULTY_VALUES = ["1", "2", "3", "4", "5"];
 /** URL parameters this page owns; every other parameter is passed through. */
 const MANAGED_PARAMS = [
   "page",
-  "courseId",
   "type",
   "difficulty",
   "tags",
@@ -121,10 +112,6 @@ function canonicalParamValue(key: ManagedParam, raw: string): string | null {
       // same thing and is dropped rather than forwarded to the API.
       return page === 1 ? null : String(page);
     }
-    case "courseId":
-      // Legality is DECIDED BY DISPLAYABILITY (the resolution probe), not by a
-      // client-side uuid pattern: the server accepts ids this regex would not.
-      return raw === "" ? null : raw;
     case "type":
       return isQuestionType(raw) ? raw : null;
     case "difficulty":
@@ -148,6 +135,7 @@ function canonicalizeParams(params: URLSearchParams): URLSearchParams | null {
   const next = new URLSearchParams();
   const emitted = new Set<string>();
   for (const [key, value] of params) {
+    if (key === "courseId") continue;
     if (!isManagedParam(key)) {
       next.append(key, value);
       continue;
@@ -167,8 +155,8 @@ function writePageParam(params: URLSearchParams, page: number): void {
 }
 
 /**
- * Admin question management page with server-side search, filtering by course,
- * type, difficulty, and tags, plus pagination.
+ * Admin question management page with server-side search, filtering by type,
+ * difficulty, and tags, plus pagination.
  *
  * The URL is the single authority for the SUBMITTED query state (filters,
  * search term, page): refreshing, deep-linking and Back/Forward all restore the
@@ -183,6 +171,79 @@ function writePageParam(params: URLSearchParams, page: number): void {
  * loading/empty/error transitions — only the table body swaps, so there is no
  * layout jitter.
  */
+const QUESTION_CSV_HEADER =
+  "Tipo,Enunciado,OpciónA,OpciónB,OpciónC,OpciónD,Respuesta correcta,Dificultad,Etiqueta";
+
+function downloadQuestionTemplate() {
+  const blob = new Blob([`${QUESTION_CSV_HEADER}\n`], {
+    type: "text/csv;charset=utf-8",
+  });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = "plantilla-preguntas.csv";
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function parseQuestionCsvLine(line: string): string[] {
+  const result: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (ch === "," && !inQuotes) {
+      result.push(current);
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  result.push(current);
+  return result;
+}
+
+function parseQuestionCsv(text: string) {
+  const lines = text.split(/\r?\n/).filter((line) => line.trim());
+  if (lines.length < 2) return [];
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line) continue;
+    const cols = parseQuestionCsvLine(line);
+    if (cols.length < 2) continue;
+    const type = cols[0] ?? "";
+    const answer = cols[6] ?? "";
+    rows.push({
+      type,
+      content: cols[1] ?? "",
+      optionA: cols[2] || undefined,
+      optionB: cols[3] || undefined,
+      optionC: cols[4] || undefined,
+      optionD: cols[5] || undefined,
+      standardAnswer:
+        type === "true_false"
+          ? answer.toLowerCase() === "true" || answer === "Sí"
+          : type === "multiple_choice"
+            ? answer
+                .split(/[|,]/)
+                .map((item) => item.trim())
+                .filter(Boolean)
+            : answer,
+      difficulty: cols[7] ? Number(cols[7]) : undefined,
+      tags: cols[8] || undefined,
+    });
+  }
+  return rows;
+}
+
 export function QuestionPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -190,25 +251,9 @@ export function QuestionPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [questions, setQuestions] = useState<QuestionRow[]>([]);
-  const [courses, setCourses] = useState<CourseRow[]>([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [tagVocabulary, setTagVocabulary] = useState<string[]>([]);
-  // Courses resolved from a deep-linked courseId that the loaded options do not
-  // contain. Kept separate from `courses` so a list refresh cannot drop the
-  // display of the filter the user is looking at.
-  const [resolvedCourses, setResolvedCourses] = useState<CourseRow[]>([]);
-  // The courseId whose displayability could NOT be established because the
-  // probe failed transiently (network/5xx). The user's filter is preserved and
-  // the page offers retry — a transient failure must never be presented as
-  // "no such course" and never silently drop the parameter.
-  //
-  // Keyed by the id, not a bare flag: the outcome belongs to one identity, so
-  // navigating to a URL that no longer carries it must not keep reporting it.
-  const [courseProbeFailedId, setCourseProbeFailedId] = useState<string | null>(
-    null,
-  );
-  const [courseProbeAttempt, setCourseProbeAttempt] = useState(0);
   // The latest-request guard (unchanged contract): multi-select tag changes and
   // rapid page/filter flips fire overlapping requests; a response whose
   // generation is no longer current must not mutate rows, total, error, or the
@@ -259,7 +304,6 @@ export function QuestionPage() {
     latestParams.current = new URLSearchParams(searchParams);
   }
 
-  const courseId = searchParams.get("courseId") ?? "";
   const typeRaw = searchParams.get("type") ?? "";
   const difficultyRaw = searchParams.get("difficulty") ?? "";
   const tagsRaw = searchParams.get("tags") ?? "";
@@ -272,7 +316,6 @@ export function QuestionPage() {
     const tags = normalizeTags(tagsRaw);
     const search = canonicalParamValue("search", searchRaw) ?? "";
     return {
-      courseId: canonicalParamValue("courseId", courseId) ?? "",
       type,
       difficulty,
       tags,
@@ -283,7 +326,7 @@ export function QuestionPage() {
     // (which is what a canonical rewrite produces) keeps this object identical
     // and cannot re-trigger the list request.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [courseId, typeRaw, difficultyRaw, tagsRaw, searchRaw, pageRaw]);
+  }, [typeRaw, difficultyRaw, tagsRaw, searchRaw, pageRaw]);
 
   const { page, type: filterType, difficulty: filterDifficulty } = queryState;
   const search = queryState.search;
@@ -297,7 +340,6 @@ export function QuestionPage() {
   const filterKey = useMemo(
     () =>
       JSON.stringify([
-        queryState.courseId,
         queryState.type,
         queryState.difficulty,
         queryState.tags,
@@ -312,20 +354,6 @@ export function QuestionPage() {
   );
   /** The gate compares RENDER keys — the identity projection of a request. */
   const renderKey = filterKey;
-
-  const courseOptions = useMemo(
-    () => [...courses, ...resolvedCourses],
-    [courses, resolvedCourses],
-  );
-  const courseKnown =
-    queryState.courseId === "" ||
-    courseOptions.some(
-      (c) => c.id.toLowerCase() === queryState.courseId.toLowerCase(),
-    );
-  const courseProbeFailed =
-    courseProbeFailedId !== null && courseProbeFailedId === queryState.courseId;
-  const courseResolving =
-    queryState.courseId !== "" && !courseKnown && !courseProbeFailed;
 
   /**
    * The parameter set every write starts from. Reading the ref (not the
@@ -372,32 +400,6 @@ export function QuestionPage() {
     latestParams.current = observed;
   }, [searchParams]);
 
-  /**
-   * Folds the URL onto the server's spelling of a course id.
-   *
-   * uuid comparison is case-insensitive on both zod and Postgres, so an
-   * uppercase link is legitimate input the server honours — but the Select's
-   * option values come from the server, so an unfolded id would leave an
-   * APPLIED filter rendering as the placeholder. Canonicalizing (replace) keeps
-   * one authority and makes the applied value displayable and undoable.
-   */
-  useEffect(() => {
-    if (isInitialLoading || queryState.courseId === "") return;
-    const match = courseOptions.find(
-      (c) => c.id.toLowerCase() === queryState.courseId.toLowerCase(),
-    );
-    if (match === undefined || match.id === queryState.courseId) return;
-    const next = baseParams();
-    next.set("courseId", match.id);
-    writeParams(next);
-  }, [
-    baseParams,
-    courseOptions,
-    isInitialLoading,
-    queryState.courseId,
-    writeParams,
-  ]);
-
   // Canonicalization is a visible correction, so it REPLACES the entry: an
   // illegal value must not become a page the user can navigate back to.
   useEffect(() => {
@@ -414,15 +416,6 @@ export function QuestionPage() {
     lastCommittedSearch.current = search;
   }, [search, searchInput]);
 
-  const loadCourses = useCallback(async () => {
-    try {
-      const cData = await api.get<PaginatedResponse<CourseRow>>("/api/courses");
-      setCourses(cData.items);
-    } catch {
-      // courses are optional context — table can still render
-    }
-  }, []);
-
   const loadTagVocabulary = useCallback(async () => {
     try {
       const data = await api.get<{ tags: string[] }>("/api/questions/tags");
@@ -431,58 +424,6 @@ export function QuestionPage() {
       // vocabulary is optional context — the filter still renders (empty)
     }
   }, []);
-
-  /**
-   * Resolves a courseId the loaded options do not contain, so an applied filter
-   * is always displayable and always undoable.
-   *
-   * Scope: only for ids that are NOT already options — the common path costs no
-   * request. A deterministic "no such course" (404/400: deleted, out of the
-   * caller's scope, malformed) drops the parameter and rewrites the URL; a
-   * transient failure keeps the user's intent and routes to the retry path.
-   */
-  useEffect(() => {
-    // The loaded options are the first half of "is this id already known?", so
-    // the probe must not start before they land — otherwise every deep link
-    // carrying an ordinary courseId would probe it needlessly.
-    if (isInitialLoading) return;
-    if (queryState.courseId === "" || courseKnown) return;
-    let canceled = false;
-    const id = queryState.courseId;
-    void (async () => {
-      try {
-        const course = await api.get<CourseRow>(
-          `/api/courses/${encodeURIComponent(id)}`,
-        );
-        if (canceled) return;
-        setResolvedCourses((prev) =>
-          prev.some((c) => c.id === course.id) ? prev : [...prev, course],
-        );
-      } catch (err) {
-        if (canceled) return;
-        if (
-          err instanceof ApiError &&
-          (err.status === 404 || err.status === 400)
-        ) {
-          const next = baseParams();
-          next.delete("courseId");
-          writeParams(next);
-        } else {
-          setCourseProbeFailedId(id);
-        }
-      }
-    })();
-    return () => {
-      canceled = true;
-    };
-  }, [
-    isInitialLoading,
-    queryState.courseId,
-    courseKnown,
-    courseProbeAttempt,
-    baseParams,
-    writeParams,
-  ]);
 
   const loadQuestions = useCallback(async () => {
     const generation = ++requestGenerationRef.current;
@@ -494,8 +435,6 @@ export function QuestionPage() {
       const params = new URLSearchParams();
       params.set("page", String(requestedPage));
       params.set("pageSize", String(PAGE_SIZE));
-      if (queryState.courseId !== "")
-        params.set("courseId", queryState.courseId);
       if (filterType !== "") params.set("type", filterType);
       if (filterDifficulty !== "") params.set("difficulty", filterDifficulty);
       if (tagsKey !== "") params.set("tags", tagsKey);
@@ -542,7 +481,6 @@ export function QuestionPage() {
     filterKey,
     filterType,
     page,
-    queryState.courseId,
     requestKey,
     search,
     tagsKey,
@@ -552,7 +490,7 @@ export function QuestionPage() {
   useEffect(() => {
     let canceledFlag = false;
     async function init() {
-      await Promise.all([loadCourses(), loadTagVocabulary()]);
+      await loadTagVocabulary();
       if (!canceledFlag) setIsInitialLoading(false);
     }
     void init();
@@ -565,16 +503,13 @@ export function QuestionPage() {
 
   useEffect(() => {
     if (isInitialLoading) return;
-    // An unresolved identity must not be queried: if the probe ends up dropping
-    // the course, the request would have been for a filter the URL no longer
-    // carries.
-    if (courseResolving || courseProbeFailed) return;
     void loadQuestions();
-  }, [loadQuestions, isInitialLoading, courseResolving, courseProbeFailed]);
+  }, [loadQuestions, isInitialLoading]);
 
   // The current loader, for refetches that outlive the render they started in
   // (a delete's confirmation lands after the user may have moved on).
   const loadQuestionsRef = useRef(loadQuestions);
+  const csvInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     loadQuestionsRef.current = loadQuestions;
   }, [loadQuestions]);
@@ -598,17 +533,12 @@ export function QuestionPage() {
 
   /** Applies a filter patch and returns to page 1 (a filter change is a new query). */
   function commitFilters(patch: {
-    courseId?: string;
     type?: string;
     difficulty?: string;
     tags?: string[];
     search?: string;
   }) {
     const next = baseParams();
-    if (patch.courseId !== undefined) {
-      if (patch.courseId === "") next.delete("courseId");
-      else next.set("courseId", patch.courseId);
-    }
     if (patch.type !== undefined) {
       if (patch.type === "") next.delete("type");
       else next.set("type", patch.type);
@@ -662,7 +592,6 @@ export function QuestionPage() {
   }
 
   const hasActiveFilter =
-    queryState.courseId !== "" ||
     filterType !== "" ||
     filterDifficulty !== "" ||
     tags.length > 0 ||
@@ -679,10 +608,8 @@ export function QuestionPage() {
   const sameIdentityFailure =
     failed && loadState.idKey !== null && loadState.idKey === renderKey;
   const loadFailedMessage = failed ? t("admin.common.loadFailed") : null;
-  const pending =
-    !failed && (loadState.idKey !== renderKey || clamping || courseResolving);
-  const isTableLoading =
-    !failed && (loadState.reqKey !== requestKey || courseResolving);
+  const pending = !failed && (loadState.idKey !== renderKey || clamping);
+  const isTableLoading = !failed && loadState.reqKey !== requestKey;
   const isEmpty = !isTableLoading && questions.length === 0;
 
   // Re-measure after every settled render. While pending the rows are gone, so
@@ -695,16 +622,6 @@ export function QuestionPage() {
   }, [pending, questions, total]);
 
   if (isInitialLoading) return <LoadingState />;
-  if (courseProbeFailed)
-    return (
-      <ErrorState
-        message={t("admin.questions.courseResolveFailed")}
-        onRetry={() => {
-          setCourseProbeFailedId(null);
-          setCourseProbeAttempt((attempt) => attempt + 1);
-        }}
-      />
-    );
   if (loadFailedMessage && !sameIdentityFailure)
     return (
       <ErrorState
@@ -739,16 +656,18 @@ export function QuestionPage() {
       meta: { role: "long-text", overflow: "truncate", priority: "high" },
       header: t("admin.questions.columns.content" as never),
       cell: ({ row }) => (
-        <DataTableOverflowText mode="truncate" value={row.original.content} />
+        <button
+          type="button"
+          className="cursor-pointer text-left underline-offset-2 hover:underline"
+          onClick={() =>
+            void navigate(`/admin/questions/${row.original.id}/edit`, {
+              state: listReturnState(location),
+            })
+          }
+        >
+          <DataTableOverflowText mode="truncate" value={row.original.content} />
+        </button>
       ),
-    },
-    {
-      id: "score",
-      // priority "normal": the card shows score as a labeled meta line, not a
-      // bare header-cluster value (issue 457 audit; role "score" defaults high).
-      meta: { role: "score", priority: "normal" },
-      header: t("admin.questions.columns.score" as never),
-      cell: ({ row }) => row.original.score,
     },
     {
       id: "difficulty",
@@ -830,17 +749,58 @@ export function QuestionPage() {
         title={t("admin.questions.title" as never)}
         actions={
           <div className="flex gap-2">
+            <Button variant="outline" onClick={downloadQuestionTemplate}>
+              <AppIcon icon={Download} size="inline" />
+              Descargar plantilla
+            </Button>
             <Button
               variant="outline"
-              onClick={() =>
-                void navigate("/admin/questions/import", {
-                  state: listReturnState(location),
-                })
-              }
+              onClick={() => csvInputRef.current?.click()}
             >
               <AppIcon icon={FileUp} size="inline" />
-              {t("admin.questions.importBtn" as never)}
+              Subir CSV
             </Button>
+            <input
+              ref={csvInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                event.target.value = "";
+                if (!file) return;
+                void (async () => {
+                  try {
+                    const rows = parseQuestionCsv(await file.text());
+                    if (rows.length === 0) {
+                      toast.error("El CSV no tiene filas para importar");
+                      return;
+                    }
+                    const result = await api.post<{
+                      errors: number;
+                      valid: number;
+                    }>("/api/questions/import", { rows, confirm: true });
+                    if (result.errors > 0) {
+                      toast.error(
+                        `${result.errors} filas no se pudieron importar`,
+                      );
+                    } else {
+                      toast.success("Preguntas importadas");
+                    }
+                    await Promise.all([
+                      loadQuestionsRef.current(),
+                      loadTagVocabulary(),
+                    ]);
+                  } catch (err) {
+                    toast.error(
+                      err instanceof ApiError
+                        ? err.message
+                        : "No se pudo importar el CSV",
+                    );
+                  }
+                })();
+              }}
+            />
             <Button
               onClick={() =>
                 void navigate("/admin/questions/new", {

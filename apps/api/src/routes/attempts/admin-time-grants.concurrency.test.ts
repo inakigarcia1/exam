@@ -201,7 +201,6 @@ describe("deterministic operationId race recovery", () => {
         .values({
           id: randomUUID(),
           organizationId: org.id,
-          courseId: course.id,
           type: "single_choice",
           content: "test",
           options: [
@@ -210,7 +209,6 @@ describe("deterministic operationId race recovery", () => {
           ],
           standardAnswer: "a",
           attachments: [],
-          score: 100,
           difficulty: 1,
           tags: [],
           gradingRule: {

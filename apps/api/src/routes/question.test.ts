@@ -35,7 +35,6 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions",
       payload: {
-        courseId,
         type: "single_choice",
         content: "What is 1+1?",
         options: [
@@ -44,7 +43,6 @@ describe("question routes", () => {
           { id: "c", content: "3" },
         ],
         standardAnswer: "b",
-        score: 10,
         difficulty: 1,
       },
       cookies: { "auth-token": ctx.adminToken },
@@ -53,7 +51,6 @@ describe("question routes", () => {
     const body = res.json();
     expect(body.type).toBe("single_choice");
     expect(body.content).toBe("What is 1+1?");
-    expect(body.courseId).toBe(courseId);
     expect(body).toHaveProperty("id");
   });
 
@@ -62,11 +59,9 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions",
       payload: {
-        courseId,
         type: "true_false",
         content: "The sky is blue.",
         standardAnswer: true,
-        score: 5,
         difficulty: 1,
       },
       cookies: { "auth-token": ctx.adminToken },
@@ -80,7 +75,6 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions",
       payload: {
-        courseId,
         type: "single_choice",
         content: "Discuss the trade-offs in detail.",
         options: [
@@ -88,7 +82,6 @@ describe("question routes", () => {
           { id: "b", content: "Option B" },
         ],
         standardAnswer: null,
-        score: 20,
         difficulty: 3,
       },
       cookies: { "auth-token": ctx.adminToken },
@@ -105,11 +98,9 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions",
       payload: {
-        courseId,
         type: "fill_blank",
         content: "The capital of France is ____.",
         standardAnswer: "Paris",
-        score: 10,
         difficulty: 2,
       },
       cookies: { "auth-token": ctx.adminToken },
@@ -123,7 +114,6 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions",
       payload: {
-        courseId,
         type: "multiple_choice",
         content: "Select even numbers.",
         options: [
@@ -133,7 +123,6 @@ describe("question routes", () => {
           { id: "d", content: "4", isCorrect: true },
         ],
         standardAnswer: ["b", "d"],
-        score: 10,
         difficulty: 2,
       },
       cookies: { "auth-token": ctx.adminToken },
@@ -155,17 +144,6 @@ describe("question routes", () => {
     expect(body.items.length).toBeGreaterThanOrEqual(4);
   });
 
-  it("GET /api/questions filters by courseId", async () => {
-    const res = await ctx.app.inject({
-      method: "GET",
-      url: `/api/questions?courseId=${courseId}`,
-      cookies: { "auth-token": ctx.adminToken },
-    });
-    expect(res.statusCode).toBe(200);
-    const body = res.json();
-    expect(body.items.every((q: any) => q.courseId === courseId)).toBe(true);
-  });
-
   it("GET /api/questions filters by type", async () => {
     const res = await ctx.app.inject({
       method: "GET",
@@ -185,7 +163,6 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions",
       payload: {
-        courseId,
         type: "single_choice",
         content: needle,
         options: [
@@ -193,7 +170,6 @@ describe("question routes", () => {
           { id: "b", content: "B", isCorrect: true },
         ],
         standardAnswer: "b",
-        score: 5,
         difficulty: 2,
       },
       cookies: { "auth-token": ctx.adminToken },
@@ -203,7 +179,7 @@ describe("question routes", () => {
     // Lowercase substring of the mixed-case content.
     const lower = await ctx.app.inject({
       method: "GET",
-      url: `/api/questions?courseId=${courseId}&search=produces+oxygen`,
+      url: `/api/questions?search=produces+oxygen`,
       cookies: { "auth-token": ctx.adminToken },
     });
     expect(lower.statusCode).toBe(200);
@@ -219,7 +195,7 @@ describe("question routes", () => {
     // Same term in UPPER must match the same rows (case-insensitivity).
     const upper = await ctx.app.inject({
       method: "GET",
-      url: `/api/questions?courseId=${courseId}&search=PRODUCES+OXYGEN`,
+      url: `/api/questions?search=PRODUCES+OXYGEN`,
       cookies: { "auth-token": ctx.adminToken },
     });
     expect(upper.statusCode).toBe(200);
@@ -231,7 +207,7 @@ describe("question routes", () => {
     // seeded row above (each _ absorbing one char).
     const none = await ctx.app.inject({
       method: "GET",
-      url: `/api/questions?courseId=${courseId}&search=__no_such_content_zzz__`,
+      url: `/api/questions?search=__no_such_content_zzz__`,
       cookies: { "auth-token": ctx.adminToken },
     });
     expect(none.statusCode).toBe(200);
@@ -242,17 +218,17 @@ describe("question routes", () => {
   it("GET /api/questions treats empty/whitespace search as no-op", async () => {
     const base = await ctx.app.inject({
       method: "GET",
-      url: `/api/questions?courseId=${courseId}`,
+      url: `/api/questions`,
       cookies: { "auth-token": ctx.adminToken },
     });
     const empty = await ctx.app.inject({
       method: "GET",
-      url: `/api/questions?courseId=${courseId}&search=`,
+      url: `/api/questions?search=`,
       cookies: { "auth-token": ctx.adminToken },
     });
     const ws = await ctx.app.inject({
       method: "GET",
-      url: `/api/questions?courseId=${courseId}&search=%20%20`,
+      url: `/api/questions?search=%20%20`,
       cookies: { "auth-token": ctx.adminToken },
     });
     expect(base.json().total).toBe(empty.json().total);
@@ -281,7 +257,6 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions",
       payload: {
-        courseId,
         type: "true_false",
         content: "To update.",
         standardAnswer: true,
@@ -308,7 +283,6 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions",
       payload: {
-        courseId,
         type: "fill_blank",
         content: "The answer is ____",
         standardAnswer: "abc",
@@ -336,7 +310,6 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions",
       payload: {
-        courseId,
         type: "text_response",
         content: "The answer is ____",
         standardAnswer: null,
@@ -368,7 +341,6 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions",
       payload: {
-        courseId,
         type: "text_response",
         content: "The answer is ____",
         standardAnswer: null,
@@ -396,7 +368,6 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions",
       payload: {
-        courseId,
         type: "text_response",
         content: "Explain your reasoning.",
         standardAnswer: null,
@@ -423,7 +394,6 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions",
       payload: {
-        courseId,
         type: "true_false",
         content: "The answer is ____",
         standardAnswer: true,
@@ -453,7 +423,6 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions",
       payload: {
-        courseId,
         type: "true_false",
         content: "To delete.",
         standardAnswer: false,
@@ -476,7 +445,6 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions",
       payload: {
-        courseId,
         type: "true_false",
         content: "Bad answer type.",
         standardAnswer: "yes",
@@ -510,28 +478,6 @@ describe("question routes", () => {
     expect(body.error.requestId).toBeDefined();
   });
 
-  it("POST /api/questions returns 400 ErrorResponse v0 for invalid courseId", async () => {
-    const res = await ctx.app.inject({
-      method: "POST",
-      url: "/api/questions",
-      payload: {
-        courseId: "00000000-0000-0000-0000-000000000000",
-        type: "true_false",
-        content: "Bad course question.",
-        standardAnswer: true,
-        score: 5,
-      },
-      cookies: { "auth-token": ctx.adminToken },
-    });
-    // Issue #286: the scoped-capability gate resolves the parent course
-    // BEFORE the handler, so a missing course is the canonical ADR §3.9
-    // resource_not_found -> 404 (anti-enumeration), not the legacy 400.
-    expect(res.statusCode).toBe(404);
-    const body = res.json();
-    expect(body.error.code).toBe("RESOURCE_NOT_FOUND");
-    expect(body.error.requestId).toBeDefined();
-  });
-
   it("DELETE /api/questions/:id returns 404 ErrorResponse v0 for missing question", async () => {
     const res = await ctx.app.inject({
       method: "DELETE",
@@ -549,7 +495,6 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions/import",
       payload: {
-        courseId,
         rows: [
           {
             type: "single_choice",
@@ -583,7 +528,6 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions/import",
       payload: {
-        courseId,
         confirm: true,
         rows: [
           {
@@ -607,7 +551,6 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions/import",
       payload: {
-        courseId,
         rows: [
           {
             type: "true_false",
@@ -633,11 +576,9 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions",
       payload: {
-        courseId,
         type: "text_response",
         content: "请阐述你的观点",
         standardAnswer: null,
-        score: 20,
         difficulty: 3,
         rubric: "按逻辑完整性、关键概念、论证质量给分",
       },
@@ -655,7 +596,6 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions",
       payload: {
-        courseId,
         type: "text_response",
         content: "返回读取测试",
         standardAnswer: null,
@@ -683,7 +623,6 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions",
       payload: {
-        courseId,
         type: "text_response",
         content: "待更新 rubric 的题",
         standardAnswer: null,
@@ -719,7 +658,6 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions",
       payload: {
-        courseId,
         type: "text_response",
         content: "省略 rubric 字段的 PATCH 测试",
         standardAnswer: null,
@@ -756,7 +694,6 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions",
       payload: {
-        courseId,
         type: "text_response",
         content: "显式 null 清空 rubric 测试",
         standardAnswer: null,
@@ -793,7 +730,6 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions",
       payload: {
-        courseId,
         type: "true_false",
         content: "rubric null semantics marker question",
         standardAnswer: true,
@@ -818,7 +754,6 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions/import",
       payload: {
-        courseId,
         confirm: true,
         rows: [
           {
@@ -840,7 +775,7 @@ describe("question routes", () => {
     // Confirm the imported row's rubric actually reached questions.rubric.
     const listRes = await ctx.app.inject({
       method: "GET",
-      url: `/api/questions?courseId=${courseId}&type=text_response`,
+      url: `/api/questions?type=text_response`,
       cookies: { "auth-token": ctx.adminToken },
     });
     expect(listRes.statusCode).toBe(200);
@@ -858,7 +793,6 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions/import",
       payload: {
-        courseId,
         rows: [
           {
             type: "single_choice",
@@ -898,7 +832,7 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions",
       headers: { "content-type": "application/json" },
-      payload: `{"courseId":"${courseId}","type":"true_false","content":"Non-finite score?","standardAnswer":true,"score":1e999}`,
+      payload: `{"type":"true_false","content":"Non-finite score?","standardAnswer":true,"score":1e999}`,
       cookies: { "auth-token": ctx.adminToken },
     });
     expect(res.statusCode).toBe(400);
@@ -913,7 +847,6 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions",
       payload: {
-        courseId,
         type: "true_false",
         content: "Fractional score?",
         standardAnswer: true,
@@ -930,7 +863,6 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions",
       payload: {
-        courseId,
         type: "true_false",
         content: "Patch score boundary?",
         standardAnswer: true,
@@ -961,7 +893,7 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions/import",
       headers: { "content-type": "application/json" },
-      payload: `{"courseId":"${courseId}","confirm":true,"rows":[{"type":"true_false","content":"${uniqueContent}","standardAnswer":true,"score":1e999}]}`,
+      payload: `{"confirm":true,"rows":[{"type":"true_false","content":"${uniqueContent}","standardAnswer":true,"score":1e999}]}`,
       cookies: { "auth-token": ctx.adminToken },
     });
     expect(res.statusCode).toBe(200);
@@ -976,7 +908,7 @@ describe("question routes", () => {
     // substring search over content).
     const listRes = await ctx.app.inject({
       method: "GET",
-      url: `/api/questions?courseId=${courseId}&search=${encodeURIComponent(uniqueContent)}`,
+      url: `/api/questions?search=${encodeURIComponent(uniqueContent)}`,
       cookies: { "auth-token": ctx.adminToken },
     });
     expect(listRes.statusCode).toBe(200);
@@ -1089,7 +1021,7 @@ describe("question routes", () => {
       const createRes = await ctx.app.inject({
         method: "POST",
         url: "/api/questions",
-        payload: { courseId, ...c.payload } as Record<string, unknown>,
+        payload: { ...c.payload } as Record<string, unknown>,
         cookies: { "auth-token": ctx.adminToken },
       });
       expect(createRes.statusCode, `create ${c.name}`).toBe(201);
@@ -1116,7 +1048,6 @@ describe("question routes", () => {
       method: "POST",
       url: "/api/questions",
       payload: {
-        courseId,
         type: "multiple_choice",
         content: "Bad multi answer.",
         options: [
@@ -1141,11 +1072,9 @@ describe("question routes", () => {
           method: "POST",
           url: "/api/questions",
           payload: {
-            courseId,
             type: "true_false",
             content,
             standardAnswer: true,
-            score: 2,
             difficulty: 1,
             tags,
           },
@@ -1205,11 +1134,9 @@ describe("question routes", () => {
         method: "POST",
         url: "/api/questions",
         payload: {
-          courseId,
           type: "true_false",
           content,
           standardAnswer: true,
-          score: 2,
           difficulty: 1,
           tags,
         },
@@ -1268,7 +1195,6 @@ describe("question routes", () => {
         method: "POST",
         url: "/api/questions/import",
         payload: {
-          courseId,
           confirm: true,
           rows: [
             {

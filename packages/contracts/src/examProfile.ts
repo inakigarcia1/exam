@@ -54,6 +54,7 @@ export const ExamProfileSchema = z.object({
     .positive()
     .max(POSTGRES_INTEGER_MAX)
     .nullable(),
+  restrictSimultaneousAccess: z.boolean().default(false),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -95,6 +96,7 @@ export const CreateExamProfileRequestSchema = z.object({
     .positive()
     .max(POSTGRES_INTEGER_MAX)
     .nullish(),
+  restrictSimultaneousAccess: z.boolean().default(false),
 });
 
 /** Type for a create-exam-profile request. */
@@ -132,6 +134,7 @@ export const UpdateExamProfileRequestSchema = z.object({
     .positive()
     .max(POSTGRES_INTEGER_MAX)
     .nullish(),
+  restrictSimultaneousAccess: z.boolean().optional(),
 });
 
 /** Type for an update-exam-profile request. */

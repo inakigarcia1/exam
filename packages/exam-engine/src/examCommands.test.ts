@@ -35,6 +35,7 @@ function makeExam(overrides: Partial<Exam> = {}): Exam {
     totalScore: 100,
     questionSelectionMode: "manual",
     questionIds: ["q1", "q2"],
+    questionScores: { q1: 50, q2: 50 },
     questionSnapshot: [],
     controlFlags: {
       shuffleQuestions: false,
@@ -62,11 +63,14 @@ function makeExam(overrides: Partial<Exam> = {}): Exam {
   };
 }
 
-function makeQuestion(id: string, overrides: Partial<Question> = {}): Question {
+function makeQuestion(
+  id: string,
+  overrides: Partial<Question> & { score?: number } = {},
+): Question {
+  const { score: _score, ...rest } = overrides;
   return {
     id,
     organizationId: "org-1",
-    courseId: "course-1",
     type: "single_choice",
     content: `Question ${id}`,
     contentDocument: null,
@@ -77,7 +81,6 @@ function makeQuestion(id: string, overrides: Partial<Question> = {}): Question {
     ],
     standardAnswer: "a",
     attachments: [],
-    score: 50,
     difficulty: 1,
     tags: [],
     gradingRule: {
@@ -87,7 +90,7 @@ function makeQuestion(id: string, overrides: Partial<Question> = {}): Question {
     rubric: null,
     createdAt: new Date(),
     updatedAt: new Date(),
-    ...overrides,
+    ...rest,
   };
 }
 
@@ -133,7 +136,10 @@ function makeRichDoc() {
 describe("examCommands", () => {
   describe("buildQuestionSnapshot", () => {
     it("creates snapshot from questions", () => {
-      const snapshot = buildQuestionSnapshot(["q1", "q2"], testQuestions);
+      const snapshot = buildQuestionSnapshot(["q1", "q2"], testQuestions, {
+        q1: 50,
+        q2: 50,
+      });
       expect(snapshot.length).toBe(2);
       expect(snapshot[0]?.originalQuestionId).toBe("q1");
       expect(snapshot[0]?.content).toBe("Question q1");
@@ -145,7 +151,10 @@ describe("examCommands", () => {
 
     it("throws for missing question", () => {
       expect(() =>
-        buildQuestionSnapshot(["q1", "missing"], testQuestions),
+        buildQuestionSnapshot(["q1", "missing"], testQuestions, {
+          q1: 50,
+          missing: 50,
+        }),
       ).toThrow(ValidationError);
     });
 
@@ -156,14 +165,13 @@ describe("examCommands", () => {
         options: [],
         standardAnswer: null,
         rubric: "按逻辑完整性、关键概念、论证质量给分",
-        score: 20,
       });
-      const snapshot = buildQuestionSnapshot(["q-text"], [q]);
+      const snapshot = buildQuestionSnapshot(["q-text"], [q], { "q-text": 20 });
       expect(snapshot[0]?.rubric).toBe("按逻辑完整性、关键概念、论证质量给分");
     });
 
     it("normalizes rubric: null for objective questions", () => {
-      const snapshot = buildQuestionSnapshot(["q1"], testQuestions);
+      const snapshot = buildQuestionSnapshot(["q1"], testQuestions, { q1: 50 });
       expect(snapshot[0]?.rubric).toBeNull();
     });
 
@@ -177,7 +185,9 @@ describe("examCommands", () => {
         options: [],
         standardAnswer: null,
       });
-      const snapshot = buildQuestionSnapshot(["q-rich"], [richQuestion]);
+      const snapshot = buildQuestionSnapshot(["q-rich"], [richQuestion], {
+        "q-rich": 50,
+      });
       expect(snapshot[0]?.contentDocument).toEqual(doc);
       expect(snapshot[0]?.answerMode).toBe("rich");
       expect(snapshot[0]?.content).toBe(plainTextProjection(doc));
@@ -272,7 +282,8 @@ describe("examCommands", () => {
         return makeRepo(
           makeExam({
             questionIds: [question.id],
-            totalScore: question.score,
+            questionScores: { [question.id]: 50 },
+            totalScore: 50,
             passingScore: 0,
           }),
         );
@@ -586,7 +597,12 @@ describe("examCommands", () => {
 
     it("rejects text_response publish when rubric is null", async () => {
       const repo = makeRepo(
-        makeExam({ questionIds: ["q-text"], totalScore: 20, passingScore: 10 }),
+        makeExam({
+          questionIds: ["q-text"],
+          questionScores: { "q-text": 20 },
+          totalScore: 20,
+          passingScore: 10,
+        }),
       );
       const textQ = makeQuestion("q-text", {
         type: "text_response",
@@ -603,7 +619,12 @@ describe("examCommands", () => {
 
     it("rejects text_response publish when rubric is a placeholder ('暂无')", async () => {
       const repo = makeRepo(
-        makeExam({ questionIds: ["q-text"], totalScore: 20, passingScore: 10 }),
+        makeExam({
+          questionIds: ["q-text"],
+          questionScores: { "q-text": 20 },
+          totalScore: 20,
+          passingScore: 10,
+        }),
       );
       const textQ = makeQuestion("q-text", {
         type: "text_response",
@@ -647,7 +668,12 @@ describe("examCommands", () => {
 
     it("freezes the optional text_response reference answer into the snapshot", async () => {
       const repo = makeRepo(
-        makeExam({ questionIds: ["q-text"], totalScore: 20, passingScore: 10 }),
+        makeExam({
+          questionIds: ["q-text"],
+          questionScores: { "q-text": 20 },
+          totalScore: 20,
+          passingScore: 10,
+        }),
       );
       const textQ = makeQuestion("q-text", {
         type: "text_response",
@@ -667,7 +693,12 @@ describe("examCommands", () => {
 
     it("snapshot stays frozen when the live text_response is edited after publish", async () => {
       const repo = makeRepo(
-        makeExam({ questionIds: ["q-text"], totalScore: 20, passingScore: 10 }),
+        makeExam({
+          questionIds: ["q-text"],
+          questionScores: { "q-text": 20 },
+          totalScore: 20,
+          passingScore: 10,
+        }),
       );
       const textQ = makeQuestion("q-text", {
         type: "text_response",
@@ -690,7 +721,9 @@ describe("examCommands", () => {
         rubric: "修改后的评分标准",
         score: 20,
       });
-      const rebuilt = buildQuestionSnapshot(["q-text"], [editedLive]);
+      const rebuilt = buildQuestionSnapshot(["q-text"], [editedLive], {
+        "q-text": 20,
+      });
 
       // The persisted (frozen) snapshot from publish is unchanged by the
       // live edit; only a fresh buildQuestionSnapshot would reflect edits.
@@ -703,7 +736,12 @@ describe("examCommands", () => {
 
     it("accepts text_response publish when rubric is non-empty", async () => {
       const repo = makeRepo(
-        makeExam({ questionIds: ["q-text"], totalScore: 20, passingScore: 10 }),
+        makeExam({
+          questionIds: ["q-text"],
+          questionScores: { "q-text": 20 },
+          totalScore: 20,
+          passingScore: 10,
+        }),
       );
       const textQ = makeQuestion("q-text", {
         type: "text_response",

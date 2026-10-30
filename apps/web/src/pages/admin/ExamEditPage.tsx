@@ -7,38 +7,18 @@ import { getApiErrorMessage } from "@/lib/apiErrors";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { LoadingState } from "@/components/shared/LoadingState";
-import { EmptyState } from "@/components/shared/EmptyState";
-import { AppIcon } from "@/components/shared/AppIcon";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { InlineErrorBanner } from "@/components/shared/InlineErrorBanner";
-import {
-  DataTableCell,
-  DataTableSurface,
-  DataTableHead,
-  DataTableOverflowText,
-} from "@/components/shared/DataTableContract";
-import { DataTableShell } from "@/components/shared/DataTableShell";
-import { TableAllocationRegion } from "@/components/shared/TableScrollSurface";
-import { RowActions } from "@/components/shared/RowActions";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { TableBody, TableHeader, TableRow } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   ExamConfigForm,
   type ExamConfigData,
 } from "@/components/exam/ExamConfigForm";
+import { ExamQuestionsEditor } from "@/components/exam/ExamQuestionsEditor";
 import { Separator } from "@/components/ui/separator";
-import { BookOpen, Trash2 } from "lucide-react";
-import { getTypeLabel } from "@/lib/constants";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { PageContainer } from "@/components/shared/PageContainer";
+import { FormSection } from "@/components/shared/FormSection";
 
 /** Minimal course representation used in the exam edit form. */
 interface CourseRow {
@@ -51,7 +31,6 @@ interface QuestionRow {
   id: string;
   type: string;
   content: string;
-  score: number;
 }
 
 /** Generic paginated API response wrapper. */
@@ -75,6 +54,7 @@ interface ExamDetailResponse {
   totalScore: number;
   questionSelectionMode: string;
   questionIds: string[];
+  questionScores?: Record<string, number>;
   controlFlags: Record<string, unknown>;
   retakePolicy: string;
   scoreStrategy: string;
@@ -110,6 +90,7 @@ function examToConfig(exam: ExamDetailResponse): ExamConfigData {
       (exam.questionSelectionMode as ExamConfigData["questionSelectionMode"]) ??
       "manual",
     questionIds: exam.questionIds ?? [],
+    questionScores: exam.questionScores ?? {},
     resultPublicationMode:
       (exam.resultPublicationMode as ExamConfigData["resultPublicationMode"]) ??
       "immediate",
@@ -139,8 +120,6 @@ export function ExamEditPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [questionDialogOpen, setQuestionDialogOpen] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [saveError, setSaveError] = useState<string | null>(null);
   const [config, setConfig] = useState<ExamConfigData | null>(null);
 
@@ -163,26 +142,11 @@ export function ExamEditPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [id]);
+  }, [id, t]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
-
-  /** Adds a question to the selected question list if not already present. */
-  function addQuestion(qId: string) {
-    if (!config || config.questionIds.includes(qId)) return;
-    setConfig({ ...config, questionIds: [...config.questionIds, qId] });
-  }
-
-  /** Removes a question from the selected question list. */
-  function removeQuestion(qId: string) {
-    if (!config) return;
-    setConfig({
-      ...config,
-      questionIds: config.questionIds.filter((qid) => qid !== qId),
-    });
-  }
 
   /** Validates the form, PATCHes the exam, and navigates to the detail page. */
   async function handleSave() {
@@ -202,7 +166,6 @@ export function ExamEditPage() {
     if (config.passingScore > config.totalScore) {
       errors.score = t("admin.examEdit.validation.scoreInvalid");
     }
-    setFieldErrors(errors);
     if (Object.keys(errors).length > 0) {
       toast.error(t("admin.examEdit.feedback.fixErrors"));
       return;
@@ -257,12 +220,6 @@ export function ExamEditPage() {
       />
     );
 
-  const selectedQuestions = questions.filter((q) =>
-    config.questionIds.includes(q.id),
-  );
-  const availableQuestions = questions.filter(
-    (q) => !config.questionIds.includes(q.id),
-  );
   const scheduleOnly = examStatus === "published";
 
   return (
@@ -277,103 +234,28 @@ export function ExamEditPage() {
         </Alert>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div>
-          <ExamConfigForm
-            courses={courses}
-            questions={questions.map((q) => ({ id: q.id, score: q.score }))}
-            data={config}
-            onChange={setConfig}
-          />
-        </div>
+      <ExamConfigForm
+        courses={courses}
+        questions={config.questionIds.map((qid) => ({
+          id: qid,
+          score: config.questionScores[qid] ?? 1,
+        }))}
+        data={config}
+        onChange={setConfig}
+      />
 
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium">
-              {t("admin.examEdit.selectedQuestions", {
-                count: config.questionIds.length,
-              })}
-            </h3>
-            <Button size="sm" onClick={() => setQuestionDialogOpen(true)}>
-              {t("admin.examEdit.selectQuestions")}
-            </Button>
-          </div>
-          {selectedQuestions.length === 0 ? (
-            <EmptyState
-              icon={<AppIcon icon={BookOpen} size="state" />}
-              title={t("admin.examEdit.noQuestionsTitle")}
-              description={t("admin.examEdit.noQuestionsDescription")}
-            />
-          ) : (
-            <DataTableShell archetype="embedded-picker">
-              <DataTableSurface
-                columns={[
-                  { role: "type" },
-                  { role: "long-text", overflow: "truncate" },
-                  { role: "score" },
-                  { role: "actions" },
-                ]}
-              >
-                <TableHeader>
-                  <TableRow>
-                    <DataTableHead role="type">
-                      {t("admin.examEdit.tableHeaders.type")}
-                    </DataTableHead>
-                    <DataTableHead role="long-text">
-                      {t("admin.examEdit.tableHeaders.content")}
-                    </DataTableHead>
-                    <DataTableHead role="score">
-                      {t("admin.examEdit.tableHeaders.score")}
-                    </DataTableHead>
-                    <DataTableHead role="actions">
-                      {t("admin.examEdit.tableHeaders.actions")}
-                    </DataTableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {selectedQuestions.map((q) => (
-                    <TableRow key={q.id}>
-                      <DataTableCell role="type">
-                        <Badge variant="outline">
-                          {getTypeLabel(q.type, t) ?? q.type}
-                        </Badge>
-                      </DataTableCell>
-                      <DataTableCell role="long-text">
-                        <DataTableOverflowText
-                          mode="truncate"
-                          value={q.content}
-                        />
-                      </DataTableCell>
-                      <DataTableCell role="score">{q.score}</DataTableCell>
-                      <DataTableCell role="actions">
-                        <RowActions
-                          row={q}
-                          actions={[
-                            {
-                              id: "remove-question",
-                              label: t("admin.examEdit.ariaDeleteQuestion"),
-                              icon: Trash2,
-                              tone: "destructive",
-                              confirm: {
-                                title: t("admin.examEdit.confirmRemoveTitle"),
-                                description: t(
-                                  "admin.examEdit.confirmRemoveDescription",
-                                ),
-                                destructive: true,
-                              },
-                              onSelect: () => removeQuestion(q.id),
-                            },
-                          ]}
-                        />
-                      </DataTableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </DataTableSurface>
-            </DataTableShell>
-          )}
-        </div>
-      </div>
+      <FormSection title={t("admin.examWizard.steps.questions")}>
+        <ExamQuestionsEditor
+          questionIds={config.questionIds}
+          questionScores={config.questionScores}
+          bank={questions}
+          readOnly={scheduleOnly}
+          onChange={({ questionIds, questionScores }) =>
+            setConfig({ ...config, questionIds, questionScores })
+          }
+          onBankChange={setQuestions}
+        />
+      </FormSection>
 
       <Separator />
       {saveError && <InlineErrorBanner>{saveError}</InlineErrorBanner>}
@@ -390,82 +272,6 @@ export function ExamEditPage() {
             : t("admin.examEdit.actions.save")}
         </Button>
       </div>
-
-      <Dialog open={questionDialogOpen} onOpenChange={setQuestionDialogOpen}>
-        <DialogContent aria-describedby={undefined} size="lg">
-          <DialogHeader>
-            <DialogTitle>{t("admin.examEdit.dialogTitle")}</DialogTitle>
-          </DialogHeader>
-          {/* dialog-body owns the vertical scroll; header/footer fixed. */}
-          <div data-slot="dialog-body">
-            <TableAllocationRegion>
-              <DataTableSurface
-                columns={[
-                  { role: "type" },
-                  { role: "long-text", overflow: "truncate" },
-                  { role: "score" },
-                  { role: "actions" },
-                ]}
-              >
-                <TableHeader>
-                  <TableRow>
-                    <DataTableHead role="type">
-                      {t("admin.examEdit.tableHeaders.type")}
-                    </DataTableHead>
-                    <DataTableHead role="long-text">
-                      {t("admin.examEdit.tableHeaders.content")}
-                    </DataTableHead>
-                    <DataTableHead role="score">
-                      {t("admin.examEdit.tableHeaders.score")}
-                    </DataTableHead>
-                    <DataTableHead role="actions">
-                      {t("admin.examEdit.dialogActions.add")}
-                    </DataTableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {availableQuestions.map((q) => (
-                    <TableRow key={q.id}>
-                      <DataTableCell role="type">
-                        <Badge variant="outline">
-                          {getTypeLabel(q.type, t) ?? q.type}
-                        </Badge>
-                      </DataTableCell>
-                      <DataTableCell role="long-text">
-                        <DataTableOverflowText
-                          mode="truncate"
-                          value={q.content}
-                        />
-                      </DataTableCell>
-                      <DataTableCell role="score">{q.score}</DataTableCell>
-                      <DataTableCell role="actions">
-                        {/* embedded-picker exception (P3 §4.4 (issue 445)): dialog
-                          picker tables keep a text add action — auto layout,
-                          outside the admin shell's icon-only vocabulary. */}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => addQuestion(q.id)}
-                        >
-                          {t("admin.examEdit.dialogActions.add")}
-                        </Button>
-                      </DataTableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </DataTableSurface>
-            </TableAllocationRegion>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setQuestionDialogOpen(false)}
-            >
-              {t("admin.examEdit.dialogActions.close")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </PageContainer>
   );
 }

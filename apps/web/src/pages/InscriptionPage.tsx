@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { useTranslation } from "react-i18next";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { getApiErrorMessage } from "@/lib/apiErrors";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ export function InscriptionPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [step, setStep] = useState<Step>("legajo");
   const [legajo, setLegajo] = useState("");
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [fieldError, setFieldError] = useState<string | null>(null);
@@ -55,19 +56,39 @@ export function InscriptionPage() {
       setLegajo(value);
       setStep(result.exists ? "password" : "register");
     } catch (err) {
-      setFormError(getApiErrorMessage(err, t, "No se pudo comprobar el legajo"));
+      setFormError(readError(err, "No se pudo comprobar el legajo"));
     } finally {
       setBusy(false);
     }
   }
 
-  async function join() {
-    if (password.length < 8) {
-      setFieldError("La contraseña tiene que tener al menos 8 caracteres");
-      return;
+  function readError(err: unknown, fallback: string) {
+    if (err instanceof ApiError) {
+      const fields = (
+        err.details as { fields?: { message?: string }[] } | undefined
+      )?.fields;
+      const text = fields?.find((field) => field.message)?.message;
+      if (text) return text;
     }
-    if (step === "register" && password !== confirm) {
-      setFieldError("Las contraseñas no coinciden");
+    return getApiErrorMessage(err, t, fallback);
+  }
+
+  async function join() {
+    if (step === "register") {
+      if (!name.trim()) {
+        setFieldError("Ingresá tu nombre");
+        return;
+      }
+      if (password.length < 8) {
+        setFieldError("La contraseña tiene que tener al menos 8 caracteres");
+        return;
+      }
+      if (password !== confirm) {
+        setFieldError("Las contraseñas no coinciden");
+        return;
+      }
+    } else if (!password) {
+      setFieldError("Contraseña incorrecta");
       return;
     }
     setBusy(true);
@@ -77,12 +98,11 @@ export function InscriptionPage() {
       await api.post(`/api/auth/inscriptions/${token}`, {
         legajo,
         password,
+        ...(step === "register" ? { name: name.trim() } : {}),
       });
       window.location.assign("/exam/list");
     } catch (err) {
-      setFormError(
-        getApiErrorMessage(err, t, "No se pudo completar la inscripción"),
-      );
+      setFormError(readError(err, "No se pudo completar la inscripción"));
       setBusy(false);
     }
   }
@@ -97,7 +117,10 @@ export function InscriptionPage() {
   if (!title) return <LoadingState />;
 
   return (
-    <PageContainer role="auth" className="mx-auto flex min-h-screen max-w-md items-center py-10">
+    <PageContainer
+      role="auth"
+      className="mx-auto flex min-h-screen max-w-md items-center py-10"
+    >
       <Card className="w-full">
         <CardHeader>
           <h1 className="type-page-title">Inscripción a {title}</h1>
@@ -125,7 +148,9 @@ export function InscriptionPage() {
             )}
             {step === "password" && (
               <Field>
-                <p className="type-secondary">Legajo encontrado. Ingresá la contraseña.</p>
+                <p className="type-secondary">
+                  Legajo encontrado. Ingresá la contraseña.
+                </p>
                 <Label htmlFor="password">Contraseña</Label>
                 <Input
                   id="password"
@@ -146,8 +171,16 @@ export function InscriptionPage() {
             {step === "register" && (
               <Field>
                 <p className="type-secondary">
-                  Ese legajo no existe. Te vamos a crear una cuenta y te inscribimos al examen.
+                  El legajo {legajo} no existe en el sistema. Creá tu cuenta
+                  para inscribirte al examen.
                 </p>
+                <Label htmlFor="student-name">Nombre</Label>
+                <Input
+                  id="student-name"
+                  value={name}
+                  autoFocus
+                  onChange={(event) => setName(event.target.value)}
+                />
                 <Label htmlFor="password">Contraseña</Label>
                 <Input
                   id="password"

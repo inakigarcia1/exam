@@ -12,6 +12,7 @@ import { FormSection } from "@/components/shared/FormSection";
 import { FieldGroup, Field, FieldRow } from "@/components/shared/FieldGroup";
 import { FieldError } from "@/components/shared/FieldError";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
@@ -55,6 +56,7 @@ interface ProfileFormState {
   interruptionTimePolicy: ExamProfilePolicyDefaults["interruptionTimePolicy"];
   interruptionGracePerIncidentSeconds: number | null;
   interruptionGracePerAttemptSeconds: number | null;
+  restrictSimultaneousAccess: boolean;
 }
 
 /** Empty/default form state for the create path. */
@@ -73,6 +75,7 @@ function emptyForm(): ProfileFormState {
     interruptionTimePolicy: "strict",
     interruptionGracePerIncidentSeconds: null,
     interruptionGracePerAttemptSeconds: null,
+    restrictSimultaneousAccess: false,
   };
 }
 
@@ -80,7 +83,12 @@ function emptyForm(): ProfileFormState {
 function formFromRecipe(key: StarterProfileRecipeKey): ProfileFormState {
   const recipe = STARTER_PROFILE_RECIPES.find((r) => r.key === key);
   if (!recipe) return emptyForm();
-  return { name: "", description: "", ...recipe.defaults };
+  return {
+    name: "",
+    description: "",
+    ...recipe.defaults,
+    restrictSimultaneousAccess: false,
+  };
 }
 
 /** Map a fetched profile DTO to form state (edit path). */
@@ -99,6 +107,7 @@ function formFromProfile(p: ExamProfileDTO): ProfileFormState {
     interruptionTimePolicy: p.interruptionTimePolicy,
     interruptionGracePerIncidentSeconds: p.interruptionGracePerIncidentSeconds,
     interruptionGracePerAttemptSeconds: p.interruptionGracePerAttemptSeconds,
+    restrictSimultaneousAccess: p.restrictSimultaneousAccess === true,
   };
 }
 
@@ -122,6 +131,7 @@ function buildCreateBody(s: ProfileFormState) {
     interruptionTimePolicy: s.interruptionTimePolicy,
     interruptionGracePerIncidentSeconds: s.interruptionGracePerIncidentSeconds,
     interruptionGracePerAttemptSeconds: s.interruptionGracePerAttemptSeconds,
+    restrictSimultaneousAccess: s.restrictSimultaneousAccess,
   };
 }
 
@@ -554,6 +564,24 @@ export function ExamProfileEditPage() {
             </Select>
           </Field>
         </FieldRow>
+      </FormSection>
+
+      <FormSection title="Controles">
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="profile-simultaneous"
+            checked={form.restrictSimultaneousAccess}
+            onCheckedChange={(value) =>
+              setForm((current) => ({
+                ...current,
+                restrictSimultaneousAccess: value === true,
+              }))
+            }
+          />
+          <Label htmlFor="profile-simultaneous" className="font-normal">
+            Restringir acceso simultáneo
+          </Label>
+        </div>
       </FormSection>
 
       <FormSection

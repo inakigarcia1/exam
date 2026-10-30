@@ -104,6 +104,8 @@ function ExamCard({
     }
   }
 
+  const unpublished = exam.status === "draft";
+
   return (
     <Card data-testid={`exam-card-${exam.examId}`}>
       <CardHeader className="pb-3">
@@ -112,72 +114,78 @@ function ExamCard({
             {exam.title}
           </CardTitle>
           <div className="flex items-center gap-2 shrink-0">
-            {exam.bestScore != null && (
+            {!unpublished && exam.bestScore != null && (
               <Badge variant="default" data-testid="exam-best-score">
                 <AppIcon icon={Trophy} size="badge" className="mr-1" />
                 {exam.bestScore}
               </Badge>
             )}
-            <Badge variant={statusBadgeVariant(exam.availabilityStatus)}>
-              {/* Key is built from a closed availability enum; all 9 values
-               * exist in the catalog. `as never` bridges the runtime-built
-               * string to i18next's literal-key type (dynamic keys can't be
-               * statically narrowed). */}
-              {t(availabilityLabelKey(exam.availabilityStatus) as never)}
+            <Badge
+              variant={
+                unpublished
+                  ? "secondary"
+                  : statusBadgeVariant(exam.availabilityStatus)
+              }
+            >
+              {unpublished
+                ? t("examList.meta.unavailable")
+                : t(availabilityLabelKey(exam.availabilityStatus) as never)}
             </Badge>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <div className="flex flex-wrap gap-x-4 gap-y-1 type-secondary">
-          <span className="flex items-center gap-1">
-            <AppIcon icon={Clock} size="badge" />
-            {exam.timingMode === "untimed"
-              ? t("examList.meta.noDuration")
-              : exam.timingMode === "timed_window" &&
-                  exam.durationMinutes !== null
-                ? t("examList.meta.duration", {
-                    minutes: exam.durationMinutes,
-                  })
-                : t("examList.meta.deadline")}
-          </span>
-          <span>
-            {t("examList.meta.passingScore", {
-              score: exam.passingScore,
-              total: exam.totalScore,
-            })}
-          </span>
-          <span>
-            {t("examList.meta.questionCount", { count: exam.totalQuestions })}
-          </span>
-          <span>
-            {t("examList.meta.attempts", {
-              used: exam.attemptsUsed,
-              max: exam.maxAttempts,
-            })}
-          </span>
-        </div>
-        <div className="type-secondary">
-          {formatDateTime(exam.windowStartAt)} —{" "}
-          {exam.windowEndAt === null
-            ? t("examList.meta.noEnd")
-            : formatDateTime(exam.windowEndAt)}
-        </div>
-        <div className="flex justify-end">
-          {actionLabel && (
-            <Button
-              size="sm"
-              onClick={handleAction}
-              disabled={exam.primaryAction === "none"}
-              data-testid="exam-primary-action"
-              data-action={exam.primaryAction}
-            >
-              {actionIcon}
-              {actionLabel}
-            </Button>
-          )}
-        </div>
-      </CardContent>
+      {unpublished ? null : (
+        <CardContent className="flex flex-col gap-3">
+          <div className="flex flex-wrap gap-x-4 gap-y-1 type-secondary">
+            <span className="flex items-center gap-1">
+              <AppIcon icon={Clock} size="badge" />
+              {exam.timingMode === "untimed"
+                ? t("examList.meta.noDuration")
+                : exam.timingMode === "timed_window" &&
+                    exam.durationMinutes !== null
+                  ? t("examList.meta.duration", {
+                      minutes: exam.durationMinutes,
+                    })
+                  : t("examList.meta.deadline")}
+            </span>
+            <span>
+              {t("examList.meta.passingScore", {
+                score: exam.passingScore,
+                total: exam.totalScore,
+              })}
+            </span>
+            <span>
+              {t("examList.meta.questionCount", { count: exam.totalQuestions })}
+            </span>
+            <span>
+              {t("examList.meta.attempts", {
+                used: exam.attemptsUsed,
+                max: exam.maxAttempts,
+              })}
+            </span>
+          </div>
+          <div className="type-secondary">
+            {formatDateTime(exam.windowStartAt)} —{" "}
+            {exam.windowEndAt === null
+              ? t("examList.meta.noEnd")
+              : formatDateTime(exam.windowEndAt)}
+          </div>
+          <div className="flex justify-end">
+            {actionLabel && (
+              <Button
+                size="sm"
+                onClick={handleAction}
+                disabled={exam.primaryAction === "none"}
+                data-testid="exam-primary-action"
+                data-action={exam.primaryAction}
+              >
+                {actionIcon}
+                {actionLabel}
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      )}
     </Card>
   );
 }

@@ -14,7 +14,7 @@
 // refuses anything else — no globs, no recursion across packages, no
 // user-file reach.
 import { existsSync, rmSync, statSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -22,8 +22,8 @@ const packageDir = resolve(process.argv[2] ?? ".");
 const distDir = resolve(packageDir, "dist");
 
 if (
-  !distDir.startsWith(resolve(REPO_ROOT, "packages") + "/") &&
-  !distDir.startsWith(resolve(REPO_ROOT, "apps") + "/")
+  !distDir.startsWith(resolve(REPO_ROOT, "packages") + sep) &&
+  !distDir.startsWith(resolve(REPO_ROOT, "apps") + sep)
 ) {
   process.stderr.write(
     `clean-dist: refusing ${distDir} — only packages/* and apps/* build outputs are owned here\n`,
