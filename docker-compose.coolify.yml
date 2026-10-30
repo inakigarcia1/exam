@@ -1,0 +1,85 @@
+# Coolify deployment (docker-compose build pack). Coolify's Traefik owns the
+# public domain and TLS, and routes it to web:80; no host port is published.
+# Coolify generates SERVICE_PASSWORD_* on first deploy; PUBLIC_WEB_ORIGIN and
+# APP_TIMEZONE are set in the Coolify environment, never in this file.
+services:
+  app:
+    build:
+      context: .
+      target: runner
+    environment:
+      DATABASE_URL: postgresql://exam:${SERVICE_PASSWORD_POSTGRES}@db:5432/exam
+      JWT_SECRET: ${SERVICE_PASSWORD_64_JWT}
+      NODE_ENV: production
+      APP_MODE: production
+      APP_PORT: 3000
+      HOST: 0.0.0.0
+      CORS_ORIGIN: ${PUBLIC_WEB_ORIGIN:?PUBLIC_WEB_ORIGIN is required}
+      PUBLIC_WEB_ORIGIN: ${PUBLIC_WEB_ORIGIN:?PUBLIC_WEB_ORIGIN is required}
+      DEPLOYMENT_MODE: singleTenant
+      APP_TIMEZONE: ${APP_TIMEZONE:-UTC}
+      TZ: ${APP_TIMEZONE:-UTC}
+      # INVARIANT: only Docker-internal peers (web nginx) reach app; public
+      # clients never hold a private address in this topology.
+      TRUSTED_PROXY_CIDRS: 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/ready').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    stop_grace_period: 45s
+
+  web:
+    build:
+      context: .
+      target: web-runner
+    # WHY: Traefik is the client-facing hop and overwrites X-Forwarded-For;
+    # restoring $remote_addr from it keeps the baked edge's replace-XFF rule
+    # carrying each candidate's real IP instead of Traefik's.
+    command:
+      - sh
+      - -ec
+      - |
+        printf 'set_real_ip_from 10.0.0.0/8;\nset_real_ip_from 172.16.0.0/12;\nset_real_ip_from 192.168.0.0/16;\nreal_ip_header X-Forwarded-For;\n' > /etc/nginx/conf.d/00-real-ip.conf
+        exec nginx -g 'daemon off;'
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:80/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  db:
+    image: postgres:18.4-bookworm
+    environment:
+      POSTGRES_USER: exam
+      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES}
+      POSTGRES_DB: exam
+      TZ: ${APP_TIMEZONE:-UTC}
+      PGTZ: ${APP_TIMEZONE:-UTC}
+    volumes:
+      - exam-postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "exam", "-d", "exam"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  exam-postgres:
