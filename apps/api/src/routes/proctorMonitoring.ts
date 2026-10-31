@@ -23,7 +23,10 @@ import {
 } from "../lib/proctorMonitoringService.js";
 import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
 import { createExamRepo } from "@exam/db/repository/examRepo";
-import { createCandidateRepo } from "@exam/db/repository/candidateRepo";
+import {
+  candidateIdentity,
+  createCandidateRepo,
+} from "@exam/db/repository/candidateRepo";
 import { createUserRepo } from "@exam/db/repository/userRepo";
 import { NotFoundError } from "@exam/domain";
 import { executeInTransaction } from "@exam/db/types";
@@ -187,13 +190,10 @@ const proctorMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
       if (!profile) {
         throw new NotFoundError("Candidate not found");
       }
-      const user = await createUserRepo(fastify.db).findById(
-        ctx,
-        profile.userId,
-      );
-      if (!user) {
-        throw new NotFoundError("Candidate user not found");
-      }
+      const user = profile.userId
+        ? await createUserRepo(fastify.db).findById(ctx, profile.userId)
+        : null;
+      const identity = candidateIdentity(profile, user);
       const answersByQuestion = new Map(
         attempt.answers.map((record) => [record.questionId, record.answer]),
       );
@@ -219,8 +219,8 @@ const proctorMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
         attemptId: attempt.id,
         examId: exam.id,
         examTitle: exam.title,
-        candidateName: user.name,
-        candidateUsername: user.username,
+        candidateName: identity.name,
+        candidateUsername: identity.username,
         status: attempt.status,
         deadlineAt: attempt.deadlineAt?.toISOString() ?? null,
         lastActivityAt: attempt.lastActivityAt?.toISOString() ?? null,

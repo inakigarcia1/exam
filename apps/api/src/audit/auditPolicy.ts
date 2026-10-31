@@ -398,6 +398,12 @@ export const AUDIT_ACTION_DEFINITIONS = {
       })
       .strict(),
   ),
+  [AuditAction.CandidateDelete]: definition(
+    "active",
+    "atomic",
+    "authority",
+    "low",
+  ),
   [AuditAction.CandidatePasswordReset]: definition(
     "active",
     "atomic",

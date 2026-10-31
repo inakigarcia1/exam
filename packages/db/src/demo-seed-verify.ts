@@ -308,7 +308,7 @@ export async function verifyDemoSeed(
       profile !== undefined,
       `Enrollment ${enrollment.id} references missing candidateProfile for candidateId='${enrollment.candidateId}'`,
     );
-    if (profile) {
+    if (profile?.userId) {
       const userRows = await db
         .select()
         .from(schema.users)

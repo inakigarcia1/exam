@@ -3,11 +3,11 @@ import { exams, candidateProfiles, users } from "../schema/pg.js";
 import { resolveOrganizationId } from "./baseRepo.js";
 import type { TenantContext } from "../types.js";
 import type { RequestContext } from "@exam/domain";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
 type ExamSelect = typeof exams.$inferSelect;
 type CandidateSelect = typeof candidateProfiles.$inferSelect;
-type UserSelect = typeof users.$inferSelect;
+type CandidateIdentity = { name: string; username: string };
 
 /**
  * Creates a repository for grading-queue specific queries that join
@@ -33,31 +33,31 @@ export function createGradingQueueRepo(db: Database) {
     },
 
     /**
-     * Finds a candidate profile with joined user data, scoped to the tenant.
+     * Finds a candidate profile with the candidate's name and username,
+     * scoped to the tenant. A deleted candidate keeps the former identity.
      */
     async findCandidateWithUser(
       ctx: TenantContext | RequestContext,
       candidateId: string,
-    ): Promise<{ profile: CandidateSelect; user: UserSelect } | null> {
+    ): Promise<{ profile: CandidateSelect; user: CandidateIdentity } | null> {
       const orgId = resolveOrganizationId(ctx);
       const rows = await db
         .select({
           profile: candidateProfiles,
-          user: users,
+          user: {
+            name: sql<string>`coalesce(${users.name}, ${candidateProfiles.formerName}, '')`,
+            username: sql<string>`coalesce(${users.username}, ${candidateProfiles.formerUsername}, '')`,
+          },
         })
         .from(candidateProfiles)
-        .innerJoin(users, eq(candidateProfiles.userId, users.id))
+        .leftJoin(users, eq(candidateProfiles.userId, users.id))
         .where(
           and(
             eq(candidateProfiles.organizationId, orgId),
             eq(candidateProfiles.id, candidateId),
           ),
         );
-      return (
-        (rows[0] as
-          | { profile: CandidateSelect; user: UserSelect }
-          | undefined) ?? null
-      );
+      return rows[0] ?? null;
     },
   };
 }

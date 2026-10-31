@@ -293,6 +293,8 @@ const es = {
       examNotFinished: "El examen todavía no terminó",
       unresolvedAttemptsExist:
         "Todavía hay {{activeAttemptCount}} intentos sin terminar",
+      attemptsInProgress:
+        "Hay {{activeAttemptCount}} intentos en curso. Esperá a que terminen o cerrá el examen antes de eliminar",
       cannotDisableSelf: "No puedes desactivar tu propia cuenta",
       targetUserInactive: "Ese usuario está desactivado",
       targetNotTeacher: "Ese usuario no es docente",
@@ -1013,6 +1015,10 @@ const es = {
       statusLabels: { active: "Activar", inactive: "Desactivar" },
       editLabel: "Editar alumno",
       resetPassword: "Restablecer contraseña",
+      deleteLabel: "Eliminar alumno",
+      confirmDeleteTitle: "Confirmar eliminación",
+      confirmDelete:
+        "Se eliminan el alumno «{{name}}» ({{username}}) y sus inscripciones pendientes. Las calificaciones de exámenes ya rendidos se conservan. No se puede deshacer.",
       enableDisable: "¿Confirmas «{{action}}» para el alumno «{{name}}»?",
       dialog: {
         create: "Nuevo alumno",
@@ -1040,6 +1046,7 @@ const es = {
       toast: {
         updated: "Alumno actualizado",
         created: "Alumno creado",
+        deleted: "Alumno eliminado",
         passwordReset: "Contraseña restablecida",
         resetFailed:
           "No se pudo restablecer la contraseña. Inténtalo de nuevo más tarde.",
@@ -1139,7 +1146,7 @@ const es = {
       viewDetail: "Ver detalle",
       confirmDelete: "Confirmar eliminación",
       confirmDeleteDescription:
-        "¿Seguro que quieres eliminar el examen «{{title}}»?",
+        "Se eliminan el examen «{{title}}», sus inscripciones y todas sus calificaciones. No se puede deshacer.",
       deleteDisabled: "No se puede eliminar ahora",
       /** Machine DisabledReasonCode presentation (D0.8, C3). The legacy
        * natural-language wire fields stay compatibility-only fallbacks for
@@ -1184,6 +1191,33 @@ const es = {
       tagFilterAndHint: "Si eliges varias, la pregunta debe incluir todas",
       tagFilterClear: "Quitar selección",
       clearFilter: "Quitar filtros",
+      view: {
+        label: "Vista de preguntas",
+        count: "Preguntas: {{count}}",
+        groupBy: "Agrupar por",
+        groupByOptions: {
+          tag: "Agrupar por etiqueta",
+          type: "Agrupar por tipo",
+          difficulty: "Agrupar por dificultad",
+          none: "Sin agrupar",
+        },
+        sortBy: "Ordenar por",
+        sortByOptions: {
+          newest: "Más recientes primero",
+          oldest: "Más antiguas primero",
+          content: "Enunciado (A-Z)",
+          difficulty: "Dificultad",
+        },
+        layout: "Disposición",
+        layoutOptions: {
+          grid: "En columnas",
+          list: "En lista",
+        },
+        showAnswers: "Mostrar opciones y respuestas",
+        untagged: "Sin etiqueta",
+        correctOption: "Opción correcta",
+        answer: "Respuesta",
+      },
       columns: {
         type: "Tipo",
         content: "Enunciado",
@@ -1261,6 +1295,7 @@ const es = {
         "candidate.create": "Crear alumno",
         "candidate.update": "Actualizar alumno",
         "candidate.import": "Importar alumnos",
+        "candidate.delete": "Eliminar alumno",
         "candidate.password_reset": "Restablecer contraseña del alumno",
         "candidate_field.create": "Crear campo del alumno",
         "candidate_field.update": "Actualizar campo del alumno",

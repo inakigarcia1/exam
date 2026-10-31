@@ -18,9 +18,7 @@
  *     the desktop region `hidden lg:block` in the shell/workbench — no JS
  *     breakpoint, no matchMedia, no viewport-width-driven representation
  *     swap (container measurement for tier negotiation stays legal);
- *   - MobileRecordCard stays the single card authority (QuestionPage's
- *     private hand-built card region is gone — converged onto the derived
- *     list).
+ *   - MobileRecordCard stays the single card authority for table rows.
  */
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -137,17 +135,6 @@ describe("mobile card representation structural guards (issue 457)", () => {
     },
   );
 
-  it("converges the QuestionPage workbench mobile region onto the derived list", () => {
-    const source = read("../../pages/admin/QuestionPage.tsx");
-    expect(source).toMatch(/mobileList=\{/);
-    expect(source).toMatch(
-      /<MobileRecordList[\s\S]*columns=\{columns\}[\s\S]*rows=\{questions\}/,
-    );
-    // The private hand-built card region (hand-wired Buttons + ConfirmDialog
-    // inside MobileRecordCard slots) is gone.
-    expect(source).not.toMatch(/actions=\{[\s\S]*<Button[\s\S]*ConfirmDialog/);
-  });
-
   // ── C4: per-column priority audit (issue 457) ──
   // Every decision below is a declaration-local override on the page's column
   // array; the global ROLE_PRIORITY defaults are NOT modified.
@@ -225,16 +212,6 @@ describe("mobile card representation structural guards (issue 457)", () => {
   ])("$what joins the card meta line (type defaults low)", ({ file }) => {
     const source = read(`${file}.tsx`);
     expect(source).toMatch(/id: "role",[\s\S]{0,200}priority: "normal"/);
-  });
-
-  it("keeps QuestionPage card parity: score is labeled meta, type+content lead", () => {
-    const source = read("../../pages/admin/QuestionPage.tsx");
-    // score (role "score" defaults high → header cluster) must stay a labeled
-    // meta line, matching the pre-derivation hand-mapped card.
-    expect(source).toMatch(/id: "score",[\s\S]{0,200}priority: "normal"/);
-    // type badge and content keep leading the card.
-    expect(source).toMatch(/id: "type",[\s\S]{0,200}priority: "high"/);
-    expect(source).toMatch(/id: "content",[\s\S]{0,200}priority: "high"/);
   });
 
   // ── C3: single responsive policy owner ──

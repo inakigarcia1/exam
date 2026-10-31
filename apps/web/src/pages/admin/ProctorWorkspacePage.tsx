@@ -88,7 +88,15 @@ export function ProctorWorkspacePage() {
       id: "title",
       meta: { role: "primary-text" },
       header: t("admin.proctorWorkspace.columns.title"),
-      cell: ({ row }) => row.original.title,
+      cell: ({ row }) => (
+        <button
+          type="button"
+          className="cursor-pointer text-left underline-offset-2 hover:underline"
+          onClick={() => enterMonitoring(row.original)}
+        >
+          {row.original.title}
+        </button>
+      ),
     },
     {
       id: "status",

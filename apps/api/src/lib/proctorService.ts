@@ -45,14 +45,14 @@ export async function buildCandidateStatusItems(
         ctx,
         enrollment.candidateId,
       );
-      const user = candidate
+      const user = candidate?.userId
         ? await userRepo.findById(ctx, candidate.userId)
         : null;
       const attempt = latestAttemptByCandidate.get(enrollment.candidateId);
 
       return {
         candidateId: enrollment.candidateId,
-        name: user?.name ?? "-",
+        name: user?.name ?? candidate?.formerName ?? "-",
         attemptId: attempt?.id ?? null,
         status: (attempt?.status ??
           "not_started") as CandidateStatusItem["status"],

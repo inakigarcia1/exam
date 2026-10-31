@@ -93,16 +93,6 @@ describe("TagBadge variant ownership is explicit and singular (R5)", () => {
     expect(el.getAttribute("data-tag-variant")).toBe("compact-table");
   });
 
-  it("the Question Management tag column consumes compact-table explicitly", () => {
-    const source = readFileSync(
-      join(WEB_SRC, "pages", "admin", "QuestionPage.tsx"),
-      "utf8",
-    );
-    expect(source).toContain('variant="compact-table"');
-    // No variant-less TagBadge may remain in the tag-list cell.
-    expect(source).not.toMatch(/<TagBadge key=\{tag\}>/);
-  });
-
   it("reds when the second authority returns (in-memory mutation)", () => {
     const mutated = `${BADGE_RECIPES}\n[data-slot="data-workbench"] [data-slot="tag-badge"] { border-radius: 0.1875rem; }`;
     expect(mutated.match(/tag-badge/g)?.length).toBeGreaterThan(

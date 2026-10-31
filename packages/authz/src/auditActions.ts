@@ -67,6 +67,7 @@ export const AuditAction = {
   CandidateCreate: "candidate.create",
   CandidateUpdate: "candidate.update",
   CandidateImport: "candidate.import",
+  CandidateDelete: "candidate.delete",
   CandidatePasswordReset: "candidate.password_reset",
 
   // ── Candidate fields ──

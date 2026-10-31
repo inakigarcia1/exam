@@ -18,7 +18,10 @@ import { NotFoundError, PermissionDeniedError } from "@exam/domain";
 import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
 import { createExamRepo } from "@exam/db/repository/examRepo";
 import { createAttemptGradingEntryRepo } from "@exam/db/repository/attemptGradingEntryRepo";
-import { createCandidateRepo } from "@exam/db/repository/candidateRepo";
+import {
+  candidateIdentity,
+  createCandidateRepo,
+} from "@exam/db/repository/candidateRepo";
 import { createUserRepo } from "@exam/db/repository/userRepo";
 import { Permission } from "@exam/authz";
 import { resolveCandidateResultVisibility } from "@exam/exam-engine";
@@ -160,11 +163,11 @@ async function loadAttemptCandidateIdentity(
   if (!candidate) {
     throw new NotFoundError("Candidate not found");
   }
-  const user = await createUserRepo(fastify.db).findById(ctx, candidate.userId);
-  if (!user) {
-    throw new NotFoundError("Candidate user not found");
-  }
-  return { candidateName: user.name, candidateUsername: user.username };
+  const user = candidate.userId
+    ? await createUserRepo(fastify.db).findById(ctx, candidate.userId)
+    : null;
+  const { name, username } = candidateIdentity(candidate, user);
+  return { candidateName: name, candidateUsername: username };
 }
 
 /**

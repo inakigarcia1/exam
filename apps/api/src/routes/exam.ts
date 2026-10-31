@@ -25,7 +25,6 @@ import {
 import { createExamRepo } from "@exam/db/repository/examRepo";
 import { createExamAdmissionRepo } from "@exam/db/repository/examAdmissionRepo";
 import { deriveAdmissionViews } from "@exam/exam-engine";
-import { createGraderExamAssignmentRepo } from "@exam/db/repository/graderExamAssignmentRepo";
 import { createExamProfileRepo } from "@exam/db/repository/examProfileRepo";
 import { createQuestionRepo } from "@exam/db/repository/questionRepo";
 import { createCourseRepo } from "@exam/db/repository/courseRepo";
@@ -61,7 +60,6 @@ import {
   applyExamProfileDefaults,
   InvalidStateTransitionError,
   ExamAlreadyPublishedError,
-  ExamNotDraftError,
   ValidationError,
   ExamCloseNotAllowedError,
   ExamArchiveNotAllowedError,
@@ -171,7 +169,11 @@ async function getExamParticipants(
     ][],
   );
   const userIds = [
-    ...new Set([...candidateMap.values()].map((c) => c.userId).filter(Boolean)),
+    ...new Set(
+      [...candidateMap.values()].flatMap((c) =>
+        c.userId === null ? [] : [c.userId],
+      ),
+    ),
   ];
   const userMap = new Map(
     (
@@ -188,10 +190,10 @@ async function getExamParticipants(
   );
   return enrollments.map((enrollment) => {
     const candidate = candidateMap.get(enrollment.candidateId);
-    const user = candidate ? userMap.get(candidate.userId) : null;
+    const user = candidate?.userId ? userMap.get(candidate.userId) : null;
     return {
       candidateId: enrollment.candidateId,
-      name: user?.name ?? "-",
+      name: user?.name ?? candidate?.formerName ?? "-",
       fields: candidate?.fields ?? {},
       status: enrollment.status,
       score: enrollment.finalScore ?? null,
@@ -244,21 +246,12 @@ function getScoreViewMeta(exam: Exam, gradedAttemptCount: number, now: Date) {
   } as const;
 }
 
-/** Determine whether an exam can be deleted. Only draft exams are deletable. */
-function getDeleteMeta(exam: Exam) {
-  if (exam.status === "draft") {
-    return {
-      canDelete: true,
-      deleteDisabledReason: null,
-      deleteDisabledReasonCode: null,
-    } as const;
-  }
-
+/** Any exam can be deleted; live attempts are rejected by the delete route. */
+function getDeleteMeta(_exam: Exam) {
   return {
-    canDelete: false,
-    // i18n-copy-allow: wire-compat — legacy natural-language status reason on the wire; machine code/reason fields are the contract
-    deleteDisabledReason: "Solo se puede borrar un examen en borrador",
-    deleteDisabledReasonCode: "EXAM_NOT_DRAFT",
+    canDelete: true,
+    deleteDisabledReason: null,
+    deleteDisabledReasonCode: null,
   } as const;
 }
 
@@ -2089,27 +2082,39 @@ const examRoutes: FastifyPluginAsync = async (fastify) => {
         },
       },
     },
-    /** Delete a draft exam by ID. Only draft exams can be deleted; returns 404 if not found. */
+    /**
+     * Permanently delete an exam in any status together with its enrollments,
+     * attempts and grades. Rejected while a candidate is still answering it.
+     */
     async (request: FastifyRequest, reply: FastifyReply) => {
       const ctx = ensureTargetOrg(getRequestContext(request));
       const { id } = request.params as { id: string };
-      const deleted = await executeInTransaction(fastify.db, async (tx) => {
+      const outcome = await executeInTransaction(fastify.db, async (tx) => {
         const txRepo = createExamRepo(tx);
         const exam = (await txRepo.findByIdForUpdate(ctx, id)) as Exam | null;
-        if (!exam) return false;
-        if (exam.status !== "draft") throw new ExamNotDraftError();
-        // Grader episodes die with the exam (composite FK would otherwise
-        // block deletion); the compliance record lives in audit_logs.
-        await createGraderExamAssignmentRepo(tx).deleteByExam(ctx, id);
-        if (!(await txRepo.delete(ctx, id))) return false;
+        if (!exam) return { deleted: false, liveAttempts: 0 };
+        const liveAttempts = await txRepo.countLiveAttempts(ctx, id);
+        if (liveAttempts > 0) return { deleted: false, liveAttempts };
+        // The compliance record of everything removed lives in audit_logs.
+        if (!(await txRepo.purge(ctx, id))) {
+          return { deleted: false, liveAttempts: 0 };
+        }
         await recordAtomicHttpAudit(tx, request, ctx, {
           action: "exam.delete",
           targetType: "exam",
           targetId: id,
         });
-        return true;
+        return { deleted: true, liveAttempts: 0 };
       });
-      if (!deleted) {
+      if (outcome.liveAttempts > 0) {
+        return reply.code(409).send(
+          buildErrorResponse(request.id, "RESOURCE_CONFLICT", {
+            reason: "ATTEMPTS_IN_PROGRESS",
+            activeAttemptCount: outcome.liveAttempts,
+          }),
+        );
+      }
+      if (!outcome.deleted) {
         return reply
           .code(404)
           .send(buildErrorResponse(request.id, "RESOURCE_NOT_FOUND"));
@@ -2163,15 +2168,16 @@ const examRoutes: FastifyPluginAsync = async (fastify) => {
             ctx,
             enrollment.candidateId,
           );
-          const user = candidate
+          const user = candidate?.userId
             ? await userRepo.findById(ctx, candidate.userId)
             : null;
           return {
             id: enrollment.id,
             examId: enrollment.examId,
             candidateId: enrollment.candidateId,
-            candidateDisplayName: user?.name ?? "-",
-            candidateIdentity: user?.username ?? undefined,
+            candidateDisplayName: user?.name ?? candidate?.formerName ?? "-",
+            candidateIdentity:
+              user?.username ?? candidate?.formerUsername ?? undefined,
             status: enrollment.status,
             attemptCount: enrollment.attemptCount,
             finalScore: enrollment.finalScore ?? null,
@@ -2219,7 +2225,7 @@ const examRoutes: FastifyPluginAsync = async (fastify) => {
           .code(404)
           .send(buildErrorResponse(request.id, "RESOURCE_NOT_FOUND"));
       }
-      const candidate = await createCandidateRepo(fastify.db).findById(
+      const candidate = await createCandidateRepo(fastify.db).findActiveById(
         ctx,
         enrollment.candidateId,
       );
@@ -2310,7 +2316,7 @@ const examRoutes: FastifyPluginAsync = async (fastify) => {
           skippedCandidates.push({ candidateId, reason: "DUPLICATE" });
           continue;
         }
-        const candidate = await candidateRepo.findById(ctx, candidateId);
+        const candidate = await candidateRepo.findActiveById(ctx, candidateId);
         if (!candidate) {
           skipped++;
           skippedCandidates.push({ candidateId, reason: "NOT_FOUND" });

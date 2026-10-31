@@ -415,7 +415,7 @@ const candidateRoutes: FastifyPluginAsync = async (fastify) => {
       const { id } = request.params as { id: string };
       const data = UpdateCandidateRequestSchema.parse(request.body);
       const candidateRepo = createCandidateRepo(fastify.db);
-      const candidate = await candidateRepo.findById(ctx, id);
+      const candidate = await candidateRepo.findActiveById(ctx, id);
       if (!candidate) {
         return reply
           .code(404)
@@ -461,7 +461,7 @@ const candidateRoutes: FastifyPluginAsync = async (fastify) => {
             ...(emailProvided ? { email: data.email ?? null } : {}),
           });
         }
-        const changed = await txCandidateRepo.findById(ctx, id);
+        const changed = await txCandidateRepo.findActiveById(ctx, id);
         if (!changed) return null;
         if (activeChanged) {
           await recordAtomicHttpAudit(tx, request, ctx, {
@@ -503,6 +503,74 @@ const candidateRoutes: FastifyPluginAsync = async (fastify) => {
         createdAt: updated.createdAt.toISOString(),
         updatedAt: updated.updatedAt.toISOString(),
       };
+    },
+  );
+
+  fastify.delete(
+    "/candidates/:id",
+    {
+      preHandler: [
+        fastify.authenticate,
+        fastify.requireCapability(Permission.CandidateDelete),
+      ],
+      schema: {
+        params: idParamsSchema,
+        security: cookieAuth,
+        "x-role": ["Admin"],
+        response: {
+          204: z.null(),
+          404: ErrorResponseSchema,
+          409: ErrorResponseSchema,
+        },
+      },
+    },
+    /**
+     * DELETE /candidates/:id — permanently delete a candidate and the
+     * enrollments they have not taken yet. Grades already earned stay,
+     * shown with the candidate's former name and username. Rejected while
+     * the candidate is answering an exam.
+     */
+    async (request, reply) => {
+      const ctx = ensureTargetOrg(getRequestContext(request));
+      const { id } = request.params as { id: string };
+      const outcome = await executeInTransaction(fastify.db, async (tx) => {
+        const txCandidateRepo = createCandidateRepo(tx);
+        const candidate = await txCandidateRepo.findActiveById(ctx, id);
+        if (!candidate) return { deleted: false, liveAttempts: 0 };
+        const user = await createUserRepo(tx).findByOrganizationAndId(
+          ctx,
+          candidate.userId,
+        );
+        if (!user) return { deleted: false, liveAttempts: 0 };
+        const liveAttempts = await txCandidateRepo.countLiveAttempts(ctx, id);
+        if (liveAttempts > 0) return { deleted: false, liveAttempts };
+        await txCandidateRepo.deleteCandidate(
+          ctx,
+          candidate,
+          { name: user.name, username: user.username },
+          fastify.now(),
+        );
+        await recordAtomicHttpAudit(tx, request, ctx, {
+          action: "candidate.delete",
+          targetType: "candidate",
+          targetId: id,
+        });
+        return { deleted: true, liveAttempts: 0 };
+      });
+      if (outcome.liveAttempts > 0) {
+        return reply.code(409).send(
+          buildErrorResponse(request.id, "RESOURCE_CONFLICT", {
+            reason: "ATTEMPTS_IN_PROGRESS",
+            activeAttemptCount: outcome.liveAttempts,
+          }),
+        );
+      }
+      if (!outcome.deleted) {
+        return reply
+          .code(404)
+          .send(buildErrorResponse(request.id, "RESOURCE_NOT_FOUND"));
+      }
+      return reply.code(204).send();
     },
   );
 
@@ -648,7 +716,7 @@ const candidateRoutes: FastifyPluginAsync = async (fastify) => {
                 targetType: "candidate",
                 targetId: createdCandidate.id,
               });
-              return createdCandidate;
+              return { ...createdCandidate, userId: createdUser.id };
             },
           );
           existingUsernames.add(username);

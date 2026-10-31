@@ -365,5 +365,86 @@ export function createExamRepo(db: Database) {
       }
       return result;
     },
+    /** Counts attempts of the exam that a candidate is still answering. */
+    async countLiveAttempts(
+      ctx: TenantContext | RequestContext,
+      examId: string,
+    ): Promise<number> {
+      const orgId = resolveOrganizationId(ctx);
+      const rows = await db.execute<{ n: number }>(sql`
+        SELECT count(*)::int AS n FROM exam_attempts
+        WHERE organization_id = ${orgId} AND exam_id = ${examId}
+          AND status IN ('in_progress', 'disrupted')`);
+      return Number(rows[0]?.n ?? 0);
+    },
+    /**
+     * Deletes the exam with every enrollment, attempt, grade, incident and
+     * assignment hanging from it. Must run inside the caller's transaction,
+     * after the exam row is locked. Returns false when the exam is absent.
+     */
+    async purge(
+      ctx: TenantContext | RequestContext,
+      examId: string,
+    ): Promise<boolean> {
+      const orgId = resolveOrganizationId(ctx);
+      const attempts = sql`(SELECT id FROM exam_attempts WHERE organization_id = ${orgId} AND exam_id = ${examId})`;
+      const incidents = sql`(SELECT id FROM exam_incidents WHERE organization_id = ${orgId} AND exam_id = ${examId})`;
+      // LOCK ORDER: children before parents; every table here references a
+      // row deleted later by a NO ACTION foreign key.
+      for (const table of [
+        "exam_incident_interruption_links",
+        "exam_incident_actions",
+        "exam_incident_attempts",
+      ]) {
+        await db.execute(sql`
+          DELETE FROM ${sql.identifier(table)}
+          WHERE organization_id = ${orgId}
+            AND (incident_id IN ${incidents} OR attempt_id IN ${attempts})`);
+      }
+      await db.execute(sql`
+        DELETE FROM exam_incident_events
+        WHERE organization_id = ${orgId} AND incident_id IN ${incidents}`);
+      await db.execute(sql`
+        DELETE FROM exam_incidents
+        WHERE organization_id = ${orgId} AND exam_id = ${examId}`);
+      await db.execute(sql`
+        DELETE FROM exam_admissions
+        WHERE organization_id = ${orgId} AND exam_id = ${examId}`);
+      for (const table of [
+        "attempt_command_receipts",
+        "attempt_grading_entries",
+        "attempt_interruption_events",
+        "attempt_time_adjustments",
+      ]) {
+        await db.execute(sql`
+          DELETE FROM ${sql.identifier(table)}
+          WHERE organization_id = ${orgId} AND attempt_id IN ${attempts}`);
+      }
+      // INVARIANT: attempts and interruptions reference each other
+      // (current_interruption_id), so both go in ONE statement; the foreign
+      // keys are checked once the statement ends.
+      await db.execute(sql`
+        WITH gone_interruptions AS (
+          DELETE FROM attempt_interruptions
+          WHERE organization_id = ${orgId} AND attempt_id IN ${attempts}
+        )
+        DELETE FROM exam_attempts
+        WHERE organization_id = ${orgId} AND exam_id = ${examId}`);
+      await db.execute(sql`
+        DELETE FROM exam_enrollments
+        WHERE organization_id = ${orgId} AND exam_id = ${examId}`);
+      await db.execute(sql`
+        DELETE FROM exam_proctor_assignment_events
+        WHERE organization_id = ${orgId} AND assignment_id IN (
+          SELECT id FROM exam_proctor_assignments
+          WHERE organization_id = ${orgId} AND exam_id = ${examId})`);
+      await db.execute(sql`
+        DELETE FROM exam_proctor_assignments
+        WHERE organization_id = ${orgId} AND exam_id = ${examId}`);
+      await db.execute(sql`
+        DELETE FROM grader_exam_assignments
+        WHERE organization_id = ${orgId} AND exam_id = ${examId}`);
+      return repo.delete(ctx, examId);
+    },
   };
 }

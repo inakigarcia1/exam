@@ -278,6 +278,11 @@ export function canDeleteExam(
 ): boolean {
   return can(user, Permission.ExamDelete);
 }
+export function canDeleteCandidate(
+  user: Pick<MeResponse, "role" | "capabilities">,
+): boolean {
+  return can(user, Permission.CandidateDelete);
+}
 export function canExtendExam(
   user: Pick<MeResponse, "role" | "capabilities">,
 ): boolean {

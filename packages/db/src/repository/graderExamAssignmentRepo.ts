@@ -207,27 +207,6 @@ export function createGraderExamAssignmentRepo(db: Database) {
     return Number(rows[0]?.count ?? 0);
   }
 
-  /**
-   * Deletes EVERY episode (active + revoked) for an exam, scoped to the
-   * tenant. Used inside the exam-delete transaction: the composite exam FK
-   * would otherwise block deletion once any episode exists. Episode history
-   * for a deleted exam is meaningless; the compliance record lives in
-   * audit_logs.
-   */
-  async function deleteByExam(
-    ctx: TenantContext | RequestContext,
-    examId: string,
-  ): Promise<void> {
-    await db
-      .delete(graderExamAssignments)
-      .where(
-        and(
-          eq(graderExamAssignments.organizationId, resolveOrganizationId(ctx)),
-          eq(graderExamAssignments.examId, examId),
-        ),
-      );
-  }
-
   return {
     insertAssignment,
     findActiveByGraderAndExam,
@@ -237,7 +216,6 @@ export function createGraderExamAssignmentRepo(db: Database) {
     listActiveExamIdsByGrader,
     hasActiveAssignment,
     countActiveByExam,
-    deleteByExam,
   };
 }
 

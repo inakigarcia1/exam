@@ -349,6 +349,13 @@
       "when": 1788900000014,
       "tag": "0049_drop_questions_course_id",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1788900000015,
+      "tag": "0050_candidate_profile_tombstone",
+      "breakpoints": true
     }
   ]
 }

@@ -167,10 +167,12 @@ export const candidateProfiles = pgTable(
   {
     id: id(),
     organizationId: organizationId().references(() => organizations.id),
-    userId: text("user_id")
-      .notNull()
-      .references(() => users.id),
+    // NULL once the candidate was deleted: the profile stays only so the
+    // grades already earned keep their owner, named by the former* columns.
+    userId: text("user_id").references(() => users.id),
     fields: jsonb("fields").$type<Record<string, unknown>>().notNull(),
+    formerName: text("former_name"),
+    formerUsername: text("former_username"),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -178,6 +180,10 @@ export const candidateProfiles = pgTable(
     uniqueIndex("candidate_profiles_org_user_unique").on(
       table.organizationId,
       table.userId,
+    ),
+    check(
+      "candidate_profiles_deleted_identity_check",
+      sql`${table.userId} IS NOT NULL OR (${table.formerName} IS NOT NULL AND ${table.formerUsername} IS NOT NULL)`,
     ),
   ],
 );

@@ -96,6 +96,7 @@ const ERROR_REASON_KEYS: Partial<
     EXAM_PROFILE_NAME_EXISTS: "examProfileNameExists",
     EXAM_NOT_FINISHED: "examNotFinished",
     UNRESOLVED_ATTEMPTS_EXIST: "unresolvedAttemptsExist",
+    ATTEMPTS_IN_PROGRESS: "attemptsInProgress",
   },
   VALIDATION_ERROR: {
     CANNOT_DISABLE_SELF: "cannotDisableSelf",
@@ -152,15 +153,20 @@ function readParams(
  * instead of inside `details.params`. Current producers of
  * UNRESOLVED_ATTEMPTS_EXIST all emit `{ reason, activeAttemptCount }`:
  * scores/export routes (RESOURCE_CONFLICT) and the cancel route
- * (EXAM_CANCEL_NOT_ALLOWED). A new producer of this
- * reason must keep that shape or extend this projection.
+ * (EXAM_CANCEL_NOT_ALLOWED). ATTEMPTS_IN_PROGRESS (exam and candidate
+ * delete) uses the same shape. A new producer of these
+ * reasons must keep that shape or extend this projection.
  */
 function readReasonPresentationParams(
   reason: string,
   details: unknown,
 ): Record<string, string | number> | undefined {
   const params = readParams(details);
-  if (reason === "UNRESOLVED_ATTEMPTS_EXIST" && isRecord(details)) {
+  if (
+    (reason === "UNRESOLVED_ATTEMPTS_EXIST" ||
+      reason === "ATTEMPTS_IN_PROGRESS") &&
+    isRecord(details)
+  ) {
     const activeAttemptCount = details.activeAttemptCount;
     if (typeof activeAttemptCount === "number") {
       return { ...params, activeAttemptCount };

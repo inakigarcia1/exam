@@ -87,7 +87,7 @@ export async function resolveResultPublishedRecipients(
   const profiles = await candidateRepo.findByIds(ctx, candidateIds);
   const profileByCandidate = new Map<string, { userId: string }>();
   for (const p of profiles) {
-    profileByCandidate.set(p.id, { userId: p.userId });
+    if (p.userId !== null) profileByCandidate.set(p.id, { userId: p.userId });
   }
   const userIds = [
     ...new Set([...profileByCandidate.values()].map((p) => p.userId)),

@@ -44,7 +44,10 @@ import {
   Users,
   KeyRound,
   Power,
+  Trash2,
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { canDeleteCandidate } from "@/lib/capabilities";
 import { FieldError } from "@/components/shared/FieldError";
 import { RowActions } from "@/components/shared/RowActions";
 import { DataTableShell } from "@/components/shared/DataTableShell";
@@ -103,6 +106,8 @@ interface Page<T> {
  */
 export function CandidatesPage() {
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const mayDeleteCandidate = user ? canDeleteCandidate(user) : false;
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [fields, setFields] = useState<Field[]>([]);
   const [page, setPage] = useState(1);
@@ -304,6 +309,18 @@ export function CandidatesPage() {
       );
     } finally {
       setTogglingId(null);
+    }
+  }
+
+  async function remove(candidate: Candidate) {
+    try {
+      await api.delete(`/api/candidates/${candidate.id}`);
+      toast.success(t("admin.candidates.toast.deleted"));
+      await load();
+    } catch (err) {
+      toast.error(
+        getApiErrorMessage(err, t, t("admin.common.operationFailed")),
+      );
     }
   }
 
@@ -580,6 +597,25 @@ export function CandidatesPage() {
                 },
                 onSelect: () => void toggle(candidate),
               },
+              ...(mayDeleteCandidate
+                ? [
+                    {
+                      id: "delete",
+                      label: t("admin.candidates.deleteLabel"),
+                      icon: Trash2,
+                      tone: "destructive" as const,
+                      confirm: {
+                        title: t("admin.candidates.confirmDeleteTitle"),
+                        description: t("admin.candidates.confirmDelete", {
+                          name: candidate.name,
+                          username: candidate.username,
+                        }),
+                        destructive: true,
+                      },
+                      onSelect: () => void remove(candidate),
+                    },
+                  ]
+                : []),
             ]}
           />
         );

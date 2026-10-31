@@ -276,7 +276,10 @@ export function createAttemptGradingEntryRepo(db: Database) {
           attempt: examAttempts,
           exam: exams,
           candidateProfile: candidateProfiles,
-          candidateUser: users,
+          candidateUser: {
+            name: sql<string>`coalesce(${users.name}, ${candidateProfiles.formerName}, '')`,
+            username: sql<string>`coalesce(${users.username}, ${candidateProfiles.formerUsername}, '')`,
+          },
           pendingCount: sql<number>`count(${attemptGradingEntries.id})::int`,
         })
         .from(attemptGradingEntries)
@@ -289,7 +292,7 @@ export function createAttemptGradingEntryRepo(db: Database) {
           candidateProfiles,
           eq(examAttempts.candidateId, candidateProfiles.id),
         )
-        .innerJoin(users, eq(candidateProfiles.userId, users.id))
+        .leftJoin(users, eq(candidateProfiles.userId, users.id))
         .where(and(...conditions))
         .groupBy(examAttempts.id, exams.id, candidateProfiles.id, users.id)
         .orderBy(examAttempts.submittedAt);
@@ -301,7 +304,7 @@ export function createAttemptGradingEntryRepo(db: Database) {
         attempt: (typeof examAttempts)["$inferSelect"];
         exam: (typeof exams)["$inferSelect"];
         candidateProfile: (typeof candidateProfiles)["$inferSelect"];
-        candidateUser: (typeof users)["$inferSelect"];
+        candidateUser: { name: string; username: string };
         pendingCount: number;
       }>;
     },

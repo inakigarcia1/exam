@@ -20,7 +20,13 @@ import { and, eq, inArray, isNotNull, isNull, lte, or, sql } from "drizzle-orm";
 
 type AttemptSelect = typeof examAttempts.$inferSelect;
 type CandidateSelect = typeof candidateProfiles.$inferSelect;
-type UserSelect = typeof users.$inferSelect;
+type CandidateIdentityRow = { name: string; username: string };
+
+/** Name and username from the live account, or the copy kept after deletion. */
+const candidateIdentityColumns = {
+  name: sql<string>`coalesce(${users.name}, ${candidateProfiles.formerName}, '')`,
+  username: sql<string>`coalesce(${users.username}, ${candidateProfiles.formerUsername}, '')`,
+};
 
 /**
  * One SaveAnswer replay receipt row (`exam_answer_save_receipts`, #669).
@@ -650,25 +656,30 @@ export function createAttemptRepo(db: Database) {
         .select({
           attempt: examAttempts,
           candidateProfile: candidateProfiles,
-          candidateUser: users,
+          candidateUser: candidateIdentityColumns,
         })
         .from(examAttempts)
         .innerJoin(
           candidateProfiles,
           eq(examAttempts.candidateId, candidateProfiles.id),
         )
-        .innerJoin(users, eq(candidateProfiles.userId, users.id))
+        .leftJoin(
+          users,
+          and(
+            eq(candidateProfiles.userId, users.id),
+            eq(users.organizationId, orgId),
+          ),
+        )
         .where(
           and(
             eq(examAttempts.organizationId, orgId),
             eq(examAttempts.examId, examId),
             eq(candidateProfiles.organizationId, orgId),
-            eq(users.organizationId, orgId),
           ),
         )) as {
         attempt: AttemptSelect;
         candidateProfile: CandidateSelect;
-        candidateUser: UserSelect;
+        candidateUser: CandidateIdentityRow;
       }[];
     },
 
@@ -705,21 +716,21 @@ export function createAttemptRepo(db: Database) {
       type GradedRow = {
         attempt: AttemptSelect;
         candidateProfile: CandidateSelect;
-        candidateUser: UserSelect;
+        candidateUser: CandidateIdentityRow;
       };
 
       const allResults = (await db
         .select({
           attempt: examAttempts,
           candidateProfile: candidateProfiles,
-          candidateUser: users,
+          candidateUser: candidateIdentityColumns,
         })
         .from(examAttempts)
         .innerJoin(
           candidateProfiles,
           eq(examAttempts.candidateId, candidateProfiles.id),
         )
-        .innerJoin(users, eq(candidateProfiles.userId, users.id))
+        .leftJoin(users, eq(candidateProfiles.userId, users.id))
         .where(baseWhere)) as GradedRow[];
 
       return sortAndPaginateGraded(allResults, options);
@@ -829,7 +840,7 @@ function sortAndPaginateGraded(
   allResults: Array<{
     attempt: AttemptSelect;
     candidateProfile: CandidateSelect;
-    candidateUser: UserSelect;
+    candidateUser: CandidateIdentityRow;
   }>,
   options: {
     sortBy?: "score" | "submittedAt" | "candidateName";

@@ -384,7 +384,7 @@ describe("exam_assigned notifications on enrollment (#299)", () => {
       .select()
       .from(candidateProfiles)
       .where(eq(candidateProfiles.id, candidateProfileId));
-    return profile!.userId;
+    return profile!.userId!;
   }
 
   it("a new enrollment with email creates exactly 1 Inbox + 1 Email outbox row", async () => {

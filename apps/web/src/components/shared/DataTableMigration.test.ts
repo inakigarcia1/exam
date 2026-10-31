@@ -18,7 +18,6 @@ const tableConsumers = [
   "../../pages/admin/GradingQueuePage.tsx",
   "../../pages/admin/ImportLogsPage.tsx",
   "../../pages/admin/QuestionImportPage.tsx",
-  "../../pages/admin/QuestionPage.tsx",
   "../../pages/admin/ResultsOverviewPage.tsx",
   "../../pages/admin/ScoreListPage.tsx",
   "../../pages/admin/UsersPage.tsx",

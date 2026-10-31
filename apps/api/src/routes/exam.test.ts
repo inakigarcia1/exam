@@ -309,12 +309,12 @@ describe("exam routes", () => {
     expect(res.statusCode).toBe(204);
   });
 
-  it("DELETE /api/exams/:id rejects non-draft", async () => {
+  it("DELETE /api/exams/:id deletes a published exam", async () => {
     const createRes = await ctx.app.inject({
       method: "POST",
       url: "/api/exams",
       payload: {
-        title: "No Delete",
+        title: "Published Delete",
         courseId,
         durationMinutes: 60,
         openAt: new Date().toISOString(),
@@ -339,10 +339,13 @@ describe("exam routes", () => {
       url: `/api/exams/${created.id}`,
       cookies: { "auth-token": ctx.adminToken },
     });
-    expect(res.statusCode).toBe(409);
-    const body = res.json();
-    expect(body.error.code).toBe("EXAM_NOT_DRAFT");
-    expect(body.error.requestId).toBeDefined();
+    expect(res.statusCode).toBe(204);
+    const after = await ctx.app.inject({
+      method: "GET",
+      url: `/api/exams/${created.id}`,
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    expect(after.statusCode).toBe(404);
   });
 
   it("POST /api/exams/:id/publish works without body", async () => {
@@ -844,6 +847,182 @@ describe("exam close (ADR-005 Slice 1)", () => {
     return examId;
   }
 
+  it("DELETE removes a graded exam with its enrollments and attempts", async () => {
+    const examId = await createOpenExam("Delete Graded");
+    await submitExamAsCandidate(
+      ctx.app,
+      ctx.adminToken,
+      ctx.org.id,
+      examId,
+      `cand-del-exam-${uniquePrefix()}`,
+    );
+
+    const res = await ctx.app.inject({
+      method: "DELETE",
+      url: `/api/exams/${examId}`,
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    expect(res.statusCode).toBe(204);
+    const exams = await ctx.db
+      .select()
+      .from(schema.exams)
+      .where(eq(schema.exams.id, examId));
+    expect(exams).toHaveLength(0);
+    const attempts = await ctx.db
+      .select()
+      .from(schema.examAttempts)
+      .where(eq(schema.examAttempts.examId, examId));
+    expect(attempts).toHaveLength(0);
+    const enrollments = await ctx.db
+      .select()
+      .from(schema.examEnrollments)
+      .where(eq(schema.examEnrollments.examId, examId));
+    expect(enrollments).toHaveLength(0);
+  });
+
+  it("DELETE is rejected while a candidate is answering the exam", async () => {
+    const examId = await createOpenExam("Delete Live");
+    const candidate = await createCandidateViaApi(
+      ctx.app,
+      ctx.adminToken,
+      `cand-del-live-${uniquePrefix()}`,
+      ctx.org.id,
+    );
+    await ctx.app.inject({
+      method: "POST",
+      url: `/api/exams/${examId}/enrollments`,
+      payload: { candidateIds: [candidate.candidateProfileId] },
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    const start = await ctx.app.inject({
+      method: "POST",
+      url: `/api/attempts/${examId}/start`,
+      cookies: { "auth-token": candidate.token },
+    });
+    expect(start.statusCode).toBe(201);
+
+    const res = await ctx.app.inject({
+      method: "DELETE",
+      url: `/api/exams/${examId}`,
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error.details).toMatchObject({
+      reason: "ATTEMPTS_IN_PROGRESS",
+      activeAttemptCount: 1,
+    });
+  });
+
+  it("DELETE /candidates/:id keeps taken grades and drops pending enrollments", async () => {
+    const takenExamId = await createOpenExam("Candidate Delete Taken");
+    const pendingExamId = await createOpenExam("Candidate Delete Pending");
+    const username = `cand-del-${uniquePrefix()}`;
+    await submitExamAsCandidate(
+      ctx.app,
+      ctx.adminToken,
+      ctx.org.id,
+      takenExamId,
+      username,
+    );
+    const [user] = await ctx.db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.username, username));
+    const [profile] = await ctx.db
+      .select()
+      .from(schema.candidateProfiles)
+      .where(eq(schema.candidateProfiles.userId, user!.id));
+    await ctx.app.inject({
+      method: "POST",
+      url: `/api/exams/${pendingExamId}/enrollments`,
+      payload: { candidateIds: [profile!.id] },
+      cookies: { "auth-token": ctx.adminToken },
+    });
+
+    const res = await ctx.app.inject({
+      method: "DELETE",
+      url: `/api/candidates/${profile!.id}`,
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    expect(res.statusCode).toBe(204);
+
+    const users = await ctx.db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.id, user!.id));
+    expect(users).toHaveLength(0);
+    const [kept] = await ctx.db
+      .select()
+      .from(schema.candidateProfiles)
+      .where(eq(schema.candidateProfiles.id, profile!.id));
+    expect(kept).toMatchObject({
+      userId: null,
+      formerName: user!.name,
+      formerUsername: username,
+    });
+    const enrollments = await ctx.db
+      .select()
+      .from(schema.examEnrollments)
+      .where(eq(schema.examEnrollments.candidateId, profile!.id));
+    expect(enrollments.map((e) => e.examId)).toEqual([takenExamId]);
+
+    const listed = await ctx.app.inject({
+      method: "GET",
+      url: `/api/candidates?search=${username}`,
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    expect(listed.json().total).toBe(0);
+    const takenEnrollments = await ctx.app.inject({
+      method: "GET",
+      url: `/api/exams/${takenExamId}/enrollments`,
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    expect(takenEnrollments.json()).toEqual([
+      expect.objectContaining({
+        candidateDisplayName: user!.name,
+        candidateIdentity: username,
+      }),
+    ]);
+    const again = await ctx.app.inject({
+      method: "DELETE",
+      url: `/api/candidates/${profile!.id}`,
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    expect(again.statusCode).toBe(404);
+  });
+
+  it("DELETE /candidates/:id is rejected while the candidate is answering", async () => {
+    const examId = await createOpenExam("Candidate Delete Live");
+    const candidate = await createCandidateViaApi(
+      ctx.app,
+      ctx.adminToken,
+      `cand-del-busy-${uniquePrefix()}`,
+      ctx.org.id,
+    );
+    await ctx.app.inject({
+      method: "POST",
+      url: `/api/exams/${examId}/enrollments`,
+      payload: { candidateIds: [candidate.candidateProfileId] },
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    const start = await ctx.app.inject({
+      method: "POST",
+      url: `/api/attempts/${examId}/start`,
+      cookies: { "auth-token": candidate.token },
+    });
+    expect(start.statusCode).toBe(201);
+
+    const res = await ctx.app.inject({
+      method: "DELETE",
+      url: `/api/candidates/${candidate.candidateProfileId}`,
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    expect(res.statusCode).toBe(409);
+    expect(res.json().error.details).toMatchObject({
+      reason: "ATTEMPTS_IN_PROGRESS",
+    });
+  });
+
   it("closes an open exam -> closed (200)", async () => {
     const examId = await createOpenExam("Close OK");
     const res = await ctx.app.inject({
@@ -870,9 +1049,9 @@ describe("exam close (ADR-005 Slice 1)", () => {
           canViewScores: false,
           scoreViewDisabledReason: "No hay datos de calificaciones",
           scoreViewDisabledReasonCode: "NO_GRADED_ATTEMPTS",
-          canDelete: false,
-          deleteDisabledReason: "Solo se puede borrar un examen en borrador",
-          deleteDisabledReasonCode: "EXAM_NOT_DRAFT",
+          canDelete: true,
+          deleteDisabledReason: null,
+          deleteDisabledReasonCode: null,
         }),
       ]),
     );
@@ -953,7 +1132,7 @@ describe("exam close (ADR-005 Slice 1)", () => {
 
     const listRes = await ctx.app.inject({
       method: "GET",
-      url: "/api/exams",
+      url: "/api/exams?statuses=canceled",
       cookies: { "auth-token": ctx.adminToken },
     });
     expect(listRes.statusCode).toBe(200);

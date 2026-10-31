@@ -1,152 +1,109 @@
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
-import { MemoryRouter, Route, Routes } from "react-router";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { BrandProvider } from "@/components/layout/BrandProvider";
-import { QuestionPage } from "./QuestionPage";
+import { QuestionPage, QUESTION_VIEW_PREFS_KEY } from "./QuestionPage";
 import { permissionsForRole } from "@exam/authz";
 
-const { apiGet } = vi.hoisted(() => ({
-  apiGet: vi.fn().mockImplementation((path: string) => {
-    if (path === "/api/questions/tags") {
-      return Promise.resolve({ tags: ["代数", "几何", "概率"] });
-    }
+interface Question {
+  id: string;
+  type: string;
+  content: string;
+  difficulty: number;
+  tags: string[];
+  createdAt: string;
+  options?: Array<{ id: string; content: string }>;
+  standardAnswer?: unknown;
+}
 
-    return Promise.resolve({
-      items: [
-        {
-          id: "q1",
-          type: "single_choice",
-          content: "题目一内容",
-          difficulty: 1,
-          tags: ["tag1"],
-        },
-      ],
-      total: 21,
-      page: 1,
-      pageSize: 20,
-      totalPages: 2,
-    });
-  }),
+const { apiGet, apiDelete } = vi.hoisted(() => ({
+  apiGet: vi.fn(),
+  apiDelete: vi.fn(),
 }));
 
-const questionsCalls = () =>
-  apiGet.mock.calls
-    .filter(
-      (call) =>
-        typeof call[0] === "string" &&
-        (call[0] as string).startsWith("/api/questions?"),
-    )
-    .map((call) => call[0] as string);
-
-type QuestionListPayload = {
-  items: Array<{
-    id: string;
-    type: string;
-    content: string;
-    difficulty: number;
-    tags: string[];
-  }>;
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
-};
-
-/** A never-settling promise plus its settle controls, for deterministic ordering tests. */
-function deferredQuestions() {
-  let resolve!: (value: QuestionListPayload) => void;
-  let reject!: (reason?: unknown) => void;
-  const promise = new Promise<QuestionListPayload>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-  return { promise, resolve, reject };
-}
-
-function questionListPayload(
-  content: string,
-  total: number,
-): QuestionListPayload {
-  return {
-    items: [
-      {
-        id: `q-${content}`,
-        type: "true_false",
-        content,
-        difficulty: 1,
-        tags: ["tag1"],
-      },
-    ],
-    total,
-    page: 1,
-    pageSize: 20,
-    totalPages: 1,
-  };
-}
-
-/** The desktop table shell region (rows also render in the mobile card list). */
-function desktopShell(): HTMLElement {
-  // R2: admin-table-shell owns the desktop measurement branch ONLY (mobile
-  // cards are its sibling under the responsive owner), so scoping to it keeps
-  // desktop queries free of mobile card content (jsdom doesn't apply CSS
-  // visibility).
-  return document.querySelector(
-    '[data-slot="admin-table-shell"]',
-  ) as HTMLElement;
-}
-
-/** The mobile card region (the CSS-hidden twin of the desktop table). */
-function mobileRegion(): HTMLElement {
-  return document.querySelector(
-    '[data-slot="responsive-mobile-region"]',
-  ) as HTMLElement;
-}
-
 vi.mock("@/lib/api", () => ({
-  ApiError: class ApiError extends Error {
-    readonly status: number;
-    readonly message: string;
-    readonly code?: string;
-    readonly details?: unknown;
-    readonly requestId?: string;
-    readonly serverMessage?: string;
-    constructor(
-      status: number,
-      message: string,
-      code?: string,
-      details?: unknown,
-      requestId?: string,
-      serverMessage?: string,
-    ) {
-      super(message);
-      this.name = "ApiError";
-      this.status = status;
-      this.message = message;
-      this.code = code;
-      this.details = details;
-      this.requestId = requestId;
-      this.serverMessage = serverMessage ?? message;
-    }
-  },
+  ApiError: class ApiError extends Error {},
   api: {
     get: (...args: unknown[]) => apiGet(...args),
-    delete: vi.fn().mockResolvedValue(undefined),
+    delete: (...args: unknown[]) => apiDelete(...args),
   },
   setNavigate: () => {},
 }));
 
-function renderPage() {
+const LONG_CONTENT =
+  "Un enunciado muy largo que antes se cortaba en la tabla y ahora tiene que verse entero, con todas sus palabras, hasta el final del texto.";
+
+function question(overrides: Partial<Question> & { id: string }): Question {
+  return {
+    type: "single_choice",
+    content: `Pregunta ${overrides.id}`,
+    difficulty: 1,
+    tags: [],
+    createdAt: "2026-01-01T00:00:00.000Z",
+    ...overrides,
+  };
+}
+
+const BANK: Question[] = [
+  question({
+    id: "q1",
+    content: LONG_CONTENT,
+    tags: ["Álgebra", "Geometría"],
+    createdAt: "2026-01-02T00:00:00.000Z",
+    options: [
+      { id: "a", content: "Opción buena" },
+      { id: "b", content: "Opción mala" },
+    ],
+    standardAnswer: "a",
+  }),
+  question({
+    id: "q2",
+    type: "text_response",
+    content: "Explicá el teorema",
+    tags: ["Geometría"],
+    difficulty: 3,
+  }),
+  question({ id: "q3", type: "true_false", content: "Sin tags" }),
+];
+
+/** Serves `items` from the list endpoint in pages of the requested size. */
+function serveBank(items: Question[]) {
+  apiGet.mockImplementation((path: string) => {
+    if (path === "/api/questions/tags") {
+      return Promise.resolve({ tags: ["Álgebra", "Geometría"] });
+    }
+    const params = new URL(path, "http://test").searchParams;
+    const page = Number(params.get("page"));
+    const pageSize = Number(params.get("pageSize"));
+    const tags = params.get("tags")?.split(",") ?? [];
+    const matching = items.filter((item) =>
+      tags.every((tag) => item.tags.includes(tag)),
+    );
+    return Promise.resolve({
+      items: matching.slice((page - 1) * pageSize, page * pageSize),
+      total: matching.length,
+      page,
+      pageSize,
+      totalPages: Math.max(1, Math.ceil(matching.length / pageSize)),
+    });
+  });
+}
+
+const listCalls = () =>
+  apiGet.mock.calls
+    .map((call) => call[0] as string)
+    .filter((path) => path.startsWith("/api/questions?"));
+
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="location">{location.search}</div>;
+}
+
+function renderPage(entry = "/admin/questions") {
   return render(
-    <MemoryRouter initialEntries={["/admin/questions"]}>
+    <MemoryRouter initialEntries={[entry]}>
       <AuthProvider
         initialUser={{
           id: "1",
@@ -159,7 +116,19 @@ function renderPage() {
       >
         <BrandProvider>
           <Routes>
-            <Route path="/admin/questions" element={<QuestionPage />} />
+            <Route
+              path="/admin/questions"
+              element={
+                <>
+                  <QuestionPage />
+                  <LocationProbe />
+                </>
+              }
+            />
+            <Route
+              path="/admin/questions/:id/edit"
+              element={<div>Editor de pregunta</div>}
+            />
           </Routes>
         </BrandProvider>
       </AuthProvider>
@@ -167,322 +136,167 @@ function renderPage() {
   );
 }
 
+function group(key: string): HTMLElement {
+  return screen.getByTestId(`question-group-${key}`);
+}
+
+beforeEach(() => {
+  apiGet.mockReset();
+  apiDelete.mockReset().mockResolvedValue(undefined);
+  localStorage.clear();
+  serveBank(BANK);
+});
+
 describe("QuestionPage", () => {
-  it("clears filters and keeps the page shell visible during table reload", async () => {
-    const user = userEvent.setup();
+  it("groups cards by tag, repeating multi-tag questions and listing untagged last", async () => {
     renderPage();
 
-    expect(await screen.findByText("Gestión de preguntas")).toBeInTheDocument();
-    // The DataWorkbench renders a single continuous shell whose toolbar,
-    // desktop table, and footer are regions of one surface. The desktop table
-    // (hidden below lg) and mobile card list (hidden at lg+) are separate
-    // regions; scope content assertions to the desktop table shell so a single
-    // row's content isn't matched twice.
-    const workbench = document.querySelector(
-      '[data-slot="data-workbench"]',
-    ) as HTMLElement;
-    expect(workbench).toHaveClass("surface-content", "overflow-hidden");
-    const desktop = desktopShell();
-    // toolbar and footer are both regions inside the single workbench shell.
-    expect(workbench.contains(screen.getByRole("toolbar"))).toBe(true);
+    await screen.findByTestId("question-group-Álgebra");
+    const groups = screen
+      .getAllByTestId(/^question-group-/)
+      .map((element) => element.getAttribute("data-testid"));
+    expect(groups).toEqual([
+      "question-group-Álgebra",
+      "question-group-Geometría",
+      "question-group-\u0000untagged",
+    ]);
+    expect(within(group("Álgebra")).getByText(LONG_CONTENT)).toBeVisible();
+    expect(within(group("Geometría")).getByText(LONG_CONTENT)).toBeVisible();
+    expect(
+      within(group("Geometría")).getByText("Explicá el teorema"),
+    ).toBeVisible();
+    expect(
+      within(group("\u0000untagged")).getByText("Sin etiqueta"),
+    ).toBeVisible();
+    expect(screen.getByText("Preguntas: 3")).toBeInTheDocument();
+  });
+
+  it("shows the full content and the full type label", async () => {
+    renderPage();
+
+    const card = (await screen.findAllByTestId("question-card-q2"))[0]!;
+    expect(within(card).getByText("Explicá el teorema")).toBeVisible();
+    expect(within(card).getByText("Respuesta de texto")).toBeVisible();
+    expect(within(card).getByText("Dificultad 3")).toBeVisible();
+  });
+
+  it("reads every page of the filtered bank", async () => {
+    const big = Array.from({ length: 150 }, (_, index) =>
+      question({ id: `b${index}`, tags: ["Álgebra"] }),
+    );
+    serveBank(big);
+    renderPage();
+
+    await screen.findByText("Preguntas: 150");
+    expect(listCalls()).toEqual([
+      "/api/questions?page=1&pageSize=100",
+      "/api/questions?page=2&pageSize=100",
+    ]);
+  });
+
+  it("only shows the filtered tags as groups and sends the filter to the API", async () => {
+    renderPage("/admin/questions?tags=Geometría");
+
+    await screen.findByTestId("question-group-Geometría");
+    expect(screen.getAllByTestId(/^question-group-/)).toHaveLength(1);
+    expect(listCalls()[0]).toContain(`tags=${encodeURIComponent("Geometría")}`);
+  });
+
+  it("drops the retired page parameter from the URL", async () => {
+    renderPage("/admin/questions?page=3&type=true_false");
+
     await waitFor(() =>
-      expect(within(desktop).getByText("题目一内容")).toBeInTheDocument(),
+      expect(screen.getByTestId("location")).toHaveTextContent(
+        "?type=true_false",
+      ),
     );
-    // after load, the desktop table content and footer live in one shell.
-    expect(workbench.contains(within(desktop).getByText("题目一内容"))).toBe(
-      true,
-    );
-    expect(screen.getByRole("toolbar")).toHaveAttribute(
-      "data-toolbar-appearance",
-      "quiet",
-    );
-    expect(within(desktop).getByText("tag1")).toHaveAttribute(
-      "data-tag-tone",
-      "neutral",
-    );
-
-    const pendingQuestions = new Promise(() => {});
-    apiGet.mockImplementationOnce(() => pendingQuestions);
-
-    await user.click(screen.getByRole("button", { name: "Página siguiente" }));
-
-    expect(screen.getByText("Gestión de preguntas")).toBeInTheDocument();
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
-    expect(screen.getByText("Cargando…")).toBeInTheDocument();
-
-    apiGet.mockImplementation((path: string) => {
-      // Keep the tag-vocabulary branch: mockImplementation persists across
-      // tests, and later tests rely on the vocabulary fixture.
-      if (path === "/api/questions/tags") {
-        return Promise.resolve({ tags: ["代数", "几何", "概率"] });
-      }
-
-      return Promise.resolve({
-        items: [
-          {
-            id: "q1",
-            type: "single_choice",
-            content: "题目一内容",
-            difficulty: 1,
-            tags: ["tag1"],
-          },
-        ],
-        total: 21,
-        page: 1,
-        pageSize: 20,
-        totalPages: 2,
-      });
-    });
-
-    fireEvent.change(screen.getByLabelText("Buscar preguntas"), {
-      target: { value: "Pregunta" },
-    });
-    // Select one tag through the structured filter, then clear all filters.
-    await user.click(
-      screen.getByRole("button", { name: "Filtro de etiquetas" }),
-    );
-    await user.click(await screen.findByRole("checkbox", { name: "代数" }));
-    await user.click(screen.getByRole("button", { name: "Limpiar filtros" }));
-
-    await waitFor(() => {
-      // The tag filter trigger is back to its empty placeholder state and
-      // the free-text search box is empty again.
-      expect(
-        within(
-          screen.getByRole("button", { name: "Filtro de etiquetas" }),
-        ).getByText("Etiqueta"),
-      ).toBeInTheDocument();
-      expect(screen.getByLabelText("Buscar preguntas")).toHaveValue("");
-      expect(screen.getByText(/共 21 条/)).toBeInTheDocument();
-    });
+    expect(listCalls().every((path) => path.includes("page=1&"))).toBe(true);
   });
 
-  it("filters tags via the structured multi-select with AND semantics", async () => {
+  it("regroups, shows answers and remembers the choice", async () => {
     const user = userEvent.setup();
-    renderPage();
-    await screen.findByText("Gestión de preguntas");
+    const { unmount } = renderPage();
+    await screen.findByTestId("question-group-Álgebra");
 
+    await user.click(screen.getByRole("combobox", { name: "Agrupar por" }));
     await user.click(
-      screen.getByRole("button", { name: "Filtro de etiquetas" }),
+      await screen.findByRole("option", { name: "Agrupar por tipo" }),
     );
-    await user.click(await screen.findByRole("checkbox", { name: "代数" }));
-    await user.click(screen.getByRole("checkbox", { name: "几何" }));
-
-    await waitFor(() => {
-      const last = questionsCalls().at(-1) ?? "";
-      expect(decodeURIComponent(last)).toContain("tags=代数,几何");
-    });
-    // AND hint is visible so the multi-tag behavior is not a guess.
     expect(
-      screen.getByText("Si eliges varias, la pregunta debe incluir todas"),
-    ).toBeInTheDocument();
-  });
+      within(group("single_choice")).getByText("Opción única", {
+        selector: "h2",
+      }),
+    ).toBeVisible();
+    expect(screen.queryByTestId("question-group-Álgebra")).toBeNull();
 
-  it("narrows the tag vocabulary by search inside the dropdown", async () => {
-    const user = userEvent.setup();
-    renderPage();
-    await screen.findByText("Gestión de preguntas");
-
+    expect(screen.queryByText("Opción buena")).toBeNull();
     await user.click(
-      screen.getByRole("button", { name: "Filtro de etiquetas" }),
+      screen.getByRole("switch", { name: "Mostrar opciones y respuestas" }),
     );
-    await user.type(await screen.findByLabelText("Buscar etiquetas"), "概率");
-    expect(screen.getByRole("checkbox", { name: "概率" })).toBeInTheDocument();
+    const correct = screen.getByText("Opción buena").closest("li")!;
     expect(
-      screen.queryByRole("checkbox", { name: "代数" }),
-    ).not.toBeInTheDocument();
-  });
-
-  it("removes a single tag without clearing the others", async () => {
-    const user = userEvent.setup();
-    renderPage();
-    await screen.findByText("Gestión de preguntas");
-
-    await user.click(
-      screen.getByRole("button", { name: "Filtro de etiquetas" }),
-    );
-    await user.click(await screen.findByRole("checkbox", { name: "代数" }));
-    await user.click(screen.getByRole("checkbox", { name: "几何" }));
-    await user.click(screen.getByRole("checkbox", { name: "几何" }));
-
-    await waitFor(() => {
-      const last = questionsCalls().at(-1) ?? "";
-      expect(decodeURIComponent(last)).toContain("tags=代数");
-      expect(decodeURIComponent(last)).not.toContain("几何");
-    });
-  });
-
-  it("clears all selected tags from the dropdown footer", async () => {
-    const user = userEvent.setup();
-    renderPage();
-    await screen.findByText("Gestión de preguntas");
-
-    await user.click(
-      screen.getByRole("button", { name: "Filtro de etiquetas" }),
-    );
-    await user.click(await screen.findByRole("checkbox", { name: "代数" }));
-    await user.click(screen.getByRole("button", { name: "Quitar selección" }));
-
-    await waitFor(() => {
-      const last = questionsCalls().at(-1) ?? "";
-      expect(last).not.toContain("tags=");
-    });
-  });
-
-  it("supports keyboard operation of the tag filter", async () => {
-    const user = userEvent.setup();
-    renderPage();
-    await screen.findByText("Gestión de preguntas");
-
-    const trigger = screen.getByRole("button", { name: "Filtro de etiquetas" });
-    trigger.focus();
-    await user.keyboard("{Enter}");
-    const checkbox = await screen.findByRole("checkbox", { name: "代数" });
-    checkbox.focus();
-    await user.keyboard(" ");
-
-    await waitFor(() => {
-      const last = questionsCalls().at(-1) ?? "";
-      expect(decodeURIComponent(last)).toContain("tags=代数");
-    });
-  });
-
-  // P0 stale-response ordering: rapid multi-select makes A -> A+B request
-  // overlap a normal path. The generation guard must keep the table on the
-  // NEWER (A+B) result even when the stale A response resolves last.
-  it("ignores a stale tag-filter response that resolves after the newer one", async () => {
-    const user = userEvent.setup();
-    renderPage();
-    await screen.findByText("Gestión de preguntas");
-    await waitFor(() =>
-      expect(
-        within(desktopShell()).getByText("题目一内容"),
-      ).toBeInTheDocument(),
-    );
-
-    const staleA = deferredQuestions();
-    const newerAB = deferredQuestions();
-
-    await user.click(
-      screen.getByRole("button", { name: "Filtro de etiquetas" }),
-    );
-    // 1. select A — request 1 (tags=代数) stays pending
-    apiGet.mockImplementationOnce(() => staleA.promise);
-    await user.click(await screen.findByRole("checkbox", { name: "代数" }));
-    // 2. select B before A resolves — request 2 (tags=代数,几何) pending
-    apiGet.mockImplementationOnce(() => newerAB.promise);
-    await user.click(screen.getByRole("checkbox", { name: "几何" }));
-
-    // 3. the A+B response resolves FIRST — table shows the A+B result
-    await act(async () => {
-      newerAB.resolve(questionListPayload("A+B 结果题目", 5));
-    });
-    await waitFor(() =>
-      expect(
-        within(desktopShell()).getByText("A+B 结果题目"),
-      ).toBeInTheDocument(),
-    );
-    expect(screen.getByText(/共 5 条/)).toBeInTheDocument();
-
-    // 4. the stale A-only response resolves SECOND — it must not mutate
-    //    questions, total, error, or loading state.
-    await act(async () => {
-      staleA.resolve(questionListPayload("仅 A 结果题目", 7));
-    });
-    expect(
-      within(desktopShell()).getByText("A+B 结果题目"),
-    ).toBeInTheDocument();
-    expect(screen.queryByText("仅 A 结果题目")).not.toBeInTheDocument();
-    expect(screen.getByText(/共 5 条/)).toBeInTheDocument();
-    expect(screen.queryByText(/共 7 条/)).not.toBeInTheDocument();
-    // loading is owned by the newest request and already settled
-    expect(screen.getByText("Cargando…")).toHaveAttribute(
-      "aria-hidden",
-      "true",
-    );
-    expect(
-      screen.queryByText("No se pudo cargar la lista de alumnos"),
-    ).not.toBeInTheDocument();
-  });
-
-  it("ignores a stale tag-filter request that rejects after a newer one resolved", async () => {
-    const user = userEvent.setup();
-    renderPage();
-    await screen.findByText("Gestión de preguntas");
-    await waitFor(() =>
-      expect(
-        within(desktopShell()).getByText("题目一内容"),
-      ).toBeInTheDocument(),
-    );
-
-    const staleA = deferredQuestions();
-    const newerAB = deferredQuestions();
-
-    await user.click(
-      screen.getByRole("button", { name: "Filtro de etiquetas" }),
-    );
-    apiGet.mockImplementationOnce(() => staleA.promise);
-    await user.click(await screen.findByRole("checkbox", { name: "代数" }));
-    apiGet.mockImplementationOnce(() => newerAB.promise);
-    await user.click(screen.getByRole("checkbox", { name: "几何" }));
-
-    await act(async () => {
-      newerAB.resolve(questionListPayload("A+B 结果题目", 5));
-    });
-    await waitFor(() =>
-      expect(
-        within(desktopShell()).getByText("A+B 结果题目"),
-      ).toBeInTheDocument(),
-    );
-
-    // The stale request fails late — its failure must not surface an error.
-    await act(async () => {
-      staleA.reject(new Error("stale request failed"));
-    });
-    expect(
-      within(desktopShell()).getByText("A+B 结果题目"),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/共 5 条/)).toBeInTheDocument();
-    expect(screen.getByText("Cargando…")).toHaveAttribute(
-      "aria-hidden",
-      "true",
-    );
-    expect(
-      screen.queryByText("No se pudo cargar la lista de alumnos"),
-    ).not.toBeInTheDocument();
-  });
-
-  // Issue 457 C4 audit: the derived card must keep the field assignment the
-  // page's hand-mapped card had — type badge leads, content is primary,
-  // course/score/difficulty render as labeled meta lines, tags stay off.
-  it("renders the derived mobile card with the audited field slots", async () => {
-    renderPage();
-    await screen.findByText("Gestión de preguntas");
-    await waitFor(() =>
-      expect(
-        within(desktopShell()).getByText("题目一内容"),
-      ).toBeInTheDocument(),
-    );
-    const mobile = mobileRegion();
-    // header cluster: the type badge.
-    expect(within(mobile).getByText("Opción única")).toBeInTheDocument();
-    // primary area: the question content.
-    expect(within(mobile).getByText("题目一内容")).toBeInTheDocument();
-    // meta line: labeled course/score/difficulty (score is NOT a bare
-    // header value — the score column carries priority "normal").
-    expect(
-      within(mobile).queryByText("Comisión: 课程一"),
-    ).not.toBeInTheDocument();
-    expect(within(mobile).getByText("Puntaje: 10")).toBeInTheDocument();
-    expect(within(mobile).getByText("Dificultad: 1")).toBeInTheDocument();
-    // tag-list defaults low: tags stay off the card.
-    expect(within(mobile).queryByText("tag1")).not.toBeInTheDocument();
-    // actions slot: the RowActions edit/delete pair.
-    expect(
-      within(mobile).getByRole("button", { name: "Editar pregunta" }),
+      within(correct).getByRole("img", { name: "Opción correcta" }),
     ).toBeInTheDocument();
     expect(
-      within(mobile).getByRole("button", { name: "Eliminar pregunta" }),
+      within(screen.getByText("Opción mala").closest("li")!).queryByRole("img"),
+    ).toBeNull();
+
+    expect(
+      JSON.parse(localStorage.getItem(QUESTION_VIEW_PREFS_KEY) ?? "{}"),
+    ).toMatchObject({ groupBy: "type", showAnswers: true });
+    unmount();
+
+    renderPage();
+    await screen.findByTestId("question-group-single_choice");
+    expect(screen.getByText("Opción buena")).toBeVisible();
+  });
+
+  it("collapses a group", async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByTestId("question-group-Álgebra");
+
+    const header = within(group("Álgebra")).getByRole("button", {
+      name: /Álgebra/,
+    });
+    await user.click(header);
+    expect(header).toHaveAttribute("aria-expanded", "false");
+    expect(within(group("Álgebra")).queryByText(LONG_CONTENT)).toBeNull();
+  });
+
+  it("opens the editor when the statement is clicked", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    const card = (await screen.findAllByTestId("question-card-q2"))[0]!;
+    await user.click(within(card).getByText("Explicá el teorema"));
+    expect(await screen.findByText("Editor de pregunta")).toBeInTheDocument();
+  });
+
+  it("deletes after confirmation and reloads the bank", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    const card = (await screen.findAllByTestId("question-card-q3"))[0]!;
+    await user.click(
+      within(card).getByRole("button", { name: "Eliminar pregunta" }),
+    );
+    expect(apiDelete).not.toHaveBeenCalled();
+    const dialog = await screen.findByRole("alertdialog");
+    await user.click(within(dialog).getByRole("button", { name: "Confirmar" }));
+
+    await waitFor(() =>
+      expect(apiDelete).toHaveBeenCalledWith("/api/questions/q3"),
+    );
+    await waitFor(() => expect(listCalls()).toHaveLength(2));
+  });
+
+  it("explains an empty filter result", async () => {
+    serveBank([]);
+    renderPage("/admin/questions?search=nada");
+
+    expect(
+      await screen.findByText("Ninguna pregunta coincide"),
     ).toBeInTheDocument();
   });
 });

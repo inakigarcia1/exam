@@ -21,6 +21,7 @@ import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
+  CircleHelp,
   ClipboardList,
   Gauge,
   GraduationCap,
@@ -136,7 +137,7 @@ const groups: NavGroup[] = [
       {
         labelKey: "nav.items.questions",
         to: routes.admin.questions,
-        icon: BookOpen,
+        icon: CircleHelp,
         visible: canSeeQuestions,
       },
     ],

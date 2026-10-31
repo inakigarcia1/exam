@@ -39,9 +39,6 @@ export const Permission = {
   CandidateCreate: "candidate.create",
   CandidateUpdate: "candidate.update",
   CandidateImport: "candidate.import",
-  // CandidateDelete (candidate.delete): granted to Admin but no
-  // DELETE /candidates/:id route consumes it, so no request path can reach it.
-  // Retained pending a product decision on candidate deletion.
   CandidateDelete: "candidate.delete",
   CandidateFieldView: "candidate_field.view",
   CandidateFieldCreate: "candidate_field.create",
