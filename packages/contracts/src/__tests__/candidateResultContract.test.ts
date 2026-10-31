@@ -49,6 +49,8 @@ const fullQuestion = {
 
 const fullVisible = {
   ...VISIBLE_BASE,
+  candidateName: "Demo candidate",
+  candidateUsername: "demo-legajo",
   questionResults: [fullQuestion],
 };
 

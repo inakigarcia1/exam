@@ -1853,8 +1853,40 @@ export function ProctorDashboardPage() {
           const isLive =
             candidate.status === "in_progress" ||
             candidate.status === "disrupted";
+          const navigable = Boolean(candidate.attemptId);
+          function openCandidateView() {
+            if (!candidate.attemptId) return;
+            if (isLive) {
+              navigate(`/admin/attempts/${candidate.attemptId}/live`);
+            } else if (
+              candidate.status === "submitted" ||
+              candidate.status === "graded"
+            ) {
+              navigate(`/admin/attempts/${candidate.attemptId}`);
+            }
+          }
           return (
-            <Card key={candidate.candidateId}>
+            <Card
+              key={candidate.candidateId}
+              role={navigable ? "link" : undefined}
+              tabIndex={navigable ? 0 : undefined}
+              className={
+                navigable
+                  ? "cursor-pointer transition-transform hover:scale-[1.02]"
+                  : undefined
+              }
+              onClick={navigable ? openCandidateView : undefined}
+              onKeyDown={
+                navigable
+                  ? (event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        openCandidateView();
+                      }
+                    }
+                  : undefined
+              }
+            >
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
                   {/* min-w-0: without it the flex child's intrinsic width
@@ -1907,9 +1939,10 @@ export function ProctorDashboardPage() {
                             size="sm"
                             variant="destructive"
                             disabled={forceSubmitting}
-                            onClick={() =>
-                              openForceSubmitDialog(candidate.attemptId!)
-                            }
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              openForceSubmitDialog(candidate.attemptId!);
+                            }}
                           >
                             {t("admin.proctorDashboard.card.forceSubmit")}
                           </Button>
@@ -1920,9 +1953,10 @@ export function ProctorDashboardPage() {
                                 size="sm"
                                 variant="ghost"
                                 disabled={forceSubmitting}
-                                onClick={() =>
-                                  dismissForceSubmitIndeterminate()
-                                }
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  dismissForceSubmitIndeterminate();
+                                }}
                               >
                                 {t(
                                   "admin.proctorDashboard.forceSubmit.dismiss",
@@ -1943,7 +1977,10 @@ export function ProctorDashboardPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => void openGrantDialog(candidate)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void openGrantDialog(candidate);
+                          }}
                         >
                           {t("admin.proctorDashboard.card.extend")}
                         </Button>
@@ -1954,7 +1991,8 @@ export function ProctorDashboardPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => {
+                          onClick={(event) => {
+                            event.stopPropagation();
                             if (!user) return;
                             // Honor the pending authority: an unresolved command
                             // for THIS attempt is restored so the retry replays

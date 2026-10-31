@@ -119,6 +119,7 @@ describe("score routes", () => {
         totalScore: 10,
         questionSelectionMode: "manual",
         questionIds: [questionId],
+        questionScores: { [questionId]: 10 },
         controlFlags: {
           shuffleQuestions: false,
           shuffleOptions: false,
@@ -535,6 +536,7 @@ describe("J8: score list routes", () => {
         totalScore: 10,
         questionSelectionMode: "manual",
         questionIds: [questionId],
+        questionScores: { [questionId]: 10 },
         controlFlags: {
           shuffleQuestions: false,
           shuffleOptions: false,
@@ -660,6 +662,7 @@ describe("J8: score list routes", () => {
         totalScore: 10,
         questionSelectionMode: "manual",
         questionIds: [questionId],
+        questionScores: { [questionId]: 10 },
         controlFlags: {
           shuffleQuestions: false,
           shuffleOptions: false,
@@ -808,6 +811,7 @@ describe("J8: score list routes", () => {
         totalScore: 10,
         questionSelectionMode: "manual",
         questionIds: [questionId],
+        questionScores: { [questionId]: 10 },
         controlFlags: {
           shuffleQuestions: false,
           shuffleOptions: false,
@@ -920,6 +924,9 @@ describe("candidate result / answer visibility boundaries", () => {
         questionIds: opts.includeTextResponse
           ? [singleChoiceId, textResponseId]
           : [singleChoiceId],
+        questionScores: opts.includeTextResponse
+          ? { [singleChoiceId]: 10, [textResponseId]: 20 }
+          : { [singleChoiceId]: 10 },
         controlFlags: {
           shuffleQuestions: false,
           shuffleOptions: false,
@@ -1243,6 +1250,7 @@ describe("candidate result / answer visibility boundaries", () => {
         totalScore: 20,
         questionSelectionMode: "manual",
         questionIds: [textResponseId],
+        questionScores: { [textResponseId]: 20 },
         controlFlags: {
           shuffleQuestions: false,
           shuffleOptions: false,
@@ -1555,6 +1563,7 @@ describe("admin frozen result view", () => {
         totalScore: 30,
         questionSelectionMode: "manual",
         questionIds: [singleChoiceId, textResponseId],
+        questionScores: { [singleChoiceId]: 10, [textResponseId]: 20 },
         controlFlags: {
           shuffleQuestions: false,
           shuffleOptions: false,

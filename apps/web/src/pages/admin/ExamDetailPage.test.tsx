@@ -68,7 +68,12 @@ const mockDraftExam = {
   retakePolicy: "no-retake",
   scoreStrategy: "best",
   maxAttempts: 1,
-  stats: { participantCount: 0, completedCount: 0, passedCount: 0 },
+  stats: {
+    participantCount: 0,
+    activeAttemptCount: 0,
+    completedCount: 0,
+    passedCount: 0,
+  },
   participants: [],
 };
 
@@ -118,7 +123,9 @@ describe("ExamDetailPage", () => {
 
     it("renders config section", async () => {
       renderPage();
-      expect(await screen.findByText("Configuración del examen")).toBeInTheDocument();
+      expect(
+        await screen.findByText("Configuración del examen"),
+      ).toBeInTheDocument();
       // Policy enums render as localized labels, never raw values.
       expect(screen.getByText("Ventana con límite")).toBeInTheDocument();
       expect(screen.queryByText("timed_window")).not.toBeInTheDocument();
@@ -143,7 +150,9 @@ describe("ExamDetailPage", () => {
       expect(
         await screen.findByRole("tab", { name: "Inscripción" }),
       ).toBeInTheDocument();
-      expect(screen.getByRole("tab", { name: "Calificaciones" })).toBeInTheDocument();
+      expect(
+        screen.getByRole("tab", { name: "Calificaciones" }),
+      ).toBeInTheDocument();
       expect(
         screen.queryByRole("tab", { name: "操作日志" }),
       ).not.toBeInTheDocument();
@@ -169,7 +178,12 @@ describe("ExamDetailPage", () => {
           ]);
         return Promise.resolve({
           ...mockDraftExam,
-          stats: { participantCount: 1, completedCount: 0, passedCount: 0 },
+          stats: {
+            participantCount: 1,
+            activeAttemptCount: 0,
+            completedCount: 0,
+            passedCount: 0,
+          },
         });
       });
       renderPage();
@@ -258,7 +272,11 @@ describe("ExamDetailPage", () => {
 
     it("shows publish error message on failure", async () => {
       postMock.mockRejectedValue(
-        new ApiError(409, "El examen ya está publicado", "EXAM_ALREADY_PUBLISHED"),
+        new ApiError(
+          409,
+          "El examen ya está publicado",
+          "EXAM_ALREADY_PUBLISHED",
+        ),
       );
       const user = userEvent.setup();
       renderPage();
@@ -329,9 +347,14 @@ describe("ExamDetailPage", () => {
     // succeeded. Every OTHER failure keeps the legacy handling (generic
     // toast, dialog open, no refetch).
     const staleClosedError = () =>
-      new ApiError(409, "En este estado no se puede extender el examen", "EXAM_EXTEND_NOT_ALLOWED", {
-        reason: "ALREADY_CLOSED",
-      });
+      new ApiError(
+        409,
+        "En este estado no se puede extender el examen",
+        "EXAM_EXTEND_NOT_ALLOWED",
+        {
+          reason: "ALREADY_CLOSED",
+        },
+      );
 
     it("stale-close 409 exits the dialog, refetches once, and projects the refreshed closed state", async () => {
       // Superset shape up front so the pre/post-refresh payloads share one
@@ -428,8 +451,46 @@ describe("ExamDetailPage", () => {
       expect(getMock.mock.calls.length).toBe(readsAfterLoad + 1);
       // The failed refresh surfaces the standard retryable error state —
       // never a blank page or a stale actionable dialog.
-      expect(await screen.findByText("No se pudo cargar el examen")).toBeInTheDocument();
+      expect(
+        await screen.findByText("No se pudo cargar el examen"),
+      ).toBeInTheDocument();
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
+    it("warns in the close dialog that active attempts are submitted", async () => {
+      getMock.mockImplementation((path: string) => {
+        if (path.includes("/enrollments")) return Promise.resolve([]);
+        return Promise.resolve({
+          ...mockDraftExam,
+          status: "open",
+          stats: { ...mockDraftExam.stats, activeAttemptCount: 2 },
+        });
+      });
+      const user = userEvent.setup();
+      renderPage();
+      await screen.findByText("期末能力测评");
+
+      await user.click(screen.getByTestId("exam-detail-close-btn"));
+
+      expect(screen.getByRole("alertdialog")).toHaveTextContent(
+        "Hay 2 alumno(s) rindiendo: se entregan automáticamente con lo que tengan guardado.",
+      );
+    });
+
+    it("does not warn in the close dialog when nobody is answering", async () => {
+      getMock.mockImplementation((path: string) => {
+        if (path.includes("/enrollments")) return Promise.resolve([]);
+        return Promise.resolve({ ...mockDraftExam, status: "open" });
+      });
+      const user = userEvent.setup();
+      renderPage();
+      await screen.findByText("期末能力测评");
+
+      await user.click(screen.getByTestId("exam-detail-close-btn"));
+
+      expect(screen.getByRole("alertdialog")).not.toHaveTextContent(
+        "rindiendo",
+      );
     });
 
     it("non-stale extend failures keep the legacy handling: generic toast, dialog open, no refetch", async () => {
@@ -452,7 +513,9 @@ describe("ExamDetailPage", () => {
       );
 
       await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith("No se pudo extender. Intentá de nuevo más tarde.");
+        expect(toast.error).toHaveBeenCalledWith(
+          "No se pudo extender. Intentá de nuevo más tarde.",
+        );
       });
       expect(toast.success).not.toHaveBeenCalled();
       expect(postMock).toHaveBeenCalledTimes(1);
@@ -586,7 +649,9 @@ describe("ExamDetailPage", () => {
       await screen.findByTestId("exam-detail-publish-results-btn");
       await user.click(screen.getByTestId("exam-detail-publish-results-btn"));
       const dialog = await screen.findByRole("alertdialog");
-      await user.click(within(dialog).getByRole("button", { name: "Confirmar" }));
+      await user.click(
+        within(dialog).getByRole("button", { name: "Confirmar" }),
+      );
       await waitFor(() => {
         expect(postMock).toHaveBeenCalledWith(
           "/api/exams/exam-1/publish-results",
@@ -676,7 +741,9 @@ describe("ExamDetailPage", () => {
     it("shows error state when exam loading fails", async () => {
       getMock.mockRejectedValue(new Error("fail"));
       renderPage();
-      expect(await screen.findByText("No se pudo cargar el examen")).toBeInTheDocument();
+      expect(
+        await screen.findByText("No se pudo cargar el examen"),
+      ).toBeInTheDocument();
     });
   });
 

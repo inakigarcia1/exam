@@ -65,7 +65,7 @@ describe("ExamListPage", () => {
     getMock.mockReset();
   });
 
-  it("renders available exam with start button in Disponible section", async () => {
+  it("renders available exam with start button in Exámenes actuales section", async () => {
     getMock.mockResolvedValue([makeExam({})]);
 
     render(
@@ -76,7 +76,7 @@ describe("ExamListPage", () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText("Exámenes disponibles")).toBeInTheDocument();
+    expect(await screen.findByText("Exámenes actuales")).toBeInTheDocument();
     expect(screen.getByText("Comenzar examen")).toBeInTheDocument();
   });
 
@@ -180,10 +180,70 @@ describe("ExamListPage", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.queryByText("Exámenes disponibles")).not.toBeInTheDocument();
+    expect(screen.queryByText("Exámenes actuales")).not.toBeInTheDocument();
     expect(await screen.findByText("Exámenes anteriores")).toBeInTheDocument();
     expect(screen.getByText("Intentos agotados")).toBeInTheDocument();
     expect(screen.getByText("Ver calificación")).toBeInTheDocument();
+  });
+
+  it("splits exams into current and previous sections by state", async () => {
+    getMock.mockResolvedValue([
+      makeExam({ examId: "e-available", title: "Disponible" }),
+      makeExam({
+        examId: "e-progress",
+        title: "En curso",
+        availabilityStatus: "in_progress",
+        primaryAction: "resume",
+        latestAttemptId: "att-p",
+        attemptsUsed: 1,
+      }),
+      makeExam({
+        examId: "e-graded",
+        title: "Calificado",
+        availabilityStatus: "graded",
+        primaryAction: "view_result",
+        latestAttemptId: "att-g",
+        attemptsUsed: 1,
+        bestScore: 70,
+      }),
+      makeExam({
+        examId: "e-closed",
+        title: "Cerrado sin rendir",
+        availabilityStatus: "closed",
+        primaryAction: "none",
+      }),
+    ]);
+    render(
+      <MemoryRouter initialEntries={["/exam/list"]}>
+        <Routes>
+          <Route path="/exam/list" element={<ExamListPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const current = (
+      await screen.findByRole("heading", { name: "Exámenes actuales" })
+    ).closest("section")!;
+    const history = screen
+      .getByRole("heading", { name: "Exámenes anteriores" })
+      .closest("section")!;
+
+    expect(current).toContainElement(
+      screen.getByTestId("exam-card-e-available"),
+    );
+    expect(current).toContainElement(
+      screen.getByTestId("exam-card-e-progress"),
+    );
+    expect(history).toContainElement(screen.getByTestId("exam-card-e-graded"));
+    expect(history).toContainElement(screen.getByTestId("exam-card-e-closed"));
+
+    const closedCard = screen.getByTestId("exam-card-e-closed");
+    expect(closedCard).toHaveTextContent("Cerrado");
+    expect(closedCard).toHaveTextContent("Este examen está cerrado");
+    expect(closedCard).not.toHaveTextContent("Para aprobar");
+    expect(
+      closedCard.querySelector("[data-testid='exam-primary-action']"),
+    ).toBeNull();
   });
 
   it("shows empty state when no exams", async () => {
@@ -197,14 +257,16 @@ describe("ExamListPage", () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText("No hay exámenes disponibles")).toBeInTheDocument();
+    expect(
+      await screen.findByText("No hay exámenes disponibles"),
+    ).toBeInTheDocument();
   });
 
   // Characterization (UI-MIGRATE-N-W3): each section heading introduces a
   // page-level group of exam cards and must remain present as a heading
   // tied to its card group after the section-title typography migration.
   // Asserts the durable role, not the raw typography class.
-  it("keeps the Exámenes disponibles heading as a section title over its card group", async () => {
+  it("keeps the Exámenes actuales heading as a section title over its card group", async () => {
     getMock.mockResolvedValue([makeExam({})]);
     render(
       <MemoryRouter initialEntries={["/exam/list"]}>
@@ -214,7 +276,7 @@ describe("ExamListPage", () => {
       </MemoryRouter>,
     );
     const heading = await screen.findByRole("heading", {
-      name: "Exámenes disponibles",
+      name: "Exámenes actuales",
     });
     expect(heading.tagName).toBe("H2");
     const section = heading.closest("section");
@@ -284,6 +346,8 @@ describe("ExamListPage", () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText("No se pudo cargar la lista de exámenes")).toBeInTheDocument();
+    expect(
+      await screen.findByText("No se pudo cargar la lista de exámenes"),
+    ).toBeInTheDocument();
   });
 });

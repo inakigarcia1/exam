@@ -14,7 +14,7 @@ import { createCandidateRepo } from "@exam/db/repository/candidateRepo";
 import { createCandidateFieldRepo } from "@exam/db/repository/candidateFieldRepo";
 import { createEnrollmentRepo } from "@exam/db/repository/enrollmentRepo";
 import { executeInTransaction } from "@exam/db/types";
-import type { RequestContext, Role } from "@exam/domain";
+import type { RequestContext, Role, ExamStatus } from "@exam/domain";
 import { loadAssignmentAuthority } from "../authz/assignmentAuthority.js";
 import { getRuntimeConfig } from "../config/runtimeConfig.js";
 import { buildErrorResponse } from "../lib/errorResponse.js";
@@ -40,6 +40,20 @@ function ctxFor(organizationId: string, actorId: string): RequestContext {
   };
 }
 
+const INSCRIPTION_CLOSED_STATUSES = new Set<ExamStatus>([
+  "closed",
+  "canceled",
+  "archived",
+]);
+
+function inscriptionExamUnavailable(
+  exam: { status: ExamStatus } | null,
+): "missing" | "closed" | "ok" {
+  if (!exam) return "missing";
+  if (INSCRIPTION_CLOSED_STATUSES.has(exam.status)) return "closed";
+  return "ok";
+}
+
 const inscriptionRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get(
     "/auth/inscriptions/:token",
@@ -49,6 +63,7 @@ const inscriptionRoutes: FastifyPluginAsync = async (fastify) => {
         response: {
           200: z.object({ title: z.string() }),
           404: ErrorResponseSchema,
+          409: ErrorResponseSchema,
         },
       },
     },
@@ -57,12 +72,18 @@ const inscriptionRoutes: FastifyPluginAsync = async (fastify) => {
       const exam = await createExamRepo(fastify.db).findByInscriptionToken(
         token,
       );
-      if (!exam || exam.status === "canceled" || exam.status === "archived") {
+      const availability = inscriptionExamUnavailable(exam);
+      if (availability === "missing") {
         return reply
           .code(404)
           .send(buildErrorResponse(request.id, "RESOURCE_NOT_FOUND"));
       }
-      return { title: exam.title };
+      if (availability === "closed") {
+        return reply
+          .code(409)
+          .send(buildErrorResponse(request.id, "EXAM_INSCRIPTION_CLOSED"));
+      }
+      return { title: exam!.title };
     },
   );
 
@@ -75,6 +96,7 @@ const inscriptionRoutes: FastifyPluginAsync = async (fastify) => {
         response: {
           200: z.object({ exists: z.boolean() }),
           404: ErrorResponseSchema,
+          409: ErrorResponseSchema,
         },
       },
     },
@@ -84,15 +106,21 @@ const inscriptionRoutes: FastifyPluginAsync = async (fastify) => {
       const exam = await createExamRepo(fastify.db).findByInscriptionToken(
         token,
       );
-      if (!exam || exam.status === "canceled" || exam.status === "archived") {
+      const availability = inscriptionExamUnavailable(exam);
+      if (availability === "missing") {
         return reply
           .code(404)
           .send(buildErrorResponse(request.id, "RESOURCE_NOT_FOUND"));
       }
+      if (availability === "closed") {
+        return reply
+          .code(409)
+          .send(buildErrorResponse(request.id, "EXAM_INSCRIPTION_CLOSED"));
+      }
       const user = await createUserRepo(
         fastify.db,
       ).findByOrganizationAndUsername(
-        ctxFor(exam.organizationId, "inscription"),
+        ctxFor(exam!.organizationId, "inscription"),
         legajo,
       );
       return { exists: user != null };
@@ -110,6 +138,7 @@ const inscriptionRoutes: FastifyPluginAsync = async (fastify) => {
           400: ErrorResponseSchema,
           401: ErrorResponseSchema,
           404: ErrorResponseSchema,
+          409: ErrorResponseSchema,
         },
       },
     },
@@ -119,12 +148,19 @@ const inscriptionRoutes: FastifyPluginAsync = async (fastify) => {
       const exam = await createExamRepo(fastify.db).findByInscriptionToken(
         token,
       );
-      if (!exam || exam.status === "canceled" || exam.status === "archived") {
+      const availability = inscriptionExamUnavailable(exam);
+      if (availability === "missing") {
         return reply
           .code(404)
           .send(buildErrorResponse(request.id, "RESOURCE_NOT_FOUND"));
       }
-      const orgCtx = ctxFor(exam.organizationId, "inscription");
+      if (availability === "closed") {
+        return reply
+          .code(409)
+          .send(buildErrorResponse(request.id, "EXAM_INSCRIPTION_CLOSED"));
+      }
+      const activeExam = exam!;
+      const orgCtx = ctxFor(activeExam.organizationId, "inscription");
       const userRepo = createUserRepo(fastify.db);
       let user = await userRepo.findByOrganizationAndUsername(orgCtx, legajo);
       if (user) {
@@ -164,7 +200,7 @@ const inscriptionRoutes: FastifyPluginAsync = async (fastify) => {
                 {
                   field: "name",
                   code: "REQUIRED",
-                  message: "Ingresá tu nombre",
+                  message: "Ingresá tu nombre completo",
                 },
               ],
             }),
@@ -187,7 +223,7 @@ const inscriptionRoutes: FastifyPluginAsync = async (fastify) => {
             isActive: true,
             email: null,
           });
-          const actorCtx = ctxFor(exam.organizationId, createdUser.id);
+          const actorCtx = ctxFor(activeExam.organizationId, createdUser.id);
           await createUserRoleAssignmentRepo(tx).assignWithinTransaction(
             tx,
             actorCtx,
@@ -206,7 +242,7 @@ const inscriptionRoutes: FastifyPluginAsync = async (fastify) => {
         });
       }
 
-      const actorCtx = ctxFor(exam.organizationId, user.id);
+      const actorCtx = ctxFor(activeExam.organizationId, user.id);
       const candidate = await createCandidateRepo(fastify.db).findByUserId(
         actorCtx,
         user.id,
@@ -217,12 +253,12 @@ const inscriptionRoutes: FastifyPluginAsync = async (fastify) => {
           .send(buildErrorResponse(request.id, "VALIDATION_ERROR"));
       }
       const enrollmentRepo = createEnrollmentRepo(fastify.db);
-      const existing = await enrollmentRepo.listByExam(actorCtx, exam.id);
+      const existing = await enrollmentRepo.listByExam(actorCtx, activeExam.id);
       if (!existing.some((row) => row.candidateId === candidate.id)) {
         const config = getRuntimeConfig();
         await executeInTransaction(fastify.db, async (tx) => {
           const created = await createEnrollmentRepo(tx).create(actorCtx, {
-            examId: exam.id,
+            examId: activeExam.id,
             candidateId: candidate.id,
             status: "assigned",
             attemptCount: 0,
@@ -231,7 +267,7 @@ const inscriptionRoutes: FastifyPluginAsync = async (fastify) => {
             db: tx,
             ctx: actorCtx,
             enrollmentId: created.id,
-            examTitle: exam.title,
+            examTitle: activeExam.title,
             recipientUserId: user.id,
             recipientEmail: user.email,
             publicWebOrigin: config.publicWebOrigin.origin,

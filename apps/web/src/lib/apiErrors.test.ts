@@ -51,26 +51,44 @@ describe("getApiErrorMessage (Web i18n authority)", () => {
     // The Web catalog deliberately does not echo the contracts registry
     // wording for VALIDATION_ERROR; asserting the exact Web copy pins Zone A
     // authority at the copy level, not just the key level.
-    const error = new ApiError(400, "Los datos no son válidos", "VALIDATION_ERROR");
-    expect(getApiErrorMessage(error, t)).toBe("Hay datos incorrectos. Revísalos e inténtalo de nuevo.");
+    const error = new ApiError(
+      400,
+      "Los datos no son válidos",
+      "VALIDATION_ERROR",
+    );
+    expect(getApiErrorMessage(error, t)).toBe(
+      "Hay datos incorrectos. Revísalos e inténtalo de nuevo.",
+    );
   });
 
   it("T2: known reason resolves to specific Web copy with wire params", () => {
-    const error = new ApiError(409, "El estado del recurso cambió", "RESOURCE_CONFLICT", {
-      reason: "COURSE_HAS_QUESTIONS",
-      params: { questionCount: 3 },
-    });
+    const error = new ApiError(
+      409,
+      "El estado del recurso cambió",
+      "RESOURCE_CONFLICT",
+      {
+        reason: "COURSE_HAS_QUESTIONS",
+        params: { questionCount: 3 },
+      },
+    );
     expect(getApiErrorMessage(error, t)).toBe(
       "该课程下仍有 3 道题目，无法删除",
     );
   });
 
   it("T2: COURSE_CODE_EXISTS yields the specific course-code copy", () => {
-    const error = new ApiError(409, "El estado del recurso cambió", "RESOURCE_CONFLICT", {
-      reason: "COURSE_CODE_EXISTS",
-      params: { courseCode: "CS101" },
-    });
-    expect(getApiErrorMessage(error, t)).toBe("Ese código de comisión ya existe");
+    const error = new ApiError(
+      409,
+      "El estado del recurso cambió",
+      "RESOURCE_CONFLICT",
+      {
+        reason: "COURSE_CODE_EXISTS",
+        params: { courseCode: "CS101" },
+      },
+    );
+    expect(getApiErrorMessage(error, t)).toBe(
+      "Ese código de comisión ya existe",
+    );
   });
 
   it("T2/T7: C1 user-management reasons resolve to specific copy instead of Los datos no son válidos", () => {
@@ -79,12 +97,20 @@ describe("getApiErrorMessage (Web i18n authority)", () => {
       ["TARGET_USER_INACTIVE", "Ese usuario está desactivado"],
       ["TARGET_NOT_TEACHER", "Ese usuario no es docente"],
       ["TARGET_NOT_GRADER", "Ese usuario no es corrector"],
-      ["ADMIN_MAINTAINER_EXCLUSION", "La misma cuenta no puede ser administrador y de operaciones"],
+      [
+        "ADMIN_MAINTAINER_EXCLUSION",
+        "La misma cuenta no puede ser administrador y de operaciones",
+      ],
     ];
     for (const [reason, expected] of cases) {
-      const error = new ApiError(400, "Los datos no son válidos", "VALIDATION_ERROR", {
-        reason,
-      });
+      const error = new ApiError(
+        400,
+        "Los datos no son válidos",
+        "VALIDATION_ERROR",
+        {
+          reason,
+        },
+      );
       expect(getApiErrorMessage(error, t)).toBe(expected);
     }
   });
@@ -113,9 +139,14 @@ describe("getApiErrorMessage (Web i18n authority)", () => {
 
   it("T3: known code + unknown reason falls back to code-level Web copy", () => {
     const { t: recordingT, calls } = makeRecordingT();
-    const error = new ApiError(409, "El estado del recurso cambió", "RESOURCE_CONFLICT", {
-      reason: "FUTURE_CONFLICT_REASON",
-    });
+    const error = new ApiError(
+      409,
+      "El estado del recurso cambió",
+      "RESOURCE_CONFLICT",
+      {
+        reason: "FUTURE_CONFLICT_REASON",
+      },
+    );
     expect(getApiErrorMessage(error, recordingT)).toBe(
       "T(errors.codes.resourceConflict)",
     );
@@ -171,19 +202,10 @@ describe("getApiErrorMessage (Web i18n authority)", () => {
     ]);
   });
 
-  it("close/cancel producers of UNRESOLVED_ATTEMPTS_EXIST stay at code-level copy (deliberate unmapped disposition)", () => {
-    // The same flat brownfield shape is emitted by the close/cancel routes
-    // under their own codes, but those (code, reason) pairs are deliberately
-    // unmapped: the code-level copy is the sufficient presentation there.
-    expect(
-      getApiErrorMessage(
-        new ApiError(409, "x", "EXAM_CLOSE_NOT_ALLOWED", {
-          reason: "UNRESOLVED_ATTEMPTS_EXIST",
-          activeAttemptCount: 5,
-        }),
-        t,
-      ),
-    ).toBe("En este estado no se puede cerrar el examen");
+  it("cancel producer of UNRESOLVED_ATTEMPTS_EXIST stays at code-level copy (deliberate unmapped disposition)", () => {
+    // The same flat brownfield shape is emitted by the cancel route under its
+    // own code, but that (code, reason) pair is deliberately unmapped: the
+    // code-level copy is the sufficient presentation there.
     expect(
       getApiErrorMessage(
         new ApiError(409, "x", "EXAM_CANCEL_NOT_ALLOWED", {
@@ -192,7 +214,7 @@ describe("getApiErrorMessage (Web i18n authority)", () => {
         }),
         t,
       ),
-    ).toBe("En este estado no se puede cancelar el examen");
+    ).toBe("No se puede cancelar el examen en este estado");
   });
 
   it("T11/M5 guard: known semantics flow through the injected translator, never contracts copy", () => {

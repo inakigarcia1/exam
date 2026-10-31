@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router";
+import { useParams, useNavigate, useSearchParams, Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useProductDateTime } from "@/contexts/DateTimeContext";
 import { api } from "@/lib/api";
@@ -168,7 +168,17 @@ export function ScoreListPage() {
       id: "candidateName",
       meta: { role: "primary-text" },
       header: t("admin.scoreList.columns.candidateName"),
-      cell: ({ row }) => row.original.candidateName,
+      cell: ({ row }) =>
+        row.original.attemptId ? (
+          <Link
+            to={`/admin/attempts/${row.original.attemptId}`}
+            className="cursor-pointer hover:underline"
+          >
+            {row.original.candidateName}
+          </Link>
+        ) : (
+          row.original.candidateName
+        ),
     },
     {
       id: "candidateInfo",

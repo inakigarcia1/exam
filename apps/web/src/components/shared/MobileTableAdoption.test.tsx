@@ -63,13 +63,8 @@ const adoptedPages = [
  * audit / import logs / the exam result sheet keep their column context).
  */
 const scrollOnlyConsumers = [
-  {
-    file: "../../pages/admin/AttemptDetailPage",
-    archetype: "detail-comparison",
-  },
   { file: "../../pages/admin/AuditLogPage", archetype: "log-diagnostic" },
   { file: "../../pages/admin/ImportLogsPage", archetype: "log-diagnostic" },
-  { file: "../../pages/exam/ResultPage", archetype: "detail-comparison" },
 ] as const;
 
 describe("mobile card representation structural guards (issue 457)", () => {

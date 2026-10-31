@@ -597,6 +597,17 @@ export const ROUTE_PERMISSION_REGISTRY: readonly RoutePermissionRegistryEntry[] 
       migrationStage: 7,
     },
     {
+      method: "GET",
+      path: "/admin/attempts/:attemptId/live",
+      legacyGate: "Admin",
+      permission: Permission.AttemptTimelineView,
+      scope: Scope.Attempt,
+      resolver: "attempt",
+      sensitive: true,
+      proctorAccess: "assignment_scoped",
+      migrationStage: 7,
+    },
+    {
       // P4-1 §G.3 drift closure: the proctor-incident write is already
       // requireCapability-gated at runtime and records a distinct canonical
       // incident observation rather than changing attempt misconduct state.

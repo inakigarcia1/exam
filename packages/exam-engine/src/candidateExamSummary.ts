@@ -10,6 +10,7 @@ export type AvailabilityStatus =
   | "max_attempts_exhausted"
   | "not_started_yet"
   | "expired"
+  | "closed"
   | "unavailable";
 
 /** The primary action a candidate can take on an exam given its current state. */
@@ -57,17 +58,32 @@ export function deriveCandidateExamState(
   const alreadyPassed =
     exam.retakePolicy === "pass_then_stop" && enrollment?.finalPassed === true;
   const blocked = enrollment?.status === "blocked";
+  const examTerminated = exam.status === "closed" || exam.status === "canceled";
   const examOpen = exam.status === "published" || exam.status === "open";
-  // A `closed` exam has run past its window (auto-closed on access). It is
-  // not administratively hidden like `archived`/`draft`, so candidates still
-  // see it as "expired" rather than "unavailable".
-  const examClosed = exam.status === "closed";
   const hasResult = Boolean(
     finalAttempt ||
     (enrollment?.finalAttemptId && enrollment.finalScore != null),
   );
 
-  if ((!examOpen && !examClosed) || blocked) {
+  if (blocked) {
+    return { availabilityStatus: "unavailable", primaryAction: "none" };
+  }
+
+  if (examTerminated) {
+    if (latestAttempt?.status === "submitted") {
+      return {
+        availabilityStatus: "submitted_pending_grade",
+        primaryAction: "view_history",
+      };
+    }
+    return {
+      availabilityStatus: "closed",
+      primaryAction:
+        hasResult && exam.status === "closed" ? "view_result" : "none",
+    };
+  }
+
+  if (!examOpen) {
     return { availabilityStatus: "unavailable", primaryAction: "none" };
   }
 

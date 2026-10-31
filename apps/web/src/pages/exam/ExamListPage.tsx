@@ -42,6 +42,7 @@ function statusBadgeVariant(
     case "graded":
     case "max_attempts_exhausted":
     case "expired":
+    case "closed":
       return "secondary";
     case "submitted_pending_grade":
       return "outline";
@@ -105,6 +106,40 @@ function ExamCard({
   }
 
   const unpublished = exam.status === "draft";
+  const isClosed = exam.availabilityStatus === "closed";
+
+  if (isClosed) {
+    return (
+      <Card data-testid={`exam-card-${exam.examId}`}>
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-2">
+            <CardTitle className="min-w-0 break-words text-lg">
+              {exam.title}
+            </CardTitle>
+            <Badge variant="secondary">
+              {t("availability.closed" as never)}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <p className="type-secondary">{t("examList.meta.closed")}</p>
+          {exam.primaryAction === "view_result" && actionLabel && (
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                onClick={handleAction}
+                data-testid="exam-primary-action"
+                data-action={exam.primaryAction}
+              >
+                {actionIcon}
+                {actionLabel}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card data-testid={`exam-card-${exam.examId}`}>
@@ -231,28 +266,30 @@ export function ExamListPage() {
   if (isLoading) return <LoadingState />;
   if (error) return <ErrorState message={error} onRetry={loadExams} />;
 
-  const canTake = exams.filter(
-    (e) => e.primaryAction === "start" || e.primaryAction === "resume",
+  const HISTORY_STATUSES: CandidateExamSummary["availabilityStatus"][] = [
+    "graded",
+    "max_attempts_exhausted",
+    "expired",
+    "closed",
+    "submitted_pending_grade",
+  ];
+
+  const history = exams.filter((e) =>
+    HISTORY_STATUSES.includes(e.availabilityStatus),
   );
-  const upcoming = exams.filter(
-    (e) => e.availabilityStatus === "not_started_yet",
-  );
-  const others = exams.filter(
-    (e) =>
-      e.primaryAction !== "start" &&
-      e.primaryAction !== "resume" &&
-      e.availabilityStatus !== "not_started_yet",
+  const current = exams.filter(
+    (e) => !HISTORY_STATUSES.includes(e.availabilityStatus),
   );
 
   return (
     <PageContainer role="candidate" className="flex flex-col gap-6">
-      {canTake.length > 0 && (
+      {current.length > 0 && (
         <section className="flex flex-col gap-4">
           <h2 className="type-section-title">
-            {t("examList.sections.canTake")}
+            {t("examList.sections.current")}
           </h2>
           <div className="grid gap-4 sm:grid-cols-2">
-            {canTake.map((exam) => (
+            {current.map((exam) => (
               <ExamCard
                 key={exam.examId}
                 exam={exam}
@@ -264,31 +301,13 @@ export function ExamListPage() {
         </section>
       )}
 
-      {others.length > 0 && (
+      {history.length > 0 && (
         <section className="flex flex-col gap-4">
           <h2 className="type-section-title">
             {t("examList.sections.history")}
           </h2>
           <div className="grid gap-4 sm:grid-cols-2">
-            {others.map((exam) => (
-              <ExamCard
-                key={exam.examId}
-                exam={exam}
-                onStart={handleStart}
-                onResult={handleResult}
-              />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {upcoming.length > 0 && (
-        <section className="flex flex-col gap-4">
-          <h2 className="type-section-title">
-            {t("examList.sections.upcoming")}
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {upcoming.map((exam) => (
+            {history.map((exam) => (
               <ExamCard
                 key={exam.examId}
                 exam={exam}

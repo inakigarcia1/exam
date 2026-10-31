@@ -46,7 +46,7 @@ erDiagram
 
 ## Links de un examen
 
-- Vista previa y rendir: lo abre el docente que creó el examen o un admin mientras está en borrador, sin crear attempt. Publicado, lo abre un alumno inscripto.
+- Vista previa y rendir: lo abre el docente que creó el examen o un admin mientras está en borrador, sin crear attempt. Publicado, lo abre un alumno inscripto. Un alumno inscripto puede ver un examen en borrador en su lista, pero no puede rendirlo ni crear attempt hasta que se publique.
 - Inscripción: un token por cada `ExamCommissionSubject`. Legajo y contraseña. Si el legajo no existe, se crea el alumno. Si ya cursa esa materia en otra comisión, no se lo mueve.
 
 ## Acceso

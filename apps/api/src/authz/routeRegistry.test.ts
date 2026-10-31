@@ -121,12 +121,13 @@ describe("route permission registry — ADR §8 special mappings", () => {
   });
 
   it("proctor monitoring reads stay flagged sensitive", () => {
-    // proctor-incident's sensitive flag is pinned above; these two reads are
+    // proctor-incident's sensitive flag is pinned above; these reads are
     // the remaining sensitive proctor routes. The registry entry is their
     // single pin owner — route-level suites must not re-declare it.
     for (const [method, path] of [
       ["GET", "/admin/exams/:examId/proctor/attempts"],
       ["GET", "/admin/attempts/:attemptId/proctor-events"],
+      ["GET", "/admin/attempts/:attemptId/live"],
     ] as const) {
       expect(find(method, path)?.sensitive, `${method} ${path}`).toBe(true);
     }

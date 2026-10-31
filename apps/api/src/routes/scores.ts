@@ -17,6 +17,9 @@ import type {
 import { NotFoundError, PermissionDeniedError } from "@exam/domain";
 import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
 import { createExamRepo } from "@exam/db/repository/examRepo";
+import { createAttemptGradingEntryRepo } from "@exam/db/repository/attemptGradingEntryRepo";
+import { createCandidateRepo } from "@exam/db/repository/candidateRepo";
+import { createUserRepo } from "@exam/db/repository/userRepo";
 import { Permission } from "@exam/authz";
 import { resolveCandidateResultVisibility } from "@exam/exam-engine";
 import {
@@ -96,6 +99,7 @@ async function findVisibleAttempt(
 function buildQuestionResults(
   attempt: ExamAttempt,
   results: QuestionScoreResult[],
+  commentsByQuestionId: ReadonlyMap<string, string | null> = new Map(),
 ) {
   const questionMap = new Map(
     attempt.questionSnapshot.map((question) => [
@@ -117,18 +121,50 @@ function buildQuestionResults(
       // render authority for candidateAnswer (never JOIN live rows).
       answerMode: question.answerMode ?? null,
       order: question.order,
-      // Computed BEFORE the own-view standardAnswer stripping: the candidate
-      // DTO drops standardAnswer for every question, so the UI needs an
-      // independent "graded manually" signal to keep the manual marker while
-      // stripped objective answers render as hidden instead of mislabeled.
-      // text_response is always manual (its standardAnswer is a reference,
-      // not an auto-grading key); legacy fill_blank without a standardAnswer
-      // is manual too.
+      options: question.options.map((option) => ({
+        id: option.id,
+        content: option.content,
+        contentDocument: option.contentDocument ?? null,
+      })),
+      comment: commentsByQuestionId.get(result.questionId) ?? null,
       manualGraded:
         question.type === "text_response" ||
         (question.type === "fill_blank" && result.standardAnswer == null),
     };
   });
+}
+
+async function loadGradingCommentsByQuestion(
+  fastify: Parameters<FastifyPluginAsync>[0],
+  ctx: RequestContext,
+  attemptId: string,
+): Promise<Map<string, string | null>> {
+  const entries = await createAttemptGradingEntryRepo(fastify.db).findByAttempt(
+    ctx,
+    attemptId,
+  );
+  return new Map(
+    entries.map((entry) => [entry.questionId, entry.comment ?? null]),
+  );
+}
+
+async function loadAttemptCandidateIdentity(
+  fastify: Parameters<FastifyPluginAsync>[0],
+  ctx: RequestContext,
+  attempt: ExamAttempt,
+): Promise<{ candidateName: string; candidateUsername: string }> {
+  const candidate = await createCandidateRepo(fastify.db).findById(
+    ctx,
+    attempt.candidateId,
+  );
+  if (!candidate) {
+    throw new NotFoundError("Candidate not found");
+  }
+  const user = await createUserRepo(fastify.db).findById(ctx, candidate.userId);
+  if (!user) {
+    throw new NotFoundError("Candidate user not found");
+  }
+  return { candidateName: user.name, candidateUsername: user.username };
 }
 
 /**
@@ -398,7 +434,16 @@ const scoreRoutes: FastifyPluginAsync = async (fastify) => {
       // visible). Assert non-null for TS; the runtime invariant holds.
       const gradedAt = attempt.gradedAt as Date;
       const gradingResult = attempt.gradingResult as QuestionScoreResult[];
-      const questionResults = buildQuestionResults(attempt, gradingResult);
+      const comments = await loadGradingCommentsByQuestion(
+        fastify,
+        ctx,
+        attempt.id,
+      );
+      const questionResults = buildQuestionResults(
+        attempt,
+        gradingResult,
+        comments,
+      );
 
       // Minimal projection (union-of-assignments authority): this surface never carries the
       // frozen reference answer — for ANY caller. The CandidateAttemptResultResponseSchema
@@ -496,13 +541,27 @@ const scoreRoutes: FastifyPluginAsync = async (fastify) => {
       // visible). Assert non-null for TS; the runtime invariant holds.
       const gradedAt = attempt.gradedAt as Date;
       const gradingResult = attempt.gradingResult as QuestionScoreResult[];
-      const questionResults = buildQuestionResults(attempt, gradingResult);
+      const comments = await loadGradingCommentsByQuestion(
+        fastify,
+        ctx,
+        attempt.id,
+      );
+      const questionResults = buildQuestionResults(
+        attempt,
+        gradingResult,
+        comments,
+      );
+
+      const { candidateName, candidateUsername } =
+        await loadAttemptCandidateIdentity(fastify, ctx, attempt);
 
       return AttemptResultResponseSchema.parse({
         attemptId: attempt.id,
         status: attempt.status,
         showResultImmediately: true,
         examTitle: exam.title,
+        candidateName,
+        candidateUsername,
         passingScore: exam.passingScore,
         totalScore: attempt.score,
         passed: attempt.passed,

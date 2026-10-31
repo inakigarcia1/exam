@@ -103,6 +103,7 @@ const es = {
     max_attempts_exhausted: "Intentos agotados",
     not_started_yet: "Aún no abre",
     expired: "Vencida",
+    closed: "Cerrado",
     unavailable: "No disponible",
   },
 
@@ -246,6 +247,8 @@ const es = {
         "No se pueden publicar las calificaciones en este estado",
       examCanceledResultsUnavailable:
         "Un examen cancelado no tiene calificación",
+      examInscriptionClosed:
+        "Este examen ya terminó. No es posible inscribirse.",
       attemptSubmitTooEarly:
         "Empezó hace muy poco. Todavía no puedes entregar.",
       attemptLateEntryClosed: "Ya pasó la hora límite para entrar",
@@ -531,12 +534,12 @@ const es = {
       passingScore: "Para aprobar: {{score}}/{{total}}",
       questionCount: "Preguntas: {{count}}",
       attempts: "Intentos: {{used}}/{{max}}",
-      unavailable: "No disponible",
+      unavailable: "Aún no publicado",
+      closed: "Este examen está cerrado",
     },
     sections: {
-      canTake: "Exámenes disponibles",
+      current: "Exámenes actuales",
       history: "Exámenes anteriores",
-      upcoming: "Próximos",
     },
     empty: {
       title: "No hay exámenes disponibles",
@@ -777,7 +780,7 @@ const es = {
     },
     summary: {
       passingScore: "Para aprobar: {{score}}",
-      passed: "Aprobados",
+      passed: "Aprobado",
       failed: "No aprobado",
     },
     detail: {
@@ -823,6 +826,11 @@ const es = {
     actions: {
       backToList: "Volver a los exámenes",
     },
+  },
+
+  questionReview: {
+    questionNumber: "Pregunta {{n}}",
+    teacherComment: "Comentario del docente",
   },
 
   /** Admin list / table page copy. */
@@ -2165,7 +2173,9 @@ const es = {
       confirm: {
         closeTitle: "Cerrar examen",
         closeDescription:
-          "¿Cerrar «{{title}}»? El examen termina y los alumnos no pueden empezar un intento nuevo.",
+          "¿Cerrar «{{title}}»?{{activeWarning}} El examen termina y los alumnos no pueden empezar un intento nuevo.",
+        closeActiveWarning:
+          " Hay {{count}} alumno(s) rindiendo: se entregan automáticamente con lo que tengan guardado.",
         unpublishTitle: "Retirar publicación",
         unpublishDescription:
           "¿Retirar la publicación de «{{title}}»? Vuelve a borrador y se puede volver a editar.",
@@ -2339,6 +2349,21 @@ const es = {
           score: "Puntaje",
           maxScore: "Puntaje máximo",
         },
+      },
+    },
+    attemptLive: {
+      errors: {
+        loadFailed: "No se pudo cargar el monitoreo en vivo",
+      },
+      meta: {
+        deadline: "Hora límite",
+        lastActivity: "Última actividad",
+      },
+      answerLabel: "Respuesta del alumno",
+      submittedNotice: "El alumno ya entregó el examen.",
+      actions: {
+        backToProctor: "Volver a supervisión",
+        viewAttempt: "Ver entrega",
       },
     },
     proctorDashboard: {
@@ -3484,6 +3509,7 @@ const es = {
       examProfileEdit: "Editar plantilla de reglas",
       gradingDetail: "Calificación manual",
       attemptDetail: "Detalle del intento",
+      attemptLive: "Respuestas en vivo",
       recoveryIncident: "Detalle del incidente",
       recoveryAttempt: "Operaciones del intento",
       recoveryExam: "Recuperación del examen",

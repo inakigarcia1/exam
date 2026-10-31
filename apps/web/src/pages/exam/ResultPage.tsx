@@ -1,61 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { LucideIcon } from "lucide-react";
-import {
-  CircleCheck,
-  CircleX,
-  Clock,
-  Hourglass,
-  TriangleAlert,
-} from "lucide-react";
+import { CircleX, Clock, Hourglass, TriangleAlert } from "lucide-react";
 import { AppIcon } from "@/components/shared/AppIcon";
 import { useNavigate, useParams } from "react-router";
-import {
-  resolveRichAnswerDocument,
-  type CandidateAttemptResultResponse,
-} from "@exam/contracts";
-import { ContentRenderer } from "@/components/shared/content/ContentRenderer";
-import { ContentDocumentRenderer } from "@/components/shared/content/ContentDocumentRenderer";
+import type { ContentDocumentV1 } from "@exam/domain";
+import { type CandidateAttemptResultResponse } from "@exam/contracts";
 import { api } from "@/lib/api";
 import { routes } from "@/lib/routes";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { LoadingState } from "@/components/shared/LoadingState";
-import {
-  DataTableCell,
-  DataTableSurface,
-  DataTableHead,
-  DataTableOverflowText,
-} from "@/components/shared/DataTableContract";
-import { DataTableShell } from "@/components/shared/DataTableShell";
-import { TableBody, TableHeader, TableRow } from "@/components/ui/table";
+import { QuestionReviewList } from "@/components/shared/QuestionReviewList";
 import { PageContainer } from "@/components/shared/PageContainer";
-
-/** Formats an answer value into a human-readable string via i18n. */
-function formatAnswer(answer: unknown, t: (key: string) => string): string {
-  if (answer === undefined || answer === null || answer === "")
-    return t("candidateResult.answer.unanswered");
-  if (typeof answer === "string") return answer;
-  if (typeof answer === "boolean")
-    return answer
-      ? t("candidateResult.answer.correct")
-      : t("candidateResult.answer.incorrect");
-  if (Array.isArray(answer)) return answer.join("、");
-  if (typeof answer === "object") {
-    return Object.values(answer as Record<string, unknown>)
-      .map((v) => formatAnswer(v, t))
-      .join("、");
-  }
-  return String(answer);
-}
-
-/** Maps a question type key to its i18n display label. */
-function formatQuestionType(type: string, t: (key: string) => string): string {
-  const key = `candidateResult.questionTypes.${type}`;
-  const label = t(key);
-  return label === key ? type : label;
-}
 
 /** The hidden response variant of the candidate attempt-result contract. */
 type HiddenAttemptResult = Extract<
@@ -155,48 +113,6 @@ function hiddenResultPresentation(
   }
 }
 
-/**
- * Renders an answer value as text, with optional truncation for long fill-blank answers. Rich documents render through the static content renderer.
- *
- * The frozen `answerMode` is the render authority: a payload that merely looks
- * like a ContentDocumentV1 envelope on a non-rich (or corrupt) answer keeps the
- * plain-text formatter.
- */
-function AnswerText({
-  answer,
-  answerMode,
-  truncate,
-  t,
-}: {
-  answer: unknown;
-  answerMode?: string | null;
-  truncate?: boolean;
-  t: (key: string) => string;
-}) {
-  const richDocument = resolveRichAnswerDocument(answer, answerMode);
-  if (richDocument) {
-    return <ContentDocumentRenderer document={richDocument} />;
-  }
-  // A rich-mode value the read authority cannot interpret (corrupt or
-  // unsupported version) shows the integrity notice — it must never fall
-  // through to the plain formatter (§7 read contract). null/undefined keeps
-  // the unanswered em-dash below.
-  if (answerMode === "rich" && answer != null) {
-    return (
-      <span className="text-muted-foreground">
-        {t("content.unsupportedAnswer")}
-      </span>
-    );
-  }
-  const text = formatAnswer(answer, t);
-  if (truncate) {
-    // Fill-blank answers are long prose: single-line truncate with the full
-    // value accessible via the contract presenter (title + keyboard focus).
-    return <DataTableOverflowText mode="truncate" value={text} />;
-  }
-  return <span>{text}</span>;
-}
-
 /** Displays the scored result of a single exam attempt, including per-question breakdown or a pending-status message. */
 export function ResultPage() {
   const { attemptId } = useParams<{ attemptId: string }>();
@@ -270,120 +186,24 @@ export function ResultPage() {
             </CardContent>
           </Card>
 
-          <DataTableShell
-            archetype="detail-comparison"
-            title={t("candidateResult.detail.title")}
-          >
-            <DataTableSurface
-              columns={[
-                { role: "number" },
-                { role: "long-text", key: "question" },
-                { role: "type" },
-                { role: "secondary-text", key: "candidate-answer" },
-                { role: "secondary-text", key: "correct-answer" },
-                { role: "score" },
-              ]}
-            >
-              <TableHeader>
-                <TableRow>
-                  <DataTableHead role="number">
-                    {t("candidateResult.table.questionNumber")}
-                  </DataTableHead>
-                  <DataTableHead role="long-text">
-                    {t("candidateResult.table.questionContent")}
-                  </DataTableHead>
-                  <DataTableHead role="type">
-                    {t("candidateResult.table.questionType")}
-                  </DataTableHead>
-                  <DataTableHead role="secondary-text">
-                    {t("candidateResult.table.yourAnswer")}
-                  </DataTableHead>
-                  <DataTableHead role="secondary-text">
-                    {t("candidateResult.table.correctAnswer")}
-                  </DataTableHead>
-                  <DataTableHead role="score">
-                    {t("candidateResult.table.score")}
-                  </DataTableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {result.questionResults.map((question) => {
-                  // Candidate result contract (EXSEM-017): the DTO never
-                  // carries standardAnswer. Objective questions always render
-                  // the hidden marker; manual questions render the manual
-                  // marker (manualGraded is computed server-side).
-                  const isManual = question.manualGraded === true;
-                  return (
-                    <TableRow key={question.questionId}>
-                      <DataTableCell role="number">
-                        {question.order + 1}
-                      </DataTableCell>
-                      <DataTableCell role="long-text">
-                        <ContentRenderer
-                          content={question.content}
-                          document={question.contentDocument}
-                        />
-                      </DataTableCell>
-                      <DataTableCell role="type">
-                        {formatQuestionType(
-                          question.type,
-                          t as (key: string) => string,
-                        )}
-                      </DataTableCell>
-                      <DataTableCell role="secondary-text">
-                        <div className="flex items-center gap-2">
-                          {question.correct ? (
-                            <AppIcon
-                              icon={CircleCheck}
-                              decorative={false}
-                              label={t("candidateResult.aria.correct")}
-                              size="inline"
-                              className="text-success"
-                            />
-                          ) : (
-                            <AppIcon
-                              icon={CircleX}
-                              decorative={false}
-                              label={t("candidateResult.aria.incorrect")}
-                              size="inline"
-                              className="text-muted-foreground"
-                            />
-                          )}
-                          <AnswerText
-                            answer={question.candidateAnswer}
-                            answerMode={question.answerMode}
-                            truncate={question.type === "fill_blank"}
-                            t={t as (key: string) => string}
-                          />
-                        </div>
-                      </DataTableCell>
-                      <DataTableCell
-                        role="secondary-text"
-                        data-testid={
-                          isManual
-                            ? `result-question-manual-${question.questionId}`
-                            : undefined
-                        }
-                      >
-                        {isManual ? (
-                          <span className="type-secondary">
-                            {t("candidateResult.answer.manual")}
-                          </span>
-                        ) : (
-                          <span className="type-secondary">
-                            {t("candidateResult.answer.hidden")}
-                          </span>
-                        )}
-                      </DataTableCell>
-                      <DataTableCell role="score">
-                        {question.score}/{question.maxScore}
-                      </DataTableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </DataTableSurface>
-          </DataTableShell>
+          <section className="flex flex-col gap-3">
+            <h2 className="type-section-title">
+              {t("candidateResult.detail.title")}
+            </h2>
+            <QuestionReviewList
+              items={result.questionResults.map((question) => ({
+                ...question,
+                contentDocument:
+                  (question.contentDocument as ContentDocumentV1 | null) ??
+                  null,
+                answerMode: question.answerMode ?? null,
+                options: question.options ?? [],
+              }))}
+              showCorrectAnswer={false}
+              mode="result"
+              typeLabels="candidateResult.questionTypes"
+            />
+          </section>
         </>
       ) : (
         hiddenView && (

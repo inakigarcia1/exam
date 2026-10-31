@@ -504,7 +504,7 @@ describe("attempt routes", () => {
       expect(target.primaryAction).toBe("none");
     });
 
-    it("derives expired when after window with no attempts", async () => {
+    it("derives closed when after window with no attempts (reconciled to closed)", async () => {
       const expiredExamId = await createAndEnrollExam({
         title: "Expired Exam",
         maxAttempts: 3,
@@ -512,7 +512,7 @@ describe("attempt routes", () => {
         closeOffsetMs: -86400000,
       });
       const target = await getSummary(expiredExamId);
-      expect(target.availabilityStatus).toBe("expired");
+      expect(target.availabilityStatus).toBe("closed");
       expect(target.primaryAction).toBe("none");
     });
   });

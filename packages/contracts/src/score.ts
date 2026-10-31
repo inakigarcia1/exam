@@ -215,6 +215,12 @@ export const AttemptScoreParamsSchema = z.object({
   attemptId: z.string().uuid(),
 });
 
+const QuestionReviewOptionSchema = z.object({
+  id: z.string(),
+  content: z.string(),
+  contentDocument: ContentDocumentV1Schema.nullable(),
+});
+
 const AttemptQuestionResultSchema = QuestionScoreResultSchema.extend({
   type: z.enum([
     "single_choice",
@@ -234,6 +240,9 @@ const AttemptQuestionResultSchema = QuestionScoreResultSchema.extend({
    */
   answerMode: AnswerModeEnum.nullable().default(null),
   order: z.number().int(),
+  options: z.array(QuestionReviewOptionSchema).default([]),
+  /** Teacher comment from manual grading, when present. */
+  comment: z.string().nullable().default(null),
 });
 
 /**
@@ -332,6 +341,8 @@ const VisibleAttemptResultSchema = z.object({
   status: z.literal("graded"),
   showResultImmediately: z.literal(true),
   examTitle: z.string(),
+  candidateName: z.string(),
+  candidateUsername: z.string(),
   passingScore: z.number(),
   totalScore: z.number(),
   passed: z.boolean(),
@@ -417,6 +428,49 @@ export const ScoreListResponseSchema = z.object({
 
 /** Type for the paginated score list response. */
 export type ScoreListResponse = z.infer<typeof ScoreListResponseSchema>;
+
+// ── Proctor live attempt view ───────────────────────────────────────
+
+const AttemptLiveQuestionSchema = z.object({
+  questionId: z.string().uuid(),
+  order: z.number().int(),
+  type: z.enum([
+    "single_choice",
+    "multiple_choice",
+    "fill_blank",
+    "true_false",
+    "text_response",
+  ]),
+  content: z.string(),
+  contentDocument: ContentDocumentV1Schema.nullable(),
+  answerMode: AnswerModeEnum.nullable().default(null),
+  options: z.array(QuestionReviewOptionSchema).default([]),
+  currentAnswer: z.unknown(),
+});
+
+export const AttemptLiveViewResponseSchema = z.object({
+  attemptId: z.string().uuid(),
+  examId: z.string().uuid(),
+  examTitle: z.string(),
+  candidateName: z.string(),
+  candidateUsername: z.string(),
+  status: z.enum([
+    "in_progress",
+    "disrupted",
+    "submitted",
+    "graded",
+    "not_started",
+    "queued",
+    "voided",
+  ]),
+  deadlineAt: z.string().datetime().nullable(),
+  lastActivityAt: z.string().datetime().nullable(),
+  questions: z.array(AttemptLiveQuestionSchema),
+});
+
+export type AttemptLiveViewResponse = z.infer<
+  typeof AttemptLiveViewResponseSchema
+>;
 
 // ── Export ────────────────────────────────────────────────────────
 

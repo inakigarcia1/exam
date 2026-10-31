@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { randomUUID } from "node:crypto";
+import { eq } from "drizzle-orm";
 import examRoutes from "./exam.js";
 import courseRoutes from "./course.js";
 import questionRoutes from "./question.js";
@@ -71,6 +72,7 @@ describe("exam routes", () => {
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -94,6 +96,7 @@ describe("exam routes", () => {
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -143,6 +146,7 @@ describe("exam routes", () => {
         passingScore: 50,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -170,6 +174,7 @@ describe("exam routes", () => {
         passingScore: 50,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -198,6 +203,35 @@ describe("exam routes", () => {
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
+      },
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    const created = createRes.json();
+
+    const res = await ctx.app.inject({
+      method: "POST",
+      url: `/api/exams/${created.id}/publish`,
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().status).toBe("open");
+  });
+
+  it("POST /api/exams/:id/publish stays published when openAt is in the future", async () => {
+    const createRes = await ctx.app.inject({
+      method: "POST",
+      url: "/api/exams",
+      payload: {
+        title: "Future Open",
+        courseId,
+        durationMinutes: 60,
+        openAt: new Date(Date.now() + 86400000).toISOString(),
+        closeAt: new Date(Date.now() + 172800000).toISOString(),
+        passingScore: 60,
+        totalScore: 100,
+        questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -225,6 +259,7 @@ describe("exam routes", () => {
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -260,6 +295,7 @@ describe("exam routes", () => {
         passingScore: 50,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -286,6 +322,7 @@ describe("exam routes", () => {
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -321,6 +358,7 @@ describe("exam routes", () => {
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -333,7 +371,7 @@ describe("exam routes", () => {
       cookies: { "auth-token": ctx.adminToken },
     });
     expect(res.statusCode).toBe(200);
-    expect(res.json().status).toBe("published");
+    expect(res.json().status).toBe("open");
   });
 
   it("GET /api/exams/:id returns 404 ErrorResponse v0 for missing exam", async () => {
@@ -690,6 +728,7 @@ describe("exam routes", () => {
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -704,7 +743,7 @@ describe("exam routes", () => {
     const res = await ctx.app.inject({
       method: "PATCH",
       url: `/api/exams/${created.id}`,
-      payload: { title: "Should Fail" },
+      payload: { durationMinutes: 90 },
       cookies: { "auth-token": ctx.adminToken },
     });
     expect(res.statusCode).toBe(409);
@@ -788,6 +827,7 @@ describe("exam close (ADR-005 Slice 1)", () => {
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -851,6 +891,7 @@ describe("exam close (ADR-005 Slice 1)", () => {
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -892,6 +933,7 @@ describe("exam close (ADR-005 Slice 1)", () => {
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -960,6 +1002,7 @@ describe("exam close (ADR-005 Slice 1)", () => {
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -988,6 +1031,7 @@ describe("exam close (ADR-005 Slice 1)", () => {
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -1008,14 +1052,13 @@ describe("exam close (ADR-005 Slice 1)", () => {
     expect(res.json().error.code).toBe("EXAM_CLOSE_NOT_ALLOWED");
   });
 
-  it("rejects close when an unresolved attempt exists -> 409 UNRESOLVED_ATTEMPTS_EXIST", async () => {
-    const examId = await createOpenExam("Close Unresolved");
+  it("closes and auto-submits when an in-progress attempt exists", async () => {
+    const examId = await createOpenExam("Close Auto Submit");
 
-    // Enroll + START (not submit) an attempt -> it stays in_progress.
     const candidate = await createCandidateViaApi(
       ctx.app,
       ctx.adminToken,
-      `cand-close-unres-${uniquePrefix()}`,
+      `cand-close-auto-${uniquePrefix()}`,
       ctx.org.id,
     );
     const enrollRes = await ctx.app.inject({
@@ -1031,6 +1074,29 @@ describe("exam close (ADR-005 Slice 1)", () => {
       cookies: { "auth-token": candidate.token },
     });
     expect(startRes.statusCode).toBe(201);
+    const attemptId = startRes.json().id as string;
+
+    const saveRes = await ctx.app.inject({
+      method: "POST",
+      url: `/api/attempts/${attemptId}/answers/${questionId}`,
+      payload: {
+        attemptId,
+        questionId,
+        answer: true,
+        clientSeq: 1,
+        clientSavedAt: new Date().toISOString(),
+        baseVersion: 0,
+      },
+      cookies: { "auth-token": candidate.token },
+    });
+    expect(saveRes.statusCode).toBe(200);
+
+    const detailBefore = await ctx.app.inject({
+      method: "GET",
+      url: `/api/exams/${examId}`,
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    expect(detailBefore.json().stats.activeAttemptCount).toBe(1);
 
     const res = await ctx.app.inject({
       method: "POST",
@@ -1038,11 +1104,126 @@ describe("exam close (ADR-005 Slice 1)", () => {
       payload: {},
       cookies: { "auth-token": ctx.adminToken },
     });
-    expect(res.statusCode).toBe(409);
-    const body = res.json();
-    expect(body.error.code).toBe("EXAM_CLOSE_NOT_ALLOWED");
-    expect(body.error.details?.reason).toBe("UNRESOLVED_ATTEMPTS_EXIST");
-    expect(body.error.details?.activeAttemptCount).toBeGreaterThanOrEqual(1);
+    expect(res.statusCode).toBe(200);
+
+    const detailAfter = await ctx.app.inject({
+      method: "GET",
+      url: `/api/exams/${examId}`,
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    expect(detailAfter.json().stats.activeAttemptCount).toBe(0);
+    expect(res.json().status).toBe("closed");
+
+    const [attempt] = await ctx.db
+      .select({
+        status: schema.examAttempts.status,
+        submissionReason: schema.examAttempts.submissionReason,
+        submittedAnswers: schema.examAttempts.submittedAnswers,
+      })
+      .from(schema.examAttempts)
+      .where(eq(schema.examAttempts.id, attemptId));
+    expect(["submitted", "graded"]).toContain(attempt?.status);
+    expect(attempt?.submissionReason).toBe("deadline");
+    expect(JSON.stringify(attempt?.submittedAnswers)).toContain(questionId);
+  });
+
+  it("closes while a submitted attempt still waits for manual grading", async () => {
+    const textQuestionId = randomUUID();
+    await ctx.db.insert(schema.questions).values({
+      id: textQuestionId,
+      organizationId: ctx.org.id,
+      type: "text_response",
+      content: "Close pending manual essay",
+      options: [],
+      standardAnswer: null,
+      attachments: [],
+      difficulty: 3,
+      tags: [],
+      gradingRule: {
+        multiSelectScoring: "all_correct_full",
+        fillBlankMatchMode: "exact",
+      },
+      rubric: "Criterio",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    const createRes = await ctx.app.inject({
+      method: "POST",
+      url: "/api/exams",
+      payload: {
+        title: "Close Pending Manual",
+        courseId,
+        durationMinutes: 60,
+        openAt: new Date(Date.now() - 60_000).toISOString(),
+        closeAt: new Date(Date.now() + 86_400_000).toISOString(),
+        passingScore: 5,
+        totalScore: 10,
+        questionIds: [textQuestionId],
+        questionScores: { [textQuestionId]: 10 },
+      },
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    expect(createRes.statusCode).toBe(201);
+    const examId = createRes.json().id as string;
+    const pubRes = await ctx.app.inject({
+      method: "POST",
+      url: `/api/exams/${examId}/publish`,
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    expect(pubRes.json().status).toBe("open");
+
+    const candidate = await createCandidateViaApi(
+      ctx.app,
+      ctx.adminToken,
+      `cand-close-manual-${uniquePrefix()}`,
+      ctx.org.id,
+    );
+    await ctx.app.inject({
+      method: "POST",
+      url: `/api/exams/${examId}/enrollments`,
+      payload: { candidateIds: [candidate.candidateProfileId] },
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    const startRes = await ctx.app.inject({
+      method: "POST",
+      url: `/api/attempts/${examId}/start`,
+      cookies: { "auth-token": candidate.token },
+    });
+    expect(startRes.statusCode).toBe(201);
+    const attemptId = startRes.json().id as string;
+    await ctx.app.inject({
+      method: "POST",
+      url: `/api/attempts/${attemptId}/answers/${textQuestionId}`,
+      payload: {
+        attemptId,
+        questionId: textQuestionId,
+        answer: "respuesta abierta",
+        clientSeq: 1,
+        clientSavedAt: new Date().toISOString(),
+        baseVersion: 0,
+      },
+      cookies: { "auth-token": candidate.token },
+    });
+    const submitRes = await ctx.app.inject({
+      method: "POST",
+      url: `/api/attempts/${attemptId}/submit`,
+      cookies: { "auth-token": candidate.token },
+    });
+    expect(submitRes.statusCode).toBe(200);
+    const [before] = await ctx.db
+      .select({ status: schema.examAttempts.status })
+      .from(schema.examAttempts)
+      .where(eq(schema.examAttempts.id, attemptId));
+    expect(before?.status).toBe("submitted");
+
+    const res = await ctx.app.inject({
+      method: "POST",
+      url: `/api/exams/${examId}/close`,
+      payload: {},
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().status).toBe("closed");
   });
 
   it("closes after the candidate submits the attempt (no unresolved)", async () => {
@@ -1140,6 +1321,7 @@ describe("exam unpublish / extend / PATCH-clarify (ADR-005 Slice 2)", () => {
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -1168,6 +1350,7 @@ describe("exam unpublish / extend / PATCH-clarify (ADR-005 Slice 2)", () => {
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -1207,6 +1390,7 @@ describe("exam unpublish / extend / PATCH-clarify (ADR-005 Slice 2)", () => {
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -1289,12 +1473,12 @@ describe("exam unpublish / extend / PATCH-clarify (ADR-005 Slice 2)", () => {
     expect(res.statusCode).toBe(200);
   });
 
-  it("PATCH published rejects non-schedule field (title) -> 409 EXAM_UPDATE_NOT_ALLOWED", async () => {
+  it("PATCH published rejects non-schedule field (durationMinutes) -> 409 EXAM_UPDATE_NOT_ALLOWED", async () => {
     const examId = await createPublishedExam("PATCH Forbidden");
     const res = await ctx.app.inject({
       method: "PATCH",
       url: `/api/exams/${examId}`,
-      payload: { title: "Changed Title" },
+      payload: { durationMinutes: 90 },
       cookies: { "auth-token": ctx.adminToken },
     });
     expect(res.statusCode).toBe(409);
@@ -1314,6 +1498,7 @@ describe("exam unpublish / extend / PATCH-clarify (ADR-005 Slice 2)", () => {
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -1343,15 +1528,26 @@ describe("exam unpublish / extend / PATCH-clarify (ADR-005 Slice 2)", () => {
     expect(res.json().error.code).toBe("EXAM_UPDATE_NOT_ALLOWED");
   });
 
-  // F11d (EXSEM-003 freeze): title and every non-schedule authoring field stay
-  // immutable on published/open exams through the actual write API — only
-  // draft authoring may change them.
-  it("PATCH rejects a title edit on a reconciled-open exam -> 409", async () => {
+  // A title-only rename is allowed on any non-canceled, non-archived exam;
+  // every other non-schedule authoring field stays frozen after publish.
+  it("PATCH allows a title-only rename on a reconciled-open exam -> 200", async () => {
     const examId = await createOpenExam("PATCH Open Title");
     const res = await ctx.app.inject({
       method: "PATCH",
       url: `/api/exams/${examId}`,
       payload: { title: "Open Renamed" },
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().title).toBe("Open Renamed");
+  });
+
+  it("PATCH rejects a non-schedule edit on a reconciled-open exam -> 409", async () => {
+    const examId = await createOpenExam("PATCH Open Duration");
+    const res = await ctx.app.inject({
+      method: "PATCH",
+      url: `/api/exams/${examId}`,
+      payload: { durationMinutes: 90 },
       cookies: { "auth-token": ctx.adminToken },
     });
     expect(res.statusCode).toBe(409);
@@ -1403,6 +1599,7 @@ describe("exam unpublish / extend / PATCH-clarify (ADR-005 Slice 2)", () => {
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -1432,6 +1629,7 @@ describe("exam unpublish / extend / PATCH-clarify (ADR-005 Slice 2)", () => {
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -1554,6 +1752,7 @@ describe("exam cancel (ADR-005 Slice 4)", () => {
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -1592,6 +1791,7 @@ describe("exam cancel (ADR-005 Slice 4)", () => {
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -1625,6 +1825,7 @@ describe("exam cancel (ADR-005 Slice 4)", () => {
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -1679,6 +1880,7 @@ describe("exam cancel (ADR-005 Slice 4)", () => {
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -1774,6 +1976,7 @@ describe("exam cancel (ADR-005 Slice 4)", () => {
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -1910,6 +2113,7 @@ describe("exam cancel (ADR-005 Slice 4)", () => {
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -2197,6 +2401,7 @@ describe("exam passing-score invariant (EXAM-SCORE-INV-1)", () => {
         passingScore: 0,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       }),
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -2209,7 +2414,7 @@ describe("exam passing-score invariant (EXAM-SCORE-INV-1)", () => {
       cookies: { "auth-token": ctx.adminToken },
     });
     expect(pubRes.statusCode).toBe(200);
-    expect(pubRes.json().status).toBe("published");
+    expect(pubRes.json().status).toBe("open");
     expect(pubRes.json().passingScore).toBe(0);
   });
 });
@@ -2232,6 +2437,7 @@ describe("exam interruption policy authoring (ADR-013)", () => {
       passingScore: 0,
       totalScore: 100,
       questionIds: [questionId],
+      questionScores: { [questionId]: 100 },
       ...overrides,
     };
   }

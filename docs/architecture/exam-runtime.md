@@ -190,7 +190,7 @@ archived   → []  (terminal)
 | ---- | --------- | ---------- | ---- |
 | `publishExam` | draft → published | ≥1 题；passingScore>0；duration>0；timingMode=timed_window；questionSelectionMode=manual；retakePolicy 合法；openAt<closeAt；totalScore 匹配题分和；passingScore≤totalScore | 同时构建 QuestionSnapshot |
 | `openExam` | published → open | （无额外 guard，仅 transition 校验） | 手动开放 |
-| `closeExam` | open → closed | | **幂等**：已 closed 原样返回（不抛错）；未解决 attempt 的 guard 在 route 层 |
+| `closeExam` | open → closed | | **幂等**：已 closed 原样返回（不抛错）；route 在设置 `closeAt = now` 后对仍 active 的 attempt 走 `autoSubmitAndGrade`，不再因 `UNRESOLVED_ATTEMPTS_EXIST` 拒绝关闭 |
 | `cancelExam` | published\|open → canceled | | **不幂等**：canceled→canceled 被拒；不 void/force-submit attempt（guard 在 route 层，错误码 `EXAM_CANCEL_NOT_ALLOWED`/`UNRESOLVED_ATTEMPTS_EXIST`） |
 | `unpublishExam` | published → draft | route 先 reconcile-by-now；published 但已过 openAt（逻辑上已 open）被拒（`EXAM_UNPUBLISH_NOT_ALLOWED`） | 永不接受 open→draft |
 | `extendExam` | open → open（仅改 closeAt） | extendMinutes 为正整数；新 closeAt = 旧 closeAt + extendMinutes（保留剩余窗口语义） | route 先 reconcile；已过 closeAt 的 open 被拒（`EXAM_EXTEND_NOT_ALLOWED`），不可复活 |
@@ -329,6 +329,8 @@ P3-L0-2E 收口后，`grading` 态不再是人工评分的等待态。含 text_r
 Deadline 触发：
   in_progress/disrupted → submitted (submissionReason='deadline')
   （deadline reconcile 走同一 submit 冻结屏障 + 工作集物化；之后按纯客观 / 纯 text / 混合走对应路径）
+  （管理员关闭考试：`closeExam` 设 `closeAt = now`，提交后 route 对 active attempt 逐个调用
+    `autoSubmitAndGrade`，即同一 deadline 路径；scanner 为兜底）
 ```
 
 > **`grading` 态已从当前词汇移除（#542）：** 旧版生产代码曾将 `status='grading'` 作为 `submitted → graded` 之间的持久中间态；J2 收敛移除了该写入。当前终局批改在同一锁定事务内 `submitted → graded`；批改流水线的持久状态由 `gradingStatus`（P2D-J2）承载。`exam_attempts_status_check`（migration 0043）在 DB 层拒绝该值；历史残留行需操作员显式处置。

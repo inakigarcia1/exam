@@ -116,6 +116,10 @@ export const dynamicRouteTitleKeys: RouteTitleRule[] = [
     titleKey: "pageMeta.dynamic.attemptDetail",
   },
   {
+    pattern: /^\/admin\/attempts\/[^/]+\/live$/,
+    titleKey: "pageMeta.dynamic.attemptLive",
+  },
+  {
     pattern: /^\/exam\/[^/]+\/start$/,
     titleKey: "pageMeta.dynamic.examPrepare",
   },

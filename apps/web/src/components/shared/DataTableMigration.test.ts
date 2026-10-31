@@ -6,7 +6,6 @@ import { describe, expect, it } from "vitest";
 const here = dirname(fileURLToPath(import.meta.url));
 
 const tableConsumers = [
-  "../../pages/admin/AttemptDetailPage.tsx",
   "../../pages/admin/AuditLogPage.tsx",
   "../../pages/admin/CandidateFieldsPage.tsx",
   "../../pages/admin/CandidatesPage.tsx",
@@ -23,7 +22,6 @@ const tableConsumers = [
   "../../pages/admin/ResultsOverviewPage.tsx",
   "../../pages/admin/ScoreListPage.tsx",
   "../../pages/admin/UsersPage.tsx",
-  "../../pages/exam/ResultPage.tsx",
 ] as const;
 
 describe("data table column-contract migration", () => {

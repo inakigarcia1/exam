@@ -42,6 +42,7 @@ export const routes = {
     permissions: "/admin/permissions",
     importLogs: "/admin/import-logs",
     attemptDetail: (id: string) => `/admin/attempts/${id}`,
+    attemptLive: (id: string) => `/admin/attempts/${id}/live`,
     recovery: "/admin/recovery",
     recoveryIncident: (id: string) => `/admin/recovery/incidents/${id}`,
     recoveryAttempt: (id: string) => `/admin/recovery/attempts/${id}`,

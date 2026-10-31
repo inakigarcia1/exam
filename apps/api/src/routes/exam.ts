@@ -74,6 +74,7 @@ import {
 import { ensureTargetOrg, getRequestContext } from "./helpers.js";
 import { resolveTeacherCourseScope } from "./teacherScope.js";
 import { reconcileExamForMutation } from "./reconciliation.js";
+import { autoSubmitAndGrade } from "../plugins/deadlineScanner.js";
 import { executeAdminExamTransition } from "./examTransitionExecutor.js";
 import {
   recordAtomicHttpAudit,
@@ -404,11 +405,28 @@ const examParticipantSchema = z.object({
 const examDetailResponseSchema = ExamSchema.extend({
   stats: z.object({
     participantCount: z.number().int().nonnegative(),
+    activeAttemptCount: z.number().int().nonnegative(),
     completedCount: z.number().int().nonnegative(),
     passedCount: z.number().int().nonnegative(),
   }),
   participants: z.array(examParticipantSchema),
 });
+
+/** Attempts of the exam a candidate is still answering (the ones a close auto-submits). */
+async function listActiveAttemptIds(
+  db: Database,
+  ctx: RequestContext,
+  examId: string,
+): Promise<string[]> {
+  const rows = await createAttemptRepo(db).listByExam(ctx, examId);
+  return rows
+    .filter(
+      (row) =>
+        row.attempt.status === "in_progress" ||
+        row.attempt.status === "disrupted",
+    )
+    .map((row) => row.attempt.id);
+}
 
 /** Zod schema for a single enrollment item with candidate display name and attempt/score details. */
 const enrollmentItemSchema = z.object({
@@ -555,10 +573,16 @@ const examRoutes: FastifyPluginAsync = async (fastify) => {
           .send(buildErrorResponse(request.id, "RESOURCE_NOT_FOUND"));
       }
       const participants = await getExamParticipants(fastify.db, ctx, exam.id);
+      const activeAttemptIds = await listActiveAttemptIds(
+        fastify.db,
+        ctx,
+        exam.id,
+      );
       return {
         ...toExamResponse(exam),
         stats: {
           participantCount: participants.length,
+          activeAttemptCount: activeAttemptIds.length,
           completedCount: participants.filter(
             (participant) => participant.status === "completed",
           ).length,
@@ -1471,17 +1495,24 @@ const examRoutes: FastifyPluginAsync = async (fastify) => {
 
       try {
         const updated = await executeInTransaction(fastify.db, async (tx) => {
-          const published = await publishExam(
-            createExamRepoAdapter(createExamRepo(tx), ctx),
-            id,
-            questions,
-          );
+          const repo = createExamRepo(tx);
+          const locked = await repo.findByIdForUpdate(ctx, id);
+          if (!locked) {
+            throw new ValidationError("Exam not found");
+          }
+          const adapter = createExamRepoAdapter(repo, ctx);
+          await publishExam(adapter, id, questions);
           await recordAtomicHttpAudit(tx, request, ctx, {
             action: "exam.publish",
             targetType: "exam",
             targetId: id,
           });
-          return published;
+          const reconciled = await reconcileExamForMutation(
+            adapter,
+            id,
+            fastify.now(),
+          );
+          return (reconciled?.exam ?? locked) as Exam;
         });
         return toExamResponse(updated);
       } catch (err) {
@@ -1529,44 +1560,25 @@ const examRoutes: FastifyPluginAsync = async (fastify) => {
      * so we detect the no-op case (reconciled status already `closed`) and
      * suppress the duplicate audit.
      *
-     * Close is rejected with EXAM_CLOSE_NOT_ALLOWED / details.reason =
-     * UNRESOLVED_ATTEMPTS_EXIST when active/in-flight attempts remain, so
-     * scores/export stay semantically valid after.
+     * Close is allowed while active attempts remain; after the exam closes,
+     * active attempts are auto-submitted with saved answers (deadline path).
      */
     async (request: FastifyRequest, reply: FastifyReply) => {
       const ctx = ensureTargetOrg(getRequestContext(request));
       const { id } = request.params as { id: string };
       const reason = ((request.body as Record<string, unknown>)?.reason ??
         undefined) as string | undefined;
+      const now = fastify.now();
 
       const result = await executeAdminExamTransition(
         fastify.db,
         ctx,
         id,
-        fastify.now(),
-        async ({ tx, repo, exam }) => {
-          const attemptRepo = createAttemptRepo(tx);
-
-          // Unresolved-attempts guard: reject if active/in-flight attempts
-          // remain (review decision #3).
-          const unresolvedCount = await attemptRepo.countUnresolvedByExam(
-            ctx,
-            id,
-          );
-          if (unresolvedCount > 0) {
-            throw new ExamCloseNotAllowedError({
-              reason: "UNRESOLVED_ATTEMPTS_EXIST",
-              activeAttemptCount: unresolvedCount,
-            });
-          }
-
-          // Assert + mutate via the engine. closeExam is idempotent for
-          // `closed` (returns as-is). A non-open, non-closed reconciled
-          // status raises InvalidStateTransitionError; surfaced uniformly as
-          // EXAM_CLOSE_NOT_ALLOWED (no UNRESOLVED reason) per ADR-005 §3.3.
+        now,
+        async ({ repo, exam }) => {
           let closed: Exam;
           try {
-            closed = await closeExam(repo, id);
+            closed = await closeExam(repo, id, now);
           } catch (err) {
             if (err instanceof InvalidStateTransitionError) {
               throw new ExamCloseNotAllowedError();
@@ -1576,7 +1588,6 @@ const examRoutes: FastifyPluginAsync = async (fastify) => {
           return {
             closed,
             fromStatus: exam.status,
-            unresolvedCount,
           };
         },
         request,
@@ -1592,7 +1603,6 @@ const examRoutes: FastifyPluginAsync = async (fastify) => {
                     reason,
                     fromStatus: data.fromStatus,
                     toStatus: "closed",
-                    activeAttemptCount: data.unresolvedCount,
                   },
                 },
               ],
@@ -1605,6 +1615,10 @@ const examRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       const { closed } = result.data;
+
+      for (const attemptId of await listActiveAttemptIds(fastify.db, ctx, id)) {
+        await autoSubmitAndGrade(fastify.db, ctx, attemptId, now);
+      }
 
       return toExamResponse(closed);
     },

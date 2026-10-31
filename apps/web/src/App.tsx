@@ -46,6 +46,7 @@ import { ResultPage } from "@/pages/exam/ResultPage";
 import { ScoreListPage } from "@/pages/admin/ScoreListPage";
 import { ResultsOverviewPage } from "@/pages/admin/ResultsOverviewPage";
 import { AttemptDetailPage } from "@/pages/admin/AttemptDetailPage";
+import { AttemptLiveViewPage } from "@/pages/admin/AttemptLiveViewPage";
 import { ProctorDashboardPage } from "@/pages/admin/ProctorDashboardPage";
 import { ExamMonitoringPage } from "@/pages/admin/ExamMonitoringPage";
 import { ProctorWorkspacePage } from "@/pages/admin/ProctorWorkspacePage";
@@ -129,6 +130,10 @@ export function AppRoutes() {
         <Route path="audit-logs" element={<AuditLogPage />} />
         <Route path="permissions" element={<PermissionRegistryPage />} />
         <Route path="import-logs" element={<ImportLogsPage />} />
+        <Route
+          path="attempts/:attemptId/live"
+          element={<AttemptLiveViewPage />}
+        />
         <Route path="attempts/:id" element={<AttemptDetailPage />} />
         <Route path="recovery" element={<RecoveryQueuePage />} />
         <Route

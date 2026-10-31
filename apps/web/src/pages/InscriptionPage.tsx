@@ -76,7 +76,7 @@ export function InscriptionPage() {
   async function join() {
     if (step === "register") {
       if (!name.trim()) {
-        setFieldError("Ingresá tu nombre");
+        setFieldError("Ingresá tu nombre completo");
         return;
       }
       if (password.length < 8) {
@@ -174,7 +174,7 @@ export function InscriptionPage() {
                   El legajo {legajo} no existe en el sistema. Creá tu cuenta
                   para inscribirte al examen.
                 </p>
-                <Label htmlFor="student-name">Nombre</Label>
+                <Label htmlFor="student-name">Nombre completo</Label>
                 <Input
                   id="student-name"
                   value={name}
@@ -186,7 +186,6 @@ export function InscriptionPage() {
                   id="password"
                   type="password"
                   value={password}
-                  autoFocus
                   onChange={(event) => setPassword(event.target.value)}
                 />
                 <Label htmlFor="confirm">Confirmá la contraseña</Label>

@@ -244,20 +244,12 @@ mutate** rule, all record audit. Error envelope is the existing
 ### 3.3 `POST /api/exams/:id/close` — **new** (Slice 1; unblocks P2B-J1)
 
 - Body: `{ "reason"?: string }`.
-- Allowed: `open -> closed` **only when no unfinalized attempts exist** for the
-  exam (i.e. no `in_progress | disrupted | submitted | grading` rows). This is
-  the **close active-attempt policy (MVP)**: admin must let active attempts be
-  resolved first (candidate submits, deadline scanner auto-submits, or a future
-  P2C-J2 force-submit).
+- Allowed: `open -> closed` when the admin confirms close. The engine sets `closeAt` to `now` when needed and the route auto-submits active attempts via the deadline submit path. Attempts awaiting manual grading do not block close.
 - Reject:
   - `draft|published|canceled|archived`, or reconciled-not-`open` →
     `EXAM_CLOSE_NOT_ALLOWED`.
-  - `open` with unfinalized attempts remaining → `EXAM_CLOSE_NOT_ALLOWED` with
-    `details.reason = "UNRESOLVED_ATTEMPTS_EXIST"` and
-    `details.activeAttemptCount`.
-- Idempotency: **200 + current exam, no duplicate audit** when already `closed`
-  AND no unfinalized attempts.
-- **Does NOT force-submit active attempts** in this baseline.
+- Idempotency: **200 + current exam, no duplicate audit** when already `closed`.
+- **Auto-submits** `in_progress` / `disrupted` attempts after close (saved answers, same path as deadline reconciliation).
 - Audit: `exam.close`, metadata `{reason?, fromStatus:"open", toStatus:"closed"}`.
 - **Expected effect**: once `closed` and no active attempts remain, `examEnded`
   is true → scores/export return 200 (replaces the `endingSoonSec` workaround).
@@ -447,7 +439,7 @@ type SubmitSource = "candidate" | "deadline_scanner" | "proctor" | "system";
 | Code | HTTP | Where |
 | --- | --- | --- |
 | `EXAM_UNPUBLISH_NOT_ALLOWED` | 409 | unpublish |
-| `EXAM_CLOSE_NOT_ALLOWED` | 409 | close (incl. `details.reason = "UNRESOLVED_ATTEMPTS_EXIST"`) |
+| `EXAM_CLOSE_NOT_ALLOWED` | 409 | close from a non-`open`, non-`closed` state |
 | `EXAM_EXTEND_NOT_ALLOWED` | 409 | extend |
 | `EXAM_UPDATE_NOT_ALLOWED` | 409 | PATCH non-editable state / non-schedule field on published |
 | `ATTEMPT_LATE_ENTRY_CLOSED` | 409 | new startAttempt past cutoff |
@@ -493,7 +485,7 @@ and testable; later slices depend on earlier ones.
 ### Slice 1 — Close baseline (unblocks P2B-J1)
 
 - `POST /api/exams/:id/close` with the lock-reconcile-assert-mutate rule.
-- Close active-attempt guard (`UNRESOLVED_ATTEMPTS_EXIST` rejection).
+- Close auto-submits active attempts through the deadline path (no active-attempt guard).
 - Scores/export guard extended to also require no unfinalized attempts.
 - Minimal UI: `exam-detail-close-btn`.
 - **Replaces the `endingSoonSec` workaround; admin full-loop E2E can resume
@@ -617,28 +609,19 @@ all decisions.
    `canceled` enum value is implemented in Phase 2 (Slice 4).
 
 2. **`close` idempotency**
-   `POST /api/exams/:id/close` is idempotent. If the exam is already `closed`
-   and no unfinalized attempts remain, return `200` with the current exam and
-   do NOT write a duplicate `exam.close` audit event. Do not return `409` for
-   this already-closed settled case. *(Implemented in Slice 1.)*
+   `POST /api/exams/:id/close` is idempotent. If the exam is already `closed`,
+   return `200` with the current exam and do NOT write a duplicate
+   `exam.close` audit event. Do not return `409` for the already-closed case.
 
 3. **Close active-attempt policy**
-   Keep the MVP policy: `close` rejects while unfinalized attempts exist. An
-   `open` exam with `in_progress | disrupted | submitted | grading` attempts
-   MUST return `409 EXAM_CLOSE_NOT_ALLOWED` with:
-
-   ```json
-   {
-     "details": {
-       "reason": "UNRESOLVED_ATTEMPTS_EXIST",
-       "activeAttemptCount": "<number>"
-     }
-   }
-   ```
-
-   `close` MUST NOT force-submit attempts. Attempt resolution belongs to
-   candidate submit, the deadline scanner, or a future P2C force-submit.
-   *(Implemented in Slice 1.)*
+   Active attempts never block close. Under the exam lock, `closeExam` moves
+   the exam to `closed` and sets `closeAt = now` when it was null or later.
+   After that transaction commits, the route auto-submits every
+   `in_progress | disrupted` attempt through the deadline path
+   (`autoSubmitAndGrade`, each in its own transaction with the
+   Enrollment → Attempt → Exam lock order) using the saved answers;
+   the deadline scanner is the fallback. Submitted attempts waiting for
+   manual grading do not block close either.
 
 4. **Extend body shape**
    Use relative `extendMinutes`, not absolute `closeAt`. The server computes

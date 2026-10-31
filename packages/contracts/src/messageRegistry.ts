@@ -47,6 +47,7 @@ export const errorMessages = {
     "En este estado no se pueden publicar las calificaciones",
   EXAM_CANCELED_RESULTS_UNAVAILABLE:
     "Un examen cancelado no tiene calificaciones",
+  EXAM_INSCRIPTION_CLOSED: "Este examen ya terminó. No es posible inscribirse.",
   ATTEMPT_SUBMIT_TOO_EARLY: "Todavía no se puede entregar",
   ATTEMPT_LATE_ENTRY_CLOSED: "Ya pasó el horario límite para entrar",
   ATTEMPT_START_SUBMIT_INFEASIBLE:

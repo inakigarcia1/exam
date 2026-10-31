@@ -169,6 +169,10 @@ describe("J4-I1B Proctor assignment enforcement (assignment_scoped)", () => {
       name: "GET /admin/attempts/:attemptId/timeline",
       build: () => `/api/admin/attempts/${attemptId}/timeline`,
     },
+    {
+      name: "GET /admin/attempts/:attemptId/live",
+      build: () => `/api/admin/attempts/${attemptId}/live`,
+    },
   ];
 
   it.each(monitoringRoutes)(
@@ -207,6 +211,72 @@ describe("J4-I1B Proctor assignment enforcement (assignment_scoped)", () => {
       expect(res.statusCode, build()).toBe(200);
     },
   );
+
+  it("GET /admin/attempts/:attemptId/live returns the saved draft answer and never grading truth", async () => {
+    const questionId = randomUUID();
+    await ctx.db
+      .update(schema.examAttempts)
+      .set({
+        questionSnapshot: [
+          {
+            originalQuestionId: questionId,
+            type: "single_choice",
+            content: "Live view question",
+            contentDocument: null,
+            answerMode: null,
+            attachments: [],
+            options: [
+              { id: "opt-a", content: "Opción A" },
+              { id: "opt-b", content: "Opción B" },
+            ],
+            standardAnswer: "LIVE-SECRET-STANDARD",
+            score: 100,
+            gradingRule: {
+              multiSelectScoring: "all_correct_full",
+              fillBlankMatchMode: "exact",
+            },
+            order: 0,
+            rubric: "LIVE-SECRET-RUBRIC",
+          },
+        ],
+        answers: [
+          {
+            questionId,
+            answer: "opt-b",
+            savedAt: new Date(),
+            version: 1,
+          },
+        ],
+      })
+      .where(eq(schema.examAttempts.id, attemptId));
+
+    const res = await ctx.app.inject({
+      method: "GET",
+      url: `/api/admin/attempts/${attemptId}/live`,
+      cookies: { "auth-token": assignedProctorToken },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body).toMatchObject({
+      attemptId,
+      examId,
+      status: "in_progress",
+      questions: [
+        {
+          questionId,
+          options: [
+            { id: "opt-a", content: "Opción A" },
+            { id: "opt-b", content: "Opción B" },
+          ],
+          currentAnswer: "opt-b",
+        },
+      ],
+    });
+    expect(res.body).not.toContain("LIVE-SECRET-STANDARD");
+    expect(res.body).not.toContain("LIVE-SECRET-RUBRIC");
+    expect(res.body).not.toContain("standardAnswer");
+    expect(res.body).not.toContain('"score"');
+  });
 
   it("unassigned 404 is indistinguishable from a missing attempt (same response shape)", async () => {
     const missing = await ctx.app.inject({

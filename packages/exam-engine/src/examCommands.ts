@@ -355,11 +355,13 @@ export async function openExam(
  * `InvalidStateTransitionError`). The route layer uses this to detect the
  * idempotent case and suppress the duplicate audit. The unresolved-attempts
  * guard lives at the route layer (it needs the attempt repo); this engine
- * function performs only the status transition.
+ * function performs only the status transition and pins `closeAt` to `now`
+ * when the exam had no elapsed window end so active attempts can deadline-submit.
  */
 export async function closeExam(
   repo: ExamRepository,
   examId: string,
+  now: Date,
 ): Promise<Exam> {
   const exam = await repo.findById(examId);
   if (!exam) {
@@ -373,7 +375,13 @@ export async function closeExam(
 
   assertTransition(exam.status, "closed");
 
-  const updated = await repo.update(examId, { status: "closed" });
+  const closeAt =
+    exam.closeAt !== null && exam.closeAt <= now ? exam.closeAt : now;
+
+  const updated = await repo.update(examId, {
+    status: "closed",
+    closeAt,
+  });
   if (!updated) throw new ValidationError("Exam not found after update");
   return updated;
 }
@@ -514,7 +522,7 @@ export async function checkAndUpdateExamStatus(
   }
 
   if (exam.status === "open" && exam.closeAt !== null && now >= exam.closeAt) {
-    exam = await closeExam(repo, examId);
+    exam = await closeExam(repo, examId, now);
     transition = "closed";
   }
 

@@ -79,6 +79,8 @@ const mockGradedResult = {
   status: "graded" as const,
   showResultImmediately: true as const,
   examTitle: "期末考试",
+  candidateName: "Alumno Prueba",
+  candidateUsername: "legajo-1",
   passingScore: 60,
   totalScore: 100,
   passed: true,
@@ -153,7 +155,7 @@ describe("AttemptDetailPage", () => {
       "text-destructive",
     );
 
-    expect(screen.getByText("No aprobado")).toBeInTheDocument();
+    expect(screen.getByText("Desaprobado")).toBeInTheDocument();
   });
 
   it("shows passing score", async () => {
@@ -172,7 +174,9 @@ describe("AttemptDetailPage", () => {
     });
     renderPage();
     expect(
-      await screen.findByText("Este intento ya se entregó. Falta la corrección."),
+      await screen.findByText(
+        "Este intento ya se entregó. Falta la corrección.",
+      ),
     ).toBeInTheDocument();
   });
 
@@ -185,7 +189,9 @@ describe("AttemptDetailPage", () => {
     });
     renderPage();
     expect(
-      await screen.findByText("Este intento ya está corregido, pero la calificación todavía no está publicada."),
+      await screen.findByText(
+        "Este intento ya está corregido, pero la calificación todavía no está publicada.",
+      ),
     ).toBeInTheDocument();
   });
 
@@ -198,17 +204,53 @@ describe("AttemptDetailPage", () => {
   it("shows error state on API failure", async () => {
     apiGet.mockRejectedValue(new Error("fail"));
     renderPage();
-    expect(await screen.findByText("No se pudo cargar el detalle del intento")).toBeInTheDocument();
+    expect(
+      await screen.findByText("No se pudo cargar el detalle del intento"),
+    ).toBeInTheDocument();
   });
 
   it("renders question results table", async () => {
     apiGet.mockResolvedValue(mockGradedResult);
     renderPage();
-    await screen.findByText("Detalle de las respuestas");
+    await screen.findByText("Detalle del intento");
     expect(screen.getByText("Question 1")).toBeInTheDocument();
     expect(screen.getByText("Question 2")).toBeInTheDocument();
     expect(screen.getAllByText("A").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("B").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("puts the candidate name and legajo in the page title", async () => {
+    apiGet.mockResolvedValue(mockGradedResult);
+    renderPage();
+    expect(
+      await screen.findByRole("heading", {
+        level: 1,
+        name: /Alumno Prueba \(legajo-1\) — 期末考试/,
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("renders a multi-blank fill answer as text, not [object Object]", async () => {
+    apiGet.mockResolvedValue({
+      ...mockGradedResult,
+      questionResults: [
+        {
+          questionId: "q-fill",
+          score: 10,
+          maxScore: 10,
+          correct: true,
+          candidateAnswer: { "0": "París", "1": "Roma" },
+          standardAnswer: { "0": "París", "1": "Roma" },
+          type: "fill_blank",
+          content: "Capitales",
+          order: 1,
+        },
+      ],
+    });
+    renderPage();
+    await screen.findByText("Detalle del intento");
+    expect(screen.getAllByText("París, Roma")).toHaveLength(2);
+    expect(screen.queryByText(/\[object Object\]/)).not.toBeInTheDocument();
   });
 
   it("renders question type labels from shared constants", async () => {
@@ -230,7 +272,7 @@ describe("AttemptDetailPage", () => {
       ],
     });
     renderPage();
-    await screen.findByText("Detalle de las respuestas");
+    await screen.findByText("Detalle del intento");
     expect(screen.getAllByText("Opción única").length).toBe(2);
     expect(screen.getByText("Completar")).toBeInTheDocument();
   });
@@ -284,9 +326,11 @@ describe("AttemptDetailPage", () => {
     mockTimelineResult(mockGradedResult, mockTimelineEvents);
     renderPage();
     await screen.findByText("Línea de tiempo del intento");
-    // attempt.start -> Empezar a responder, attempt.forceSubmit -> Entrega forzada por un administrador
-    expect(await screen.findByText("Empezar a responder")).toBeInTheDocument();
-    expect(screen.getByText("Entrega forzada por un administrador")).toBeInTheDocument();
+    // attempt.start -> Empezó a responder, attempt.forceSubmit -> Entrega forzada por un administrador
+    expect(await screen.findByText("Empezó a responder")).toBeInTheDocument();
+    expect(
+      screen.getByText("Entrega forzada por un administrador"),
+    ).toBeInTheDocument();
   });
 
   it("renders grant_time timeline event with a Chinese label, not the raw key", async () => {
@@ -309,7 +353,9 @@ describe("AttemptDetailPage", () => {
     renderPage();
     await screen.findByText("Línea de tiempo del intento");
     // The localized label is rendered, never the raw action key.
-    expect(await screen.findByText("Otorgar tiempo de examen")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Se otorgó tiempo de examen"),
+    ).toBeInTheDocument();
     expect(screen.queryByText("grant_time")).not.toBeInTheDocument();
   });
 
@@ -317,7 +363,9 @@ describe("AttemptDetailPage", () => {
     mockTimelineResult(mockGradedResult, { events: [] });
     renderPage();
     await screen.findByText("Línea de tiempo del intento");
-    expect(await screen.findByText("Todavía no hay eventos")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Todavía no hay eventos"),
+    ).toBeInTheDocument();
   });
 
   it("shows timeline error fallback when timeline fetch rejects", async () => {
@@ -328,14 +376,16 @@ describe("AttemptDetailPage", () => {
       return mockGradedResult;
     });
     renderPage();
-    expect(await screen.findByText("No se pudo cargar la línea de tiempo")).toBeInTheDocument();
+    expect(
+      await screen.findByText("No se pudo cargar la línea de tiempo"),
+    ).toBeInTheDocument();
   });
 
   it("expands event metadata when an event row is clicked", async () => {
     mockTimelineResult(mockGradedResult, mockTimelineEvents);
     renderPage();
     await screen.findByText("Línea de tiempo del intento");
-    const startLabel = await screen.findByText("Empezar a responder");
+    const startLabel = await screen.findByText("Empezó a responder");
     fireEvent.click(startLabel);
     // metadata JSON for the start event contains "source".
     expect(await screen.findByText(/source/)).toBeInTheDocument();
@@ -356,6 +406,8 @@ describe("AttemptDetailPage", () => {
       status: "graded",
       showResultImmediately: true,
       examTitle: "P3-3 admin frozen",
+      candidateName: "Alumno",
+      candidateUsername: "legajo",
       passingScore: 20,
       totalScore: 30,
       passed: true,
@@ -430,8 +482,10 @@ describe("AttemptDetailPage", () => {
   }
 
   async function submitFlag(notes = "考生查看手机") {
-    fireEvent.click(screen.getByRole("button", { name: "Marcar irregularidad" }));
-    fireEvent.change(screen.getByLabelText("Descripción"), {
+    fireEvent.click(
+      screen.getByRole("button", { name: "Marcar irregularidad" }),
+    );
+    fireEvent.change(screen.getByLabelText("Detalle de la irregularidad"), {
       target: { value: notes },
     });
     fireEvent.click(screen.getByRole("button", { name: "Confirmar" }));
@@ -485,8 +539,10 @@ describe("AttemptDetailPage", () => {
     await waitSubmitSettled();
 
     fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
-    fireEvent.click(screen.getByRole("button", { name: "Marcar irregularidad" }));
-    fireEvent.change(screen.getByLabelText("Descripción"), {
+    fireEvent.click(
+      screen.getByRole("button", { name: "Marcar irregularidad" }),
+    );
+    fireEvent.change(screen.getByLabelText("Detalle de la irregularidad"), {
       target: { value: "第二次标记" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Confirmar" }));
@@ -540,8 +596,10 @@ describe("AttemptDetailPage", () => {
     renderPage("attempt-1", proctorActor);
 
     // The timeline surface (the legitimate base page) renders with events.
-    expect(await screen.findByText("Línea de tiempo del intento")).toBeInTheDocument();
-    expect(await screen.findByText("Empezar a responder")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Línea de tiempo del intento"),
+    ).toBeInTheDocument();
+    expect(await screen.findByText("Empezó a responder")).toBeInTheDocument();
 
     // The result fetch was never issued — page reachability must not mint a
     // guaranteed-403 request.
@@ -607,7 +665,9 @@ describe("AttemptDetailPage", () => {
     renderPage();
 
     expect(await screen.findByText("Estado del intento")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Exportar CSV" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Exportar CSV" }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Exportar JSON" }),
     ).toBeInTheDocument();

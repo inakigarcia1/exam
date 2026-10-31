@@ -9,6 +9,7 @@ import {
   MarkProctorIncidentRequestSchema,
   MarkProctorIncidentResponseSchema,
   ErrorResponseSchema,
+  AttemptLiveViewResponseSchema,
 } from "@exam/contracts";
 import {
   ensureTargetOrg,
@@ -22,6 +23,9 @@ import {
 } from "../lib/proctorMonitoringService.js";
 import { createAttemptRepo } from "@exam/db/repository/attemptRepo";
 import { createExamRepo } from "@exam/db/repository/examRepo";
+import { createCandidateRepo } from "@exam/db/repository/candidateRepo";
+import { createUserRepo } from "@exam/db/repository/userRepo";
+import { NotFoundError } from "@exam/domain";
 import { executeInTransaction } from "@exam/db/types";
 import { recordAtomicHttpAudit } from "../audit/auditWriter.js";
 
@@ -133,6 +137,95 @@ const proctorMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
         fastify.now(),
       );
       return { items, total: items.length };
+    },
+  );
+
+  fastify.get(
+    "/admin/attempts/:attemptId/live",
+    {
+      preHandler: [
+        fastify.authenticate,
+        fastify.requireScopedCapability(
+          Permission.AttemptTimelineView,
+          "attempt",
+          "attemptId",
+          { proctorAccess: "assignment_scoped" },
+        ),
+      ],
+      schema: {
+        params: attemptEventsParamsSchema,
+        security: cookieAuth,
+        "x-role": ["Admin", "Proctor"],
+        response: {
+          200: AttemptLiveViewResponseSchema,
+          404: ErrorResponseSchema,
+          403: ErrorResponseSchema,
+        },
+      },
+    },
+    async (request, reply) => {
+      const ctx = ensureTargetOrg(getRequestContext(request));
+      const { attemptId } = attemptEventsParamsSchema.parse(request.params);
+      const attemptRepo = createAttemptRepo(fastify.db);
+      const attempt = await attemptRepo.findById(ctx, attemptId);
+      if (!attempt) {
+        return reply
+          .code(404)
+          .send(buildErrorResponse(request.id, "RESOURCE_NOT_FOUND"));
+      }
+      const exam = await createExamRepo(fastify.db).findById(
+        ctx,
+        attempt.examId,
+      );
+      if (!exam) {
+        throw new NotFoundError("Exam not found");
+      }
+      const candidate = await createCandidateRepo(fastify.db).findByIds(ctx, [
+        attempt.candidateId,
+      ]);
+      const profile = candidate[0];
+      if (!profile) {
+        throw new NotFoundError("Candidate not found");
+      }
+      const user = await createUserRepo(fastify.db).findById(
+        ctx,
+        profile.userId,
+      );
+      if (!user) {
+        throw new NotFoundError("Candidate user not found");
+      }
+      const answersByQuestion = new Map(
+        attempt.answers.map((record) => [record.questionId, record.answer]),
+      );
+      const questions = attempt.questionSnapshot
+        .slice()
+        .sort((a, b) => a.order - b.order)
+        .map((question) => ({
+          questionId: question.originalQuestionId,
+          order: question.order,
+          type: question.type,
+          content: question.content,
+          contentDocument: question.contentDocument ?? null,
+          answerMode: question.answerMode ?? null,
+          options: question.options.map((option) => ({
+            id: option.id,
+            content: option.content,
+            contentDocument: option.contentDocument ?? null,
+          })),
+          currentAnswer:
+            answersByQuestion.get(question.originalQuestionId) ?? null,
+        }));
+      return AttemptLiveViewResponseSchema.parse({
+        attemptId: attempt.id,
+        examId: exam.id,
+        examTitle: exam.title,
+        candidateName: user.name,
+        candidateUsername: user.username,
+        status: attempt.status,
+        deadlineAt: attempt.deadlineAt?.toISOString() ?? null,
+        lastActivityAt: attempt.lastActivityAt?.toISOString() ?? null,
+        questions,
+      });
     },
   );
 

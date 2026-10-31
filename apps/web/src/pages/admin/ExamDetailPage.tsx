@@ -64,6 +64,7 @@ import {
 interface ExamDetail extends ExamDTO {
   stats: {
     participantCount: number;
+    activeAttemptCount: number;
     completedCount: number;
     passedCount: number;
   };
@@ -471,8 +472,10 @@ export function ExamDetailPage() {
       await api.post(`/api/exams/${id}/close`, {});
       toast.success(t("admin.examDetail.toast.closed"));
       await loadExam();
-    } catch {
-      toast.error(t("admin.examDetail.errors.closeFailed"));
+    } catch (err) {
+      toast.error(
+        getApiErrorMessage(err, t, t("admin.examDetail.errors.closeFailed")),
+      );
     } finally {
       setClosing(false);
     }
@@ -711,6 +714,12 @@ export function ExamDetailPage() {
                 title={t("admin.examDetail.confirm.closeTitle")}
                 description={t("admin.examDetail.confirm.closeDescription", {
                   title: exam.title,
+                  activeWarning:
+                    exam.stats.activeAttemptCount > 0
+                      ? t("admin.examDetail.confirm.closeActiveWarning", {
+                          count: exam.stats.activeAttemptCount,
+                        })
+                      : "",
                 })}
                 destructive
                 onConfirm={() => void handleClose()}

@@ -166,6 +166,7 @@ describe("J4-I1B proctorAccess structural conformance (ADR-015 §8)", () => {
       "GET /admin/attempts/:attemptId/timeline",
       "GET /admin/exams/:examId/proctor/attempts",
       "GET /admin/attempts/:attemptId/proctor-events",
+      "GET /admin/attempts/:attemptId/live",
       "GET /admin/exams/:examId/incidents",
       "POST /admin/exams/:examId/incidents",
       "GET /admin/incidents/:incidentId",
@@ -286,6 +287,7 @@ describe("J4-I1B proctorAccess structural conformance (ADR-015 §8)", () => {
       "GET /admin/attempts/:attemptId/timeline",
       "GET /admin/exams/:examId/proctor/attempts",
       "GET /admin/attempts/:attemptId/proctor-events",
+      "GET /admin/attempts/:attemptId/live",
       "POST /admin/attempts/:attemptId/proctor-incident",
     ];
     for (const key of routes) {

@@ -5,7 +5,7 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, Link } from "react-router";
 import { useTranslation } from "react-i18next";
 import { useProductDateTime } from "@/contexts/DateTimeContext";
 import { api } from "@/lib/api";
@@ -191,7 +191,14 @@ export function ResultsOverviewPage() {
       id: "title",
       meta: { role: "primary-text" },
       header: t("admin.resultsOverview.columns.title"),
-      cell: ({ row }) => row.original.title,
+      cell: ({ row }) => (
+        <Link
+          to={routes.admin.examScores(row.original.id)}
+          className="cursor-pointer hover:underline"
+        >
+          {row.original.title}
+        </Link>
+      ),
     },
     {
       id: "status",

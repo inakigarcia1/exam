@@ -155,7 +155,7 @@ export function ExamPreviewPage() {
               {t("candidateRuntime.actions.next")}
             </Button>
           </div>
-          <p className="type-secondary mx-auto mt-4 max-w-4xl text-center text-sm">
+          <p className="type-secondary mx-auto mt-4 max-w-4xl text-center">
             {t("admin.examPreview.submitDisabled")}
           </p>
         </main>

@@ -59,6 +59,7 @@ const ERROR_CODE_KEYS: Record<ErrorCode, keyof typeof es.errors.codes> = {
   EXAM_CANCEL_NOT_ALLOWED: "examCancelNotAllowed",
   EXAM_PUBLISH_RESULTS_NOT_ALLOWED: "examPublishResultsNotAllowed",
   EXAM_CANCELED_RESULTS_UNAVAILABLE: "examCanceledResultsUnavailable",
+  EXAM_INSCRIPTION_CLOSED: "examInscriptionClosed",
   ATTEMPT_SUBMIT_TOO_EARLY: "attemptSubmitTooEarly",
   ATTEMPT_LATE_ENTRY_CLOSED: "attemptLateEntryClosed",
   ATTEMPT_START_SUBMIT_INFEASIBLE: "attemptStartSubmitInfeasible",
@@ -150,8 +151,8 @@ function readParams(
  * Brownfield published reasons carry their dynamic fact flat on details
  * instead of inside `details.params`. Current producers of
  * UNRESOLVED_ATTEMPTS_EXIST all emit `{ reason, activeAttemptCount }`:
- * scores/export routes (RESOURCE_CONFLICT) and the close/cancel routes
- * (EXAM_CLOSE_NOT_ALLOWED / EXAM_CANCEL_NOT_ALLOWED). A new producer of this
+ * scores/export routes (RESOURCE_CONFLICT) and the cancel route
+ * (EXAM_CANCEL_NOT_ALLOWED). A new producer of this
  * reason must keep that shape or extend this projection.
  */
 function readReasonPresentationParams(

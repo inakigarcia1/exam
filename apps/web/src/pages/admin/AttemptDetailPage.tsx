@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
-import { plainTextProjection } from "@exam/domain";
+import { plainTextProjection, type ContentDocumentV1 } from "@exam/domain";
 import { resolveRichAnswerDocument } from "@exam/contracts";
 import { Permission } from "@exam/authz";
 import { useProductDateTime } from "@/contexts/DateTimeContext";
@@ -24,13 +24,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { PageSection } from "@/components/shared/PageSection";
-import {
-  DataTableCell,
-  DataTableSurface,
-  DataTableHead,
-  DataTableOverflowText,
-} from "@/components/shared/DataTableContract";
-import { DataTableShell } from "@/components/shared/DataTableShell";
+import { QuestionReviewList } from "@/components/shared/QuestionReviewList";
+import type { QuestionReviewOption } from "@/components/shared/QuestionReviewList";
 import {
   Play,
   Send,
@@ -199,10 +194,12 @@ interface QuestionResult {
   standardAnswer: unknown;
   type: string;
   content: string;
-  /** Frozen answer input mode — the render authority
-   * for candidateAnswer. */
+  contentDocument: unknown;
   answerMode?: string | null;
   order: number;
+  options: QuestionReviewOption[];
+  comment?: string | null;
+  manualGraded?: boolean;
 }
 
 /** Attempt result returned when grading is complete and results are visible. */
@@ -211,6 +208,8 @@ interface VisibleAttemptResult {
   status: "graded";
   showResultImmediately: true;
   examTitle: string;
+  candidateName: string;
+  candidateUsername: string;
   passingScore: number;
   totalScore: number;
   passed: boolean;
@@ -764,9 +763,13 @@ export function AttemptDetailPage() {
   return (
     <PageContainer role="admin-standard" className="flex flex-col gap-6">
       <PageHeader
-        title={`${result.examTitle} - ${t(
-          "admin.attemptDetail.result.titleSuffix",
-        )}`}
+        title={
+          result.showResultImmediately
+            ? `${result.candidateName} (${result.candidateUsername}) — ${result.examTitle}`
+            : `${result.examTitle} - ${t(
+                "admin.attemptDetail.result.titleSuffix",
+              )}`
+        }
         actions={
           <div className="flex gap-2">
             <ExportButtons attemptId={id!} canExport={canExportAttempt} />
@@ -815,82 +818,23 @@ export function AttemptDetailPage() {
         </div>
       </PageSection>
 
-      <DataTableShell
-        archetype="detail-comparison"
-        title={t("admin.attemptDetail.result.detailTitle")}
-      >
-        <DataTableSurface
-          columns={[
-            { role: "number" },
-            { role: "long-text", key: "question", overflow: "truncate" },
-            { role: "type" },
-            { role: "secondary-text", key: "candidate-answer" },
-            { role: "secondary-text", key: "standard-answer" },
-            { role: "score", key: "earned-score" },
-            { role: "score", key: "max-score" },
-          ]}
-        >
-          <TableHeader>
-            <TableRow>
-              <DataTableHead role="number">
-                {t("admin.attemptDetail.result.columns.number")}
-              </DataTableHead>
-              <DataTableHead role="long-text">
-                {t("admin.attemptDetail.result.columns.content")}
-              </DataTableHead>
-              <DataTableHead role="type">
-                {t("admin.attemptDetail.result.columns.type")}
-              </DataTableHead>
-              <DataTableHead role="secondary-text">
-                {t("admin.attemptDetail.result.columns.candidateAnswer")}
-              </DataTableHead>
-              <DataTableHead role="secondary-text">
-                {t("admin.attemptDetail.result.columns.standardAnswer")}
-              </DataTableHead>
-              <DataTableHead role="score">
-                {t("admin.attemptDetail.result.columns.score")}
-              </DataTableHead>
-              <DataTableHead role="score">
-                {t("admin.attemptDetail.result.columns.maxScore")}
-              </DataTableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedQuestions.map((q) => (
-              <TableRow key={q.questionId}>
-                <DataTableCell role="number">{q.order + 1}</DataTableCell>
-                <DataTableCell role="long-text">
-                  <DataTableOverflowText mode="truncate" value={q.content} />
-                </DataTableCell>
-                <DataTableCell role="type">
-                  <Badge variant="outline">
-                    {(getTypeLabelKey(q.type)
-                      ? t(getTypeLabelKey(q.type) as never)
-                      : undefined) ?? q.type}
-                  </Badge>
-                </DataTableCell>
-                <DataTableCell role="secondary-text">
-                  <Badge variant={q.correct ? "success" : "secondary"}>
-                    {!q.correct && (
-                      <AppIcon
-                        icon={X}
-                        size="inline"
-                        className="text-muted-foreground"
-                      />
-                    )}
-                    {formatAnswer(q.candidateAnswer, q.answerMode)}
-                  </Badge>
-                </DataTableCell>
-                <DataTableCell role="secondary-text">
-                  {formatAnswer(q.standardAnswer)}
-                </DataTableCell>
-                <DataTableCell role="score">{q.score}</DataTableCell>
-                <DataTableCell role="score">{q.maxScore}</DataTableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </DataTableSurface>
-      </DataTableShell>
+      <PageSection title={t("admin.attemptDetail.result.detailTitle")}>
+        <QuestionReviewList
+          items={sortedQuestions.map((question) => ({
+            ...question,
+            contentDocument:
+              (question.contentDocument as ContentDocumentV1 | null) ?? null,
+            answerMode: question.answerMode ?? null,
+            options: question.options ?? [],
+          }))}
+          showCorrectAnswer
+          mode="result"
+          answerLabel={t("admin.attemptDetail.result.columns.candidateAnswer")}
+          correctAnswerLabel={t(
+            "admin.attemptDetail.result.columns.standardAnswer",
+          )}
+        />
+      </PageSection>
 
       <TimelineSection
         events={timeline}

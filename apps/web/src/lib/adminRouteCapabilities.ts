@@ -234,6 +234,11 @@ export const ADMIN_ROUTE_CAPABILITIES: readonly AdminRouteCapability[] = [
 
   // Attempt detail (admin) — timeline/audit surface.
   {
+    pattern: "attempts/:id/live",
+    capability: Permission.AttemptTimelineView,
+    label: "attempt-live-view",
+  },
+  {
     pattern: "attempts/:id",
     capability: Permission.AttemptTimelineView,
     label: "attempt-detail",

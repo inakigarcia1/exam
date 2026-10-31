@@ -805,13 +805,17 @@ describe("examCommands", () => {
   describe("closeExam", () => {
     it("transitions open → closed", async () => {
       const repo = makeRepo(makeExam({ status: "open" }));
-      const result = await closeExam(repo, "exam-1");
+      const result = await closeExam(
+        repo,
+        "exam-1",
+        new Date("2026-01-01T12:00:00Z"),
+      );
       expect(result.status).toBe("closed");
     });
 
     it("throws for published → closed", async () => {
       const repo = makeRepo(makeExam({ status: "published" }));
-      await expect(closeExam(repo, "exam-1")).rejects.toThrow(
+      await expect(closeExam(repo, "exam-1", new Date())).rejects.toThrow(
         InvalidStateTransitionError,
       );
     });
@@ -821,20 +825,24 @@ describe("examCommands", () => {
     // transition error. The route layer suppresses the duplicate audit.
     it("is idempotent: closed → closed returns the exam unchanged", async () => {
       const repo = makeRepo(makeExam({ status: "closed" }));
-      const result = await closeExam(repo, "exam-1");
+      const result = await closeExam(
+        repo,
+        "exam-1",
+        new Date("2026-01-01T12:00:00Z"),
+      );
       expect(result.status).toBe("closed");
     });
 
     it("throws for draft → closed", async () => {
       const repo = makeRepo(makeExam({ status: "draft" }));
-      await expect(closeExam(repo, "exam-1")).rejects.toThrow(
+      await expect(closeExam(repo, "exam-1", new Date())).rejects.toThrow(
         InvalidStateTransitionError,
       );
     });
 
     it("throws for archived → closed", async () => {
       const repo = makeRepo(makeExam({ status: "archived" }));
-      await expect(closeExam(repo, "exam-1")).rejects.toThrow(
+      await expect(closeExam(repo, "exam-1", new Date())).rejects.toThrow(
         InvalidStateTransitionError,
       );
     });

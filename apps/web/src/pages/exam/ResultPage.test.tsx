@@ -92,7 +92,8 @@ describe("ResultPage", () => {
 
     expect(await screen.findByText("10")).toBeInTheDocument();
     expect(screen.getByText("Aprobado")).toBeInTheDocument();
-    expect(screen.getAllByText("Opción única")).toHaveLength(2);
+    expect(screen.getAllByText("Una opción")).toHaveLength(2);
+    expect(screen.getByText("Pregunta 1")).toBeInTheDocument();
     expect(screen.getByLabelText("Respuesta correcta")).toBeInTheDocument();
     expect(screen.getByLabelText("Respuesta incorrecta")).toBeInTheDocument();
   });
@@ -287,13 +288,12 @@ describe("ResultPage", () => {
     );
   });
 
-  it("truncates long fill blank answers with the full value in title", async () => {
-    const longAnswer = "这是一个需要在悬停时查看完整内容的较长填空答案";
+  it("shows every blank of a fill blank answer as readable text", async () => {
     getMock.mockResolvedValue({
       attemptId: "attempt-1",
       status: "graded",
       showResultImmediately: true,
-      examTitle: "能力测验",
+      examTitle: "Geografía",
       passingScore: 6,
       totalScore: 10,
       passed: true,
@@ -302,9 +302,9 @@ describe("ResultPage", () => {
         {
           questionId: "q1",
           type: "fill_blank",
-          content: "填写答案",
+          content: "Capitales",
           order: 0,
-          candidateAnswer: longAnswer,
+          candidateAnswer: { "0": "París", "1": "Roma" },
           manualGraded: false,
           score: 10,
           maxScore: 10,
@@ -315,12 +315,43 @@ describe("ResultPage", () => {
 
     renderPage();
 
-    // The candidate DTO carries only the candidate answer (the correct-answer
-    // cell renders the hidden marker for objective questions), so exactly one
-    // truncated answer remains.
-    const truncatedAnswers = await screen.findAllByTitle(longAnswer);
-    expect(truncatedAnswers).toHaveLength(1);
-    expect(truncatedAnswers[0]).toHaveClass("data-table-overflow-truncate");
+    expect(await screen.findByText("París, Roma")).toBeInTheDocument();
+    expect(screen.queryByText(/\[object Object\]/)).not.toBeInTheDocument();
+  });
+
+  it("shows the teacher comment on an open question", async () => {
+    getMock.mockResolvedValue({
+      attemptId: "attempt-1",
+      status: "graded",
+      showResultImmediately: true,
+      examTitle: "Parcial",
+      passingScore: 10,
+      totalScore: 15,
+      passed: true,
+      gradedAt: "2026-06-01T00:00:00.000Z",
+      questionResults: [
+        {
+          questionId: "q-text",
+          type: "text_response",
+          content: "Explicá el proceso",
+          order: 0,
+          candidateAnswer: "una explicación",
+          manualGraded: true,
+          score: 15,
+          maxScore: 20,
+          correct: true,
+          comment: "Faltó citar la fuente.",
+        },
+      ],
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByText("Comentario del docente"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Faltó citar la fuente.")).toBeInTheDocument();
+    expect(screen.getByText("una explicación")).toBeInTheDocument();
   });
 
   it("navigates back to the exam list", async () => {
@@ -396,12 +427,11 @@ describe("ResultPage", () => {
     );
     expect(screen.getByText("Aprobado")).toBeInTheDocument();
 
-    // Answer gate closed (DTO carries no standardAnswer): the objective
-    // correct-answer cell renders the hidden placeholder, NOT a real answer
-    // and NOT the manual marker.
-    expect(screen.getAllByText("—")).toHaveLength(1);
-    // The genuinely manual question keeps the manual marker.
-    expect(screen.getByText("Abierta")).toBeInTheDocument();
+    // Answer gate closed (DTO carries no standardAnswer): no reference
+    // answer block is rendered for any question.
+    expect(screen.getByText("candidate essay")).toBeInTheDocument();
+    expect(screen.queryByText("Respuesta correcta")).not.toBeInTheDocument();
+    expect(screen.queryByText("Abierta")).not.toBeInTheDocument();
     // No rubric is ever rendered by ResultPage (it is not in the DTO contract).
     expect(
       screen.queryByText(/Criterio de corrección|rubric/i),

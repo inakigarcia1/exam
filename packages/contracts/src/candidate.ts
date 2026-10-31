@@ -18,6 +18,7 @@ export const candidateExamAvailabilityStatuses = [
   "max_attempts_exhausted",
   "not_started_yet",
   "expired",
+  "closed",
   "unavailable",
 ] as const;
 
