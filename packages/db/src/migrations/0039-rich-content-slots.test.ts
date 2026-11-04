@@ -93,16 +93,16 @@ async function insertQuestion(
   const createdAt = new Date("2026-01-01T00:00:00.000Z");
   await sql.unsafe(`
     INSERT INTO "questions" (
-      "id", "organization_id", "course_id", "type", "content",
+      "id", "organization_id", "type", "content",
       "content_document", "answer_mode", "options", "standard_answer",
-      "attachments", "score", "difficulty", "tags", "grading_rule",
+      "difficulty", "tags", "grading_rule",
       "created_at", "updated_at"
     ) VALUES (
-      ${s(overrides.id)}, 'org-0039', 'course-0039', 'text_response', 'prompt',
+      ${s(overrides.id)}, 'org-0039', 'text_response', 'prompt',
       ${overrides.contentDocument === null ? "NULL" : `'${overrides.contentDocument}'::jsonb`},
       ${overrides.answerMode === null ? "NULL" : s(overrides.answerMode)},
       '[]'::jsonb, NULL,
-      '[]'::jsonb, 5, 3, '[]'::jsonb,
+      3, '[]'::jsonb,
       '{"multiSelectScoring":"all_correct_full","fillBlankMatchMode":"exact"}'::jsonb,
       ${ts(createdAt)}, ${ts(createdAt)}
     )

@@ -57,7 +57,9 @@ export async function answerTrueFalse(
 }
 
 export async function waitForSaveSaved(page: Page): Promise<void> {
-  await page.getByText("Guardado").waitFor({ state: "visible", timeout: 10_000 });
+  await page
+    .getByText("Guardado")
+    .waitFor({ state: "visible", timeout: 10_000 });
 }
 
 export async function submitExam(page: Page): Promise<void> {

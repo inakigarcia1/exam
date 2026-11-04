@@ -208,7 +208,7 @@ export function feedbackDerivationViolations(
 ): string[] {
   const violations: string[] = [];
   for (const { path, text } of files) {
-    const rel = path.slice(WEB_SRC.length + 1);
+    const rel = path.slice(WEB_SRC.length + 1).replace(/\\/g, "/");
     const allowed = RESIDUE_ALLOWLIST[rel] ?? [];
     text.split("\n").forEach((line, i) => {
       const borders = [...line.matchAll(BORDER_TINT)].map((m) => m[0]);

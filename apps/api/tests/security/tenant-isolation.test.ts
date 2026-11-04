@@ -162,7 +162,7 @@ describe("Tenant Isolation (S01)", () => {
     await db.insert(schema.courses).values({
       id: courseId,
       organizationId: orgBId,
-      name: "Course B",
+      name: `Course B ${crypto.randomUUID()}`,
       code: "CB",
       description: "",
       createdAt: now,
@@ -179,7 +179,8 @@ describe("Tenant Isolation (S01)", () => {
       standardAnswer: true,
       score: 10,
       options: [],
-      attachments: [],
+      image: null,
+      scale: null,
       difficulty: 0,
       tags: [],
       gradingRule: {
@@ -288,7 +289,7 @@ describe("Tenant Isolation (S01)", () => {
       await db.insert(schema.courses).values({
         id: courseAId,
         organizationId: orgA.id,
-        name: "Course A",
+        name: `Course A ${crypto.randomUUID()}`,
         code: `CA-${Date.now()}`,
         description: "",
         createdAt: now,

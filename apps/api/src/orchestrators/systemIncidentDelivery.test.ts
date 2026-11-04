@@ -126,7 +126,7 @@ async function seedFixture(db: Database, suffix: string): Promise<Fixture> {
   await db.insert(schema.courses).values({
     id: courseId,
     organizationId,
-    name: "c",
+    name: `c ${crypto.randomUUID()}`,
     code: `code-${randomUUID().slice(0, 6)}`,
     description: "",
     createdAt: now,

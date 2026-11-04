@@ -66,28 +66,33 @@ describe("formatDurationParts", () => {
   });
 });
 
-describe("formatDuration (zh-CN default i18n)", () => {
+describe("formatDuration (es default i18n)", () => {
   it("renders sub-second durations in ms", () => {
     expect(formatDuration(500)).toBe("500ms");
   });
 
-  it("renders seconds with the 秒 token", () => {
-    expect(formatDuration(1000)).toBe("1秒");
+  it("renders seconds with singular and plural tokens", () => {
+    expect(formatDuration(1000)).toBe("1 segundo");
+    expect(formatDuration(45_000)).toBe("45 segundos");
   });
 
-  it("renders whole minutes with the 分钟 token", () => {
-    expect(formatDuration(5 * 60_000)).toBe("5分钟");
+  it("renders whole minutes with singular and plural tokens", () => {
+    expect(formatDuration(60_000)).toBe("1 minuto");
+    expect(formatDuration(5 * 60_000)).toBe("5 minutos");
   });
 
-  it("renders minutes with seconds as 分…秒", () => {
-    expect(formatDuration(90_000)).toBe("1分30秒");
+  it("renders minutes with seconds, pluralizing each part", () => {
+    expect(formatDuration(90_000)).toBe("1 minuto 30 segundos");
+    expect(formatDuration(121_000)).toBe("2 minutos 1 segundo");
   });
 
-  it("renders whole hours with the 小时 token", () => {
-    expect(formatDuration(2 * 60 * 60_000)).toBe("2小时");
+  it("renders whole hours with singular and plural tokens", () => {
+    expect(formatDuration(60 * 60_000)).toBe("1 hora");
+    expect(formatDuration(2 * 60 * 60_000)).toBe("2 horas");
   });
 
-  it("renders hours with minutes as 小时…分钟", () => {
-    expect(formatDuration(90 * 60_000)).toBe("1小时30分钟");
+  it("renders hours with minutes, pluralizing each part", () => {
+    expect(formatDuration(90 * 60_000)).toBe("1 hora 30 minutos");
+    expect(formatDuration(121 * 60_000)).toBe("2 horas 1 minuto");
   });
 });

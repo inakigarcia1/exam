@@ -94,7 +94,10 @@ function runEntrypoint(extraEnv: Record<string, string> = {}): RunOutcome {
   };
 }
 
-describe("docker-entrypoint.sh behavior contract", () => {
+// WHY: the entrypoint is a POSIX shell script; on Windows `sh` is WSL.
+const describePosix = describe.skipIf(process.platform === "win32");
+
+describePosix("docker-entrypoint.sh behavior contract", () => {
   it("normal startup runs the canonical migration then execs the server and never seeds", () => {
     const run = runEntrypoint();
     expect(run.status).toBe(0);

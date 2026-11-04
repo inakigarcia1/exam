@@ -208,7 +208,8 @@ describe("deterministic operationId race recovery", () => {
             { id: "b", content: "2" },
           ],
           standardAnswer: "a",
-          attachments: [],
+          image: null,
+          scale: null,
           difficulty: 1,
           tags: [],
           gradingRule: {

@@ -33,6 +33,7 @@ const EXPECTED_ROUTE_FAMILY: Record<string, string> = {
   "/admin/users": "/admin/users",
   "/admin/candidates": "/admin/candidates",
   "/admin/courses": "/admin/courses",
+  "/admin/subjects": "/admin/subjects",
   "/admin/questions": "/admin/questions",
   "/admin/questions/new": "/admin/questions",
   "/admin/questions/:id/edit": "/admin/questions",
@@ -56,6 +57,9 @@ const EXPECTED_ROUTE_FAMILY: Record<string, string> = {
   // Attempt detail is reached only from the exam scores page and renders
   // "{examTitle} - Detalle de las respuestas": it belongs to the exams family.
   "/admin/attempts/:id": "/admin/exams",
+  // The live answer view is opened from the exam proctor dashboard and links
+  // back to it: it belongs to the exams family.
+  "/admin/attempts/:attemptId/live": "/admin/exams",
   "/admin/recovery": "/admin/recovery",
   "/admin/recovery/incidents/:incidentId": "/admin/recovery",
   "/admin/recovery/attempts/:attemptId": "/admin/recovery",

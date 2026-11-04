@@ -64,11 +64,12 @@ Course (课程/科目)
 QuestionBank (题库)
   └── 按 Course 组织
        └── Question (题目)
-            ├── type: single_choice | multiple_choice | fill_blank | true_false | text_response
+            ├── type: single_choice | multiple_choice | fill_blank | true_false | text_response | likert | ranking
             ├── content: 题干文本（Rich 题下为服务端派生的纯文本投影）
             ├── contentDocument: 富文本题干文档（可空；null=Plain 模式，见 ADR-019）
-            ├── attachments[]: 图片/附件 URL
-            ├── options[]: 选项（选择题）
+            ├── image: { sha256, alt } | null：每题至多一张图片，字节存于 question_images（见 ADR-024）
+            ├── scale: string[] | null：仅 likert，2–10 个列标签；其他题型为 null
+            ├── options[]: 选项（选择题）；likert 的行；ranking 按正确顺序录入的项
             ├── standardAnswer: 标准答案（自动批改的依据）
             ├── score: 分值
             └── tags[]: 标签（知识点、难度）
@@ -613,7 +614,8 @@ QuestionSnapshot {
   content: string
   contentDocument: ContentDocumentV1 | null  // #301 冻结富文本题干（null = Plain）
   answerMode: ContentMode | null             // #301 冻结作答输入模式（仅 text_response）
-  attachments: Attachment[]
+  image: QuestionImage | null                // ADR-024 冻结图片引用（字节不可变）
+  scale: string[] | null                     // 冻结 likert 列标签（其他题型为 null）
   options: OptionSnapshot[]                  // 选项快照无正确性标记（见下）
   standardAnswer: unknown
   score: number

@@ -430,7 +430,8 @@ describe("deterministic misconduct-mark operationId races", () => {
             { id: "b", content: "2" },
           ],
           standardAnswer: "a",
-          attachments: [],
+          image: null,
+          scale: null,
           difficulty: 1,
           tags: [],
           gradingRule: {
@@ -534,7 +535,8 @@ describe("deterministic misconduct-mark operationId races", () => {
               content: "test",
               contentDocument: null,
               answerMode: null,
-              attachments: [],
+              image: null,
+              scale: null,
               options: [
                 { id: "a", content: "1" },
                 { id: "b", content: "2" },

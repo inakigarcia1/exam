@@ -52,7 +52,7 @@ describe("score routes", () => {
     await ctx.db.insert(schema.courses).values({
       id: courseId,
       organizationId: ctx.org.id,
-      name: "Course",
+      name: `Course ${crypto.randomUUID()}`,
       code: `SCORE-${uniquePrefix()}`,
       description: "",
       createdAt: new Date(),
@@ -65,7 +65,8 @@ describe("score routes", () => {
       content: "Choose A",
       options: [{ id: "a", content: "A" }],
       standardAnswer: "a",
-      attachments: [],
+      image: null,
+      scale: null,
       difficulty: 1,
       tags: [],
       gradingRule: {
@@ -470,7 +471,7 @@ describe("J8: score list routes", () => {
     await ctx.db.insert(schema.courses).values({
       id: courseId,
       organizationId: ctx.org.id,
-      name: "Course",
+      name: `Course ${crypto.randomUUID()}`,
       code: `SCORE-LIST-${uniquePrefix()}`,
       description: "",
       createdAt: new Date(),
@@ -486,7 +487,8 @@ describe("J8: score list routes", () => {
         { id: "b", content: "B" },
       ],
       standardAnswer: "a",
-      attachments: [],
+      image: null,
+      scale: null,
       difficulty: 1,
       tags: [],
       gradingRule: {
@@ -1053,7 +1055,7 @@ describe("candidate result / answer visibility boundaries", () => {
     await ctx.db.insert(schema.courses).values({
       id: courseId,
       organizationId: ctx.org.id,
-      name: "result-visibility Course",
+      name: `result-visibility Course ${crypto.randomUUID()}`,
       code: `P32-${uniquePrefix()}`,
       description: "",
       createdAt: new Date(),
@@ -1069,7 +1071,8 @@ describe("candidate result / answer visibility boundaries", () => {
         { id: "b", content: "B" },
       ],
       standardAnswer: "a",
-      attachments: [],
+      image: null,
+      scale: null,
       difficulty: 1,
       tags: [],
       gradingRule: {
@@ -1088,7 +1091,8 @@ describe("candidate result / answer visibility boundaries", () => {
       content: "result-visibility essay prompt",
       options: [],
       standardAnswer: "参考论述内容",
-      attachments: [],
+      image: null,
+      scale: null,
       difficulty: 3,
       tags: [],
       gradingRule: {
@@ -1107,7 +1111,8 @@ describe("candidate result / answer visibility boundaries", () => {
       content: "result-visibility essay prompt null answer",
       options: [],
       standardAnswer: null,
-      attachments: [],
+      image: null,
+      scale: null,
       difficulty: 3,
       tags: [],
       gradingRule: {
@@ -1487,7 +1492,7 @@ describe("admin frozen result view", () => {
     await ctx.db.insert(schema.courses).values({
       id: courseId,
       organizationId: ctx.org.id,
-      name: "admin-view Course",
+      name: `admin-view Course ${crypto.randomUUID()}`,
       code: `P33-${uniquePrefix()}`,
       description: "",
       createdAt: new Date(),
@@ -1503,7 +1508,8 @@ describe("admin frozen result view", () => {
         { id: "b", content: "B" },
       ],
       standardAnswer: "a",
-      attachments: [],
+      image: null,
+      scale: null,
       difficulty: 1,
       tags: [],
       gradingRule: {
@@ -1521,7 +1527,8 @@ describe("admin frozen result view", () => {
       content: "admin-view essay prompt",
       options: [],
       standardAnswer: "admin-view frozen reference answer",
-      attachments: [],
+      image: null,
+      scale: null,
       difficulty: 3,
       tags: [],
       gradingRule: {

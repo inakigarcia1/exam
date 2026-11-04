@@ -109,7 +109,7 @@ export function InscriptionPage() {
 
   if (loadError) {
     return (
-      <PageContainer role="auth" className="mx-auto max-w-md py-16">
+      <PageContainer role="auth" className="py-16">
         <InlineErrorBanner>{loadError}</InlineErrorBanner>
       </PageContainer>
     );
@@ -117,10 +117,7 @@ export function InscriptionPage() {
   if (!title) return <LoadingState />;
 
   return (
-    <PageContainer
-      role="auth"
-      className="mx-auto flex min-h-screen max-w-md items-center py-10"
-    >
+    <PageContainer role="auth" className="flex min-h-screen items-center py-10">
       <Card className="w-full">
         <CardHeader>
           <h1 className="type-page-title">Inscripción a {title}</h1>

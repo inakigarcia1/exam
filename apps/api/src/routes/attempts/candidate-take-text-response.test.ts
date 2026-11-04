@@ -46,7 +46,7 @@ describe("candidate take leak protection for text_response", () => {
     await ctx.db.insert(schema.courses).values({
       id: courseId,
       organizationId: ctx.org.id,
-      name: "Subjective Test Course",
+      name: `Subjective Test Course ${crypto.randomUUID()}`,
       code: `SUB-${randomUUID().slice(0, 8)}`,
       description: "Subjective leak test",
       createdAt: new Date(),
@@ -64,7 +64,8 @@ describe("candidate take leak protection for text_response", () => {
       content: "请阐述闭卷考试的安全边界。",
       options: [],
       standardAnswer: "参考要点一\n参考要点二\n参考要点三",
-      attachments: [],
+      image: null,
+      scale: null,
       difficulty: 3,
       tags: [],
       gradingRule: {
@@ -273,7 +274,7 @@ describe("snapshot freeze: post-publish live edit does not affect grading", () =
     await ctx.db.insert(schema.courses).values({
       id: courseId,
       organizationId: ctx.org.id,
-      name: "Snapshot Freeze Course",
+      name: `Snapshot Freeze Course ${crypto.randomUUID()}`,
       code: `SFRZ-${randomUUID().slice(0, 8)}`,
       description: "Snapshot freeze test",
       createdAt: new Date(),
@@ -289,7 +290,8 @@ describe("snapshot freeze: post-publish live edit does not affect grading", () =
       content: "快照冻结测试题",
       options: [],
       standardAnswer: "原始参考答案",
-      attachments: [],
+      image: null,
+      scale: null,
       difficulty: 2,
       tags: [],
       gradingRule: {

@@ -196,7 +196,7 @@ describe("ResultsOverviewPage #785 server status set and pagination (BDD L2)", (
     expect(within(table).getByText("已发布考试1")).toBeInTheDocument();
     expect(within(table).queryByText("已归档考试21")).not.toBeInTheDocument();
     // The total reflects the SERVER-filtered set, not a client filter.
-    expect(screen.getByText(/共 21 条/)).toBeInTheDocument();
+    expect(screen.getByText(/21 en total/)).toBeInTheDocument();
     {
       const [lastUrl] = apiGet.mock.lastCall!;
       const params = new URLSearchParams(String(lastUrl).split("?")[1]);

@@ -67,7 +67,7 @@ describe("Admin grader-to-exam assignment API (issue #296)", () => {
     await ctx.db.insert(schema.courses).values({
       id: courseId,
       organizationId: ctx.org.id,
-      name: "Grader assignment course",
+      name: `Grader assignment course ${crypto.randomUUID()}`,
       code: `GAC-${uniquePrefix()}`,
       description: "",
       createdAt: now,
@@ -234,7 +234,7 @@ describe("Admin grader-to-exam assignment API (issue #296)", () => {
     await ctx.db.insert(schema.courses).values({
       id: foreignCourseId,
       organizationId: foreignOrgId,
-      name: "Foreign course",
+      name: `Foreign course ${crypto.randomUUID()}`,
       code: `FCG-${uniquePrefix()}`,
       description: "",
       createdAt: now,

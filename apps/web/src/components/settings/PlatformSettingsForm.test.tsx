@@ -17,7 +17,9 @@ describe("PlatformSettingsForm", () => {
     expect(screen.getByLabelText("Título del producto")).toBeInTheDocument();
     expect(screen.getByLabelText("Subtítulo del producto")).toBeInTheDocument();
     expect(screen.getByLabelText("Texto del pie")).toBeInTheDocument();
-    expect(screen.getByLabelText("Nombre de la institución")).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Nombre de la institución"),
+    ).toBeInTheDocument();
   });
 
   it("fills form with initialValues", () => {
@@ -33,10 +35,16 @@ describe("PlatformSettingsForm", () => {
       />,
     );
 
-    expect(screen.getByLabelText("Título del producto")).toHaveValue("My Platform");
-    expect(screen.getByLabelText("Subtítulo del producto")).toHaveValue("My Subtitle");
+    expect(screen.getByLabelText("Título del producto")).toHaveValue(
+      "My Platform",
+    );
+    expect(screen.getByLabelText("Subtítulo del producto")).toHaveValue(
+      "My Subtitle",
+    );
     expect(screen.getByLabelText("Texto del pie")).toHaveValue("My Footer");
-    expect(screen.getByLabelText("Nombre de la institución")).toHaveValue("My Org");
+    expect(screen.getByLabelText("Nombre de la institución")).toHaveValue(
+      "My Org",
+    );
   });
 
   it("updates form when initialValues change", () => {
@@ -65,8 +73,13 @@ describe("PlatformSettingsForm", () => {
     render(<PlatformSettingsForm onSave={onSave} />);
 
     await user.type(screen.getByLabelText("Título del producto"), "新平台");
-    await user.type(screen.getByLabelText("Subtítulo del producto"), "新副标题");
-    await user.click(screen.getByRole("button", { name: "Guardar configuración" }));
+    await user.type(
+      screen.getByLabelText("Subtítulo del producto"),
+      "新副标题",
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Guardar configuración" }),
+    );
 
     expect(onSave).toHaveBeenCalledTimes(1);
     // react-hook-form hands the values object (plus the submit event) to

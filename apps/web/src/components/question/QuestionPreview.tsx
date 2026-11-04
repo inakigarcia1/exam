@@ -1,5 +1,9 @@
 import { useTranslation } from "react-i18next";
-import type { ContentDocumentV1 } from "@exam/domain";
+import type {
+  ContentDocumentV1,
+  QuestionImage as QuestionImageRef,
+} from "@exam/domain";
+import { QuestionImage } from "@/components/shared/QuestionImage";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -7,12 +11,16 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ContentRenderer } from "@/components/shared/content/ContentRenderer";
+import { LikertInput } from "@/components/exam/LikertInput";
+import { RankingInput } from "@/components/exam/RankingInput";
 
 /** Props for the QuestionPreview component. */
 interface QuestionPreviewProps {
   type: string;
   content: string;
   contentDocument?: ContentDocumentV1 | null;
+  image: QuestionImageRef | null;
+  scale?: string[] | null;
   options: Array<{
     id: string;
     content: string;
@@ -31,6 +39,8 @@ export function QuestionPreview({
   type,
   content,
   contentDocument,
+  image,
+  scale,
   options,
   standardAnswer,
 }: QuestionPreviewProps) {
@@ -48,6 +58,7 @@ export function QuestionPreview({
           document={contentDocument}
           className="text-sm"
         />
+        <QuestionImage image={image} />
 
         {(type === "single_choice" || type === "true_false") && (
           <RadioGroup disabled>
@@ -87,6 +98,29 @@ export function QuestionPreview({
           </div>
         )}
 
+        {type === "likert" && (
+          <LikertInput
+            rows={options}
+            scale={scale ?? []}
+            value={
+              typeof standardAnswer === "object" && standardAnswer !== null
+                ? (standardAnswer as Record<string, number>)
+                : {}
+            }
+            onChange={() => undefined}
+            disabled
+          />
+        )}
+
+        {type === "ranking" && (
+          <RankingInput
+            options={options}
+            value={undefined}
+            onChange={() => undefined}
+            disabled
+          />
+        )}
+
         {type === "fill_blank" && (
           <div className="flex flex-col gap-2">
             {content.split("____").map((part, i, arr) => (
@@ -100,17 +134,22 @@ export function QuestionPreview({
           </div>
         )}
 
-        <Separator />
-        <div className="pt-2 type-metadata">
-          <p>
-            {t("admin.questionPreview.standardAnswer")}
-            {type === "true_false"
-              ? standardAnswer === true
-                ? t("common.boolean.yes")
-                : t("common.boolean.no")
-              : String(standardAnswer ?? t("admin.questionPreview.notSet"))}
-          </p>
-        </div>
+        {/* likert/ranking show the answer in the grid/list above. */}
+        {type !== "likert" && type !== "ranking" && (
+          <>
+            <Separator />
+            <div className="pt-2 type-metadata">
+              <p>
+                {t("admin.questionPreview.standardAnswer")}
+                {type === "true_false"
+                  ? standardAnswer === true
+                    ? t("common.boolean.yes")
+                    : t("common.boolean.no")
+                  : String(standardAnswer ?? t("admin.questionPreview.notSet"))}
+              </p>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

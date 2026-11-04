@@ -94,7 +94,9 @@ test.describe("cross-tab pending grant coordination", () => {
     await expect(extendBtn.first()).toBeVisible({ timeout: 15_000 });
     await extendBtn.first().click();
     // Dialog title appears once the coordinator's getCurrent resolves.
-    await expect(page.getByText("Extender el tiempo del examen").first()).toBeVisible({
+    await expect(
+      page.getByText("Extender el tiempo del examen").first(),
+    ).toBeVisible({
       timeout: 15_000,
     });
     // 10 minutes is the default; fill the reason and confirm.
@@ -202,7 +204,9 @@ test.describe("cross-tab pending grant coordination", () => {
     const extendBtnB = pageB.getByRole("button", { name: "Extender el plazo" });
     await expect(extendBtnB.first()).toBeVisible({ timeout: 15_000 });
     await extendBtnB.first().click();
-    await expect(pageB.getByText("Extender el tiempo del examen").first()).toBeVisible({
+    await expect(
+      pageB.getByText("Extender el tiempo del examen").first(),
+    ).toBeVisible({
       timeout: 15_000,
     });
     // The dialog restored to indeterminate (retry affordance visible).
@@ -212,9 +216,13 @@ test.describe("cross-tab pending grant coordination", () => {
 
     // ── Tab B retries the frozen command. The server already committed
     //    (from Tab A's route.fetch), so this MUST be idempotent_replay.
-    await pageB.getByRole("button", { name: "Reintentar este tiempo extra" }).click();
+    await pageB
+      .getByRole("button", { name: "Reintentar este tiempo extra" })
+      .click();
     await expect(
-      pageB.getByText("Ese tiempo extra ya estaba hecho. No se sumó de nuevo.").first(),
+      pageB
+        .getByText("Ese tiempo extra ya estaba hecho. No se sumó de nuevo.")
+        .first(),
     ).toBeVisible({ timeout: 15_000 });
 
     // The coordinator must have cleared the authority (compare-and-clear on
@@ -362,12 +370,14 @@ test.describe("cross-tab pending grant coordination", () => {
       const btn = p.getByRole("button", { name: "Extender el plazo" });
       await expect(btn.first()).toBeVisible({ timeout: 15_000 });
       await btn.first().click();
-      await expect(p.getByText("Extender el tiempo del examen").first()).toBeVisible({
+      await expect(
+        p.getByText("Extender el tiempo del examen").first(),
+      ).toBeVisible({
         timeout: 15_000,
       });
-      await expect(p.getByRole("button", { name: "Reintentar este tiempo extra" })).toBeVisible(
-        { timeout: 15_000 },
-      );
+      await expect(
+        p.getByRole("button", { name: "Reintentar este tiempo extra" }),
+      ).toBeVisible({ timeout: 15_000 });
     }
 
     // ── Tab B's retry: GATE the response open (server already committed as a
@@ -396,7 +406,9 @@ test.describe("cross-tab pending grant coordination", () => {
     });
 
     // Start Tab B's retry (claimForSend → POST, gated open).
-    await pageB.getByRole("button", { name: "Reintentar este tiempo extra" }).click();
+    await pageB
+      .getByRole("button", { name: "Reintentar este tiempo extra" })
+      .click();
 
     // Observable barrier: wait until Tab B's POST has been issued (the page is
     // now in `submitting`, holding the active lease). This is the point at which
@@ -416,7 +428,9 @@ test.describe("cross-tab pending grant coordination", () => {
         "Tab C must not POST a time-grant while Tab B holds the active lease",
       );
     });
-    await pageC.getByRole("button", { name: "Reintentar este tiempo extra" }).click();
+    await pageC
+      .getByRole("button", { name: "Reintentar este tiempo extra" })
+      .click();
     await expect(pageC.getByText("另一个标签页正在处理").first()).toBeVisible({
       timeout: 15_000,
     });
@@ -433,7 +447,9 @@ test.describe("cross-tab pending grant coordination", () => {
     //    → the page clears the authority and surfaces the replay toast.
     releaseGate();
     await expect(
-      pageB.getByText("Ese tiempo extra ya estaba hecho. No se sumó de nuevo.").first(),
+      pageB
+        .getByText("Ese tiempo extra ya estaba hecho. No se sumó de nuevo.")
+        .first(),
     ).toBeVisible({
       timeout: 15_000,
     });

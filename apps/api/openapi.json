@@ -5283,6 +5283,84 @@
         }
       }
     },
+    "/api/candidates/export": {
+      "get": {
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "x-role": ["Admin"],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — missing or invalid authentication cookie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "description": "Stable coarse product-level machine contract (ErrorCode)."
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "Non-authoritative human-readable compatibility text. Clients MUST NOT parse or branch on this value."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — insufficient role or capability",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "description": "Stable coarse product-level machine contract (ErrorCode)."
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "Non-authoritative human-readable compatibility text. Clients MUST NOT parse or branch on this value."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/candidates": {
       "get": {
         "parameters": [
@@ -7249,7 +7327,38 @@
         ],
         "responses": {
           "200": {
-            "description": "Default Response"
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["id", "name"],
+                        "additionalProperties": false
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": ["items", "total"],
+                  "additionalProperties": false
+                }
+              }
+            }
           },
           "401": {
             "description": "Unauthorized — missing or invalid authentication cookie",
@@ -7282,14 +7391,51 @@
         }
       },
       "post": {
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                },
+                "required": ["name"],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
         "security": [
           {
             "cookieAuth": []
           }
         ],
         "responses": {
-          "200": {
-            "description": "Default Response"
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "name"],
+                  "additionalProperties": false
+                }
+              }
+            }
           },
           "401": {
             "description": "Unauthorized — missing or invalid authentication cookie",
@@ -7324,24 +7470,62 @@
     },
     "/api/subjects/{id}": {
       "patch": {
-        "security": [
-          {
-            "cookieAuth": []
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                },
+                "required": ["name"],
+                "additionalProperties": false
+              }
+            }
           }
-        ],
+        },
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "format": "uuid"
             },
             "in": "path",
             "name": "id",
             "required": true
           }
         ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Default Response"
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["id", "name"],
+                  "additionalProperties": false
+                }
+              }
+            }
           },
           "401": {
             "description": "Unauthorized — missing or invalid authentication cookie",
@@ -7370,28 +7554,74 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "description": "Stable coarse product-level machine contract (ErrorCode). Clients branch on this, never on message."
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "Non-authoritative human-readable compatibility text. Clients MUST NOT parse or branch on this value. Wording and fallback language are not stable machine semantics; use code (and details.reason where present) for programmatic handling."
+                        },
+                        "details": {
+                          "description": "Structured context, shape varies by code: reason (open-vocabulary machine contract), fields[] (field violations), params (structured dynamic context — top-level since C1, field-level since C2). Extensibility is inventory-gated; unknown shapes must be tolerated."
+                        },
+                        "requestId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Request id for support correlation"
+                        }
+                      },
+                      "required": ["code", "message", "requestId"],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": ["error"],
+                  "additionalProperties": false
+                }
+              }
+            }
           }
         }
       },
       "delete": {
-        "security": [
-          {
-            "cookieAuth": []
-          }
-        ],
         "parameters": [
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "format": "uuid"
             },
             "in": "path",
             "name": "id",
             "required": true
           }
         ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
         "responses": {
-          "200": {
-            "description": "Default Response"
+          "204": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "enum": ["null"],
+                  "nullable": true
+                }
+              }
+            }
           },
           "401": {
             "description": "Unauthorized — missing or invalid authentication cookie",
@@ -7417,6 +7647,43 @@
                       }
                     }
                   }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "description": "Stable coarse product-level machine contract (ErrorCode). Clients branch on this, never on message."
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "Non-authoritative human-readable compatibility text. Clients MUST NOT parse or branch on this value. Wording and fallback language are not stable machine semantics; use code (and details.reason where present) for programmatic handling."
+                        },
+                        "details": {
+                          "description": "Structured context, shape varies by code: reason (open-vocabulary machine contract), fields[] (field violations), params (structured dynamic context — top-level since C1, field-level since C2). Extensibility is inventory-gated; unknown shapes must be tolerated."
+                        },
+                        "requestId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Request id for support correlation"
+                        }
+                      },
+                      "required": ["code", "message", "requestId"],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": ["error"],
+                  "additionalProperties": false
                 }
               }
             }
@@ -7515,7 +7782,9 @@
                               "multiple_choice",
                               "fill_blank",
                               "true_false",
-                              "text_response"
+                              "text_response",
+                              "likert",
+                              "ranking"
                             ]
                           },
                           "content": {
@@ -8710,25 +8979,28 @@
                             }
                           },
                           "standardAnswer": {},
-                          "attachments": {
+                          "image": {
+                            "type": "object",
+                            "properties": {
+                              "sha256": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{64}$"
+                              },
+                              "alt": {
+                                "type": "string",
+                                "maxLength": 300
+                              }
+                            },
+                            "required": ["sha256", "alt"],
+                            "additionalProperties": false,
+                            "nullable": true
+                          },
+                          "scale": {
                             "type": "array",
                             "items": {
-                              "type": "object",
-                              "properties": {
-                                "url": {
-                                  "type": "string"
-                                },
-                                "type": {
-                                  "type": "string",
-                                  "enum": ["image", "file"]
-                                },
-                                "name": {
-                                  "type": "string"
-                                }
-                              },
-                              "required": ["url", "type", "name"],
-                              "additionalProperties": false
-                            }
+                              "type": "string"
+                            },
+                            "nullable": true
                           },
                           "difficulty": {
                             "type": "integer",
@@ -8783,7 +9055,8 @@
                           "content",
                           "options",
                           "standardAnswer",
-                          "attachments",
+                          "image",
+                          "scale",
                           "difficulty",
                           "tags",
                           "gradingRule",
@@ -8897,7 +9170,9 @@
                       "multiple_choice",
                       "fill_blank",
                       "true_false",
-                      "text_response"
+                      "text_response",
+                      "likert",
+                      "ranking"
                     ]
                   },
                   "content": {
@@ -10039,26 +10314,34 @@
                     }
                   },
                   "standardAnswer": {},
-                  "attachments": {
+                  "image": {
+                    "type": "object",
+                    "properties": {
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                      },
+                      "alt": {
+                        "type": "string",
+                        "maxLength": 300
+                      }
+                    },
+                    "required": ["sha256", "alt"],
+                    "additionalProperties": false,
+                    "nullable": true,
+                    "default": null
+                  },
+                  "scale": {
                     "type": "array",
                     "items": {
-                      "type": "object",
-                      "properties": {
-                        "url": {
-                          "type": "string"
-                        },
-                        "type": {
-                          "type": "string",
-                          "enum": ["image", "file"]
-                        },
-                        "name": {
-                          "type": "string"
-                        }
-                      },
-                      "required": ["url", "type", "name"],
-                      "additionalProperties": false
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
                     },
-                    "default": []
+                    "minItems": 2,
+                    "maxItems": 10,
+                    "nullable": true,
+                    "default": null
                   },
                   "difficulty": {
                     "type": "integer",
@@ -10136,7 +10419,9 @@
                         "multiple_choice",
                         "fill_blank",
                         "true_false",
-                        "text_response"
+                        "text_response",
+                        "likert",
+                        "ranking"
                       ]
                     },
                     "content": {
@@ -11289,25 +11574,28 @@
                       }
                     },
                     "standardAnswer": {},
-                    "attachments": {
+                    "image": {
+                      "type": "object",
+                      "properties": {
+                        "sha256": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "alt": {
+                          "type": "string",
+                          "maxLength": 300
+                        }
+                      },
+                      "required": ["sha256", "alt"],
+                      "additionalProperties": false,
+                      "nullable": true
+                    },
+                    "scale": {
                       "type": "array",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "url": {
-                            "type": "string"
-                          },
-                          "type": {
-                            "type": "string",
-                            "enum": ["image", "file"]
-                          },
-                          "name": {
-                            "type": "string"
-                          }
-                        },
-                        "required": ["url", "type", "name"],
-                        "additionalProperties": false
-                      }
+                        "type": "string"
+                      },
+                      "nullable": true
                     },
                     "difficulty": {
                       "type": "integer",
@@ -11359,7 +11647,8 @@
                     "content",
                     "options",
                     "standardAnswer",
-                    "attachments",
+                    "image",
+                    "scale",
                     "difficulty",
                     "tags",
                     "gradingRule",
@@ -11592,6 +11881,84 @@
         }
       }
     },
+    "/api/questions/export": {
+      "get": {
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "x-role": ["Admin", "Teacher"],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — missing or invalid authentication cookie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "description": "Stable coarse product-level machine contract (ErrorCode)."
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "Non-authoritative human-readable compatibility text. Clients MUST NOT parse or branch on this value."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — insufficient role or capability",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "description": "Stable coarse product-level machine contract (ErrorCode)."
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "Non-authoritative human-readable compatibility text. Clients MUST NOT parse or branch on this value."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/questions/{id}": {
       "get": {
         "parameters": [
@@ -11634,7 +12001,9 @@
                         "multiple_choice",
                         "fill_blank",
                         "true_false",
-                        "text_response"
+                        "text_response",
+                        "likert",
+                        "ranking"
                       ]
                     },
                     "content": {
@@ -12787,25 +13156,28 @@
                       }
                     },
                     "standardAnswer": {},
-                    "attachments": {
+                    "image": {
+                      "type": "object",
+                      "properties": {
+                        "sha256": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "alt": {
+                          "type": "string",
+                          "maxLength": 300
+                        }
+                      },
+                      "required": ["sha256", "alt"],
+                      "additionalProperties": false,
+                      "nullable": true
+                    },
+                    "scale": {
                       "type": "array",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "url": {
-                            "type": "string"
-                          },
-                          "type": {
-                            "type": "string",
-                            "enum": ["image", "file"]
-                          },
-                          "name": {
-                            "type": "string"
-                          }
-                        },
-                        "required": ["url", "type", "name"],
-                        "additionalProperties": false
-                      }
+                        "type": "string"
+                      },
+                      "nullable": true
                     },
                     "difficulty": {
                       "type": "integer",
@@ -12857,7 +13229,8 @@
                     "content",
                     "options",
                     "standardAnswer",
-                    "attachments",
+                    "image",
+                    "scale",
                     "difficulty",
                     "tags",
                     "gradingRule",
@@ -12979,7 +13352,9 @@
                       "multiple_choice",
                       "fill_blank",
                       "true_false",
-                      "text_response"
+                      "text_response",
+                      "likert",
+                      "ranking"
                     ]
                   },
                   "content": {
@@ -14122,25 +14497,32 @@
                     }
                   },
                   "standardAnswer": {},
-                  "attachments": {
+                  "image": {
+                    "type": "object",
+                    "properties": {
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                      },
+                      "alt": {
+                        "type": "string",
+                        "maxLength": 300
+                      }
+                    },
+                    "required": ["sha256", "alt"],
+                    "additionalProperties": false,
+                    "nullable": true
+                  },
+                  "scale": {
                     "type": "array",
                     "items": {
-                      "type": "object",
-                      "properties": {
-                        "url": {
-                          "type": "string"
-                        },
-                        "type": {
-                          "type": "string",
-                          "enum": ["image", "file"]
-                        },
-                        "name": {
-                          "type": "string"
-                        }
-                      },
-                      "required": ["url", "type", "name"],
-                      "additionalProperties": false
-                    }
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 100
+                    },
+                    "minItems": 2,
+                    "maxItems": 10,
+                    "nullable": true
                   },
                   "difficulty": {
                     "type": "integer",
@@ -14221,7 +14603,9 @@
                         "multiple_choice",
                         "fill_blank",
                         "true_false",
-                        "text_response"
+                        "text_response",
+                        "likert",
+                        "ranking"
                       ]
                     },
                     "content": {
@@ -15374,25 +15758,28 @@
                       }
                     },
                     "standardAnswer": {},
-                    "attachments": {
+                    "image": {
+                      "type": "object",
+                      "properties": {
+                        "sha256": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{64}$"
+                        },
+                        "alt": {
+                          "type": "string",
+                          "maxLength": 300
+                        }
+                      },
+                      "required": ["sha256", "alt"],
+                      "additionalProperties": false,
+                      "nullable": true
+                    },
+                    "scale": {
                       "type": "array",
                       "items": {
-                        "type": "object",
-                        "properties": {
-                          "url": {
-                            "type": "string"
-                          },
-                          "type": {
-                            "type": "string",
-                            "enum": ["image", "file"]
-                          },
-                          "name": {
-                            "type": "string"
-                          }
-                        },
-                        "required": ["url", "type", "name"],
-                        "additionalProperties": false
-                      }
+                        "type": "string"
+                      },
+                      "nullable": true
                     },
                     "difficulty": {
                       "type": "integer",
@@ -15444,7 +15831,8 @@
                     "content",
                     "options",
                     "standardAnswer",
-                    "attachments",
+                    "image",
+                    "scale",
                     "difficulty",
                     "tags",
                     "gradingRule",
@@ -15727,7 +16115,9 @@
                     "type": "array",
                     "items": {
                       "type": "object",
-                      "additionalProperties": {}
+                      "additionalProperties": {
+                        "type": "string"
+                      }
                     },
                     "minItems": 1,
                     "maxItems": 500
@@ -15874,6 +16264,216 @@
           },
           "403": {
             "description": "Forbidden — insufficient role or capability",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "description": "Stable coarse product-level machine contract (ErrorCode)."
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "Non-authoritative human-readable compatibility text. Clients MUST NOT parse or branch on this value."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "description": "Stable coarse product-level machine contract (ErrorCode). Clients branch on this, never on message."
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "Non-authoritative human-readable compatibility text. Clients MUST NOT parse or branch on this value. Wording and fallback language are not stable machine semantics; use code (and details.reason where present) for programmatic handling."
+                        },
+                        "details": {
+                          "description": "Structured context, shape varies by code: reason (open-vocabulary machine contract), fields[] (field violations), params (structured dynamic context — top-level since C1, field-level since C2). Extensibility is inventory-gated; unknown shapes must be tolerated."
+                        },
+                        "requestId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Request id for support correlation"
+                        }
+                      },
+                      "required": ["code", "message", "requestId"],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": ["error"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/question-images": {
+      "post": {
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "x-role": ["Admin", "Teacher"],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sha256": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{64}$"
+                    }
+                  },
+                  "required": ["sha256"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "description": "Stable coarse product-level machine contract (ErrorCode). Clients branch on this, never on message."
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "Non-authoritative human-readable compatibility text. Clients MUST NOT parse or branch on this value. Wording and fallback language are not stable machine semantics; use code (and details.reason where present) for programmatic handling."
+                        },
+                        "details": {
+                          "description": "Structured context, shape varies by code: reason (open-vocabulary machine contract), fields[] (field violations), params (structured dynamic context — top-level since C1, field-level since C2). Extensibility is inventory-gated; unknown shapes must be tolerated."
+                        },
+                        "requestId": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Request id for support correlation"
+                        }
+                      },
+                      "required": ["code", "message", "requestId"],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": ["error"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — missing or invalid authentication cookie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "description": "Stable coarse product-level machine contract (ErrorCode)."
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "Non-authoritative human-readable compatibility text. Clients MUST NOT parse or branch on this value."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden — insufficient role or capability",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "requestId": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "description": "Stable coarse product-level machine contract (ErrorCode)."
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "Non-authoritative human-readable compatibility text. Clients MUST NOT parse or branch on this value."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/question-images/{sha256}": {
+      "get": {
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "in": "path",
+            "name": "sha256",
+            "required": true
+          }
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized — missing or invalid authentication cookie",
             "content": {
               "application/json": {
                 "schema": {
@@ -18077,7 +18677,9 @@
                               "multiple_choice",
                               "fill_blank",
                               "true_false",
-                              "text_response"
+                              "text_response",
+                              "likert",
+                              "ranking"
                             ]
                           },
                           "prompt": {
@@ -18658,6 +19260,29 @@
                           "answerMode": {
                             "type": "string",
                             "enum": ["plain", "rich"],
+                            "nullable": true
+                          },
+                          "image": {
+                            "type": "object",
+                            "properties": {
+                              "sha256": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{64}$"
+                              },
+                              "alt": {
+                                "type": "string",
+                                "maxLength": 300
+                              }
+                            },
+                            "required": ["sha256", "alt"],
+                            "additionalProperties": false,
+                            "nullable": true
+                          },
+                          "scale": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
                             "nullable": true
                           },
                           "options": {
@@ -19273,7 +19898,9 @@
                               "choice",
                               "boolean",
                               "single_line",
-                              "multi_line"
+                              "multi_line",
+                              "matrix",
+                              "order"
                             ]
                           },
                           "maxScore": {
@@ -25506,7 +26133,9 @@
                               "multiple_choice",
                               "fill_blank",
                               "true_false",
-                              "text_response"
+                              "text_response",
+                              "likert",
+                              "ranking"
                             ]
                           },
                           "content": {
@@ -26089,25 +26718,28 @@
                             "enum": ["plain", "rich"],
                             "nullable": true
                           },
-                          "attachments": {
+                          "image": {
+                            "type": "object",
+                            "properties": {
+                              "sha256": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{64}$"
+                              },
+                              "alt": {
+                                "type": "string",
+                                "maxLength": 300
+                              }
+                            },
+                            "required": ["sha256", "alt"],
+                            "additionalProperties": false,
+                            "nullable": true
+                          },
+                          "scale": {
                             "type": "array",
                             "items": {
-                              "type": "object",
-                              "properties": {
-                                "url": {
-                                  "type": "string"
-                                },
-                                "type": {
-                                  "type": "string",
-                                  "enum": ["image", "file"]
-                                },
-                                "name": {
-                                  "type": "string"
-                                }
-                              },
-                              "required": ["url", "type", "name"],
-                              "additionalProperties": false
-                            }
+                              "type": "string"
+                            },
+                            "nullable": true
                           },
                           "options": {
                             "type": "array",
@@ -26727,7 +27359,6 @@
                           "originalQuestionId",
                           "type",
                           "content",
-                          "attachments",
                           "options",
                           "score",
                           "order"
@@ -26867,7 +27498,9 @@
                               "multiple_choice",
                               "fill_blank",
                               "true_false",
-                              "text_response"
+                              "text_response",
+                              "likert",
+                              "ranking"
                             ]
                           },
                           "content": {
@@ -27450,25 +28083,28 @@
                             "enum": ["plain", "rich"],
                             "nullable": true
                           },
-                          "attachments": {
+                          "image": {
+                            "type": "object",
+                            "properties": {
+                              "sha256": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{64}$"
+                              },
+                              "alt": {
+                                "type": "string",
+                                "maxLength": 300
+                              }
+                            },
+                            "required": ["sha256", "alt"],
+                            "additionalProperties": false,
+                            "nullable": true
+                          },
+                          "scale": {
                             "type": "array",
                             "items": {
-                              "type": "object",
-                              "properties": {
-                                "url": {
-                                  "type": "string"
-                                },
-                                "type": {
-                                  "type": "string",
-                                  "enum": ["image", "file"]
-                                },
-                                "name": {
-                                  "type": "string"
-                                }
-                              },
-                              "required": ["url", "type", "name"],
-                              "additionalProperties": false
-                            }
+                              "type": "string"
+                            },
+                            "nullable": true
                           },
                           "options": {
                             "type": "array",
@@ -28088,7 +28724,6 @@
                           "originalQuestionId",
                           "type",
                           "content",
-                          "attachments",
                           "options",
                           "score",
                           "order"
@@ -28344,7 +28979,9 @@
                               "multiple_choice",
                               "fill_blank",
                               "true_false",
-                              "text_response"
+                              "text_response",
+                              "likert",
+                              "ranking"
                             ]
                           },
                           "content": {
@@ -28927,25 +29564,28 @@
                             "enum": ["plain", "rich"],
                             "nullable": true
                           },
-                          "attachments": {
+                          "image": {
+                            "type": "object",
+                            "properties": {
+                              "sha256": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{64}$"
+                              },
+                              "alt": {
+                                "type": "string",
+                                "maxLength": 300
+                              }
+                            },
+                            "required": ["sha256", "alt"],
+                            "additionalProperties": false,
+                            "nullable": true
+                          },
+                          "scale": {
                             "type": "array",
                             "items": {
-                              "type": "object",
-                              "properties": {
-                                "url": {
-                                  "type": "string"
-                                },
-                                "type": {
-                                  "type": "string",
-                                  "enum": ["image", "file"]
-                                },
-                                "name": {
-                                  "type": "string"
-                                }
-                              },
-                              "required": ["url", "type", "name"],
-                              "additionalProperties": false
-                            }
+                              "type": "string"
+                            },
+                            "nullable": true
                           },
                           "options": {
                             "type": "array",
@@ -29565,7 +30205,6 @@
                           "originalQuestionId",
                           "type",
                           "content",
-                          "attachments",
                           "options",
                           "score",
                           "order"
@@ -29901,7 +30540,9 @@
                               "multiple_choice",
                               "fill_blank",
                               "true_false",
-                              "text_response"
+                              "text_response",
+                              "likert",
+                              "ranking"
                             ]
                           },
                           "prompt": {
@@ -30482,6 +31123,29 @@
                           "answerMode": {
                             "type": "string",
                             "enum": ["plain", "rich"],
+                            "nullable": true
+                          },
+                          "image": {
+                            "type": "object",
+                            "properties": {
+                              "sha256": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{64}$"
+                              },
+                              "alt": {
+                                "type": "string",
+                                "maxLength": 300
+                              }
+                            },
+                            "required": ["sha256", "alt"],
+                            "additionalProperties": false,
+                            "nullable": true
+                          },
+                          "scale": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
                             "nullable": true
                           },
                           "options": {
@@ -31097,7 +31761,9 @@
                               "choice",
                               "boolean",
                               "single_line",
-                              "multi_line"
+                              "multi_line",
+                              "matrix",
+                              "order"
                             ]
                           },
                           "maxScore": {
@@ -31606,7 +32272,9 @@
                               "multiple_choice",
                               "fill_blank",
                               "true_false",
-                              "text_response"
+                              "text_response",
+                              "likert",
+                              "ranking"
                             ]
                           },
                           "content": {
@@ -32189,25 +32857,28 @@
                             "enum": ["plain", "rich"],
                             "nullable": true
                           },
-                          "attachments": {
+                          "image": {
+                            "type": "object",
+                            "properties": {
+                              "sha256": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{64}$"
+                              },
+                              "alt": {
+                                "type": "string",
+                                "maxLength": 300
+                              }
+                            },
+                            "required": ["sha256", "alt"],
+                            "additionalProperties": false,
+                            "nullable": true
+                          },
+                          "scale": {
                             "type": "array",
                             "items": {
-                              "type": "object",
-                              "properties": {
-                                "url": {
-                                  "type": "string"
-                                },
-                                "type": {
-                                  "type": "string",
-                                  "enum": ["image", "file"]
-                                },
-                                "name": {
-                                  "type": "string"
-                                }
-                              },
-                              "required": ["url", "type", "name"],
-                              "additionalProperties": false
-                            }
+                              "type": "string"
+                            },
+                            "nullable": true
                           },
                           "options": {
                             "type": "array",
@@ -32827,7 +33498,6 @@
                           "originalQuestionId",
                           "type",
                           "content",
-                          "attachments",
                           "options",
                           "score",
                           "order"
@@ -33284,7 +33954,9 @@
                                   "multiple_choice",
                                   "fill_blank",
                                   "true_false",
-                                  "text_response"
+                                  "text_response",
+                                  "likert",
+                                  "ranking"
                                 ]
                               },
                               "content": {
@@ -33886,25 +34558,28 @@
                                 "enum": ["plain", "rich"],
                                 "nullable": true
                               },
-                              "attachments": {
+                              "image": {
+                                "type": "object",
+                                "properties": {
+                                  "sha256": {
+                                    "type": "string",
+                                    "pattern": "^[0-9a-f]{64}$"
+                                  },
+                                  "alt": {
+                                    "type": "string",
+                                    "maxLength": 300
+                                  }
+                                },
+                                "required": ["sha256", "alt"],
+                                "additionalProperties": false,
+                                "nullable": true
+                              },
+                              "scale": {
                                 "type": "array",
                                 "items": {
-                                  "type": "object",
-                                  "properties": {
-                                    "url": {
-                                      "type": "string"
-                                    },
-                                    "type": {
-                                      "type": "string",
-                                      "enum": ["image", "file"]
-                                    },
-                                    "name": {
-                                      "type": "string"
-                                    }
-                                  },
-                                  "required": ["url", "type", "name"],
-                                  "additionalProperties": false
-                                }
+                                  "type": "string"
+                                },
+                                "nullable": true
                               },
                               "options": {
                                 "type": "array",
@@ -34549,7 +35224,6 @@
                               "originalQuestionId",
                               "type",
                               "content",
-                              "attachments",
                               "options",
                               "score",
                               "order"
@@ -37576,7 +38250,9 @@
                               "multiple_choice",
                               "fill_blank",
                               "true_false",
-                              "text_response"
+                              "text_response",
+                              "likert",
+                              "ranking"
                             ]
                           },
                           "content": {
@@ -38153,6 +38829,23 @@
                               }
                             ],
                             "nullable": true
+                          },
+                          "image": {
+                            "type": "object",
+                            "properties": {
+                              "sha256": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{64}$"
+                              },
+                              "alt": {
+                                "type": "string",
+                                "maxLength": 300
+                              }
+                            },
+                            "required": ["sha256", "alt"],
+                            "additionalProperties": false,
+                            "nullable": true,
+                            "default": null
                           },
                           "answerMode": {
                             "type": "string",
@@ -39048,7 +39741,9 @@
                                   "multiple_choice",
                                   "fill_blank",
                                   "true_false",
-                                  "text_response"
+                                  "text_response",
+                                  "likert",
+                                  "ranking"
                                 ]
                               },
                               "content": {
@@ -39644,6 +40339,31 @@
                                   }
                                 ],
                                 "nullable": true
+                              },
+                              "image": {
+                                "type": "object",
+                                "properties": {
+                                  "sha256": {
+                                    "type": "string",
+                                    "pattern": "^[0-9a-f]{64}$"
+                                  },
+                                  "alt": {
+                                    "type": "string",
+                                    "maxLength": 300
+                                  }
+                                },
+                                "required": ["sha256", "alt"],
+                                "additionalProperties": false,
+                                "nullable": true,
+                                "default": null
+                              },
+                              "scale": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                },
+                                "nullable": true,
+                                "default": null
                               },
                               "answerMode": {
                                 "type": "string",
@@ -40561,7 +41281,9 @@
                                   "multiple_choice",
                                   "fill_blank",
                                   "true_false",
-                                  "text_response"
+                                  "text_response",
+                                  "likert",
+                                  "ranking"
                                 ]
                               },
                               "content": {
@@ -41157,6 +41879,31 @@
                                   }
                                 ],
                                 "nullable": true
+                              },
+                              "image": {
+                                "type": "object",
+                                "properties": {
+                                  "sha256": {
+                                    "type": "string",
+                                    "pattern": "^[0-9a-f]{64}$"
+                                  },
+                                  "alt": {
+                                    "type": "string",
+                                    "maxLength": 300
+                                  }
+                                },
+                                "required": ["sha256", "alt"],
+                                "additionalProperties": false,
+                                "nullable": true,
+                                "default": null
+                              },
+                              "scale": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                },
+                                "nullable": true,
+                                "default": null
                               },
                               "answerMode": {
                                 "type": "string",
@@ -42199,6 +42946,8 @@
                               "question.true_false",
                               "question.fill_blank",
                               "question.text_response",
+                              "question.likert",
+                              "question.ranking",
                               "content.prompt.rich",
                               "content.option.rich",
                               "answer.text.rich",
@@ -44719,7 +45468,9 @@
                               "multiple_choice",
                               "fill_blank",
                               "true_false",
-                              "text_response"
+                              "text_response",
+                              "likert",
+                              "ranking"
                             ]
                           },
                           "content": {
@@ -45296,6 +46047,31 @@
                               }
                             ],
                             "nullable": true
+                          },
+                          "image": {
+                            "type": "object",
+                            "properties": {
+                              "sha256": {
+                                "type": "string",
+                                "pattern": "^[0-9a-f]{64}$"
+                              },
+                              "alt": {
+                                "type": "string",
+                                "maxLength": 300
+                              }
+                            },
+                            "required": ["sha256", "alt"],
+                            "additionalProperties": false,
+                            "nullable": true,
+                            "default": null
+                          },
+                          "scale": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "nullable": true,
+                            "default": null
                           },
                           "answerMode": {
                             "type": "string",

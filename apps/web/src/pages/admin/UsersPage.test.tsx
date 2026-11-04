@@ -305,13 +305,17 @@ describe("UsersPage", () => {
     // scope to the desktop table representation.
     const table = await screen.findByRole("table");
     expect(within(table).getByText("admin1")).toBeInTheDocument();
-    expect(within(table).getByText("Administrador de exámenes")).toBeInTheDocument();
+    expect(
+      within(table).getByText("Administrador de exámenes"),
+    ).toBeInTheDocument();
   });
 
   it("create dialog shows the staff role options sourced from /roles/assignable (F-01)", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /Nuevo usuario/ }));
+    await user.click(
+      await screen.findByRole("button", { name: /Nuevo usuario/ }),
+    );
     const dialog = await screen.findByRole("dialog");
     const trigger = within(dialog).getByRole("combobox");
     await user.click(trigger);
@@ -321,8 +325,12 @@ describe("UsersPage", () => {
       await screen.findByRole("option", { name: "Administrador de exámenes" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Docente" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Supervisor" })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "Corrector" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "Supervisor" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "Corrector" }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("option", { name: "Operaciones del sistema" }),
     ).toBeInTheDocument();
@@ -359,7 +367,9 @@ describe("UsersPage", () => {
     );
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /Nuevo usuario/ }));
+    await user.click(
+      await screen.findByRole("button", { name: /Nuevo usuario/ }),
+    );
     const dialog = await screen.findByRole("dialog");
     await user.click(within(dialog).getByRole("combobox"));
     expect(
@@ -378,17 +388,23 @@ describe("UsersPage", () => {
   it("shows validation errors for empty fields on create", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /Nuevo usuario/ }));
+    await user.click(
+      await screen.findByRole("button", { name: /Nuevo usuario/ }),
+    );
     await user.click(screen.getByRole("button", { name: "Guardar" }));
     expect(screen.getByText("Ingresa el usuario")).toBeInTheDocument();
     expect(screen.getByText("Ingresa el nombre")).toBeInTheDocument();
-    expect(screen.getByText("密码至少 8 位")).toBeInTheDocument();
+    expect(
+      screen.getByText("La contraseña debe tener al menos 8 caracteres"),
+    ).toBeInTheDocument();
   });
 
   it("creates a new Admin user with valid data", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /Nuevo usuario/ }));
+    await user.click(
+      await screen.findByRole("button", { name: /Nuevo usuario/ }),
+    );
     const dialog = await screen.findByRole("dialog");
     const inputs = getDialogInputs(dialog);
     await user.type(inputs[0]!, "newuser");
@@ -415,7 +431,9 @@ describe("UsersPage", () => {
     );
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /Nuevo usuario/ }));
+    await user.click(
+      await screen.findByRole("button", { name: /Nuevo usuario/ }),
+    );
     const dialog = await screen.findByRole("dialog");
     const inputs = getDialogInputs(dialog);
     await user.type(inputs[0]!, "newuser");
@@ -482,7 +500,9 @@ describe("UsersPage", () => {
   it("closes dialog on cancel", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /Nuevo usuario/ }));
+    await user.click(
+      await screen.findByRole("button", { name: /Nuevo usuario/ }),
+    );
     const dialog = screen.getByRole("dialog");
     const cancelBtn = within(dialog)
       .getAllByRole("button")
@@ -496,7 +516,9 @@ describe("UsersPage", () => {
   it("shows error state when loading fails", async () => {
     apiGet.mockRejectedValue(new Error("fail"));
     renderPage();
-    expect(await screen.findByText("No se pudo cargar la lista de usuarios")).toBeInTheDocument();
+    expect(
+      await screen.findByText("No se pudo cargar la lista de usuarios"),
+    ).toBeInTheDocument();
   });
 
   it("shows empty state when no users", async () => {
@@ -577,7 +599,9 @@ describe("UsersPage", () => {
     const dialog = await screen.findByRole("dialog");
     // Read-only hint shows the ORIGINAL role (its zh label), not a silently
     // selected Admin.
-    expect(screen.getByTestId("locked-role")).toHaveTextContent("Operaciones del sistema");
+    expect(screen.getByTestId("locked-role")).toHaveTextContent(
+      "Operaciones del sistema",
+    );
     const nameInput = getDialogInputs(dialog)[0]!;
     await user.clear(nameInput);
     await user.type(nameInput, "Updated Name");
@@ -795,7 +819,7 @@ describe("UsersPage", () => {
       );
       const dialog = await screen.findByRole("dialog");
       expect(
-        within(dialog).getByText("Administración「Teacher One」的授课课程"),
+        within(dialog).getByText("Comisiones de «Teacher One»"),
       ).toBeInTheDocument();
       // Both canonical GETs fired — the read projection and the (mutation
       // support) catalog, as two independent requests.
@@ -826,7 +850,7 @@ describe("UsersPage", () => {
       expect(matches.length).toBeGreaterThanOrEqual(2);
 
       // Revoke it and observe removal.
-      await user.click(within(dialog).getByRole("button", { name: "Deshacer" }));
+      await user.click(within(dialog).getByRole("button", { name: "Revocar" }));
       await waitFor(() => {
         expect(apiPost).toHaveBeenCalledWith(
           "/api/admin/users/u-t/course-assignments/c1/revoke",
@@ -834,7 +858,7 @@ describe("UsersPage", () => {
       });
       await waitFor(() => {
         expect(
-          within(dialog).queryByRole("button", { name: "Deshacer" }),
+          within(dialog).queryByRole("button", { name: "Revocar" }),
         ).not.toBeInTheDocument();
       });
       expect(
@@ -858,7 +882,9 @@ describe("UsersPage", () => {
       );
       await user.click(within(dialog).getByRole("button", { name: "Asignar" }));
       await waitFor(() => {
-        expect(toast.info).toHaveBeenCalledWith("Esa comisión ya está asignada");
+        expect(toast.info).toHaveBeenCalledWith(
+          "Esa comisión ya está asignada",
+        );
       });
     });
 
@@ -941,7 +967,7 @@ describe("UsersPage", () => {
         within(dialog).queryByRole("button", { name: "Asignar" }),
       ).not.toBeInTheDocument();
       expect(
-        within(dialog).queryByRole("button", { name: "Deshacer" }),
+        within(dialog).queryByRole("button", { name: "Revocar" }),
       ).not.toBeInTheDocument();
       // The catalog is mutation-support data: assignment View alone must not
       // require CourseView — no /api/courses request is issued at all.
@@ -974,13 +1000,13 @@ describe("UsersPage", () => {
       // the catalog is not fetched for an inactive target).
       expect(await within(dialog).findByText("c1")).toBeInTheDocument();
       expect(
-        within(dialog).getByRole("button", { name: "Deshacer" }),
+        within(dialog).getByRole("button", { name: "Revocar" }),
       ).toBeInTheDocument();
       // Assign-new affordance requires target user.isActive — the write
       // endpoint would reject it (TARGET_USER_INACTIVE), so it is absent.
       expect(
         await within(dialog).findByTestId("teacher-assign-inactive"),
-      ).toHaveTextContent("该账号已停用");
+      ).toHaveTextContent("Esta cuenta está desactivada");
       expect(within(dialog).queryByRole("radio")).not.toBeInTheDocument();
       expect(within(dialog).queryByRole("searchbox")).not.toBeInTheDocument();
       expect(
@@ -990,7 +1016,7 @@ describe("UsersPage", () => {
       // Revoke on the inactive target remains available and issues the
       // canonical write.
       apiPost.mockResolvedValue({ outcome: "applied" });
-      await user.click(within(dialog).getByRole("button", { name: "Deshacer" }));
+      await user.click(within(dialog).getByRole("button", { name: "Revocar" }));
       await waitFor(() => {
         expect(apiPost).toHaveBeenCalledWith(
           "/api/admin/users/u-it/course-assignments/c1/revoke",
@@ -1029,18 +1055,20 @@ describe("UsersPage", () => {
       // back to its stable courseId because option metadata is unavailable.
       expect(await within(dialog).findByText("c1")).toBeInTheDocument();
       expect(
-        within(dialog).getByRole("button", { name: "Deshacer" }),
+        within(dialog).getByRole("button", { name: "Revocar" }),
       ).toBeInTheDocument();
       // The picker is downgraded to an explicit unavailable hint + retry,
       // not to a crash or a silently empty list.
       expect(
-        await within(dialog).findByText("La lista de comisiones no está disponible. Las asignaciones actuales siguen igual."),
+        await within(dialog).findByText(
+          "La lista de comisiones no está disponible. Las asignaciones actuales siguen igual.",
+        ),
       ).toBeInTheDocument();
       expect(within(dialog).queryByRole("radio")).not.toBeInTheDocument();
       // The transient failure erases neither the list nor the mutation path:
       // revoke still works against the readable rows.
       apiPost.mockResolvedValue({ outcome: "applied" });
-      await user.click(within(dialog).getByRole("button", { name: "Deshacer" }));
+      await user.click(within(dialog).getByRole("button", { name: "Revocar" }));
       await waitFor(() => {
         expect(apiPost).toHaveBeenCalledWith(
           "/api/admin/users/u-t/course-assignments/c1/revoke",
@@ -1085,7 +1113,9 @@ describe("UsersPage", () => {
       const dialog = await screen.findByRole("dialog");
       // Page 1 renders; the page-6 course is not selectable from it.
       expect(
-        await within(dialog).findByRole("radio", { name: "Comisión1 (CODE-1)" }),
+        await within(dialog).findByRole("radio", {
+          name: "Comisión1 (CODE-1)",
+        }),
       ).toBeInTheDocument();
       expect(
         within(dialog).queryByRole("radio", { name: "Comisión101 (CODE-101)" }),
@@ -1095,7 +1125,9 @@ describe("UsersPage", () => {
       await waitFor(
         () => {
           expect(
-            within(dialog).getByRole("radio", { name: "Comisión101 (CODE-101)" }),
+            within(dialog).getByRole("radio", {
+              name: "Comisión101 (CODE-101)",
+            }),
           ).toBeInTheDocument();
         },
         { timeout: 3000 },
@@ -1137,7 +1169,9 @@ describe("UsersPage", () => {
       );
       const dialog = await screen.findByRole("dialog");
       expect(
-        await within(dialog).findByRole("radio", { name: "Comisión1 (CODE-1)" }),
+        await within(dialog).findByRole("radio", {
+          name: "Comisión1 (CODE-1)",
+        }),
       ).toBeInTheDocument();
       // Page through to page 6 — the course beyond the first 100.
       for (let i = 0; i < 5; i++) {
@@ -1196,19 +1230,25 @@ describe("UsersPage", () => {
       const dialog = await screen.findByRole("dialog");
       const searchbox = within(dialog).getByRole("searchbox");
       expect(
-        await within(dialog).findByRole("radio", { name: "Comisión1 (CODE-1)" }),
+        await within(dialog).findByRole("radio", {
+          name: "Comisión1 (CODE-1)",
+        }),
       ).toBeInTheDocument();
 
       // Search commits a filtered server query...
       await user.type(searchbox, "Comisión1");
       await waitFor(
         () => {
-          expect(queryParams(courseCalls.at(-1)!).get("search")).toBe("Comisión1");
+          expect(queryParams(courseCalls.at(-1)!).get("search")).toBe(
+            "Comisión1",
+          );
         },
         { timeout: 3000 },
       );
       // ...then page forward, so the clear must also reset the page.
-      await user.click(within(dialog).getByRole("button", { name: "Página siguiente" }));
+      await user.click(
+        within(dialog).getByRole("button", { name: "Página siguiente" }),
+      );
       await waitFor(() => {
         expect(queryParams(courseCalls.at(-1)!).get("page")).toBe("2");
       });
@@ -1229,7 +1269,9 @@ describe("UsersPage", () => {
       }
       // The unfiltered first page is restored in the picker.
       expect(
-        await within(dialog).findByRole("radio", { name: "Comisión3 (CODE-3)" }),
+        await within(dialog).findByRole("radio", {
+          name: "Comisión3 (CODE-3)",
+        }),
       ).toBeInTheDocument();
       expect(
         within(dialog).queryByRole("radio", { name: "Comisión110 (CODE-110)" }),
@@ -1264,11 +1306,13 @@ describe("UsersPage", () => {
       );
       await user.click(within(dialog).getByRole("button", { name: "Asignar" }));
       await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith("No se pudo asignar la comisión. Inténtalo de nuevo más tarde.");
+        expect(toast.error).toHaveBeenCalledWith(
+          "No se pudo asignar la comisión. Inténtalo de nuevo más tarde.",
+        );
       });
       // Revoke failure → revokeFailed copy.
       apiPost.mockRejectedValueOnce(new Error("boom"));
-      await user.click(within(dialog).getByRole("button", { name: "Deshacer" }));
+      await user.click(within(dialog).getByRole("button", { name: "Revocar" }));
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith(
           "No se pudo revocar la comisión. Inténtalo de nuevo más tarde.",
@@ -1373,7 +1417,7 @@ describe("UsersPage", () => {
       );
       const dialog = await screen.findByRole("dialog");
       expect(
-        within(dialog).getByText("Administración「Grader One」的评卷考试"),
+        within(dialog).getByText("Exámenes a corregir de «Grader One»"),
       ).toBeInTheDocument();
       await waitFor(() => {
         expect(apiGet).toHaveBeenCalledWith(
@@ -1396,7 +1440,7 @@ describe("UsersPage", () => {
       const matches = await within(dialog).findAllByText("期末考试");
       expect(matches.length).toBeGreaterThanOrEqual(2);
 
-      await user.click(within(dialog).getByRole("button", { name: "Deshacer" }));
+      await user.click(within(dialog).getByRole("button", { name: "Revocar" }));
       await waitFor(() => {
         expect(apiPost).toHaveBeenCalledWith(
           "/api/admin/users/u-g/exam-assignments/e1/revoke",
@@ -1404,7 +1448,7 @@ describe("UsersPage", () => {
       });
       await waitFor(() => {
         expect(
-          within(dialog).queryByRole("button", { name: "Deshacer" }),
+          within(dialog).queryByRole("button", { name: "Revocar" }),
         ).not.toBeInTheDocument();
       });
       expect(
@@ -1459,7 +1503,7 @@ describe("UsersPage", () => {
         within(dialog).queryByRole("button", { name: "Asignar" }),
       ).not.toBeInTheDocument();
       expect(
-        within(dialog).queryByRole("button", { name: "Deshacer" }),
+        within(dialog).queryByRole("button", { name: "Revocar" }),
       ).not.toBeInTheDocument();
       // Assignment View must not silently require ExamView: the option
       // catalog is mutation-support data and is not fetched at all.
@@ -1488,18 +1532,18 @@ describe("UsersPage", () => {
       const dialog = await screen.findByRole("dialog");
       expect(await within(dialog).findByText("e1")).toBeInTheDocument();
       expect(
-        within(dialog).getByRole("button", { name: "Deshacer" }),
+        within(dialog).getByRole("button", { name: "Revocar" }),
       ).toBeInTheDocument();
       expect(
         await within(dialog).findByTestId("grader-assign-inactive"),
-      ).toHaveTextContent("该账号已停用");
+      ).toHaveTextContent("Esta cuenta está desactivada");
       expect(within(dialog).queryByRole("radio")).not.toBeInTheDocument();
       expect(
         within(dialog).queryByRole("button", { name: "Asignar" }),
       ).not.toBeInTheDocument();
       expect(getCalls("/api/exams")).toHaveLength(0);
       apiPost.mockResolvedValue({ outcome: "applied" });
-      await user.click(within(dialog).getByRole("button", { name: "Deshacer" }));
+      await user.click(within(dialog).getByRole("button", { name: "Revocar" }));
       await waitFor(() => {
         expect(apiPost).toHaveBeenCalledWith(
           "/api/admin/users/u-ig/exam-assignments/e1/revoke",
@@ -1536,12 +1580,14 @@ describe("UsersPage", () => {
       const dialog = await screen.findByRole("dialog");
       expect(await within(dialog).findByText("e1")).toBeInTheDocument();
       expect(
-        await within(dialog).findByText("La lista de exámenes no está disponible. Las asignaciones actuales siguen igual."),
+        await within(dialog).findByText(
+          "La lista de exámenes no está disponible. Las asignaciones actuales siguen igual.",
+        ),
       ).toBeInTheDocument();
       expect(within(dialog).queryByRole("radio")).not.toBeInTheDocument();
       // The readable list is not erased and revoke still works.
       apiPost.mockResolvedValue({ outcome: "applied" });
-      await user.click(within(dialog).getByRole("button", { name: "Deshacer" }));
+      await user.click(within(dialog).getByRole("button", { name: "Revocar" }));
       await waitFor(() => {
         expect(apiPost).toHaveBeenCalledWith(
           "/api/admin/users/u-g/exam-assignments/e1/revoke",
@@ -1629,9 +1675,11 @@ describe("UsersPage", () => {
       // Page 1 renders without the page-6 target.
       const table = await screen.findByRole("table");
       expect(within(table).queryByText("teacher1")).not.toBeInTheDocument();
-      expect(screen.getByText(/共 103 条/)).toBeInTheDocument();
+      expect(screen.getByText(/103 en total/)).toBeInTheDocument();
       for (let i = 0; i < 5; i++) {
-        await user.click(screen.getByRole("button", { name: "Página siguiente" }));
+        await user.click(
+          screen.getByRole("button", { name: "Página siguiente" }),
+        );
       }
       await waitFor(() => {
         expect(apiGet).toHaveBeenCalledWith("/api/users?page=6&pageSize=20");

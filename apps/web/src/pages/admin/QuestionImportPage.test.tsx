@@ -100,8 +100,12 @@ describe("QuestionImportPage", () => {
 
   it("shows error state when courses API fails", async () => {
     renderPage(() => Promise.reject(new Error("network")));
-    expect(await screen.findByText("No se pudo cargar la lista de comisiones")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Reintentar/ })).toBeInTheDocument();
+    expect(
+      await screen.findByText("No se pudo cargar la lista de comisiones"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Reintentar/ }),
+    ).toBeInTheDocument();
   });
 
   it("renders import page with course selector and download button", async () => {

@@ -2,6 +2,7 @@ import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import questionRoutes from "./question.js";
 import courseRoutes from "./course.js";
 import { buildTestApp, uniquePrefix } from "./testHelpers.js";
+import { QUESTION_CSV_HEADER, parseCsvRecords } from "@exam/contracts";
 
 describe("question routes", () => {
   let ctx: Awaited<ReturnType<typeof buildTestApp>>;
@@ -52,6 +53,65 @@ describe("question routes", () => {
     expect(body.type).toBe("single_choice");
     expect(body.content).toBe("What is 1+1?");
     expect(body).toHaveProperty("id");
+  });
+
+  it("likert persists its scale; switching type must clear it", async () => {
+    const res = await ctx.app.inject({
+      method: "POST",
+      url: "/api/questions",
+      payload: {
+        type: "likert",
+        content: "Rate",
+        options: [
+          { id: "A", content: "Statement 1" },
+          { id: "B", content: "Statement 2" },
+        ],
+        scale: ["No", "Maybe", "Yes"],
+        standardAnswer: { A: 0, B: 2 },
+        difficulty: 1,
+      },
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    expect(res.statusCode).toBe(201);
+    const created = res.json();
+    expect(created.scale).toEqual(["No", "Maybe", "Yes"]);
+
+    const keepScale = await ctx.app.inject({
+      method: "PATCH",
+      url: `/api/questions/${created.id}`,
+      payload: { type: "single_choice", standardAnswer: "A" },
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    expect(keepScale.statusCode).toBe(400);
+
+    const cleared = await ctx.app.inject({
+      method: "PATCH",
+      url: `/api/questions/${created.id}`,
+      payload: { type: "single_choice", standardAnswer: "A", scale: null },
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    expect(cleared.statusCode).toBe(200);
+    expect(cleared.json().scale).toBeNull();
+  });
+
+  it("POST /api/questions creates a ranking question in the authored order", async () => {
+    const res = await ctx.app.inject({
+      method: "POST",
+      url: "/api/questions",
+      payload: {
+        type: "ranking",
+        content: "Order",
+        options: [
+          { id: "A", content: "First" },
+          { id: "B", content: "Second" },
+        ],
+        standardAnswer: ["A", "B"],
+        difficulty: 1,
+      },
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    expect(res.statusCode).toBe(201);
+    expect(res.json().standardAnswer).toEqual(["A", "B"]);
   });
 
   it("POST /api/questions creates a true_false question", async () => {
@@ -490,37 +550,76 @@ describe("question routes", () => {
     expect(body.error.requestId).toBeDefined();
   });
 
-  it("POST /api/questions/import imports valid rows", async () => {
+  const csvRow = (row: Record<string, string>) => ({
+    tipo: "",
+    enunciado: "",
+    opciones: "",
+    respuesta: "",
+    columnas: "",
+    criterio: "",
+    dificultad: "",
+    etiquetas: "",
+    ...row,
+  });
+
+  it("POST /api/questions/import validates CSV records of every type", async () => {
     const res = await ctx.app.inject({
       method: "POST",
       url: "/api/questions/import",
       payload: {
         rows: [
-          {
-            type: "single_choice",
-            content: "Import Q1?",
-            optionA: "A",
-            optionB: "B",
-            optionC: "C",
-            optionD: "D",
-            standardAnswer: "A",
-            score: 10,
-          },
-          {
-            type: "true_false",
-            content: "Import Q2?",
-            standardAnswer: true,
-            score: 5,
-          },
+          csvRow({
+            tipo: "single_choice",
+            enunciado: "Import Q1?",
+            opciones: "A|B|C",
+            respuesta: "B",
+          }),
+          csvRow({
+            tipo: "multiple_choice",
+            enunciado: "Import Q2?",
+            opciones: "A|B|C",
+            respuesta: "A|C",
+          }),
+          csvRow({
+            tipo: "true_false",
+            enunciado: "Import Q3?",
+            respuesta: "verdadero",
+          }),
+          csvRow({
+            tipo: "fill_blank",
+            enunciado: "Import ____?",
+            respuesta: "x",
+          }),
+          csvRow({
+            tipo: "text_response",
+            enunciado: "Import Q5?",
+            criterio: "Rubric",
+          }),
+          csvRow({
+            tipo: "likert",
+            enunciado: "Import Q6?",
+            opciones: "R1|R2",
+            respuesta: "1|2",
+            columnas: "Sí|No",
+          }),
+          csvRow({
+            tipo: "ranking",
+            enunciado: "Import Q7?",
+            opciones: "1|2|3",
+          }),
         ],
       },
       cookies: { "auth-token": ctx.adminToken },
     });
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    expect(body.total).toBe(2);
-    expect(body.valid).toBe(2);
-    expect(body.errors).toBe(0);
+    expect(body.details).toEqual(
+      expect.not.arrayContaining([
+        expect.objectContaining({ status: "error" }),
+      ]),
+    );
+    expect(body.total).toBe(7);
+    expect(body.valid).toBe(7);
   });
 
   it("POST /api/questions/import with confirm=true persists a log and returns logId", async () => {
@@ -530,12 +629,11 @@ describe("question routes", () => {
       payload: {
         confirm: true,
         rows: [
-          {
-            type: "true_false",
-            content: "Confirm log Q?",
-            standardAnswer: true,
-            score: 5,
-          },
+          csvRow({
+            tipo: "true_false",
+            enunciado: "Confirm log Q?",
+            respuesta: "verdadero",
+          }),
         ],
       },
       cookies: { "auth-token": ctx.adminToken },
@@ -552,12 +650,11 @@ describe("question routes", () => {
       url: "/api/questions/import",
       payload: {
         rows: [
-          {
-            type: "true_false",
-            content: "Preview Q?",
-            standardAnswer: false,
-            score: 5,
-          },
+          csvRow({
+            tipo: "true_false",
+            enunciado: "Preview Q?",
+            respuesta: "falso",
+          }),
         ],
       },
       cookies: { "auth-token": ctx.adminToken },
@@ -565,6 +662,53 @@ describe("question routes", () => {
     expect(res.statusCode).toBe(200);
     const body = res.json();
     expect(body.logId).toBeUndefined();
+  });
+
+  it("GET /api/questions/export returns a CSV that imports back with the same answers", async () => {
+    const prefix = uniquePrefix();
+    const rows = [
+      csvRow({
+        tipo: "single_choice",
+        enunciado: `${prefix} sc`,
+        opciones: "=1+1|B",
+        respuesta: "B",
+        etiquetas: "x|y",
+      }),
+      csvRow({
+        tipo: "likert",
+        enunciado: `${prefix} lk`,
+        opciones: "R1|R2",
+        respuesta: "2|1",
+        columnas: "Sí|No",
+      }),
+      csvRow({ tipo: "ranking", enunciado: `${prefix} rk`, opciones: "c|a|b" }),
+    ];
+    const imported = await ctx.app.inject({
+      method: "POST",
+      url: "/api/questions/import",
+      payload: { confirm: true, rows },
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    expect(imported.json().valid).toBe(3);
+
+    const res = await ctx.app.inject({
+      method: "GET",
+      url: "/api/questions/export",
+      cookies: { "auth-token": ctx.adminToken },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["content-type"]).toContain("text/csv");
+    const { records } = parseCsvRecords(res.body, QUESTION_CSV_HEADER);
+    const mine = records.filter((r) => r.enunciado.startsWith(prefix));
+    expect(mine).toEqual(rows.map((r) => ({ ...r, dificultad: "3" })));
+  });
+
+  it("GET /api/questions/export requires authentication", async () => {
+    const res = await ctx.app.inject({
+      method: "GET",
+      url: "/api/questions/export",
+    });
+    expect(res.statusCode).toBe(401);
   });
 
   // ── rubric production write/read path closure ─────────
@@ -756,13 +900,11 @@ describe("question routes", () => {
       payload: {
         confirm: true,
         rows: [
-          {
-            type: "text_response",
-            content: "导入的简答题",
-            standardAnswer: null,
-            score: 8,
-            rubric: "导入评分标准",
-          },
+          csvRow({
+            tipo: "text_response",
+            enunciado: "Pregunta de desarrollo importada",
+            criterio: "Criterio importado",
+          }),
         ],
       },
       cookies: { "auth-token": ctx.adminToken },
@@ -772,7 +914,6 @@ describe("question routes", () => {
     expect(body.valid).toBe(1);
     expect(body.errors).toBe(0);
 
-    // Confirm the imported row's rubric actually reached questions.rubric.
     const listRes = await ctx.app.inject({
       method: "GET",
       url: `/api/questions?type=text_response`,
@@ -783,9 +924,10 @@ describe("question routes", () => {
       content: string;
       rubric: string | null;
     }>;
-    const imported = items.find((q) => q.content === "导入的简答题");
-    expect(imported).toBeDefined();
-    expect(imported?.rubric).toBe("导入评分标准");
+    const imported = items.find(
+      (q) => q.content === "Pregunta de desarrollo importada",
+    );
+    expect(imported?.rubric).toBe("Criterio importado");
   });
 
   it("POST /api/questions/import reports errors for invalid rows", async () => {
@@ -794,127 +936,29 @@ describe("question routes", () => {
       url: "/api/questions/import",
       payload: {
         rows: [
-          {
-            type: "single_choice",
-            content: "Valid row",
-            optionA: "A",
-            optionB: "B",
-            standardAnswer: "A",
-            score: 10,
-          },
-          {
-            type: "fill_blank",
-            content: "No placeholder.",
-            standardAnswer: "x",
-            score: 5,
-          },
+          csvRow({
+            tipo: "single_choice",
+            enunciado: "Valid row",
+            opciones: "A|B",
+            respuesta: "A",
+          }),
+          csvRow({
+            tipo: "fill_blank",
+            enunciado: "No placeholder.",
+            respuesta: "x",
+          }),
+          csvRow({ tipo: "essay", enunciado: "Unknown type" }),
         ],
       },
       cookies: { "auth-token": ctx.adminToken },
     });
     expect(res.statusCode).toBe(200);
     const body = res.json();
-    expect(body.total).toBe(2);
+    expect(body.total).toBe(3);
     expect(body.valid).toBe(1);
-    expect(body.errors).toBe(1);
+    expect(body.errors).toBe(2);
     expect(body.details[1].status).toBe("error");
-  });
-
-  // ── #438: non-finite question scores rejected at the write boundary ──
-  // The JSON wire cannot carry NaN (the parser throws), but an overflowing
-  // exponent token (`1e999`) parses to Infinity — which a plain
-  // `z.number().positive()` rule accepted and the `double precision` column
-  // stores verbatim. Raw-string payloads below exercise the real parser
-  // behavior (JSON.stringify would collapse Infinity to null first).
-
-  it("POST /api/questions rejects score 1e999 (JSON Infinity)", async () => {
-    const res = await ctx.app.inject({
-      method: "POST",
-      url: "/api/questions",
-      headers: { "content-type": "application/json" },
-      payload: `{"type":"true_false","content":"Non-finite score?","standardAnswer":true,"score":1e999}`,
-      cookies: { "auth-token": ctx.adminToken },
-    });
-    expect(res.statusCode).toBe(400);
-    const body = res.json();
-    expect(body.error.code).toBe("VALIDATION_ERROR");
-    const fields = body.error.details.fields as Array<{ field: string }>;
-    expect(fields.some((f) => f.field === "score")).toBe(true);
-  });
-
-  it("POST /api/questions accepts fractional score 0.5", async () => {
-    const res = await ctx.app.inject({
-      method: "POST",
-      url: "/api/questions",
-      payload: {
-        type: "true_false",
-        content: "Fractional score?",
-        standardAnswer: true,
-        score: 0.5,
-      },
-      cookies: { "auth-token": ctx.adminToken },
-    });
-    expect(res.statusCode).toBe(201);
-    expect(res.json().score).toBe(0.5);
-  });
-
-  it("PATCH /api/questions/:id rejects score 1e999 (JSON Infinity)", async () => {
-    const createRes = await ctx.app.inject({
-      method: "POST",
-      url: "/api/questions",
-      payload: {
-        type: "true_false",
-        content: "Patch score boundary?",
-        standardAnswer: true,
-        score: 5,
-      },
-      cookies: { "auth-token": ctx.adminToken },
-    });
-    expect(createRes.statusCode).toBe(201);
-    const created = createRes.json();
-
-    const res = await ctx.app.inject({
-      method: "PATCH",
-      url: `/api/questions/${created.id}`,
-      headers: { "content-type": "application/json" },
-      payload: `{"score":1e999}`,
-      cookies: { "auth-token": ctx.adminToken },
-    });
-    expect(res.statusCode).toBe(400);
-    const body = res.json();
-    expect(body.error.code).toBe("VALIDATION_ERROR");
-    const fields = body.error.details.fields as Array<{ field: string }>;
-    expect(fields.some((f) => f.field === "score")).toBe(true);
-  });
-
-  it("POST /api/questions/import with confirm=true does not persist a score-1e999 row", async () => {
-    const uniqueContent = `Import non-finite score? ${uniquePrefix()}`;
-    const res = await ctx.app.inject({
-      method: "POST",
-      url: "/api/questions/import",
-      headers: { "content-type": "application/json" },
-      payload: `{"confirm":true,"rows":[{"type":"true_false","content":"${uniqueContent}","standardAnswer":true,"score":1e999}]}`,
-      cookies: { "auth-token": ctx.adminToken },
-    });
-    expect(res.statusCode).toBe(200);
-    const body = res.json();
-    expect(body.total).toBe(1);
-    expect(body.valid).toBe(0);
-    expect(body.errors).toBe(1);
-    expect(body.details[0].status).toBe("error");
-
-    // The confirmed write path must not persist the invalid row: the
-    // question is absent from the authoritative read path (server-side
-    // substring search over content).
-    const listRes = await ctx.app.inject({
-      method: "GET",
-      url: `/api/questions?search=${encodeURIComponent(uniqueContent)}`,
-      cookies: { "auth-token": ctx.adminToken },
-    });
-    expect(listRes.statusCode).toBe(200);
-    const list = listRes.json();
-    expect(list.total).toBe(0);
-    expect(list.items).toHaveLength(0);
+    expect(body.details[2].status).toBe("error");
   });
 
   // ── MVP question creation proof — type-specific readback ──
@@ -1190,20 +1234,19 @@ describe("question routes", () => {
       expect(res.json().error?.code).toBe("VALIDATION_ERROR");
     });
 
-    it("import splits comma-separated tags, drops empties, and stores them filterable", async () => {
+    it("import splits pipe-separated tags, drops empties, and stores them filterable", async () => {
       const res = await ctx.app.inject({
         method: "POST",
         url: "/api/questions/import",
         payload: {
           confirm: true,
           rows: [
-            {
-              type: "true_false",
-              content: "Import tag round-trip",
-              standardAnswer: true,
-              score: 5,
-              tags: "Importar, ,另一个",
-            },
+            csvRow({
+              tipo: "true_false",
+              enunciado: "Import tag round-trip",
+              respuesta: "verdadero",
+              etiquetas: "Importar| |Otra",
+            }),
           ],
         },
         cookies: { "auth-token": ctx.adminToken },

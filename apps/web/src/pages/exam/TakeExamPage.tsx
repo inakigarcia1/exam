@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { api } from "@/lib/api";
 import { getApiErrorMessage } from "@/lib/apiErrors";
 import { ContentRenderer } from "@/components/shared/content/ContentRenderer";
+import { QuestionImage } from "@/components/shared/QuestionImage";
 import { toast } from "sonner";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { ErrorState } from "@/components/shared/ErrorState";
@@ -1273,7 +1274,8 @@ export function TakeExamPage() {
     content: currentQuestionView.prompt,
     contentDocument: currentQuestionView.promptDocument,
     answerMode: currentQuestionView.answerMode,
-    attachments: [],
+    image: currentQuestionView.image,
+    scale: currentQuestionView.scale,
     options: currentQuestionView.options,
     score: currentQuestionView.maxScore,
     order: currentIndex,
@@ -1524,6 +1526,11 @@ export function TakeExamPage() {
                   document={currentQuestionView.promptDocument}
                 />
               </div>
+              {currentQuestionView.image && (
+                <div className="mb-8">
+                  <QuestionImage image={currentQuestionView.image} />
+                </div>
+              )}
               <QuestionRenderer
                 question={rendererQuestion}
                 answer={currentAnswer}

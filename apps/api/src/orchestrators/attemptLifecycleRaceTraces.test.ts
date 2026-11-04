@@ -215,7 +215,8 @@ describe("attempt lifecycle deterministic race traces (EXAM-341)", () => {
         content: "Trace question",
         contentDocument: null,
         answerMode: null,
-        attachments: [],
+        image: null,
+        scale: null,
         options: [
           { id: "a", content: "A" },
           { id: "b", content: "B" },

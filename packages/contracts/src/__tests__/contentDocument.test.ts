@@ -333,7 +333,8 @@ describe("question contract evolution", () => {
       originalQuestionId: "q-1",
       type: "text_response",
       content: "plain prompt",
-      attachments: [],
+      image: null,
+      scale: null,
       options: [{ id: "A", content: "x" }],
       standardAnswer: null,
       score: 5,
@@ -357,7 +358,8 @@ describe("question contract evolution", () => {
       content: "projection",
       contentDocument: RICH_TEXT_RESPONSE_CREATE.contentDocument,
       answerMode: "rich",
-      attachments: [],
+      image: null,
+      scale: null,
       options: [
         {
           id: "A",

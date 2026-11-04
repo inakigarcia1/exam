@@ -65,6 +65,7 @@ export const ADMIN_NAV_FAMILIES: readonly NavFamily[] = [
       "exams/:id/proctor",
       "exams/:id/proctor/monitor",
       "attempts/:id",
+      "attempts/:id/live",
     ],
   },
   {

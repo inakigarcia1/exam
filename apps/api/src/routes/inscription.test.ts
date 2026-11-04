@@ -62,7 +62,7 @@ describe("inscription link on a finished exam", () => {
     await ctx.db.insert(schema.courses).values({
       id: courseId,
       organizationId: ctx.org.id,
-      name: "Inscription course",
+      name: `Inscription course ${crypto.randomUUID()}`,
       code: `INS-${uniquePrefix()}`,
       description: "",
       createdAt: now,

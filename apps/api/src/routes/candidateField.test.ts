@@ -140,42 +140,14 @@ describe("candidate field routes", () => {
     );
   });
 
-  it("GET /api/candidate-fields/template returns the configured template", async () => {
-    const earlierField = `cf-${p}-template-earlier`;
-    const laterField = `cf-${p}-template-later`;
-    for (const [name, sortOrder] of [
-      [laterField, 20],
-      [earlierField, 10],
-    ] as const) {
-      const createRes = await ctx.app.inject({
-        method: "POST",
-        url: "/api/candidate-fields",
-        payload: {
-          name,
-          label: name,
-          fieldType: "text",
-          required: false,
-          unique: false,
-          sortOrder,
-        },
-        cookies: { "auth-token": adminToken },
-      });
-      expect(createRes.statusCode).toBe(201);
-    }
-
+  it("GET /api/candidate-fields/template returns the candidate CSV header", async () => {
     const res = await ctx.app.inject({
       method: "GET",
       url: "/api/candidate-fields/template",
       cookies: { "auth-token": adminToken },
     });
     expect(res.statusCode).toBe(200);
-    const { headers } = res.json();
-    expect(headers).toEqual(
-      expect.arrayContaining(["username", earlierField, laterField]),
-    );
-    expect(headers.indexOf(earlierField)).toBeLessThan(
-      headers.indexOf(laterField),
-    );
+    expect(res.json().headers).toEqual(["legajo", "nombre", "contraseña"]);
   });
 
   it("POST /api/candidate-fields creates a field", async () => {

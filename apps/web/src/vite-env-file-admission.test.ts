@@ -15,7 +15,9 @@ import { fileURLToPath } from "node:url";
 /** apps/web — resolved via import.meta.url directly (relative `new URL`
  * resolution returns dev-server http URLs under the jsdom test environment). */
 const WEB_DIR = join(dirname(fileURLToPath(import.meta.url)), "..");
-const VITE_BIN = join(WEB_DIR, "node_modules", ".bin", "vite");
+// WHY: spawn the JS entry through node — the `.bin/vite` shim is a shell
+// script on POSIX and a `.cmd` on Windows, neither portable to spawn().
+const VITE_BIN = join(WEB_DIR, "node_modules", "vite", "bin", "vite.js");
 const VITE_CONFIG = join(WEB_DIR, "vite.config.ts");
 
 /**
@@ -53,10 +55,14 @@ afterAll(async () => {
 
 function runViteBuild(root: string): Promise<{ code: number; output: string }> {
   return new Promise((resolve, reject) => {
-    const child = spawn(VITE_BIN, ["build", "--config", VITE_CONFIG, root], {
-      cwd: WEB_DIR,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    const child = spawn(
+      process.execPath,
+      [VITE_BIN, "build", "--config", VITE_CONFIG, root],
+      {
+        cwd: WEB_DIR,
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
     let output = "";
     child.stdout.on("data", (d: Buffer) => (output += d.toString()));
     child.stderr.on("data", (d: Buffer) => (output += d.toString()));

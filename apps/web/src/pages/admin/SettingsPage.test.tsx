@@ -107,7 +107,9 @@ describe("SettingsPage", () => {
     const input = await screen.findByLabelText("Título del producto");
     await user.clear(input);
 
-    const button = await screen.findByRole("button", { name: "Guardar configuración" });
+    const button = await screen.findByRole("button", {
+      name: "Guardar configuración",
+    });
     await user.click(button);
 
     await vi.waitFor(() => {
@@ -129,10 +131,14 @@ describe("SettingsPage", () => {
     renderPage();
 
     await screen.findByLabelText("Título del producto");
-    await user.click(await screen.findByRole("button", { name: "Guardar configuración" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Guardar configuración" }),
+    );
 
     expect(
-      await screen.findByText("Error interno del servidor. Inténtalo más tarde."),
+      await screen.findByText(
+        "Error interno del servidor. Inténtalo más tarde.",
+      ),
     ).toBeInTheDocument();
   });
 });

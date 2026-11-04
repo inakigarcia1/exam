@@ -124,7 +124,9 @@ describe("ProctorRecoveryPage — collectionScope presentation (issue 606)", () 
     expect(
       await screen.findByTestId("proctor-recovery-collection-scope"),
     ).toHaveTextContent("Alcance: mis supervisiones actuales");
-    expect(screen.queryByText("Alcance: todos los exámenes de la organización")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Alcance: todos los exámenes de la organización"),
+    ).not.toBeInTheDocument();
   });
 
   it("scope follows the WIRE FACT, not the user's role: Proctor + organization response", async () => {

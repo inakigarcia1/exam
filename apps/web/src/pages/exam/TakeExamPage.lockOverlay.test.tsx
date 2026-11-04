@@ -46,6 +46,9 @@ function buildSnapshot(
         type: "single_choice",
         prompt: "选择一项",
         promptDocument: null,
+
+        image: null,
+        scale: null,
         answerMode: "plain" as const,
         options: [
           { id: "opt-a", content: "A", contentDocument: null },
@@ -172,9 +175,13 @@ describe("locked-state presentation matrix", () => {
 
     const overlay = await screen.findByTestId("deadline-overlay");
     expect(overlay).toHaveAttribute("data-lock-reason", "disrupted");
-    expect(within(overlay).getByText("Se cortó la conexión")).toBeInTheDocument();
     expect(
-      within(overlay).getByText("Vuelve a la lista de exámenes y elige «Continuar examen» para retomar."),
+      within(overlay).getByText("Se cortó la conexión"),
+    ).toBeInTheDocument();
+    expect(
+      within(overlay).getByText(
+        "Vuelve a la lista de exámenes y elige «Continuar examen» para retomar.",
+      ),
     ).toBeInTheDocument();
     expect(
       within(overlay).queryByText("Se acabó el tiempo. El examen terminó."),
@@ -182,7 +189,9 @@ describe("locked-state presentation matrix", () => {
     expect(
       within(overlay).queryByText("Enviando tus respuestas..."),
     ).not.toBeInTheDocument();
-    expect(within(overlay).queryByText("Retomando el examen")).not.toBeInTheDocument();
+    expect(
+      within(overlay).queryByText("Retomando el examen"),
+    ).not.toBeInTheDocument();
     expect(screen.getByTestId("lock-back-to-list-btn")).toBeInTheDocument();
   });
 
@@ -227,8 +236,12 @@ describe("locked-state presentation matrix", () => {
 
     const overlay = await screen.findByTestId("deadline-overlay");
     expect(overlay).toHaveAttribute("data-lock-reason", "submitted");
-    expect(within(overlay).getByText("El examen ya terminó")).toBeInTheDocument();
-    expect(within(overlay).getByText("Tus respuestas ya se enviaron.")).toBeInTheDocument();
+    expect(
+      within(overlay).getByText("El examen ya terminó"),
+    ).toBeInTheDocument();
+    expect(
+      within(overlay).getByText("Tus respuestas ya se enviaron."),
+    ).toBeInTheDocument();
     expect(
       within(overlay).queryByText("Enviando tus respuestas..."),
     ).not.toBeInTheDocument();

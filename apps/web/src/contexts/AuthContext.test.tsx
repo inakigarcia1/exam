@@ -121,7 +121,9 @@ describe("AuthContext", () => {
         await userEvent.click(screen.getByText("login"));
       });
 
-      expect(screen.getByTestId("user-name")).toHaveTextContent("Administrador");
+      expect(screen.getByTestId("user-name")).toHaveTextContent(
+        "Administrador",
+      );
     });
 
     it("sets isLoading to true during login", async () => {
@@ -211,7 +213,9 @@ describe("AuthContext", () => {
         await userEvent.click(screen.getByText("login"));
       });
 
-      expect(screen.getByTestId("user-name")).toHaveTextContent("Administrador");
+      expect(screen.getByTestId("user-name")).toHaveTextContent(
+        "Administrador",
+      );
 
       vi.stubGlobal(
         "fetch",
@@ -330,7 +334,9 @@ describe("AuthContext", () => {
         await userEvent.click(screen.getByText("login"));
       });
 
-      expect(screen.getByTestId("error")).toHaveTextContent("Usuario o contraseña incorrectos");
+      expect(screen.getByTestId("error")).toHaveTextContent(
+        "Usuario o contraseña incorrectos",
+      );
       expect(screen.getByTestId("user-name")).toHaveTextContent("未登录");
     });
 
@@ -360,7 +366,9 @@ describe("AuthContext", () => {
         await userEvent.click(screen.getByText("login"));
       });
 
-      expect(screen.getByTestId("error")).toHaveTextContent("Usuario o contraseña incorrectos");
+      expect(screen.getByTestId("error")).toHaveTextContent(
+        "Usuario o contraseña incorrectos",
+      );
 
       vi.stubGlobal(
         "fetch",

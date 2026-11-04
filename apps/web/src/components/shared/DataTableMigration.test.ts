@@ -6,14 +6,13 @@ import { describe, expect, it } from "vitest";
 const here = dirname(fileURLToPath(import.meta.url));
 
 const tableConsumers = [
+  "../exam/ExamQuestionsEditor.tsx",
   "../../pages/admin/AuditLogPage.tsx",
   "../../pages/admin/CandidateFieldsPage.tsx",
   "../../pages/admin/CandidatesPage.tsx",
   "../../pages/admin/CoursePage.tsx",
   "../../pages/admin/DashboardPage.tsx",
-  "../../pages/admin/ExamCreatePage.tsx",
   "../../pages/admin/ExamDetailPage.tsx",
-  "../../pages/admin/ExamEditPage.tsx",
   "../../pages/admin/ExamPage.tsx",
   "../../pages/admin/GradingQueuePage.tsx",
   "../../pages/admin/ImportLogsPage.tsx",

@@ -333,7 +333,8 @@ describe("course routes", () => {
       content: "Choose A",
       options: [{ id: "a", content: "A" }],
       standardAnswer: "a",
-      attachments: [],
+      image: null,
+      scale: null,
       difficulty: 1,
       tags: [],
       gradingRule: {

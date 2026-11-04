@@ -95,7 +95,7 @@ describe("CSV export integration", () => {
     const body = typeof res.body === "string" ? res.body : res.body.toString();
     expect(body).toContain("Nombre del alumno");
     expect(body).toContain("Calificaciones");
-    expect(body).toContain("及格状态");
+    expect(body).toContain("Aprobado o no");
   });
 
   it("returns 401 ErrorResponse v0 with AUTH_REQUIRED and requestId when unauthenticated", async () => {
@@ -445,7 +445,7 @@ describe("CSV export integration", () => {
       id: crypto.randomUUID(),
       organizationId: ctx.org.id,
       name: fieldName,
-      label: "学号",
+      label: "Legajo",
       fieldType: "text",
       required: false,
       unique: true,
@@ -537,7 +537,7 @@ describe("CSV export integration", () => {
       ctx.adminToken,
       labelExamId,
     );
-    expect(body).toContain("学号");
+    expect(body).toContain("Legajo");
     expect(body).toContain("STU001");
     expect(body).not.toContain("studentId");
   });

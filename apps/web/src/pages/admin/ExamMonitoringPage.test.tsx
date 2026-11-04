@@ -131,7 +131,9 @@ describe("ExamMonitoringPage", () => {
   it("shows initial error state when first load fails", async () => {
     getMock.mockRejectedValueOnce(new Error("network"));
     renderPage();
-    expect(await screen.findByText("No se pudo cargar el monitoreo")).toBeInTheDocument();
+    expect(
+      await screen.findByText("No se pudo cargar el monitoreo"),
+    ).toBeInTheDocument();
   });
 
   it("shows stale warning and logger.warn on subsequent poll failure", async () => {
@@ -171,7 +173,9 @@ describe("ExamMonitoringPage", () => {
       examId: "exam-1",
     });
     expect(
-      screen.getByText("No se pudo actualizar. Se muestran los datos de la última carga que salió bien."),
+      screen.getByText(
+        "No se pudo actualizar. Se muestran los datos de la última carga que salió bien.",
+      ),
     ).toBeInTheDocument();
   });
 

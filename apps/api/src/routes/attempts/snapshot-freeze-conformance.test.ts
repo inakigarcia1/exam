@@ -271,7 +271,7 @@ describe("snapshot freeze boundary (EXSEM-002/003/004/005)", () => {
     const patchRes = await ctx.app.inject({
       method: "PATCH",
       url: `/api/exams/${examId}`,
-      payload: { questionIds: [q2Id] },
+      payload: { questionIds: [q2Id], questionScores: { [q2Id]: 100 } },
       cookies: { "auth-token": ctx.adminToken },
     });
     expect(patchRes.statusCode).toBe(200);

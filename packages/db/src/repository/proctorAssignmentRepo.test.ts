@@ -678,8 +678,8 @@ describe("proctor assignment persistence foundation", () => {
     await db.insert(schema.courses).values({
       id: courseId,
       organizationId: alpha.organizationId,
-      name: "Course 4",
-      code: `C4-${courseId}`,
+      name: "Course 6",
+      code: `C6-${courseId}`,
       description: "",
       createdAt: now(),
       updatedAt: now(),

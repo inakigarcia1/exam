@@ -165,8 +165,12 @@ describe("ProctorRecoveryIncidentDetailPage", () => {
     await screen.findByText("proctor detail test incident");
 
     await user.click(screen.getByRole("button", { name: "Asociar operación" }));
-    await user.click(screen.getByRole("combobox", { name: "Tipo de operación" }));
-    await user.click(await screen.findByRole("option", { name: "Compensación de tiempo" }));
+    await user.click(
+      screen.getByRole("combobox", { name: "Tipo de operación" }),
+    );
+    await user.click(
+      await screen.findByRole("option", { name: "Compensación de tiempo" }),
+    );
     await user.type(
       screen.getByLabelText("ID del registro de operación"),
       "adjustment-1234567890",
@@ -197,12 +201,16 @@ describe("ProctorRecoveryIncidentDetailPage", () => {
     renderPage();
     await screen.findByText("proctor detail test incident");
 
-    await user.click(screen.getByRole("button", { name: "Asociar interrupción" }));
+    await user.click(
+      screen.getByRole("button", { name: "Asociar interrupción" }),
+    );
     await user.type(
       screen.getByLabelText("ID del registro de interrupción"),
       "00000000-0000-4000-8000-000000000099",
     );
-    await user.click(screen.getByRole("button", { name: "Asociar interrupción" }));
+    await user.click(
+      screen.getByRole("button", { name: "Asociar interrupción" }),
+    );
 
     expect(postMock).toHaveBeenCalledTimes(1);
     const [url, body] = postMock.mock.calls[0]! as unknown as [string, object];

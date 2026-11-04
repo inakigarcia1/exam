@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import {
   Dialog,
@@ -38,8 +38,11 @@ import {
   plainTextProjection,
   plainTextToDocument,
   type ContentDocumentV1,
+  type QuestionImage,
 } from "@exam/domain";
 import { RichContentEditorLazy } from "@/components/shared/content/RichContentEditorLazy";
+import { QuestionImageField } from "./QuestionImageField";
+import { LikertEditor } from "./LikertEditor";
 /** A single option within a question, with an ID, display content, and correctness flag. */
 interface Option {
   id: string;
@@ -55,7 +58,9 @@ export interface QuestionFormData {
     | "multiple_choice"
     | "fill_blank"
     | "true_false"
-    | "text_response";
+    | "text_response"
+    | "likert"
+    | "ranking";
   content: string;
   /**
    * Rich prompt document. null → Plain mode (`content` is the
@@ -63,6 +68,9 @@ export interface QuestionFormData {
    * projection for search/display and is re-derived server-side on write).
    */
   contentDocument: ContentDocumentV1 | null;
+  image: QuestionImage | null;
+  /** likert only: column labels; options are the rows. */
+  scale: string[] | null;
   /**
    * text_response only: how candidates answer — plain text or the rich
    * editor. Independent of the prompt's Plain/Rich mode.
@@ -93,6 +101,8 @@ const defaultForm: QuestionFormData = {
   type: "single_choice",
   content: "",
   contentDocument: null,
+  image: null,
+  scale: null,
   answerMode: "plain",
   options: [
     { id: "A", content: "" },
@@ -108,6 +118,10 @@ const defaultForm: QuestionFormData = {
   },
   rubric: null,
 };
+
+function isLikertAnswer(value: unknown): value is Record<string, number> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
 /**
  * True when the document carries anything the plain textarea cannot
@@ -163,14 +177,51 @@ export function QuestionForm({ initial, onChange }: QuestionFormProps) {
   }
 
   function addOption() {
-    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    const nextId = letters[form.options.length] ?? `${form.options.length}`;
+    const used = new Set(form.options.map((o) => o.id));
+    const nextId =
+      [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"].find((l) => !used.has(l)) ??
+      `${form.options.length}`;
     update({ options: [...form.options, { id: nextId, content: "" }] });
   }
 
   function removeOption(index: number) {
+    const removed = form.options[index];
     const next = form.options.filter((_, i) => i !== index);
+    if (
+      form.type === "likert" &&
+      removed &&
+      isLikertAnswer(form.standardAnswer)
+    ) {
+      const { [removed.id]: _dropped, ...rest } = form.standardAnswer;
+      update({ options: next, standardAnswer: rest });
+      return;
+    }
     update({ options: next });
+  }
+
+  function moveOption(index: number, delta: -1 | 1) {
+    const target = index + delta;
+    if (target < 0 || target >= form.options.length) return;
+    const next = [...form.options];
+    [next[index], next[target]] = [next[target]!, next[index]!];
+    update({ options: next });
+  }
+
+  function setLikertCorrect(rowId: string, column: number) {
+    const current = isLikertAnswer(form.standardAnswer)
+      ? form.standardAnswer
+      : {};
+    update({ standardAnswer: { ...current, [rowId]: column } });
+  }
+
+  function updateScale(scale: string[]) {
+    const current = isLikertAnswer(form.standardAnswer)
+      ? form.standardAnswer
+      : {};
+    const kept = Object.fromEntries(
+      Object.entries(current).filter(([, column]) => column < scale.length),
+    );
+    update({ scale, standardAnswer: kept });
   }
 
   function updateOption(index: number, patch: Partial<Option>) {
@@ -242,6 +293,7 @@ export function QuestionForm({ initial, onChange }: QuestionFormProps) {
         type,
         content,
         contentDocument: null,
+        scale: null,
         options: [],
         standardAnswer: "",
         rubric: null,
@@ -280,8 +332,24 @@ export function QuestionForm({ initial, onChange }: QuestionFormProps) {
             value={form.type}
             onValueChange={(v) => {
               const type = v as QuestionFormData["type"];
-              const defaults: Partial<QuestionFormData> = {};
-              if (type === "single_choice" || type === "multiple_choice") {
+              const defaults: Partial<QuestionFormData> = { scale: null };
+              if (type === "likert" || type === "ranking") {
+                defaults.options = [
+                  { id: "A", content: "" },
+                  { id: "B", content: "" },
+                  { id: "C", content: "" },
+                ];
+                defaults.standardAnswer = type === "likert" ? {} : [];
+                defaults.rubric = null;
+                if (type === "likert") {
+                  defaults.scale = t(
+                    "admin.forms.question.likertDefaultScale",
+                  ).split("|");
+                }
+              } else if (
+                type === "single_choice" ||
+                type === "multiple_choice"
+              ) {
                 defaults.options = [
                   { id: "A", content: "" },
                   { id: "B", content: "" },
@@ -350,6 +418,12 @@ export function QuestionForm({ initial, onChange }: QuestionFormProps) {
               <SelectItem value="text_response">
                 {t("admin.forms.question.typeTextResponse")}
               </SelectItem>
+              <SelectItem value="likert">
+                {t("admin.forms.question.typeLikert")}
+              </SelectItem>
+              <SelectItem value="ranking">
+                {t("admin.forms.question.typeRanking")}
+              </SelectItem>
             </SelectContent>
           </Select>
         </Field>
@@ -370,7 +444,7 @@ export function QuestionForm({ initial, onChange }: QuestionFormProps) {
               }}
             >
               <SelectTrigger
-                className="h-8 w-28 text-sm"
+                className="h-8 w-44 shrink-0 text-sm"
                 aria-label={t("content.mode.label")}
               >
                 <SelectValue />
@@ -409,6 +483,11 @@ export function QuestionForm({ initial, onChange }: QuestionFormProps) {
           />
         )}
       </Field>
+
+      <QuestionImageField
+        value={form.image}
+        onChange={(image) => update({ image })}
+      />
 
       {(form.type === "single_choice" ||
         form.type === "multiple_choice" ||
@@ -492,7 +571,7 @@ export function QuestionForm({ initial, onChange }: QuestionFormProps) {
                     }}
                   >
                     <SelectTrigger
-                      className="h-8 w-20 text-sm"
+                      className="h-8 w-44 shrink-0 text-sm"
                       aria-label={t("content.mode.optionLabel", { id: opt.id })}
                     >
                       <SelectValue />
@@ -523,6 +602,88 @@ export function QuestionForm({ initial, onChange }: QuestionFormProps) {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {form.type === "likert" && form.scale && (
+        <LikertEditor
+          rows={form.options}
+          scale={form.scale}
+          answer={
+            isLikertAnswer(form.standardAnswer) ? form.standardAnswer : {}
+          }
+          onAddRow={addOption}
+          onRemoveRow={removeOption}
+          onRowChange={(i, content) => updateOption(i, { content })}
+          onScaleChange={updateScale}
+          onCorrectChange={setLikertCorrect}
+        />
+      )}
+
+      {form.type === "ranking" && (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <Label>{t("admin.forms.question.options")}</Label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addOption}
+            >
+              <AppIcon icon={Plus} size="inline" />
+              {t("admin.forms.question.addOption")}
+            </Button>
+          </div>
+          <p className="type-metadata">
+            {t("admin.forms.question.rankingHint")}
+          </p>
+          <ol className="flex flex-col gap-2">
+            {form.options.map((opt, i) => (
+              <li key={opt.id} className="flex items-center gap-2">
+                <span className="w-8 type-secondary">{i + 1}.</span>
+                <Input
+                  value={opt.content}
+                  onChange={(e) => updateOption(i, { content: e.target.value })}
+                  placeholder={t("admin.forms.question.optionPlaceholder", {
+                    id: i + 1,
+                  })}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  disabled={i === 0}
+                  aria-label={t("admin.forms.question.moveUp", { n: i + 1 })}
+                  onClick={() => moveOption(i, -1)}
+                >
+                  <AppIcon icon={ArrowUp} size="inline" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  disabled={i === form.options.length - 1}
+                  aria-label={t("admin.forms.question.moveDown", { n: i + 1 })}
+                  onClick={() => moveOption(i, 1)}
+                >
+                  <AppIcon icon={ArrowDown} size="inline" />
+                </Button>
+                {form.options.length > 2 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={t("admin.forms.question.removeOption", {
+                      id: i + 1,
+                    })}
+                    onClick={() => removeOption(i)}
+                  >
+                    <AppIcon icon={Trash2} size="inline" />
+                  </Button>
+                )}
+              </li>
+            ))}
+          </ol>
         </div>
       )}
 
@@ -597,7 +758,7 @@ export function QuestionForm({ initial, onChange }: QuestionFormProps) {
         </>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field>
           <Label>{t("admin.forms.question.difficulty")}</Label>
           <Select

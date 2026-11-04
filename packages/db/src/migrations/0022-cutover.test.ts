@@ -193,6 +193,15 @@ const EVENT_COLS = `
   "eligible_seconds", "time_adjustment_id", "actor_id",
   "reason_code", "created_at"`;
 
+// INVARIANT: only columns that exist right after 0022; later migrations add
+// columns (e.g. holder_session_id) the full-row select would reference.
+const ATTEMPT_0022_COLUMNS = {
+  status: schema.examAttempts.status,
+  currentInterruptionId: schema.examAttempts.currentInterruptionId,
+  interruptedAt: schema.examAttempts.interruptedAt,
+  deadlineAt: schema.examAttempts.deadlineAt,
+};
+
 describe("0022 cutover — Clean I1", () => {
   let iso: IsolatedTestDb;
   let conn: Awaited<ReturnType<typeof createDatabase>>;
@@ -228,7 +237,7 @@ describe("0022 cutover — Clean I1", () => {
 
   it("leaves clean in_progress attempt unchanged", async () => {
     const rows = await conn.db
-      .select()
+      .select(ATTEMPT_0022_COLUMNS)
       .from(schema.examAttempts)
       .where(eq(schema.examAttempts.id, cleanAttemptId));
     expect(rows).toHaveLength(1);
@@ -356,7 +365,7 @@ describe("0022 cutover — Transitional I1", () => {
 
   it("disrupted + null pointer gets parent + detected + pointer", async () => {
     const attempt = await conn.db
-      .select()
+      .select(ATTEMPT_0022_COLUMNS)
       .from(schema.examAttempts)
       .where(eq(schema.examAttempts.id, disruptedNullPtr));
     expect(attempt).toHaveLength(1);
@@ -392,7 +401,7 @@ describe("0022 cutover — Transitional I1", () => {
 
   it("in_progress + pointer gets restored outcome then pointer cleared", async () => {
     const attempt = await conn.db
-      .select()
+      .select(ATTEMPT_0022_COLUMNS)
       .from(schema.examAttempts)
       .where(eq(schema.examAttempts.id, inProgressPtr));
     expect(attempt[0]!.currentInterruptionId).toBeNull();
@@ -414,7 +423,7 @@ describe("0022 cutover — Transitional I1", () => {
 
   it("submitted + pointer gets terminalized outcome then pointer cleared", async () => {
     const attempt = await conn.db
-      .select()
+      .select(ATTEMPT_0022_COLUMNS)
       .from(schema.examAttempts)
       .where(eq(schema.examAttempts.id, submittedPtr));
     expect(attempt[0]!.currentInterruptionId).toBeNull();
@@ -435,7 +444,7 @@ describe("0022 cutover — Transitional I1", () => {
 
   it("graded + existing terminalized outcome: not duplicated, pointer cleared", async () => {
     const attempt = await conn.db
-      .select()
+      .select(ATTEMPT_0022_COLUMNS)
       .from(schema.examAttempts)
       .where(eq(schema.examAttempts.id, gradedWithOutcome));
     expect(attempt[0]!.currentInterruptionId).toBeNull();
@@ -456,7 +465,7 @@ describe("0022 cutover — Transitional I1", () => {
 
   it("multiple historical episodes: only current pointer resolved, history intact", async () => {
     const attempt = await conn.db
-      .select()
+      .select(ATTEMPT_0022_COLUMNS)
       .from(schema.examAttempts)
       .where(eq(schema.examAttempts.id, multiEpisodeAttempt));
     expect(attempt[0]!.currentInterruptionId).toBeNull();
@@ -480,7 +489,7 @@ describe("0022 cutover — Transitional I1", () => {
 
   it("deadlines exactly unchanged", async () => {
     const attempts = await conn.db
-      .select()
+      .select(ATTEMPT_0022_COLUMNS)
       .from(schema.examAttempts)
       .where(eq(schema.examAttempts.organizationId, ORG_ID))
       .orderBy(schema.examAttempts.attemptNo);

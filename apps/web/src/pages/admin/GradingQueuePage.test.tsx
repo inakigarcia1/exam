@@ -131,13 +131,17 @@ describe("GradingQueuePage", () => {
       pageSize: 20,
     });
     renderPage();
-    expect(await screen.findByText("No hay exámenes por calificar")).toBeInTheDocument();
+    expect(
+      await screen.findByText("No hay exámenes por calificar"),
+    ).toBeInTheDocument();
   });
 
   it("shows error state on fetch failure", async () => {
     getMock.mockRejectedValue(new Error("Network error"));
     renderPage();
-    expect(await screen.findByText("No se pudo cargar la cola de calificación")).toBeInTheDocument();
+    expect(
+      await screen.findByText("No se pudo cargar la cola de calificación"),
+    ).toBeInTheDocument();
   });
 
   it("clicking a row navigates to grading detail", async () => {

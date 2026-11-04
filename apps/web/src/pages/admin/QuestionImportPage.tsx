@@ -32,25 +32,14 @@ import { Badge } from "@/components/ui/badge";
 import { PageContainer } from "@/components/shared/PageContainer";
 import { CircleCheck, CircleAlert, CircleX } from "lucide-react";
 import { getTypeLabelKey } from "@/lib/constants";
+import { downloadQuestionTemplate, readQuestionCsv } from "@/lib/questionCsv";
+import type { QuestionCsvRecord } from "@exam/contracts";
 
 /** Minimal course representation used to populate the course selector. */
 interface CourseRow {
   id: string;
   name: string;
   code: string;
-}
-
-/** A single parsed row from the uploaded CSV file. */
-interface ImportRow {
-  type: string;
-  content: string;
-  optionA?: string;
-  optionB?: string;
-  optionC?: string;
-  optionD?: string;
-  standardAnswer: unknown;
-  difficulty?: number;
-  tags?: string;
 }
 
 /** Summary and per-row details returned by the import validation endpoint. */
@@ -75,7 +64,8 @@ export function QuestionImportPage() {
   const [selectedCourse, setSelectedCourse] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [parsedRows, setParsedRows] = useState<ImportRow[]>([]);
+  const [parsedRows, setParsedRows] = useState<QuestionCsvRecord[]>([]);
+  const [missingColumns, setMissingColumns] = useState<string[]>([]);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [importing, setImporting] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
@@ -101,88 +91,13 @@ export function QuestionImportPage() {
     loadCourses();
   }, [loadCourses]);
 
-  /** Parses raw CSV text into structured import rows and resets prior results. */
+  /** Parses raw CSV text into import rows and resets prior results. */
   function loadCsv(text: string) {
-    setParsedRows(parseCSV(text));
+    const { records, missingColumns } = readQuestionCsv(text);
+    setMissingColumns(missingColumns);
+    setParsedRows(missingColumns.length > 0 ? [] : records);
     setImportResult(null);
     setConfirmed(false);
-  }
-
-  /**
-   * Parses a CSV string into an array of {@link ImportRow} objects.
-   * Expects a header row followed by data rows with at least 4 columns.
-   */
-  function parseCSV(text: string): ImportRow[] {
-    const lines = text.split("\n").filter((l) => l.trim());
-    if (lines.length < 2) return [];
-
-    const rows: ImportRow[] = [];
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i];
-      if (!line) continue;
-      const cols = parseCSVLine(line);
-      if (cols.length < 4) continue;
-
-      rows.push({
-        type: cols[0] ?? "",
-        content: cols[1] ?? "",
-        optionA: cols[2] || undefined,
-        optionB: cols[3] || undefined,
-        optionC: cols[4] || undefined,
-        optionD: cols[5] || undefined,
-        standardAnswer: parseStandardAnswer(cols[6] ?? "", cols[0] ?? ""),
-        difficulty: cols[7] ? Number(cols[7]) : undefined,
-        tags: cols[8] || undefined,
-      });
-    }
-    return rows;
-  }
-
-  /**
-   * Splits a single CSV line into columns, handling quoted fields and
-   * escaped double-quotes per RFC 4180.
-   */
-  function parseCSVLine(line: string): string[] {
-    const result: string[] = [];
-    let current = "";
-    let inQuotes = false;
-
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (ch === '"') {
-        if (inQuotes && line[i + 1] === '"') {
-          current += '"';
-          i++;
-        } else {
-          inQuotes = !inQuotes;
-        }
-      } else if (ch === "," && !inQuotes) {
-        result.push(current);
-        current = "";
-      } else {
-        current += ch;
-      }
-    }
-    result.push(current);
-    return result;
-  }
-
-  /**
-   * Converts a raw answer string into the appropriate typed value based on
-   * the question type (boolean for true/false, array for multiple-choice).
-   * NOTE: `"Sí"` here is a CSV answer-parsing alias for boolean true, NOT UI
-   * copy — it is part of the import compatibility contract and must not be
-   * moved to i18n.
-   */
-  function parseStandardAnswer(answer: string, type: string): unknown {
-    if (type === "true_false") {
-      // i18n-copy-allow: data-format — CSV template headers, parser tokens, example rows
-      return answer.toLowerCase() === "true" || answer === "Sí";
-    }
-    if (type === "multiple_choice") {
-      return answer.split(/[,，]/).map((s) => s.trim());
-    }
-    return answer;
   }
 
   /**
@@ -206,38 +121,6 @@ export function QuestionImportPage() {
     }
   }
 
-  /**
-   * Downloads a sample CSV template file with example question rows.
-   * NOTE: the template header and example cells are CSV import content, NOT
-   * UI copy — they define the import column contract the parser understands
-   * (see parseCSV/parseStandardAnswer). They must stay in sync with the
-   * import parser and are excluded from the hardcoded-copy lint.
-   */
-  function downloadTemplate() {
-    // CSV template header — import column contract (not UI copy).
-    const header =
-      // i18n-copy-allow: data-format — CSV template headers, parser tokens, example rows
-      "Tipo,Enunciado,OpciónA,OpciónB,OpciónC,OpciónD,Respuesta correcta,Dificultad,Etiqueta";
-    // CSV template example rows (fixture content, not UI copy).
-    // i18n-copy-allow: data-format — CSV template headers, parser tokens, example rows
-    const example1 = "single_choice,1+1=?,1,2,3,4,B,1,aritmetica";
-    // i18n-copy-allow: data-format — CSV template headers, parser tokens, example rows
-    const example2 = "true_false,La Tierra es redonda,,,,,true,1,geografia";
-    // i18n-copy-allow: data-format — CSV template headers, parser tokens, example rows
-    const example3 =
-      "fill_blank,La capital de Francia es ____,,,,,Paris,2,geografia";
-    const csv = [header, example1, example2, example3].join("\n");
-    const blob = new Blob(["\uFEFF" + csv], {
-      type: "text/csv;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = t("admin.questionImport.templateFilename");
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
   if (isLoading) return <LoadingState />;
   if (error) return <ErrorState message={error} onRetry={loadCourses} />;
 
@@ -253,13 +136,27 @@ export function QuestionImportPage() {
         title={t("admin.questionImport.courseLabel")}
         actions={
           <>
-            <Button variant="outline" onClick={downloadTemplate}>
+            <Button
+              variant="outline"
+              onClick={() =>
+                downloadQuestionTemplate(
+                  t("admin.questionImport.templateFilename"),
+                )
+              }
+            >
               {t("admin.questionImport.downloadTemplate")}
             </Button>
             <FileUpload onText={loadCsv} />
           </>
         }
       >
+        {missingColumns.length > 0 && (
+          <p className="text-sm text-destructive">
+            {t("admin.questionImport.errors.missingColumns", {
+              columns: missingColumns.join(", "),
+            })}
+          </p>
+        )}
         <Select value={selectedCourse} onValueChange={setSelectedCourse}>
           <ToolbarFilter size="wide">
             <SelectTrigger>
@@ -316,19 +213,19 @@ export function QuestionImportPage() {
                     <DataTableCell role="number">{i + 1}</DataTableCell>
                     <DataTableCell role="type">
                       <Badge variant="outline">
-                        {(getTypeLabelKey(row.type)
-                          ? t(getTypeLabelKey(row.type) as never)
-                          : undefined) ?? row.type}
+                        {(getTypeLabelKey(row.tipo)
+                          ? t(getTypeLabelKey(row.tipo) as never)
+                          : undefined) ?? row.tipo}
                       </Badge>
                     </DataTableCell>
                     <DataTableCell role="long-text">
                       <DataTableOverflowText
                         mode="truncate"
-                        value={row.content}
+                        value={row.enunciado}
                       />
                     </DataTableCell>
                     <DataTableCell role="number">
-                      {row.difficulty ?? "—"}
+                      {row.dificultad || "—"}
                     </DataTableCell>
                   </TableRow>
                 ))}
@@ -359,7 +256,7 @@ export function QuestionImportPage() {
                 size="inline"
                 className="text-success"
               />
-              {t("admin.questionImport.result.valid")}：{importResult.valid}
+              {t("admin.questionImport.result.valid")}: {importResult.valid}
             </span>
             <span className="flex items-center gap-1">
               <AppIcon
@@ -367,7 +264,7 @@ export function QuestionImportPage() {
                 size="inline"
                 className="text-warning"
               />
-              {t("admin.questionImport.result.warnings")}：
+              {t("admin.questionImport.result.warnings")}:{" "}
               {importResult.warnings}
             </span>
             <span className="flex items-center gap-1">
@@ -376,7 +273,7 @@ export function QuestionImportPage() {
                 size="inline"
                 className="text-destructive"
               />
-              {t("admin.questionImport.result.errors")}：{importResult.errors}
+              {t("admin.questionImport.result.errors")}: {importResult.errors}
             </span>
           </div>
 

@@ -43,6 +43,11 @@ function listTsxFiles(dir: string, out: string[] = []): string[] {
 
 const files = SCAN_ROOTS.flatMap((root) => listTsxFiles(root));
 
+// INVARIANT: allowlist keys are posix paths on every OS.
+function webRel(path: string): string {
+  return relative(webRoot, path).replace(/\\/g, "/");
+}
+
 const BUTTON_RE =
   /<(Button|AlertDialogAction|AlertDialogCancel|DialogClose)\b/g;
 
@@ -95,7 +100,7 @@ describe("row-action capacity contract", () => {
     const offenders = files.filter((path) =>
       /actionsDensity|data-actions-density/.test(readFileSync(path, "utf8")),
     );
-    expect(offenders.map((p) => relative(webRoot, p))).toEqual([]);
+    expect(offenders.map((p) => webRel(p))).toEqual([]);
   });
 
   it("keeps the declaration type a closed vocabulary (no always-inline escape hatch)", () => {
@@ -130,7 +135,7 @@ describe("row-action capacity contract", () => {
       const text = readFileSync(path, "utf8");
       for (const tag of text.matchAll(/<RowActions\b[^>]*>/gs)) {
         if (!/\bactions=/.test(tag[0])) {
-          offenders.push(relative(webRoot, path));
+          offenders.push(webRel(path));
         }
       }
     }
@@ -151,7 +156,7 @@ describe("row-action capacity contract", () => {
         // P3 §4.4 documented exception).
         const pickerException = body.includes("dialogActions.add");
         if (!throughRowActions && !pickerException) {
-          offenders.push(relative(webRoot, path));
+          offenders.push(webRel(path));
         }
       }
     }
@@ -166,7 +171,7 @@ describe("row-action capacity contract", () => {
         /<DialogFooter\b[^>]*>((?:(?!<\/DialogFooter>)[\s\S])*)<\/DialogFooter>/g,
       )) {
         if (countButtons(footer[1] ?? "") > 2) {
-          offenders.push(relative(webRoot, path));
+          offenders.push(webRel(path));
         }
       }
     }
@@ -182,7 +187,7 @@ describe("row-action capacity contract", () => {
         const start = chunk.lastIndexOf("<DataToolbar");
         if (start === -1) continue;
         if (countButtons(chunk.slice(start)) > 2) {
-          offenders.push(relative(webRoot, path));
+          offenders.push(webRel(path));
         }
       }
     }
@@ -211,7 +216,7 @@ describe("row-action capacity contract", () => {
           }
         }
         const body = tag.slice(open, end + 1);
-        if (countButtons(body) > 2) offenders.push(relative(webRoot, path));
+        if (countButtons(body) > 2) offenders.push(webRel(path));
       }
     }
     expect(offenders.filter((o) => !(o in BUDGET_ALLOWLIST))).toEqual([]);

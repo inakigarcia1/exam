@@ -23,8 +23,12 @@ export const cookieAuth = [{ cookieAuth: [] }] as const;
  */
 function getInputMode(
   type: string,
-): "choice" | "boolean" | "single_line" | "multi_line" {
+): "choice" | "boolean" | "single_line" | "multi_line" | "matrix" | "order" {
   switch (type) {
+    case "likert":
+      return "matrix";
+    case "ranking":
+      return "order";
     case "single_choice":
     case "multiple_choice":
       return "choice";
@@ -68,6 +72,8 @@ export function toCandidateTakeQuestion(
     prompt: q.content,
     promptDocument: q.contentDocument ?? null,
     answerMode: q.answerMode ?? "plain",
+    image: q.image ?? null,
+    scale: q.scale ?? null,
     options: q.options.map((o) => ({
       id: o.id,
       content: o.content,
@@ -150,7 +156,8 @@ export function toCandidateAttemptResponse(
       // secrets); options carry their frozen rich documents too.
       contentDocument: q.contentDocument ?? null,
       answerMode: q.answerMode ?? null,
-      attachments: q.attachments,
+      image: q.image ?? null,
+      scale: q.scale ?? null,
       options: q.options.map((o) => ({
         id: o.id,
         content: o.content,

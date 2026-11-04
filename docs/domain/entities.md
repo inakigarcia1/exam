@@ -16,6 +16,7 @@ El código y la base están en inglés. La interfaz está en español. Esta tabl
 | Inscripción al examen | `ExamEnrollment` | `exam_enrollments` |
 | Pregunta | `Question` | `questions` |
 | Pregunta de una materia | `SubjectQuestion` | `subject_questions` |
+| Imagen de la pregunta | `QuestionImage` | `question_images` |
 | Legajo | `users.username` del alumno | `users.username` |
 
 `Registration` no es `ExamEnrollment`. El cursado dice qué alumno cursa una materia en una comisión. La inscripción dice si ese alumno puede rendir un examen.
@@ -41,6 +42,7 @@ erDiagram
 - Un cursado pertenece a una sola `CommissionSubject`. Unique `(candidate_id, commission_subject_id)`. Un alumno no tiene dos cursados de la misma materia.
 - Un examen no se guarda sin al menos un `ExamCommissionSubject`. Todos los de ese examen son de la misma materia.
 - Una pregunta no tiene curso ni materia obligatoria. Puede estar en varias materias. El examen la elige por `questionIds`.
+- Una pregunta tiene cero o una imagen (`questions.image`). Los bytes viven en `question_images`, uno por sha256 y organización, y no se borran: un examen publicado puede seguir apuntando a una imagen que la pregunta ya cambió (ADR-024).
 - Borrar una materia no borra comisiones, preguntas ni exámenes. Si todavía hay un `CommissionSubject`, un cursado o un examen usándola, el borrado se rechaza. Lo mismo al revés.
 - La inscripción manual a un examen no crea un cursado. El link de inscripción sí: crea el alumno si no existe, el cursado de esa `CommissionSubject` y la fila de `ExamEnrollment`.
 

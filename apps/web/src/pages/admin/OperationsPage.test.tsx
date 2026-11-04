@@ -160,7 +160,9 @@ describe("OperationsPage", () => {
     await renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText("No se pudieron cargar los datos de operaciones")).toBeInTheDocument();
+      expect(
+        screen.getByText("No se pudieron cargar los datos de operaciones"),
+      ).toBeInTheDocument();
     });
   });
 });

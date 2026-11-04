@@ -45,7 +45,7 @@ describe("rich answer save protocol", () => {
     await ctx.db.insert(schema.courses).values({
       id: courseId,
       organizationId: ctx.org.id,
-      name: "Rich Answer Course",
+      name: `Rich Answer Course ${crypto.randomUUID()}`,
       code: `RA-${uniquePrefix()}`,
       description: "",
       createdAt: new Date(),
@@ -229,7 +229,9 @@ describe("rich answer save protocol", () => {
     const body = res.json();
     expect(body.accepted).toBe(false);
     expect(body.reason).toBe("INVALID_ANSWER");
-    expect(body.message).toBe("La respuesta no tiene el formato de esta pregunta");
+    expect(body.message).toBe(
+      "La respuesta no tiene el formato de esta pregunta",
+    );
     expect(body.serverVersion).toBe(1);
     expect(await draftAnswer(richQId)).toEqual(before);
   });

@@ -41,7 +41,9 @@ export function SubjectPage() {
       const data = await api.get<{ items: SubjectRow[] }>("/api/subjects");
       setItems(data.items);
     } catch (err) {
-      setError(getApiErrorMessage(err, t, "No se pudieron cargar las materias"));
+      setError(
+        getApiErrorMessage(err, t, "No se pudieron cargar las materias"),
+      );
     } finally {
       setLoading(false);
     }
@@ -104,7 +106,10 @@ export function SubjectPage() {
         actions={<Button onClick={startCreate}>Nueva materia</Button>}
       />
       {items.length === 0 ? (
-        <EmptyState title="No hay materias" description="Creá la primera materia." />
+        <EmptyState
+          title="No hay materias"
+          description="Creá la primera materia."
+        />
       ) : (
         <ul className="flex flex-col gap-2">
           {items.map((row) => (
@@ -128,7 +133,9 @@ export function SubjectPage() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editing ? "Editar materia" : "Nueva materia"}</DialogTitle>
+            <DialogTitle>
+              {editing ? "Editar materia" : "Nueva materia"}
+            </DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-2">
             <Label htmlFor="subject-name">Nombre</Label>
@@ -139,7 +146,10 @@ export function SubjectPage() {
             />
           </div>
           <DialogFooter>
-            <Button onClick={() => void save()} disabled={saving || !name.trim()}>
+            <Button
+              onClick={() => void save()}
+              disabled={saving || !name.trim()}
+            >
               Guardar
             </Button>
           </DialogFooter>

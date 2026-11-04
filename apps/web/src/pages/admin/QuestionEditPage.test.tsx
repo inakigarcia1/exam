@@ -52,13 +52,7 @@ vi.mock("sonner", () => ({
   toast: { error: vi.fn(), success: vi.fn() },
 }));
 
-const courses = [
-  { id: "c1", name: "数学", code: "MATH" },
-  { id: "c2", name: "英语", code: "ENG" },
-];
-
 const existingQuestion = {
-  courseId: "c1",
   type: "single_choice",
   content: "1+1=?",
   options: [
@@ -74,12 +68,19 @@ const existingQuestion = {
   },
 };
 
-function renderNew(apiImpl?: (...args: unknown[]) => Promise<unknown>) {
-  if (apiImpl) {
-    apiGet.mockImplementation(apiImpl);
-  } else {
-    apiGet.mockImplementation(() => Promise.resolve({ items: courses }));
-  }
+/** Routes the page's GETs: the question (edit mode) and the form's tag catalog. */
+function mockQuestionApi(question: unknown = existingQuestion) {
+  apiGet.mockImplementation((url: string) => {
+    if (url === "/api/questions/tags") {
+      return Promise.resolve({ tags: ["基础"] });
+    }
+    if (url === "/api/questions/q1") return Promise.resolve(question);
+    return Promise.reject(new Error(`unexpected GET ${url}`));
+  });
+}
+
+function renderNew() {
+  mockQuestionApi();
   return render(
     <MemoryRouter initialEntries={["/admin/questions/new"]}>
       <AuthProvider
@@ -106,13 +107,15 @@ function renderNew(apiImpl?: (...args: unknown[]) => Promise<unknown>) {
   );
 }
 
-function renderEdit() {
-  let callCount = 0;
-  apiGet.mockImplementation(() => {
-    callCount++;
-    if (callCount === 1) return Promise.resolve({ items: courses });
-    return Promise.resolve(existingQuestion);
-  });
+function renderEdit(
+  question: unknown = existingQuestion,
+  apiImpl?: (...args: unknown[]) => Promise<unknown>,
+) {
+  if (apiImpl) {
+    apiGet.mockImplementation(apiImpl);
+  } else {
+    mockQuestionApi(question);
+  }
   return render(
     <MemoryRouter initialEntries={["/admin/questions/q1/edit"]}>
       <AuthProvider
@@ -154,14 +157,13 @@ describe("QuestionEditPage", () => {
   });
 
   it("shows loading skeleton while fetching data", async () => {
-    apiGet.mockImplementation(() => new Promise(() => {}));
-    renderNew();
+    renderEdit(existingQuestion, () => new Promise(() => {}));
     expect(screen.getByRole("status")).toBeInTheDocument();
     await act(async () => {});
   });
 
   it("shows error state when API fails", async () => {
-    renderNew(() => Promise.reject(new Error("network")));
+    renderEdit(existingQuestion, () => Promise.reject(new Error("network")));
     expect(
       await screen.findByText("No se pudieron cargar los datos"),
     ).toBeInTheDocument();
@@ -193,9 +195,11 @@ describe("QuestionEditPage", () => {
     await waitFor(() => {
       expect(apiPost).toHaveBeenCalledWith(
         "/api/questions",
-        expect.objectContaining({ courseId: "c1" }),
+        expect.objectContaining({ type: "single_choice" }),
       );
     });
+    // A question does not belong to a commission.
+    expect(apiPost.mock.calls[0]![1]).not.toHaveProperty("courseId");
   });
 
   it("save button calls PATCH for existing question", async () => {
@@ -284,7 +288,7 @@ describe("QuestionEditPage — objective type create payloads", () => {
     renderNew();
     await screen.findByText("Nueva pregunta");
 
-    await selectType(user, "Opción única");
+    await selectType(user, "Una opción");
     await user.type(
       screen.getByPlaceholderText(CONTENT_PLACEHOLDER),
       "请选择正确答案",
@@ -315,7 +319,7 @@ describe("QuestionEditPage — objective type create payloads", () => {
     renderNew();
     await screen.findByText("Nueva pregunta");
 
-    await selectType(user, "Opción múltiple");
+    await selectType(user, "Varias opciones");
     await user.type(
       screen.getByPlaceholderText(CONTENT_PLACEHOLDER),
       "选择所有偶数",
@@ -483,12 +487,12 @@ describe("QuestionEditPage — text_response authoring", () => {
     renderNew();
     await screen.findByText("Nueva pregunta");
 
-    await selectType(user, "Respuesta de texto");
+    await selectType(user, "Texto libre");
 
     // rubric Textarea appears (placeholder marks the grading basis field)
     expect(screen.getByPlaceholderText(RUBRIC_PLACEHOLDER)).toBeInTheDocument();
     // objective options control is NOT shown for text_response
-    expect(screen.queryByText("Opción")).not.toBeInTheDocument();
+    expect(screen.queryByText("Opciones")).not.toBeInTheDocument();
   });
 
   it("creates text_response question with multiline rubric preserved", async () => {
@@ -497,7 +501,7 @@ describe("QuestionEditPage — text_response authoring", () => {
     await screen.findByText("Nueva pregunta");
 
     const rubric = "关键概念正确：10 分\n论证完整且逻辑清晰：10 分";
-    await selectType(user, "Respuesta de texto");
+    await selectType(user, "Texto libre");
     await user.type(
       screen.getByPlaceholderText(CONTENT_PLACEHOLDER),
       "请阐述你的观点",
@@ -524,7 +528,7 @@ describe("QuestionEditPage — text_response authoring", () => {
     renderNew();
     await screen.findByText("Nueva pregunta");
 
-    await selectType(user, "Respuesta de texto");
+    await selectType(user, "Texto libre");
     await user.type(
       screen.getByPlaceholderText(CONTENT_PLACEHOLDER),
       "请阐述你的观点",
@@ -566,7 +570,7 @@ describe("QuestionEditPage — text_response authoring", () => {
 
     const rubric = "按论证完整性给分";
     const reference = "参考要点一\n参考要点二";
-    await selectType(user, "Respuesta de texto");
+    await selectType(user, "Texto libre");
     await user.type(
       screen.getByPlaceholderText(CONTENT_PLACEHOLDER),
       "请阐述你的观点",
@@ -603,7 +607,7 @@ describe("QuestionEditPage — text_response authoring", () => {
       renderNew();
       await screen.findByText("Nueva pregunta");
 
-      await selectType(user, "Respuesta de texto");
+      await selectType(user, "Texto libre");
       await user.type(
         screen.getByPlaceholderText(CONTENT_PLACEHOLDER),
         "请阐述你的观点",
@@ -642,7 +646,7 @@ describe("QuestionEditPage — text_response authoring", () => {
       renderNew();
       await screen.findByText("Nueva pregunta");
 
-      await selectType(user, "Respuesta de texto");
+      await selectType(user, "Texto libre");
       await user.type(
         screen.getByPlaceholderText(CONTENT_PLACEHOLDER),
         "请阐述你的观点",
@@ -668,7 +672,6 @@ describe("QuestionEditPage — text_response authoring", () => {
 
   it("loads and preserves existing text_response multiline rubric in edit mode", async () => {
     const existingTextResponse = {
-      courseId: "c1",
       type: "text_response",
       content: "请阐述你的观点",
       options: [],
@@ -681,40 +684,7 @@ describe("QuestionEditPage — text_response authoring", () => {
       },
       rubric: "第一项评分标准\n第二项评分标准",
     };
-    let callCount = 0;
-    apiGet.mockImplementation(() => {
-      callCount++;
-      if (callCount === 1) return Promise.resolve({ items: courses });
-      return Promise.resolve(existingTextResponse);
-    });
-
-    render(
-      <MemoryRouter initialEntries={["/admin/questions/q1/edit"]}>
-        <AuthProvider
-          initialUser={{
-            id: "1",
-            username: "admin",
-            name: "Admin",
-            role: "Admin",
-            organizationId: "org1",
-            capabilities: [...permissionsForRole("Admin")],
-          }}
-        >
-          <BrandProvider>
-            <Routes>
-              <Route
-                path="/admin/questions/:id/edit"
-                element={<QuestionEditPage />}
-              />
-              <Route
-                path="/admin/questions"
-                element={<div>questions list</div>}
-              />
-            </Routes>
-          </BrandProvider>
-        </AuthProvider>
-      </MemoryRouter>,
-    );
+    renderEdit(existingTextResponse);
 
     expect(await screen.findByText("Editar pregunta")).toBeInTheDocument();
     const rubricField = screen.getByPlaceholderText(RUBRIC_PLACEHOLDER);
@@ -728,7 +698,7 @@ describe("QuestionEditPage — text_response authoring", () => {
     await screen.findByText("Nueva pregunta");
 
     // default is single_choice with 2 options; switch to text_response
-    await selectType(user, "Respuesta de texto");
+    await selectType(user, "Texto libre");
     await user.type(
       screen.getByPlaceholderText(CONTENT_PLACEHOLDER),
       "请阐述你的观点",
@@ -758,7 +728,7 @@ describe("QuestionEditPage — text_response authoring", () => {
     await screen.findByText("Nueva pregunta");
 
     // Set up a text_response with a rubric, then switch back to fill_blank.
-    await selectType(user, "Respuesta de texto");
+    await selectType(user, "Texto libre");
     await user.type(
       screen.getByPlaceholderText(CONTENT_PLACEHOLDER),
       "____ 是元素符号",
@@ -788,7 +758,6 @@ describe("QuestionEditPage — text_response authoring", () => {
 
   it("loads and preserves an existing text_response multiline reference answer in edit mode", async () => {
     const existingWithReference = {
-      courseId: "c1",
       type: "text_response",
       content: "请阐述你的观点",
       options: [],
@@ -801,40 +770,7 @@ describe("QuestionEditPage — text_response authoring", () => {
       },
       rubric: "按论证完整性给分",
     };
-    let callCount = 0;
-    apiGet.mockImplementation(() => {
-      callCount++;
-      if (callCount === 1) return Promise.resolve({ items: courses });
-      return Promise.resolve(existingWithReference);
-    });
-
-    render(
-      <MemoryRouter initialEntries={["/admin/questions/q1/edit"]}>
-        <AuthProvider
-          initialUser={{
-            id: "1",
-            username: "admin",
-            name: "Admin",
-            role: "Admin",
-            organizationId: "org1",
-            capabilities: [...permissionsForRole("Admin")],
-          }}
-        >
-          <BrandProvider>
-            <Routes>
-              <Route
-                path="/admin/questions/:id/edit"
-                element={<QuestionEditPage />}
-              />
-              <Route
-                path="/admin/questions"
-                element={<div>questions list</div>}
-              />
-            </Routes>
-          </BrandProvider>
-        </AuthProvider>
-      </MemoryRouter>,
-    );
+    renderEdit(existingWithReference);
 
     expect(await screen.findByText("Editar pregunta")).toBeInTheDocument();
     const referenceField = screen.getByPlaceholderText(
@@ -853,7 +789,7 @@ describe("QuestionEditPage — text_response authoring", () => {
     await screen.findByText("Nueva pregunta");
 
     // single_choice with a REAL answer "A" selected (standardAnswer = "A").
-    await selectType(user, "Opción única");
+    await selectType(user, "Una opción");
     await user.type(screen.getByPlaceholderText(CONTENT_PLACEHOLDER), "1+1=?");
     // Select option A's radio (the default single_choice ships options A and
     // B). This genuinely sets standardAnswer = "A" — without it the leak guard
@@ -862,7 +798,7 @@ describe("QuestionEditPage — text_response authoring", () => {
     const radios = screen.getAllByRole("radio");
     await user.click(radios[0]!);
     // Switch to text_response — the string "A" must NOT become the reference.
-    await selectType(user, "Respuesta de texto");
+    await selectType(user, "Texto libre");
 
     const referenceField = screen.getByPlaceholderText(
       REFERENCE_ANSWER_PLACEHOLDER,
@@ -887,7 +823,7 @@ describe("QuestionEditPage — text_response authoring", () => {
       "TCP",
     );
     // Switch to text_response — "TCP" must NOT become the reference.
-    await selectType(user, "Respuesta de texto");
+    await selectType(user, "Texto libre");
 
     const referenceField = screen.getByPlaceholderText(
       REFERENCE_ANSWER_PLACEHOLDER,
@@ -900,14 +836,14 @@ describe("QuestionEditPage — text_response authoring", () => {
     renderNew();
     await screen.findByText("Nueva pregunta");
 
-    await selectType(user, "Respuesta de texto");
+    await selectType(user, "Texto libre");
     await user.type(
       screen.getByPlaceholderText(REFERENCE_ANSWER_PLACEHOLDER),
       "参考答案文本",
     );
     // Switch to single_choice — the reference answer text must not appear
     // as the standardAnswer.
-    await selectType(user, "Opción única");
+    await selectType(user, "Una opción");
 
     // single_choice shows radio buttons; standardAnswer is "" (empty).
     // The reference text should not be visible anywhere.
@@ -924,15 +860,15 @@ describe("QuestionEditPage — text_response authoring", () => {
     await screen.findByText("Nueva pregunta");
 
     // Type a reference answer in text_response.
-    await selectType(user, "Respuesta de texto");
+    await selectType(user, "Texto libre");
     await user.type(
       screen.getByPlaceholderText(REFERENCE_ANSWER_PLACEHOLDER),
       "原始参考答案",
     );
     // Switch to single_choice (clears reference).
-    await selectType(user, "Opción única");
+    await selectType(user, "Una opción");
     // Switch back to text_response — the original reference is gone.
-    await selectType(user, "Respuesta de texto");
+    await selectType(user, "Texto libre");
 
     const referenceField = screen.getByPlaceholderText(
       REFERENCE_ANSWER_PLACEHOLDER,

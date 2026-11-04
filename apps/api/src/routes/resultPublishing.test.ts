@@ -44,7 +44,7 @@ describe("result publishing policy", () => {
     await ctx.db.insert(schema.courses).values({
       id: courseId,
       organizationId: ctx.org.id,
-      name: "Course",
+      name: `Course ${crypto.randomUUID()}`,
       code: `J5A-${uniquePrefix()}`,
       description: "",
       createdAt: new Date(),
@@ -60,7 +60,8 @@ describe("result publishing policy", () => {
         { id: "b", content: "B" },
       ],
       standardAnswer: "a",
-      attachments: [],
+      image: null,
+      scale: null,
       difficulty: 1,
       tags: [],
       gradingRule: {
@@ -146,6 +147,7 @@ describe("result publishing policy", () => {
         totalScore: 10,
         questionSelectionMode: "manual",
         questionIds: [questionId],
+        questionScores: { [questionId]: 10 },
         controlFlags: {
           shuffleQuestions: false,
           shuffleOptions: false,
@@ -345,6 +347,7 @@ describe("result publishing policy", () => {
         totalScore: 10,
         questionSelectionMode: "manual",
         questionIds: [questionId],
+        questionScores: { [questionId]: 10 },
         controlFlags: {
           shuffleQuestions: false,
           shuffleOptions: false,
@@ -560,6 +563,7 @@ describe("result publishing policy", () => {
         totalScore: 10,
         questionSelectionMode: "manual",
         questionIds: [questionId],
+        questionScores: { [questionId]: 10 },
         controlFlags: {
           shuffleQuestions: false,
           shuffleOptions: false,
@@ -668,6 +672,7 @@ describe("result publishing policy", () => {
         totalScore: 10,
         questionSelectionMode: "manual",
         questionIds: [questionId],
+        questionScores: { [questionId]: 10 },
         controlFlags: {
           shuffleQuestions: false,
           shuffleOptions: false,
@@ -822,7 +827,7 @@ describe("Teacher publish-results capability", () => {
     await ctx.db.insert(schema.courses).values({
       id: courseId,
       organizationId: ctx.org.id,
-      name: "Course",
+      name: `Course ${crypto.randomUUID()}`,
       code: `M8-${uniquePrefix()}`,
       description: "",
       createdAt: new Date(),
@@ -838,7 +843,8 @@ describe("Teacher publish-results capability", () => {
         { id: "b", content: "B" },
       ],
       standardAnswer: "a",
-      attachments: [],
+      image: null,
+      scale: null,
       difficulty: 1,
       tags: [],
       gradingRule: {
@@ -910,6 +916,7 @@ describe("Teacher publish-results capability", () => {
         totalScore: 10,
         questionSelectionMode: "manual",
         questionIds: [questionId],
+        questionScores: { [questionId]: 10 },
         controlFlags: {
           shuffleQuestions: false,
           shuffleOptions: false,
@@ -953,7 +960,7 @@ describe("Teacher publish-results capability", () => {
         sessionId: "test",
       },
       examId,
-    )) as { resultsPublishedAt?: Date | null } | null;
+    )) as { status?: string; resultsPublishedAt?: Date | null } | null;
     expect(stored?.resultsPublishedAt).toBeNull();
 
     // ── Teacher first publish ─────────────────────────────────────────────
@@ -978,7 +985,7 @@ describe("Teacher publish-results capability", () => {
       },
       examId,
     )) as { status?: string; resultsPublishedAt?: Date | null } | null;
-    expect(afterFirst?.status).toBe("published");
+    expect(afterFirst?.status).toBe(stored?.status);
     expect(afterFirst?.resultsPublishedAt).toBeTruthy();
 
     // ── Teacher repeat publish (idempotent) ──────────────────────────────

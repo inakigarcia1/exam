@@ -33,7 +33,7 @@ describe("Admin proctor assignment API (ADR-015 §16, J4-I1C)", () => {
     await ctx.db.insert(schema.courses).values({
       id: courseId,
       organizationId: ctx.org.id,
-      name: "Assignment course",
+      name: `Assignment course ${crypto.randomUUID()}`,
       code: `AC-${uniquePrefix()}`,
       description: "",
       createdAt: now,
@@ -462,7 +462,7 @@ describe("Admin proctor assignment API (ADR-015 §16, J4-I1C)", () => {
       await ctx.db.insert(schema.courses).values({
         id: foreignCourseId,
         organizationId: foreignOrgId,
-        name: "Foreign course",
+        name: `Foreign course ${crypto.randomUUID()}`,
         code: `FC-${uniquePrefix()}`,
         description: "",
       });

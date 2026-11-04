@@ -21,8 +21,8 @@ import {
 } from "../exam.js";
 import {
   CreateQuestionRequestSchema,
-  QuestionImportRowSchema,
   QuestionSchema,
+  QuestionScoreSchema,
   UpdateQuestionRequestSchema,
 } from "../question.js";
 import {
@@ -130,13 +130,13 @@ describe("message registry", () => {
       "La configuración de los campos de identidad no es válida",
     );
     expect(candidateFieldValidationMessages.required("Nombre")).toBe(
-      "姓名为必填项",
+      "Nombre es obligatorio",
     );
-    expect(candidateFieldValidationMessages.numberRequired("年龄")).toBe(
-      "年龄必须为数字",
+    expect(candidateFieldValidationMessages.numberRequired("Edad")).toBe(
+      "Edad debe ser un número",
     );
-    expect(candidateFieldValidationMessages.textRequired("地址")).toBe(
-      "地址必须为文本",
+    expect(candidateFieldValidationMessages.textRequired("Dirección")).toBe(
+      "Dirección debe ser texto",
     );
   });
 });
@@ -721,16 +721,6 @@ describe("question contracts", () => {
     },
   );
 
-  it("QuestionImportRowSchema parses basic row", () => {
-    const result = QuestionImportRowSchema.safeParse({
-      type: "true_false",
-      content: "Is true?",
-      standardAnswer: true,
-      score: 5,
-    });
-    expect(result.success).toBe(true);
-  });
-
   // ── P3-L0-1: text_response + rubric dual-layer ─────────────────
 
   it("CreateQuestionRequestSchema accepts text_response with rubric and null standardAnswer", () => {
@@ -773,7 +763,8 @@ describe("question contracts", () => {
       content: "请阐述你的观点",
       options: [],
       standardAnswer: null,
-      attachments: [],
+      image: null,
+      scale: null,
       score: 20,
       difficulty: 3,
       tags: [],
@@ -803,7 +794,8 @@ describe("question contracts", () => {
       originalQuestionId: "q1",
       type: "text_response",
       content: "请阐述",
-      attachments: [],
+      image: null,
+      scale: null,
       options: [],
       standardAnswer: null,
       score: 20,
@@ -825,7 +817,8 @@ describe("question contracts", () => {
       originalQuestionId: "q1",
       type: "single_choice",
       content: "Pick one",
-      attachments: [],
+      image: null,
+      scale: null,
       options: [
         { id: "A", content: "A" },
         { id: "B", content: "B" },
@@ -886,109 +879,26 @@ describe("question contracts", () => {
     const rejected = UpdateQuestionRequestSchema.safeParse({ tags: ["a,b"] });
     expect(rejected.success).toBe(false);
   });
-
-  it("QuestionImportRowSchema keeps raw comma-separated tags (split happens at the route)", () => {
-    const result = QuestionImportRowSchema.safeParse({
-      type: "true_false",
-      content: "Is true?",
-      standardAnswer: true,
-      score: 5,
-      tags: "代数, 几何",
-    });
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.tags).toBe("代数, 几何");
-    }
-  });
 });
 
 describe("question score write boundary (#438)", () => {
-  const baseCreate = {
-    type: "true_false",
-    content: "Score boundary?",
-    standardAnswer: true,
-  };
-  const baseRow = {
-    type: "true_false",
-    content: "Import score boundary?",
-    standardAnswer: true,
-  };
+  const questionId = "00000000-0000-4000-8000-000000000001";
+  const update = (score: number) =>
+    UpdateExamRequestSchema.safeParse({
+      questionScores: { [questionId]: score },
+    });
 
-  it("rejects non-finite scores at create", () => {
-    for (const score of [Infinity, -Infinity, NaN]) {
-      const result = CreateQuestionRequestSchema.safeParse({
-        ...baseCreate,
-        score,
-      });
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(
-          result.error.issues.some((issue) => issue.path[0] === "score"),
-        ).toBe(true);
-      }
+  it("rejects non-finite and non-positive exam question scores", () => {
+    for (const score of [Infinity, -Infinity, NaN, 0, -1]) {
+      expect(QuestionScoreSchema.safeParse(score).success).toBe(false);
+      expect(update(score).success).toBe(false);
     }
   });
 
-  it("rejects non-positive scores at create (existing invariant)", () => {
-    for (const score of [0, -1]) {
-      const result = CreateQuestionRequestSchema.safeParse({
-        ...baseCreate,
-        score,
-      });
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(
-          result.error.issues.some((issue) => issue.path[0] === "score"),
-        ).toBe(true);
-      }
-    }
-  });
-
-  it("accepts fractional and arbitrarily large finite scores at create", () => {
+  it("accepts fractional and arbitrarily large finite scores", () => {
     for (const score of [0.5, 1, 1000000]) {
-      expect(
-        CreateQuestionRequestSchema.safeParse({ ...baseCreate, score }).success,
-      ).toBe(true);
+      expect(update(score).success).toBe(true);
     }
-  });
-
-  it("rejects non-finite scores at update", () => {
-    for (const score of [Infinity, -Infinity, NaN]) {
-      const result = UpdateQuestionRequestSchema.safeParse({ score });
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(
-          result.error.issues.some((issue) => issue.path[0] === "score"),
-        ).toBe(true);
-      }
-    }
-  });
-
-  it("accepts fractional scores at update", () => {
-    expect(UpdateQuestionRequestSchema.safeParse({ score: 0.5 }).success).toBe(
-      true,
-    );
-  });
-
-  it("rejects non-finite scores on import rows", () => {
-    for (const score of [Infinity, -Infinity, NaN]) {
-      const result = QuestionImportRowSchema.safeParse({
-        ...baseRow,
-        score,
-      });
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(
-          result.error.issues.some((issue) => issue.path[0] === "score"),
-        ).toBe(true);
-      }
-    }
-  });
-
-  it("accepts fractional scores on import rows", () => {
-    expect(
-      QuestionImportRowSchema.safeParse({ ...baseRow, score: 0.5 }).success,
-    ).toBe(true);
   });
 });
 
@@ -1667,5 +1577,69 @@ describe("grading detail contracts", () => {
       questions: [],
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("likert and ranking question write boundary", () => {
+  const rows = [
+    { id: "A", content: "Statement 1" },
+    { id: "B", content: "Statement 2" },
+  ];
+  const scale = ["Disagree", "Neutral", "Agree"];
+
+  it("accepts a likert with a scale and a column for every row", () => {
+    const result = CreateQuestionRequestSchema.safeParse({
+      type: "likert",
+      content: "Rate",
+      options: rows,
+      scale,
+      standardAnswer: { A: 0, B: 2 },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a likert without scale, with a missing row, or an out-of-range column", () => {
+    for (const patch of [
+      { scale: null },
+      { standardAnswer: { A: 0 } },
+      { standardAnswer: { A: 0, B: 3 } },
+    ]) {
+      const result = CreateQuestionRequestSchema.safeParse({
+        type: "likert",
+        content: "Rate",
+        options: rows,
+        scale,
+        standardAnswer: { A: 0, B: 2 },
+        ...patch,
+      });
+      expect(result.success).toBe(false);
+    }
+  });
+
+  it("rejects a scale on a non-likert question", () => {
+    const result = CreateQuestionRequestSchema.safeParse({
+      type: "single_choice",
+      content: "Pick",
+      options: rows,
+      scale,
+      standardAnswer: "A",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("ranking requires the answer to be a full permutation of the options", () => {
+    const base = { type: "ranking", content: "Order", options: rows };
+    expect(
+      CreateQuestionRequestSchema.safeParse({
+        ...base,
+        standardAnswer: ["B", "A"],
+      }).success,
+    ).toBe(true);
+    for (const standardAnswer of [["A"], ["A", "A"], ["A", "C"]]) {
+      expect(
+        CreateQuestionRequestSchema.safeParse({ ...base, standardAnswer })
+          .success,
+      ).toBe(false);
+    }
   });
 });

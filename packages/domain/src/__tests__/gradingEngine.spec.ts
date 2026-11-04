@@ -9,7 +9,8 @@ function makeQuestion(overrides: Partial<QuestionSnapshot>): QuestionSnapshot {
     content: "Question",
     contentDocument: null,
     answerMode: null,
-    attachments: [],
+    image: null,
+    scale: null,
     options: [],
     standardAnswer: "a",
     score: 10,
@@ -189,5 +190,37 @@ describe("gradeAnswers — delegates per-question grading", () => {
     });
     const result = gradeAnswers("att", [q], [answer("q1", "a")], 0, new Date());
     expect(result.questionResults).toEqual([gradeQuestion(q, "a")]);
+  });
+});
+
+describe("gradeQuestion — likert and ranking are all or nothing", () => {
+  const rows = [
+    { id: "r1", content: "Uno" },
+    { id: "r2", content: "Dos" },
+  ];
+
+  it("likert scores only when every row hits its column", () => {
+    const q = makeQuestion({
+      type: "likert",
+      options: rows,
+      scale: ["No", "Neutral", "Sí"],
+      standardAnswer: { r1: 0, r2: 2 },
+    });
+    expect(gradeQuestion(q, { r1: 0, r2: 2 }).score).toBe(10);
+    expect(gradeQuestion(q, { r1: 0, r2: 1 }).score).toBe(0);
+    expect(gradeQuestion(q, { r1: 0 }).score).toBe(0);
+    expect(gradeQuestion(q, null).score).toBe(0);
+  });
+
+  it("ranking scores only the exact order", () => {
+    const q = makeQuestion({
+      type: "ranking",
+      options: [...rows, { id: "r3", content: "Tres" }],
+      standardAnswer: ["r1", "r2", "r3"],
+    });
+    expect(gradeQuestion(q, ["r1", "r2", "r3"]).score).toBe(10);
+    expect(gradeQuestion(q, ["r2", "r1", "r3"]).score).toBe(0);
+    expect(gradeQuestion(q, ["r1", "r2"]).score).toBe(0);
+    expect(gradeQuestion(q, null).score).toBe(0);
   });
 });

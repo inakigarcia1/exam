@@ -8,7 +8,10 @@ import {
   candidateFieldValidationMessages,
   ErrorResponseSchema,
   getErrorMessage,
+  CANDIDATE_CSV_HEADER,
+  candidateToCsvRecord,
 } from "@exam/contracts";
+import { generateCSV } from "@exam/import-export";
 import { PaginationParamsSchema } from "@exam/contracts";
 import { hashPassword } from "@exam/auth/password";
 import { createCandidateRepo } from "@exam/db/repository/candidateRepo";
@@ -200,6 +203,40 @@ const idParamsSchema = z.object({ id: z.string().uuid() });
  * Candidate writes require Admin; the read list follows CandidateView.
  */
 const candidateRoutes: FastifyPluginAsync = async (fastify) => {
+  fastify.get(
+    "/candidates/export",
+    {
+      preHandler: [
+        fastify.authenticate,
+        fastify.requireCapability(Permission.CandidateImport),
+      ],
+      schema: {
+        security: cookieAuth,
+        "x-role": ["Admin"],
+        response: { 200: z.string() },
+      },
+    },
+    /** GET /candidates/export — every candidate as CSV in the import format (`CANDIDATE_CSV_HEADER`). */
+    async (request, reply) => {
+      const ctx = ensureTargetOrg(getRequestContext(request));
+      const candidates = await createCandidateRepo(fastify.db).list(ctx);
+      const users = new Map(
+        (await createUserRepo(fastify.db).list(ctx)).map((u) => [u.id, u]),
+      );
+      const rows = candidates.flatMap((c) => {
+        const user = users.get(c.userId);
+        return user
+          ? [candidateToCsvRecord({ username: user.username, name: user.name })]
+          : [];
+      });
+      reply.header("Content-Type", "text/csv; charset=utf-8");
+      reply.header("Content-Disposition", 'attachment; filename="alumnos.csv"');
+      return reply.send(
+        "\uFEFF" + generateCSV([...CANDIDATE_CSV_HEADER], rows),
+      );
+    },
+  );
+
   fastify.get(
     "/candidates",
     {
@@ -648,7 +685,6 @@ const candidateRoutes: FastifyPluginAsync = async (fastify) => {
             });
             continue;
           }
-          validateCandidateFields(configuredFields, fields);
           let existing = findByIdentity(
             allCandidates,
             configuredFields,
@@ -659,11 +695,31 @@ const candidateRoutes: FastifyPluginAsync = async (fastify) => {
             existing = await candidateRepo.findByUserId(ctx, userId);
           }
           if (existing) {
+            if (row.fields) {
+              validateCandidateFields(configuredFields, fields);
+            }
+            const passwordHash = password ? await hashPassword(password) : null;
             await executeInTransaction(fastify.db, async (tx) => {
-              await createCandidateRepo(tx).update(ctx, existing.id, {
-                fields,
-              });
-              await createUserRepo(tx).update(ctx, existing.userId, { name });
+              // A CSV row without custom fields leaves the stored ones intact.
+              if (row.fields) {
+                await createCandidateRepo(tx).update(ctx, existing.id, {
+                  fields,
+                });
+              }
+              const txUserRepo = createUserRepo(tx);
+              await txUserRepo.update(ctx, existing.userId, { name });
+              if (passwordHash) {
+                await txUserRepo.updatePasswordAndAdvanceAuthEpoch(
+                  ctx,
+                  existing.userId,
+                  passwordHash,
+                );
+                await recordAtomicHttpAudit(tx, request, ctx, {
+                  action: "candidate.password_reset",
+                  targetType: "user",
+                  targetId: existing.userId,
+                });
+              }
             });
             existingUsernames.add(username);
             userIdMap.set(username, existing.userId);
@@ -675,10 +731,11 @@ const candidateRoutes: FastifyPluginAsync = async (fastify) => {
               row: i + 1,
               code: "MISSING_PASSWORD",
               // i18n-copy-allow: wire-compat — non-authoritative import-row compatibility message persisted for logs; row code is the contract
-              message: "新增考生需要初始密码",
+              message: "Un alumno nuevo necesita contraseña",
             });
             continue;
           }
+          validateCandidateFields(configuredFields, fields);
 
           const passwordHash = await hashPassword(password);
           // Create user + primary Candidate assignment +

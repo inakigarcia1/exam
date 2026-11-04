@@ -134,7 +134,8 @@ function objectiveSnapshot(
     content: "Objective question",
     contentDocument: null,
     answerMode: null,
-    attachments: [],
+    image: null,
+    scale: null,
     options: [],
     standardAnswer,
     score,
@@ -154,7 +155,8 @@ function textResponseSnapshot(id: string, score: number): QuestionSnapshot {
     content: "Subjective question",
     contentDocument: null,
     answerMode: null,
-    attachments: [],
+    image: null,
+    scale: null,
     options: [],
     // Protocol §1.4: standardAnswer is optional/null for text_response;
     // subjectivity is determined by QuestionType, not standardAnswer.

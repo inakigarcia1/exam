@@ -53,6 +53,9 @@ function buildSnapshot(
         type: "single_choice",
         prompt: "选择一项",
         promptDocument: null,
+
+        image: null,
+        scale: null,
         answerMode: "plain" as const,
         options: [
           { id: "opt-a", content: "A", contentDocument: null },
@@ -191,6 +194,9 @@ describe("authoritative snapshot read path", () => {
           type: "single_choice",
           prompt: "Backend-authored prompt",
           promptDocument: null,
+
+          image: null,
+          scale: null,
           answerMode: "plain" as const,
           options: [{ id: "opt-a", content: "Alpha", contentDocument: null }],
           inputMode: "choice",
@@ -255,6 +261,9 @@ describe("authoritative snapshot read path", () => {
           type: "single_choice",
           prompt: "frozen",
           promptDocument: null,
+
+          image: null,
+          scale: null,
           answerMode: "plain" as const,
           options: [
             {
@@ -325,7 +334,9 @@ describe("authoritative snapshot read path", () => {
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "Entregar" }));
     const dialog = await screen.findByRole("dialog");
-    const confirm = within(dialog).getByRole("button", { name: "Confirmar entrega" });
+    const confirm = within(dialog).getByRole("button", {
+      name: "Confirmar entrega",
+    });
     await user.click(confirm);
 
     // Rapidly click again — must not issue a second /submit.
@@ -380,7 +391,9 @@ describe("authoritative snapshot read path", () => {
     // not become spuriously disabled, and no locally-reconstructed lock state
     // may appear. The attempt is still editable per the snapshot, so the
     // submit button and an enabled radio remain visible.
-    expect(screen.getByRole("button", { name: "Entregar" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Entregar" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: "A" })).not.toBeDisabled();
     // No locked-overlay introduced by frontend state.
     expect(screen.queryByTestId("deadline-overlay")).not.toBeInTheDocument();
@@ -403,8 +416,10 @@ describe("TakeExamPage behaviors over the snapshot read path", () => {
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: "Entregar" }));
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText(/题未作答/)).toBeInTheDocument();
-    await user.click(within(dialog).getByRole("button", { name: "Confirmar entrega" }));
+    expect(within(dialog).getByText(/\d+ sin responder/)).toBeInTheDocument();
+    await user.click(
+      within(dialog).getByRole("button", { name: "Confirmar entrega" }),
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("current-path")).toHaveTextContent("/result");
@@ -420,6 +435,9 @@ describe("TakeExamPage behaviors over the snapshot read path", () => {
           type: "fill_blank",
           prompt: "Completar espacios",
           promptDocument: null,
+
+          image: null,
+          scale: null,
           answerMode: "plain" as const,
           options: [],
           inputMode: "single_line",
@@ -444,7 +462,7 @@ describe("TakeExamPage behaviors over the snapshot read path", () => {
     });
 
     renderPage();
-    const input = await screen.findByLabelText("第1空答案");
+    const input = await screen.findByLabelText("Respuesta del espacio 1");
     const user = userEvent.setup();
     await user.type(input, "x");
 
@@ -459,9 +477,13 @@ describe("TakeExamPage behaviors over the snapshot read path", () => {
     renderPage();
 
     expect(
-      await screen.findByText("No se pudieron cargar las respuestas. Revisa la conexión e inténtalo de nuevo."),
+      await screen.findByText(
+        "No se pudieron cargar las respuestas. Revisa la conexión e inténtalo de nuevo.",
+      ),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Reintentar" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Reintentar" }),
+    ).toBeInTheDocument();
   });
 
   it("deadline auto-submit fires when effectiveDeadline has passed", async () => {
@@ -504,6 +526,9 @@ describe("TakeExamPage behaviors over the snapshot read path", () => {
           type: "multiple_choice",
           prompt: "Opción múltiple",
           promptDocument: null,
+
+          image: null,
+          scale: null,
           answerMode: "plain" as const,
           options: [
             { id: "a", content: "A", contentDocument: null },
@@ -567,7 +592,9 @@ describe("TakeExamPage behaviors over the snapshot read path", () => {
     // the footer flag button.
     const section = screen.getByTestId("take-question-section");
     const user = userEvent.setup();
-    const flagBtn = within(section).getByRole("button", { name: /标记/ });
+    const flagBtn = within(section).getByRole("button", {
+      name: /Marcar pregunta/,
+    });
     await user.click(flagBtn);
 
     expect(
@@ -583,6 +610,9 @@ describe("TakeExamPage behaviors over the snapshot read path", () => {
           type: "fill_blank",
           prompt: "Completar",
           promptDocument: null,
+
+          image: null,
+          scale: null,
           answerMode: "plain" as const,
           options: [],
           inputMode: "single_line",
@@ -604,14 +634,16 @@ describe("TakeExamPage behaviors over the snapshot read path", () => {
     });
 
     renderPage();
-    const input = await screen.findByLabelText("第1空答案");
+    const input = await screen.findByLabelText("Respuesta del espacio 1");
     const user = userEvent.setup();
     await user.type(input, "x");
     await user.click(screen.getByRole("button", { name: "Entregar" }));
 
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByText(/Guardando/)).toBeInTheDocument();
-    const confirm = within(dialog).getByRole("button", { name: "Confirmar entrega" });
+    const confirm = within(dialog).getByRole("button", {
+      name: "Confirmar entrega",
+    });
     expect(confirm).toBeDisabled();
 
     resolveSave({ accepted: true, serverVersion: 1, savedAt: NOW });
@@ -638,7 +670,9 @@ describe("TakeExamPage behaviors over the snapshot read path", () => {
     expect(
       await screen.findByText("Conexión con problemas", {}, { timeout: 3000 }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Entregar" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Entregar" }),
+    ).toBeInTheDocument();
   });
 });
 describe("submit-freeze UI proof", () => {
@@ -665,6 +699,9 @@ describe("submit-freeze UI proof", () => {
           type: "fill_blank",
           prompt: "frozen",
           promptDocument: null,
+
+          image: null,
+          scale: null,
           answerMode: "plain" as const,
           options: [],
           inputMode: "single_line",
@@ -681,7 +718,7 @@ describe("submit-freeze UI proof", () => {
 
     // The control itself must be disabled (INVARIANT half of the contract);
     // the seam guard below is what actually protects the save endpoint.
-    expect(screen.getByLabelText("第1空答案")).toBeDisabled();
+    expect(screen.getByLabelText("Respuesta del espacio 1")).toBeDisabled();
 
     // The input is disabled; even if a save were scheduled by some path,
     // the execution seam must refuse it. Wait through the debounce window.
@@ -706,6 +743,9 @@ describe("submit-freeze UI proof", () => {
           type: "fill_blank",
           prompt: "open",
           promptDocument: null,
+
+          image: null,
+          scale: null,
           answerMode: "plain" as const,
           options: [],
           inputMode: "single_line",
@@ -718,7 +758,7 @@ describe("submit-freeze UI proof", () => {
     installTakeRoute(editable);
 
     renderPage();
-    const input = await screen.findByLabelText("第1空答案");
+    const input = await screen.findByLabelText("Respuesta del espacio 1");
     const user = userEvent.setup();
     await user.type(input, "x");
 

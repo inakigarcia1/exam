@@ -12,6 +12,8 @@ export const SUPPORTED_PRODUCT_CAPABILITIES = Object.freeze([
   "question.true_false",
   "question.fill_blank",
   "question.text_response",
+  "question.likert",
+  "question.ranking",
   "content.prompt.rich",
   "content.option.rich",
   "answer.text.rich",

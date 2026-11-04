@@ -629,8 +629,8 @@ describe("registry/runtime conformance", () => {
     },
   ];
 
-  it("has exactly 18 issue-286 teacher-scoped routes defined", () => {
-    expect(teacherScopedSpecs).toHaveLength(18);
+  it("has exactly 13 issue-286 teacher-scoped routes defined", () => {
+    expect(teacherScopedSpecs).toHaveLength(13);
   });
 
   // ──────────────────── issue-296 Grader@Exam conformance ────────────────────

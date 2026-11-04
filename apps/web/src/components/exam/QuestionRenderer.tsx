@@ -5,11 +5,14 @@ import { FillBlankInput } from "./FillBlankInput";
 import { TrueFalseInput } from "./TrueFalseInput";
 import { TextResponseInput } from "./TextResponseInput";
 import { RichTextAnswerInput } from "./RichTextAnswerInput";
+import { LikertInput } from "./LikertInput";
+import { RankingInput } from "./RankingInput";
 import type { CandidateQuestionSnapshot } from "@/lib/examTypes";
 
 /**
  * Dispatches to the appropriate input component based on question type
- * (single_choice, multiple_choice, fill_blank, true_false, text_response).
+ * (single_choice, multiple_choice, fill_blank, true_false, text_response,
+ * likert, ranking).
  */
 export function QuestionRenderer({
   question,
@@ -77,6 +80,31 @@ export function QuestionRenderer({
       ) : (
         <TextResponseInput
           value={answer as string | undefined}
+          onChange={onChange}
+          disabled={disabled}
+        />
+      );
+    case "likert":
+      return (
+        <LikertInput
+          rows={question.options}
+          scale={question.scale ?? []}
+          value={
+            typeof answer === "object" &&
+            answer !== null &&
+            !Array.isArray(answer)
+              ? (answer as Record<string, number>)
+              : {}
+          }
+          onChange={onChange}
+          disabled={disabled}
+        />
+      );
+    case "ranking":
+      return (
+        <RankingInput
+          options={question.options}
+          value={Array.isArray(answer) ? answer.map(String) : undefined}
           onChange={onChange}
           disabled={disabled}
         />

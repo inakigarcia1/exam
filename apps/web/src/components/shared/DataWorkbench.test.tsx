@@ -46,9 +46,9 @@ describe("DataWorkbench", () => {
       .closest('[data-slot="data-workbench"]');
     expect(shell).toHaveClass("surface-content", "overflow-hidden");
     // toolbar + footer are both direct-ish regions inside the single shell.
-    expect(shell!.contains(screen.getByRole("button", { name: "Buscar" }))).toBe(
-      true,
-    );
+    expect(
+      shell!.contains(screen.getByRole("button", { name: "Buscar" })),
+    ).toBe(true);
     expect(shell!.contains(screen.getByText("共 0 条"))).toBe(true);
     expect(shell!.contains(screen.getByRole("table", { name: "题目表" }))).toBe(
       true,

@@ -73,12 +73,19 @@ describe("LoginPage smoke", () => {
     apiPost.mockReset();
   });
 
-  it("renders username and password fields and login button", () => {
+  it("renders username and password fields and login button", async () => {
+    const user = userEvent.setup();
     renderLogin();
 
-    expect(screen.getByLabelText("Usuario")).toBeInTheDocument();
+    expect(screen.getByLabelText("Nro. de Legajo")).toBeInTheDocument();
     expect(screen.getByLabelText("Contraseña")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Iniciar sesión" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Iniciar sesión" }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Docente" }));
+    expect(screen.getByLabelText("Usuario")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Nro. de Legajo")).not.toBeInTheDocument();
   });
 
   it("does not show login submitting state during session restore", () => {
@@ -94,7 +101,9 @@ describe("LoginPage smoke", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole("button", { name: "Iniciar sesión" })).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Iniciar sesión" }),
+    ).toBeEnabled();
     expect(
       screen.queryByRole("button", { name: "Ingresando..." }),
     ).not.toBeInTheDocument();
@@ -102,16 +111,20 @@ describe("LoginPage smoke", () => {
 
   it("shows error message when login fails", async () => {
     const user = userEvent.setup();
-    apiPost.mockRejectedValueOnce(new Error("Usuario o contraseña incorrectos"));
+    apiPost.mockRejectedValueOnce(
+      new Error("Usuario o contraseña incorrectos"),
+    );
 
     renderLogin();
 
-    await user.type(screen.getByLabelText("Usuario"), "admin");
+    await user.type(screen.getByLabelText("Nro. de Legajo"), "admin");
     await user.type(screen.getByLabelText("Contraseña"), "wrong");
     await user.click(screen.getByRole("button", { name: "Iniciar sesión" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent("Usuario o contraseña incorrectos");
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Usuario o contraseña incorrectos",
+      );
     });
   });
 
@@ -124,11 +137,14 @@ describe("LoginPage smoke", () => {
 
     renderLogin();
 
+    await user.click(screen.getByRole("button", { name: "Docente" }));
     await user.type(screen.getByLabelText("Usuario"), "admin");
     await user.type(screen.getByLabelText("Contraseña"), "admin123");
     await user.click(screen.getByRole("button", { name: "Iniciar sesión" }));
 
-    expect(screen.getByRole("button", { name: "Ingresando..." })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Ingresando..." }),
+    ).toBeDisabled();
 
     resolveLogin!({
       id: "u1",
@@ -154,6 +170,7 @@ describe("LoginPage smoke", () => {
 
     renderLogin();
 
+    await user.click(screen.getByRole("button", { name: "Docente" }));
     await user.type(screen.getByLabelText("Usuario"), "admin");
     await user.type(screen.getByLabelText("Contraseña"), "admin123");
     await user.click(screen.getByRole("button", { name: "Iniciar sesión" }));
@@ -178,7 +195,7 @@ describe("LoginPage smoke", () => {
 
     renderLogin();
 
-    await user.type(screen.getByLabelText("Usuario"), "candidate");
+    await user.type(screen.getByLabelText("Nro. de Legajo"), "candidate");
     await user.type(screen.getByLabelText("Contraseña"), "cand123");
     await user.click(screen.getByRole("button", { name: "Iniciar sesión" }));
 
@@ -194,11 +211,11 @@ describe("LoginPage smoke", () => {
     renderLogin();
 
     await user.click(screen.getByRole("button", { name: "Iniciar sesión" }));
-    expect(screen.getByText("Ingresa el usuario")).toBeInTheDocument();
+    expect(screen.getByText("Ingresa tu legajo")).toBeInTheDocument();
     expect(screen.getByText("Ingresa tu contraseña")).toBeInTheDocument();
 
-    await user.type(screen.getByLabelText("Usuario"), "admin");
-    expect(screen.queryByText("Ingresa el usuario")).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText("Nro. de Legajo"), "admin");
+    expect(screen.queryByText("Ingresa tu legajo")).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Contraseña"), "pass");
     expect(screen.queryByText("Ingresa tu contraseña")).not.toBeInTheDocument();

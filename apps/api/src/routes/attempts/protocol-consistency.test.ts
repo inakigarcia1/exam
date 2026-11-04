@@ -520,7 +520,8 @@ describe("protocol boundary consistency", () => {
         content: "请阐述你的观点",
         options: [],
         standardAnswer: null,
-        attachments: [],
+        image: null,
+        scale: null,
         difficulty: 3,
         tags: [],
         gradingRule: {

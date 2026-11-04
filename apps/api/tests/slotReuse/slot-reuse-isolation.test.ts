@@ -54,7 +54,7 @@ import { resolveTestScope } from "@exam/db/testScope";
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
 const API_DIR = join(__dirname, "../..");
-const VITEST_BIN = join(API_DIR, "node_modules/.bin/vitest");
+const VITEST_ENTRY = join(API_DIR, "node_modules/vitest/vitest.mjs");
 const CHILD_CONFIG = "tests/slotReuse/vitest.child.config.ts";
 
 interface Handoff {
@@ -104,8 +104,9 @@ function childEnv(stage: "A" | "B"): NodeJS.ProcessEnv {
 function runStage(stage: "A" | "B"): Promise<{ code: number; output: string }> {
   return new Promise((resolve, reject) => {
     const child = spawn(
-      VITEST_BIN,
+      process.execPath,
       [
+        VITEST_ENTRY,
         "run",
         // Fixture-runner config WITHOUT globalSetup — see the file header:
         // the outer run already holds the run lease; the children must not

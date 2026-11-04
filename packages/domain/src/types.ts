@@ -147,7 +147,10 @@ export interface Question {
   answerMode: ContentMode | null;
   options: Option[];
   standardAnswer: unknown;
-  attachments: Attachment[];
+  /** At most one image, shown between the prompt and the answer area (ADR-024). */
+  image: QuestionImage | null;
+  /** Likert column labels, left to right. null for every other type. */
+  scale: string[] | null;
   difficulty: number;
   tags: string[];
   gradingRule: GradingRule;
@@ -176,11 +179,13 @@ export interface Option {
   isCorrect?: boolean | undefined;
 }
 
-/** File or image attachment linked to a question. */
-export interface Attachment {
-  url: string;
-  type: "image" | "file";
-  name: string;
+/**
+ * Reference to an immutable `question_images` row of the same organization.
+ * `sha256` is the content hash of the stored bytes (ADR-024).
+ */
+export interface QuestionImage {
+  sha256: string;
+  alt: string;
 }
 
 // ── Question Snapshot (§3.6) ─────────────────────────────────────
@@ -206,7 +211,10 @@ export interface QuestionSnapshot {
    * null = plain). Historical rows omit the key — readers normalize to null.
    */
   answerMode: ContentMode | null;
-  attachments: Attachment[];
+  /** Frozen image reference. Historical JSONB rows omit the key — readers normalize to null. */
+  image: QuestionImage | null;
+  /** Frozen likert columns. Non-likert and older JSONB rows read as null. */
+  scale: string[] | null;
   options: OptionSnapshot[];
   standardAnswer: unknown;
   score: number;

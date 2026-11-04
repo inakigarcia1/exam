@@ -98,6 +98,15 @@ function mockPageData() {
     }),
   );
   apiGet.mockImplementation((path: string) => {
+    if (path.includes("/subjects")) {
+      return Promise.resolve({
+        items: [],
+        total: 0,
+        page: 1,
+        pageSize: 20,
+        totalPages: 1,
+      });
+    }
     if (path.includes("/courses")) {
       return Promise.resolve({
         items: [{ id: "course-1", name: "课程一", code: "C1" }],
@@ -117,6 +126,20 @@ function mockPageData() {
       });
     }
     return Promise.resolve([]);
+  });
+}
+
+/** The question editor reads the course list and the tag vocabulary. */
+function mockQuestionEditorApi() {
+  apiGet.mockImplementation((path: string) => {
+    if (path.includes("/questions/tags")) return Promise.resolve({ tags: [] });
+    return Promise.resolve({
+      items: [{ id: "course-1", name: "课程一", code: "C1" }],
+      total: 1,
+      page: 1,
+      pageSize: 20,
+      totalPages: 1,
+    });
   });
 }
 
@@ -175,7 +198,9 @@ describe("internal return restores the list query (#784 A05 / C2)", () => {
       "/admin/exams/:id",
     );
 
-    await user.click(await screen.findByRole("button", { name: "Volver a la lista" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Volver a la lista" }),
+    );
     expect(locationText()).toBe("/admin/exams?status=published&page=3");
   });
 
@@ -197,20 +222,16 @@ describe("internal return restores the list query (#784 A05 / C2)", () => {
         <ExamDetailPage />,
         "/admin/exams/:id",
       );
-      await user.click(await screen.findByRole("button", { name: "Volver a la lista" }));
+      await user.click(
+        await screen.findByRole("button", { name: "Volver a la lista" }),
+      );
       expect(locationText()).toBe("/admin/exams");
       view.unmount();
     }
   });
 
   it("the question editor cancel returns to the filtered list URL", async () => {
-    apiGet.mockResolvedValue({
-      items: [{ id: "course-1", name: "课程一", code: "C1" }],
-      total: 1,
-      page: 1,
-      pageSize: 20,
-      totalPages: 1,
-    });
+    mockQuestionEditorApi();
     const user = userEvent.setup();
     renderAt(
       {
@@ -226,13 +247,7 @@ describe("internal return restores the list query (#784 A05 / C2)", () => {
   });
 
   it("the question editor cancel falls back to the bare list for a hostile target", async () => {
-    apiGet.mockResolvedValue({
-      items: [{ id: "course-1", name: "课程一", code: "C1" }],
-      total: 1,
-      page: 1,
-      pageSize: 20,
-      totalPages: 1,
-    });
+    mockQuestionEditorApi();
     const user = userEvent.setup();
     renderAt(
       {
@@ -257,7 +272,9 @@ describe("internal return restores the list query (#784 A05 / C2)", () => {
       "/admin/exams/:id",
     );
 
-    await user.click(await screen.findByRole("button", { name: "Volver a la lista" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Volver a la lista" }),
+    );
     expect(locationText()).toBe("/admin/exams");
   });
 
@@ -286,7 +303,9 @@ describe("internal return restores the list query (#784 A05 / C2)", () => {
     await user.upload(
       fileInput,
       new File(
-        ["type,content,answer,score\ntrue_false,导入题目一,true,10\n"],
+        [
+          "tipo,enunciado,opciones,respuesta,columnas,criterio,dificultad,etiquetas\ntrue_false,导入题目一,,verdadero,,,1,\n",
+        ],
         "questions.csv",
         { type: "text/csv" },
       ),
@@ -326,7 +345,9 @@ describe("internal return restores the list query (#784 A05 / C2)", () => {
     await user.upload(
       fileInput,
       new File(
-        ["type,content,answer,score\ntrue_false,导入题目一,true,10\n"],
+        [
+          "tipo,enunciado,opciones,respuesta,columnas,criterio,dificultad,etiquetas\ntrue_false,导入题目一,,verdadero,,,1,\n",
+        ],
         "questions.csv",
         { type: "text/csv" },
       ),
@@ -388,7 +409,9 @@ describe("internal return restores the list query (#784 A05 / C2)", () => {
       "/admin/exams/:id",
     );
 
-    await user.click(await screen.findByRole("button", { name: "Volver a la lista" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Volver a la lista" }),
+    );
     await waitFor(() => expect(locationText()).toBe("/admin/exams"));
   });
 });

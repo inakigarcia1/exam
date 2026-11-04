@@ -6,7 +6,7 @@ import {
   fireEvent,
 } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import i18n from "@/i18n";
@@ -194,6 +194,14 @@ describe("ProctorDashboardPage", () => {
     resetPendingGrantCoordinator();
   });
 
+  // INVARIANT: storage spies (window.localStorage getter, Storage.prototype
+  // methods) must not outlive their test, or a failed assertion before the
+  // inline mockRestore() leaves storage throwing SecurityError for every
+  // later test in the file.
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("routes misconduct severity through the canonical statusMeta authority", async () => {
     apiGet.mockResolvedValueOnce({
       candidates: [
@@ -274,7 +282,7 @@ describe("ProctorDashboardPage", () => {
     renderPageWithUser(maintainerUser);
     await screen.findByText("张三");
     expect(
-      screen.queryByRole("button", { name: "Extender el plazo" }),
+      screen.queryByRole("button", { name: "Extender el tiempo" }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Forzar entrega" }),
@@ -283,7 +291,9 @@ describe("ProctorDashboardPage", () => {
       screen.queryByRole("button", { name: "Marcar irregularidad" }),
     ).not.toBeInTheDocument();
     // The grant dialog must not open either (no capability to reach it).
-    expect(screen.queryByText("Extender el tiempo del examen")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Extender el tiempo del examen"),
+    ).not.toBeInTheDocument();
   });
 
   it("does NOT POST force-submit from the hydrated banner for a user without AttemptForceSubmit", async () => {
@@ -317,12 +327,16 @@ describe("ProctorDashboardPage", () => {
     await screen.findByTestId("pending-force-submit-banner");
     await act(async () => {
       fireEvent.click(
-        screen.getByRole("button", { name: "Reintentar la entrega sin confirmar" }),
+        screen.getByRole("button", {
+          name: "Reintentar la entrega sin confirmar",
+        }),
       );
     });
     expect(apiPost).not.toHaveBeenCalled();
     // Dismiss still clears the stale record.
-    fireEvent.click(screen.getByRole("button", { name: "Descartar comando" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Limpiar comando sin confirmar" }),
+    );
     expect(
       sessionStorage.getItem("exam.pendingForceSubmit:org-1:maint-1"),
     ).toBeNull();
@@ -337,18 +351,22 @@ describe("ProctorDashboardPage", () => {
   describe("operator time-grant dialog", () => {
     /** Opens the grant dialog for the first candidate's extend button. */
     async function openGrantDialog() {
-      // The card's extend button label ("Extender el plazo").
-      const extendBtn = await screen.findByRole("button", { name: "Extender el plazo" });
+      // The card's extend button label ("Extender el tiempo").
+      const extendBtn = await screen.findByRole("button", {
+        name: "Extender el tiempo",
+      });
       fireEvent.click(extendBtn);
       await screen.findByText("Extender el tiempo del examen");
     }
 
     /** Fills the reason textarea and clicks the confirm (10-minute) button. */
     async function submitGrant() {
-      const reason = await screen.findByPlaceholderText("Explicá por qué se suma tiempo");
+      const reason = await screen.findByPlaceholderText(
+        "Explicá por qué se suma tiempo",
+      );
       fireEvent.change(reason, { target: { value: "Corte de red" } });
       const confirm = await screen.findByRole("button", {
-        name: "延长 10 分钟",
+        name: "Extender 10 minutos",
       });
       fireEvent.click(confirm);
     }
@@ -386,7 +404,7 @@ describe("ProctorDashboardPage", () => {
 
       await waitFor(() => {
         expect(toast.success).toHaveBeenCalledWith(
-          expect.stringContaining("已延长"),
+          expect.stringContaining("Se sumaron 10 minutos"),
         );
       });
     });
@@ -476,7 +494,7 @@ describe("ProctorDashboardPage", () => {
       // Confirmed success clears the pending command.
       await waitFor(() => {
         expect(toast.success).toHaveBeenCalledWith(
-          expect.stringContaining("已延长"),
+          expect.stringContaining("Se sumaron 10 minutos"),
         );
       });
     });
@@ -487,10 +505,13 @@ describe("ProctorDashboardPage", () => {
         total: 1,
       });
       // The thrown error must carry code=IDEMPOTENCY_CONFLICT for classification.
-      const conflict = Object.assign(new Error("Ese identificador ya se usó en otro pedido"), {
-        status: 409,
-        code: "IDEMPOTENCY_CONFLICT",
-      });
+      const conflict = Object.assign(
+        new Error("Ese identificador ya se usó en otro pedido"),
+        {
+          status: 409,
+          code: "IDEMPOTENCY_CONFLICT",
+        },
+      );
       // Register BOTH mocks up front: first rejects with the conflict, second
       // succeeds as granted. Registering the success mock after the second
       // submitGrant() would be too late — the second request would hit the base
@@ -530,7 +551,7 @@ describe("ProctorDashboardPage", () => {
 
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith(
-          expect.stringContaining("加时标识已被其他请求占用"),
+          expect.stringContaining("Pedí el tiempo extra de nuevo"),
         );
       });
 
@@ -592,7 +613,9 @@ describe("ProctorDashboardPage", () => {
 
         // Opening the dialog must not throw even without randomUUID.
         await openGrantDialog();
-        expect(screen.getByText("Extender el tiempo del examen")).toBeInTheDocument();
+        expect(
+          screen.getByText("Extender el tiempo del examen"),
+        ).toBeInTheDocument();
 
         // Submitting sends a well-formed UUID operationId.
         await submitGrant();
@@ -604,7 +627,7 @@ describe("ProctorDashboardPage", () => {
 
         await waitFor(() => {
           expect(toast.success).toHaveBeenCalledWith(
-            expect.stringContaining("已延长"),
+            expect.stringContaining("Se sumaron 10 minutos"),
           );
         });
       } finally {
@@ -651,10 +674,12 @@ describe("ProctorDashboardPage", () => {
       // operationId. Reopen and submit again to capture it.
       await openGrantDialog();
       // The draft was reset — the reason text is empty, so we must fill it.
-      const reason = await screen.findByPlaceholderText("Explicá por qué se suma tiempo");
+      const reason = await screen.findByPlaceholderText(
+        "Explicá por qué se suma tiempo",
+      );
       fireEvent.change(reason, { target: { value: "Falla del equipo" } });
       const confirm = await screen.findByRole("button", {
-        name: "延长 10 分钟",
+        name: "Extender 10 minutos",
       });
       fireEvent.click(confirm);
 
@@ -684,16 +709,22 @@ describe("ProctorDashboardPage", () => {
       renderPage();
       await screen.findByText("张三");
 
-      const extendBtn = await screen.findByRole("button", { name: "Extender el plazo" });
+      const extendBtn = await screen.findByRole("button", {
+        name: "Extender el tiempo",
+      });
       fireEvent.click(extendBtn);
 
       // Must fail closed: error toast shown, dialog NOT opened.
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith(
-          expect.stringContaining("无法安全协调"),
+          expect.stringContaining(
+            "No se puede coordinar un tiempo extra pendiente",
+          ),
         );
       });
-      expect(screen.queryByText("Extender el tiempo del examen")).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("Extender el tiempo del examen"),
+      ).not.toBeInTheDocument();
       // No grant request was ever sent.
       expect(apiPost).not.toHaveBeenCalled();
     });
@@ -721,16 +752,22 @@ describe("ProctorDashboardPage", () => {
       renderPage();
       await screen.findByText("张三");
 
-      const extendBtn = await screen.findByRole("button", { name: "Extender el plazo" });
+      const extendBtn = await screen.findByRole("button", {
+        name: "Extender el tiempo",
+      });
       fireEvent.click(extendBtn);
 
       // Must fail closed: error toast shown, dialog NOT opened.
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith(
-          expect.stringContaining("无法安全协调"),
+          expect.stringContaining(
+            "No se puede coordinar un tiempo extra pendiente",
+          ),
         );
       });
-      expect(screen.queryByText("Extender el tiempo del examen")).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("Extender el tiempo del examen"),
+      ).not.toBeInTheDocument();
       // No grant request was ever sent.
       expect(apiPost).not.toHaveBeenCalled();
 
@@ -760,7 +797,7 @@ describe("ProctorDashboardPage", () => {
         // Open the dialog: the coordinator's getCurrent restores the frozen
         // command as indeterminate (retry button visible).
         const extendBtn = await screen.findByRole("button", {
-          name: "Extender el plazo",
+          name: "Extender el tiempo",
         });
         fireEvent.click(extendBtn);
         await screen.findByText("Extender el tiempo del examen");
@@ -773,7 +810,9 @@ describe("ProctorDashboardPage", () => {
         fireEvent.click(retryBtn);
         await waitFor(() => {
           expect(toast.warning).toHaveBeenCalledWith(
-            expect.stringContaining("另一个标签页正在处理"),
+            expect.stringContaining(
+              "Otra pestaña está procesando este tiempo extra",
+            ),
           );
         });
         // Definitive proof: zero time-grants POST was sent.
@@ -803,7 +842,7 @@ describe("ProctorDashboardPage", () => {
         await screen.findByText("张三");
 
         const extendBtn = await screen.findByRole("button", {
-          name: "Extender el plazo",
+          name: "Extender el tiempo",
         });
         fireEvent.click(extendBtn);
         await screen.findByText("Extender el tiempo del examen");
@@ -825,7 +864,7 @@ describe("ProctorDashboardPage", () => {
         // surfaces the replay toast — no false "second grant".
         await waitFor(() => {
           expect(toast.success).toHaveBeenCalledWith(
-            expect.stringContaining("该加时已处理"),
+            expect.stringContaining("Ese tiempo extra ya estaba hecho"),
           );
         });
       });
@@ -859,12 +898,14 @@ describe("ProctorDashboardPage", () => {
         await waitFor(() => expect(apiPost).toHaveBeenCalledTimes(2));
         await waitFor(() => {
           expect(toast.warning).toHaveBeenCalledWith(
-            expect.stringContaining("未确认加时是否成功"),
+            expect.stringContaining("No se sabe si el tiempo extra se aplicó"),
           );
         });
         // The frozen command is retained → retry affordance still present.
         expect(
-          await screen.findByRole("button", { name: "Reintentar este tiempo extra" }),
+          await screen.findByRole("button", {
+            name: "Reintentar este tiempo extra",
+          }),
         ).toBeInTheDocument();
       });
 
@@ -880,7 +921,7 @@ describe("ProctorDashboardPage", () => {
         renderPage();
         await screen.findByText("张三");
         const extendBtn = await screen.findByRole("button", {
-          name: "Extender el plazo",
+          name: "Extender el tiempo",
         });
         fireEvent.click(extendBtn);
         await screen.findByText("Extender el tiempo del examen");
@@ -899,7 +940,9 @@ describe("ProctorDashboardPage", () => {
         // Fail closed: coordination-unavailable error, NO POST.
         await waitFor(() => {
           expect(toast.error).toHaveBeenCalledWith(
-            expect.stringContaining("无法安全协调"),
+            expect.stringContaining(
+              "No se puede coordinar un tiempo extra pendiente",
+            ),
           );
         });
         expect(apiPost).not.toHaveBeenCalled();
@@ -939,7 +982,7 @@ describe("ProctorDashboardPage", () => {
         renderPage();
         await screen.findByText("张三");
         const extendBtn = await screen.findByRole("button", {
-          name: "Extender el plazo",
+          name: "Extender el tiempo",
         });
         fireEvent.click(extendBtn);
         await screen.findByText("Extender el tiempo del examen");
@@ -953,13 +996,15 @@ describe("ProctorDashboardPage", () => {
         // shared authority → reset + resolvedInAnotherTab info toast.
         await waitFor(() => {
           expect(toast.info).toHaveBeenCalledWith(
-            expect.stringContaining("其他标签页处理"),
+            expect.stringContaining("ya se procesó en otra pestaña"),
           );
         });
         // No hidden local indeterminate state survived: the dialog was reset to
         // a fresh draft (retry affordance gone).
         expect(
-          screen.queryByRole("button", { name: "Reintentar este tiempo extra" }),
+          screen.queryByRole("button", {
+            name: "Reintentar este tiempo extra",
+          }),
         ).not.toBeInTheDocument();
 
         // Reopen the grant dialog for the SAME candidate. Because the local
@@ -968,15 +1013,17 @@ describe("ProctorDashboardPage", () => {
         // FRESH draft — NOT a retry. No blockedByPending warning either.
         fireEvent.click(extendBtn);
         await screen.findByText("Extender el tiempo del examen");
-        // Fresh draft → confirm button shows "延长 10 分钟", NOT "Reintentar este tiempo extra".
+        // Fresh draft → confirm button shows "Extender 10 minutos", NOT "Reintentar este tiempo extra".
         expect(
-          screen.getByRole("button", { name: "延长 10 分钟" }),
+          screen.getByRole("button", { name: "Extender 10 minutos" }),
         ).toBeInTheDocument();
         expect(
-          screen.queryByRole("button", { name: "Reintentar este tiempo extra" }),
+          screen.queryByRole("button", {
+            name: "Reintentar este tiempo extra",
+          }),
         ).not.toBeInTheDocument();
         expect(toast.warning).not.toHaveBeenCalledWith(
-          expect.stringContaining("存在未确认的加时命令"),
+          expect.stringContaining("Hay un tiempo extra sin confirmar"),
         );
       });
     });
@@ -984,7 +1031,9 @@ describe("ProctorDashboardPage", () => {
 
   describe("force-submit retry identity", () => {
     async function openForceSubmitDialog() {
-      const trigger = await screen.findByRole("button", { name: "Forzar entrega" });
+      const trigger = await screen.findByRole("button", {
+        name: "Forzar entrega",
+      });
       fireEvent.click(trigger);
       // The dialog content renders after the click.
       await screen.findByText("Confirmar entrega forzada");
@@ -1034,7 +1083,9 @@ describe("ProctorDashboardPage", () => {
       // After the indeterminate failure, the pending command is RETAINED.
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith(
-          expect.stringContaining("提交状态未确认"),
+          expect.stringContaining(
+            "No se confirmó el envío de la entrega forzada",
+          ),
         );
       });
       // The pending command is persisted in sessionStorage.
@@ -1159,7 +1210,9 @@ describe("ProctorDashboardPage", () => {
       // loadStatus); flush it inside act() so no render lands outside it.
       await act(async () => {
         fireEvent.click(
-          screen.getByRole("button", { name: "Reintentar la entrega sin confirmar" }),
+          screen.getByRole("button", {
+            name: "Reintentar la entrega sin confirmar",
+          }),
         );
       });
       await waitFor(() => expect(apiPost).toHaveBeenCalledTimes(1));
@@ -1210,7 +1263,9 @@ describe("ProctorDashboardPage", () => {
       // loadStatus); flush it inside act() so no render lands outside it.
       await act(async () => {
         fireEvent.click(
-          screen.getByRole("button", { name: "Reintentar la entrega sin confirmar" }),
+          screen.getByRole("button", {
+            name: "Reintentar la entrega sin confirmar",
+          }),
         );
       });
 
@@ -1247,7 +1302,9 @@ describe("ProctorDashboardPage", () => {
 
       renderPage();
       await pendingBanner();
-      fireEvent.click(screen.getByRole("button", { name: "Descartar comando" }));
+      fireEvent.click(
+        screen.getByRole("button", { name: "Limpiar comando sin confirmar" }),
+      );
 
       await waitFor(() => {
         expect(screen.queryByTestId("pending-force-submit-banner")).toBeNull();
@@ -1327,10 +1384,12 @@ describe("ProctorDashboardPage", () => {
       // the dismiss-only cleanup_failed phase.
       expect(banner).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "Reintentar la entrega sin confirmar" }),
+        screen.getByRole("button", {
+          name: "Reintentar la entrega sin confirmar",
+        }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "Descartar comando" }),
+        screen.getByRole("button", { name: "Limpiar comando sin confirmar" }),
       ).toBeInTheDocument();
 
       // Retry from the banner → POST replays op-A for att-1 verbatim.
@@ -1338,7 +1397,9 @@ describe("ProctorDashboardPage", () => {
       // loadStatus); flush it inside act() so no render lands outside it.
       await act(async () => {
         fireEvent.click(
-          screen.getByRole("button", { name: "Reintentar la entrega sin confirmar" }),
+          screen.getByRole("button", {
+            name: "Reintentar la entrega sin confirmar",
+          }),
         );
       });
       await waitFor(() => expect(apiPost).toHaveBeenCalledTimes(1));
@@ -1377,7 +1438,9 @@ describe("ProctorDashboardPage", () => {
       // Fail-closed: no POST, persistence failure surfaced, bad bytes removed.
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith(
-          expect.stringContaining("无法安全保存强制交卷命令"),
+          expect.stringContaining(
+            "No se pudo guardar el comando de entrega forzada",
+          ),
         );
       });
       expect(apiPost).not.toHaveBeenCalled();
@@ -1423,11 +1486,15 @@ describe("ProctorDashboardPage", () => {
 
       renderPage();
       await pendingBanner();
-      fireEvent.click(screen.getByRole("button", { name: "Descartar comando" }));
+      fireEvent.click(
+        screen.getByRole("button", { name: "Limpiar comando sin confirmar" }),
+      );
 
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith(
-          expect.stringContaining("无法清除未确认的强制交卷命令"),
+          expect.stringContaining(
+            "No se pudo descartar la entrega forzada sin confirmar",
+          ),
         );
       });
       // The banner is KEPT and the durable record is still present.
@@ -1483,7 +1550,9 @@ describe("ProctorDashboardPage", () => {
       // loadStatus); flush it inside act() so no render lands outside it.
       await act(async () => {
         fireEvent.click(
-          screen.getByRole("button", { name: "Reintentar la entrega sin confirmar" }),
+          screen.getByRole("button", {
+            name: "Reintentar la entrega sin confirmar",
+          }),
         );
       });
 
@@ -1494,19 +1563,25 @@ describe("ProctorDashboardPage", () => {
         );
       });
       expect(toast.warning).toHaveBeenCalledWith(
-        expect.stringContaining("清理失败"),
+        expect.stringContaining(
+          "La entrega forzada ya está confirmada, pero no se pudo",
+        ),
       );
       // P2 fix: the banner is KEPT with cleanup_failed semantics — the stale
       // record is visible and offers a dismiss (storage cleanup) affordance.
       const banner = screen.getByTestId("pending-force-submit-banner");
       expect(banner).toBeInTheDocument();
-      expect(banner).toHaveTextContent("清理失败");
+      expect(banner).toHaveTextContent(
+        "La entrega forzada ya está confirmada, pero no se pudo",
+      );
       // Only dismiss button, no retry (POST is pointless on confirmed outcome).
       expect(
-        screen.queryByRole("button", { name: "Reintentar la entrega sin confirmar" }),
+        screen.queryByRole("button", {
+          name: "Reintentar la entrega sin confirmar",
+        }),
       ).toBeNull();
       expect(
-        screen.getByRole("button", { name: "Descartar comando" }),
+        screen.getByRole("button", { name: "Limpiar comando sin confirmar" }),
       ).toBeInTheDocument();
       // The stale durable record is still present.
       expect(
@@ -1565,20 +1640,28 @@ describe("ProctorDashboardPage", () => {
       await pendingBanner();
       await act(async () => {
         fireEvent.click(
-          screen.getByRole("button", { name: "Reintentar la entrega sin confirmar" }),
+          screen.getByRole("button", {
+            name: "Reintentar la entrega sin confirmar",
+          }),
         );
       });
       await waitFor(() => {
         expect(toast.warning).toHaveBeenCalledWith(
-          expect.stringContaining("清理失败"),
+          expect.stringContaining(
+            "La entrega forzada ya está confirmada, pero no se pudo",
+          ),
         );
       });
 
       // Session now holds cleanup_failed (confirmed + cleanup failure).
       const banner = screen.getByTestId("pending-force-submit-banner");
-      expect(banner).toHaveTextContent("清理失败");
+      expect(banner).toHaveTextContent(
+        "La entrega forzada ya está confirmada, pero no se pudo",
+      );
       expect(
-        screen.queryByRole("button", { name: "Reintentar la entrega sin confirmar" }),
+        screen.queryByRole("button", {
+          name: "Reintentar la entrega sin confirmar",
+        }),
       ).toBeNull();
 
       // Click B's force-submit → blocked, but the phase is KEPT as
@@ -1594,17 +1677,21 @@ describe("ProctorDashboardPage", () => {
       );
 
       // Close the B dialog (cancel) — the banner must STILL be cleanup_failed:
-      // "清理失败" copy, dismiss-only, no retry (the open modal would make
+      // "La entrega forzada ya está confirmada, pero no se pudo" copy, dismiss-only, no retry (the open modal would make
       // the page aria-hidden and hide the banner buttons from role queries).
       fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
       expect(
         screen.getByTestId("pending-force-submit-banner"),
-      ).toHaveTextContent("清理失败");
+      ).toHaveTextContent(
+        "La entrega forzada ya está confirmada, pero no se pudo",
+      );
       expect(
-        screen.queryByRole("button", { name: "Reintentar la entrega sin confirmar" }),
+        screen.queryByRole("button", {
+          name: "Reintentar la entrega sin confirmar",
+        }),
       ).toBeNull();
       expect(
-        screen.getByRole("button", { name: "Descartar comando" }),
+        screen.getByRole("button", { name: "Limpiar comando sin confirmar" }),
       ).toBeInTheDocument();
       // No POST was sent for the blocked B dialog.
       expect(apiPost).toHaveBeenCalledTimes(1);
@@ -1649,26 +1736,30 @@ describe("ProctorDashboardPage", () => {
 
       // The banner identifies the command's target: the owning exam + the
       // candidate snapshot.
-      expect(banner).toHaveTextContent("其他考试");
+      expect(banner).toHaveTextContent("es de otro examen");
       expect(banner).toHaveTextContent("exam-9");
       expect(banner).toHaveTextContent("王五");
 
       // NO destructive retry on the wrong exam page.
       expect(
-        screen.queryByRole("button", { name: "Reintentar la entrega sin confirmar" }),
+        screen.queryByRole("button", {
+          name: "Reintentar la entrega sin confirmar",
+        }),
       ).toBeNull();
       // Navigation back to the owning exam + dismiss are available.
       expect(
         screen.getByRole("button", { name: "Volver a ese examen" }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "Descartar comando" }),
+        screen.getByRole("button", { name: "Limpiar comando sin confirmar" }),
       ).toBeInTheDocument();
       // No POST was ever sent — the pending command stays untouched.
       expect(apiPost).not.toHaveBeenCalled();
 
       // Dismiss from the banner clears the stale storage record.
-      fireEvent.click(screen.getByRole("button", { name: "Descartar comando" }));
+      fireEvent.click(
+        screen.getByRole("button", { name: "Limpiar comando sin confirmar" }),
+      );
       await waitFor(() => {
         expect(
           sessionStorage.getItem("exam.pendingForceSubmit:org-1:admin-1"),
@@ -1722,21 +1813,29 @@ describe("ProctorDashboardPage", () => {
         await pendingBanner();
         await act(async () => {
           fireEvent.click(
-            screen.getByRole("button", { name: "Reintentar la entrega sin confirmar" }),
+            screen.getByRole("button", {
+              name: "Reintentar la entrega sin confirmar",
+            }),
           );
         });
         await waitFor(() => {
           expect(toast.warning).toHaveBeenCalledWith(
-            expect.stringContaining("清理失败"),
+            expect.stringContaining(
+              "La entrega forzada ya está confirmada, pero no se pudo",
+            ),
           );
         });
 
         // Session now holds cleanup_failed (confirmed + cleanup failure).
         expect(
           screen.getByTestId("pending-force-submit-banner"),
-        ).toHaveTextContent("清理失败");
+        ).toHaveTextContent(
+          "La entrega forzada ya está confirmada, pero no se pudo",
+        );
         expect(
-          screen.queryByRole("button", { name: "Reintentar la entrega sin confirmar" }),
+          screen.queryByRole("button", {
+            name: "Reintentar la entrega sin confirmar",
+          }),
         ).toBeNull();
 
         // Language round-trip changes the `t` identity (react-i18next
@@ -1748,9 +1847,13 @@ describe("ProctorDashboardPage", () => {
         });
         expect(
           screen.getByTestId("pending-force-submit-banner"),
-        ).toHaveTextContent("清理失败");
+        ).toHaveTextContent(
+          "La entrega forzada ya está confirmada, pero no se pudo",
+        );
         expect(
-          screen.queryByRole("button", { name: "Reintentar la entrega sin confirmar" }),
+          screen.queryByRole("button", {
+            name: "Reintentar la entrega sin confirmar",
+          }),
         ).toBeNull();
         // The retry from earlier is the ONLY POST — the downgraded path must
         // not have sent anything.
@@ -1835,17 +1938,21 @@ describe("ProctorDashboardPage", () => {
       // invisible until the dialog closes — text assertions still work).
       const banner = screen.getByTestId("pending-force-submit-banner");
       expect(banner).toBeInTheDocument();
-      expect(banner).not.toHaveTextContent("清理失败");
+      expect(banner).not.toHaveTextContent(
+        "La entrega forzada ya está confirmada, pero no se pudo",
+      );
 
       // Close the B dialog (cancel) — the indeterminate banner must STILL
       // offer retry + dismiss (mutations to `cleanup_failed` or `idle` fail
       // here).
       fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
       expect(
-        screen.getByRole("button", { name: "Reintentar la entrega sin confirmar" }),
+        screen.getByRole("button", {
+          name: "Reintentar la entrega sin confirmar",
+        }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "Descartar comando" }),
+        screen.getByRole("button", { name: "Limpiar comando sin confirmar" }),
       ).toBeInTheDocument();
 
       // Retry from the banner → POST replays op-A for att-1 verbatim.
@@ -1853,7 +1960,9 @@ describe("ProctorDashboardPage", () => {
       // loadStatus); flush it inside act() so no render lands outside it.
       await act(async () => {
         fireEvent.click(
-          screen.getByRole("button", { name: "Reintentar la entrega sin confirmar" }),
+          screen.getByRole("button", {
+            name: "Reintentar la entrega sin confirmar",
+          }),
         );
       });
       await waitFor(() => expect(apiPost).toHaveBeenCalledTimes(1));
@@ -1895,7 +2004,9 @@ describe("ProctorDashboardPage", () => {
       // Fail-closed: NO POST was sent.
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith(
-          expect.stringContaining("无法安全保存强制交卷命令"),
+          expect.stringContaining(
+            "No se pudo guardar el comando de entrega forzada",
+          ),
         );
       });
       expect(apiPost).not.toHaveBeenCalled();
@@ -1919,7 +2030,9 @@ describe("ProctorDashboardPage", () => {
 
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith(
-          expect.stringContaining("检测到损坏"),
+          expect.stringContaining(
+            "Había un registro dañado de una entrega forzada",
+          ),
         );
       });
       // The corrupt record was removed.
@@ -1959,7 +2072,9 @@ describe("ProctorDashboardPage", () => {
 
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith(
-          expect.stringContaining("检测到损坏"),
+          expect.stringContaining(
+            "Había un registro dañado de una entrega forzada",
+          ),
         );
       });
       expect(
@@ -1982,14 +2097,18 @@ describe("ProctorDashboardPage", () => {
   describe("misconduct retry identity", () => {
     /** Opens the misconduct dialog for the first candidate's flag button. */
     async function openMisconductDialog() {
-      const flagBtn = await screen.findByRole("button", { name: "Marcar irregularidad" });
+      const flagBtn = await screen.findByRole("button", {
+        name: "Marcar irregularidad",
+      });
       fireEvent.click(flagBtn);
-      await screen.findByText("为考生 张三 标记违规行为");
+      await screen.findByText("Marcar una irregularidad de 张三");
     }
 
     /** Fills the notes textarea and clicks the confirm button. */
     async function submitMisconduct(notes: string) {
-      const notesInput = await screen.findByPlaceholderText("Describí la irregularidad");
+      const notesInput = await screen.findByPlaceholderText(
+        "Describí la irregularidad",
+      );
       fireEvent.change(notesInput, { target: { value: notes } });
       const confirm = await screen.findByRole("button", { name: "Confirmar" });
       await act(async () => {
@@ -2023,14 +2142,18 @@ describe("ProctorDashboardPage", () => {
       // "Reintentar la marca".
       await waitFor(() => {
         expect(toast.error).toHaveBeenCalledWith(
-          expect.stringContaining("未确认违规标记"),
+          expect.stringContaining(
+            "No se confirmó si la irregularidad quedó marcada",
+          ),
         );
       });
       const retryBtn = await screen.findByRole("button", {
         name: "Reintentar la marca",
       });
       // The notes textarea is now read-only (disabled).
-      const notesInput = screen.getByPlaceholderText("Describí la irregularidad");
+      const notesInput = screen.getByPlaceholderText(
+        "Describí la irregularidad",
+      );
       expect(notesInput).toBeDisabled();
 
       await act(async () => {
@@ -2117,12 +2240,16 @@ describe("ProctorDashboardPage", () => {
       // surfaced instead) and the cleanup_failed banner is visible.
       await waitFor(() => {
         expect(toast.warning).toHaveBeenCalledWith(
-          expect.stringContaining("本地记录清理失败"),
+          expect.stringContaining(
+            "La irregularidad ya está confirmada, pero no se pudo",
+          ),
         );
       });
       const banner = screen.getByTestId("pending-misconduct-banner");
       expect(banner).toBeInTheDocument();
-      expect(banner).toHaveTextContent("本地记录清理失败");
+      expect(banner).toHaveTextContent(
+        "La irregularidad ya está confirmada, pero no se pudo",
+      );
       // The stale durable record is still present.
       expect(
         sessionStorage.getItem("exam.pendingMisconduct:org-1:admin-1"),
@@ -2130,7 +2257,9 @@ describe("ProctorDashboardPage", () => {
       // cleanup_failed is dismiss-only — no retry button (POST is pointless on
       // a confirmed outcome).
       expect(
-        screen.queryByRole("button", { name: "Reintentar la marca sin confirmar" }),
+        screen.queryByRole("button", {
+          name: "Reintentar la marca sin confirmar",
+        }),
       ).toBeNull();
 
       removerSpy.mockRestore();

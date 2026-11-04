@@ -262,6 +262,8 @@ exists (pending manual grading, recovery, incidents, historical Rich content).
 | `question.multiple_choice` | `QuestionType.MultipleChoice`; `gradeQuestion` set comparison | Implemented; partial-scoring rule; catalog oracle | — |
 | `question.true_false` | `QuestionType.TrueFalse`; `gradeQuestion` exact match | Implemented; catalog oracle | — |
 | `question.fill_blank` | `QuestionType.FillBlank`; string matcher | Implemented; Plain-only, rich prompt rejected by `CreateQuestionRequestSchema`; catalog oracle | Structured fill_blank is a separate future issue |
+| `question.likert` | `QuestionType.Likert`; `Question.scale` columns; `gradeQuestion` all rows or nothing | Implemented; contracts + grading + answer-validation tests; not importable from CSV | — |
+| `question.ranking` | `QuestionType.Ranking`; `gradeQuestion` exact order; always shuffled at attempt creation | Implemented; contracts + grading + presentation tests; not importable from CSV | — |
 | `question.text_response` | `QuestionType.TextResponse`; manual workset | Implemented; `isManualGradedQuestion` / `requiresManualGrading` oracle | Manual completion is intrinsic to this type, not separately disableable |
 | `content.prompt.rich` | `Question.contentDocument` / `QuestionSnapshot.contentDocument` | Implemented; `classifyPersistedQuestionContent`; rich create-contract oracle | Math/Table/Code are content facets, not new types |
 | `content.option.rich` | `Option.contentDocument` / `OptionSnapshot.contentDocument` | Implemented; rich option write rule; rich create-contract oracle | Same |

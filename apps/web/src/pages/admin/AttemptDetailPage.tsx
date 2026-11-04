@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
-import { plainTextProjection, type ContentDocumentV1 } from "@exam/domain";
+import {
+  plainTextProjection,
+  type ContentDocumentV1,
+  type QuestionImage,
+} from "@exam/domain";
 import { resolveRichAnswerDocument } from "@exam/contracts";
 import { Permission } from "@exam/authz";
 import { useProductDateTime } from "@/contexts/DateTimeContext";
@@ -195,6 +199,8 @@ interface QuestionResult {
   type: string;
   content: string;
   contentDocument: unknown;
+  image: QuestionImage | null;
+  scale?: string[] | null;
   answerMode?: string | null;
   order: number;
   options: QuestionReviewOption[];
@@ -825,6 +831,7 @@ export function AttemptDetailPage() {
             contentDocument:
               (question.contentDocument as ContentDocumentV1 | null) ?? null,
             answerMode: question.answerMode ?? null,
+            scale: question.scale ?? null,
             options: question.options ?? [],
           }))}
           showCorrectAnswer

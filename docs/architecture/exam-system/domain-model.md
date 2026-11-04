@@ -100,7 +100,7 @@ A row with an ID and repository is **not** automatically an aggregate root. The 
 
 - **Identity**: `questions.id` (UUID, app-generated)
 - **Owner**: Aggregate root, scoped by `organizationId` (shared question bank per org; not tied to a Course)
-- **Mutable fields**: `content`, `options`, `standardAnswer`, `rubric`, `score`, `difficulty`, `tags`, `gradingRule`, `attachments`
+- **Mutable fields**: `content`, `options`, `standardAnswer`, `rubric`, `score`, `difficulty`, `tags`, `gradingRule`, `image` (ADR-024), `scale` (likert column labels)
 - **Immutable fields**: `id`, `organizationId`, `type`, `createdAt`
 - **Creation command**: Question create route (`POST /api/questions`)
 - **Mutation commands**: Question update route (`PATCH /api/questions/:id`)
@@ -303,6 +303,8 @@ Once `submitted`/`graded`, the attempt is terminal — no recovery path (`voided
 | `multiple_choice` | All-correct = full; partial (subset, no wrong) = half (if `partial_half`); any-wrong = zero |
 | `fill_blank` | Exact or keyword match (configurable), case-sensitivity configurable |
 | `text_response` | NOT auto-graded — returns zero-score placeholder |
+| `likert` | Full score only if every row picks its standard column; otherwise zero |
+| `ranking` | Full score only if the order matches `standardAnswer` exactly; otherwise zero |
 
 ### 9.2 Manual grading authority
 

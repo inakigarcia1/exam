@@ -1,5 +1,12 @@
 import { z } from "zod";
 import { AnswerModeEnum, ContentDocumentV1Schema } from "./contentDocument.js";
+import { QuestionImageSchema, QuestionTypeEnum } from "./question.js";
+
+/** Frozen question image shown with the prompt (ADR-024). */
+const PromptImageSchema = QuestionImageSchema.nullable().default(null);
+
+/** Frozen likert columns; null for every other type. */
+const PromptScaleSchema = z.array(z.string()).nullable().default(null);
 
 // ── Score List ────────────────────────────────────────────────────
 
@@ -94,13 +101,7 @@ export type GradingQueueListResponse = z.infer<
  */
 export const GradingDetailsQuestionSchema = z.object({
   questionId: z.string(),
-  type: z.enum([
-    "single_choice",
-    "multiple_choice",
-    "fill_blank",
-    "true_false",
-    "text_response",
-  ]),
+  type: QuestionTypeEnum,
   content: z.string(),
   /**
    * Frozen rich prompt from the QuestionSnapshot (#301). Null = Plain
@@ -108,6 +109,7 @@ export const GradingDetailsQuestionSchema = z.object({
    * to candidates via CandidateTakeSnapshot.
    */
   contentDocument: ContentDocumentV1Schema.nullable(),
+  image: PromptImageSchema,
   /**
    * Frozen answer input mode for text_response (#301): the
    * render authority for `candidateAnswer`. Only `answerMode === "rich"`
@@ -222,17 +224,13 @@ const QuestionReviewOptionSchema = z.object({
 });
 
 const AttemptQuestionResultSchema = QuestionScoreResultSchema.extend({
-  type: z.enum([
-    "single_choice",
-    "multiple_choice",
-    "fill_blank",
-    "true_false",
-    "text_response",
-  ]),
+  type: QuestionTypeEnum,
   content: z.string(),
   // Rich prompt document: null in Plain mode. Candidate result
   // views render it through the static content renderer.
   contentDocument: ContentDocumentV1Schema.nullable(),
+  image: PromptImageSchema,
+  scale: PromptScaleSchema,
   /**
    * Frozen answer input mode for text_response (#301): the
    * render authority for `candidateAnswer`. Only `answerMode === "rich"`
@@ -434,15 +432,11 @@ export type ScoreListResponse = z.infer<typeof ScoreListResponseSchema>;
 const AttemptLiveQuestionSchema = z.object({
   questionId: z.string().uuid(),
   order: z.number().int(),
-  type: z.enum([
-    "single_choice",
-    "multiple_choice",
-    "fill_blank",
-    "true_false",
-    "text_response",
-  ]),
+  type: QuestionTypeEnum,
   content: z.string(),
   contentDocument: ContentDocumentV1Schema.nullable(),
+  image: PromptImageSchema,
+  scale: PromptScaleSchema,
   answerMode: AnswerModeEnum.nullable().default(null),
   options: z.array(QuestionReviewOptionSchema).default([]),
   currentAnswer: z.unknown(),

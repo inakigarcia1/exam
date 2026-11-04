@@ -177,4 +177,12 @@ export const api = {
   delete<T>(path: string): Promise<T> {
     return request<T>(path, { method: "DELETE" });
   },
+  /** POSTs a raw binary body with its own Content-Type (e.g. an image). */
+  upload<T>(path: string, body: Blob): Promise<T> {
+    return request<T>(path, {
+      method: "POST",
+      body,
+      headers: { "Content-Type": body.type },
+    });
+  },
 };

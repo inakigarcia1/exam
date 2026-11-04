@@ -12,6 +12,8 @@ export interface DerivedQuestionView {
   promptDocument: CandidateTakeSnapshot["questions"][number]["promptDocument"];
   /** How candidates answer text_response questions; passthrough. */
   answerMode: CandidateTakeSnapshot["questions"][number]["answerMode"];
+  image: CandidateTakeSnapshot["questions"][number]["image"];
+  scale: CandidateTakeSnapshot["questions"][number]["scale"];
   options: CandidateTakeSnapshot["questions"][number]["options"];
   inputMode: CandidateTakeSnapshot["questions"][number]["inputMode"];
   maxScore: number;
@@ -81,6 +83,8 @@ export function deriveTakeExamView(
       prompt: q.prompt,
       promptDocument: q.promptDocument,
       answerMode: q.answerMode,
+      image: q.image,
+      scale: q.scale,
       options: q.options,
       inputMode: q.inputMode,
       maxScore: q.maxScore,

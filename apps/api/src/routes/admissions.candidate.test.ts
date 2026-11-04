@@ -70,10 +70,10 @@ describe("durable admission candidate API (#292)", () => {
         type: "true_false",
         content: `QA question ${slug}: 2+2=4`,
         standardAnswer: true,
-        score: 100,
       },
       cookies: { "auth-token": adminToken },
     });
+    const questionId = asRecord(question.json()).id as string;
     const nowMs = Date.now();
     const exam = await ctx.app.inject({
       method: "POST",
@@ -86,7 +86,8 @@ describe("durable admission candidate API (#292)", () => {
         closeAt: new Date(nowMs + 3_600_000).toISOString(),
         passingScore: 60,
         totalScore: 100,
-        questionIds: [asRecord(question.json()).id as string],
+        questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
         controlFlags: { requireQueue: true, batchSize: 1, batchInterval: 3600 },
       },
       cookies: { "auth-token": adminToken },
@@ -186,10 +187,10 @@ describe("durable admission candidate API (#292)", () => {
         type: "true_false",
         content: `QA progress question ${slug}: 2+2=4`,
         standardAnswer: true,
-        score: 100,
       },
       cookies: { "auth-token": adminToken },
     });
+    const questionId = asRecord(question.json()).id as string;
     const nowMs = Date.now();
     const exam = await ctx.app.inject({
       method: "POST",
@@ -202,7 +203,8 @@ describe("durable admission candidate API (#292)", () => {
         closeAt: new Date(nowMs + 3_600_000).toISOString(),
         passingScore: 60,
         totalScore: 100,
-        questionIds: [asRecord(question.json()).id as string],
+        questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
         controlFlags: { requireQueue: true, batchSize: 1, batchInterval },
       },
       cookies: { "auth-token": adminToken },

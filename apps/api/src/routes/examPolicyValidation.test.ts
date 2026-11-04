@@ -20,6 +20,7 @@ function validCreatePayload(courseId: string, questionId: string) {
     passingScore: 60,
     totalScore: 100,
     questionIds: [questionId],
+    questionScores: { [questionId]: 100 },
   };
 }
 
@@ -52,7 +53,6 @@ describe("exam policy validation — authoring + publish", () => {
         courseId,
         type: "single_choice",
         content: "Pick one",
-        score: 100,
         options: [
           { id: "a", content: "A" },
           { id: "b", content: "B" },
@@ -146,7 +146,8 @@ describe("exam policy validation — authoring + publish", () => {
       cookies: { "auth-token": ctx.adminToken },
     });
     expect(res.statusCode).toBe(200);
-    expect(res.json().status).toBe("published");
+    // Publish reconciles against the clock; this fixture's window is in the past.
+    expect(res.json().status).toBe("closed");
   });
 
   it("PATCH bounded_grace draft to strict with explicit null caps succeeds (null-merge regression)", async () => {
@@ -221,7 +222,6 @@ describe("timing modes — authoring gate", () => {
         type: "true_false",
         content: "policy-validation question.",
         standardAnswer: true,
-        score: 100,
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -384,7 +384,6 @@ describe("unsupported control flags — activation gate (#516)", () => {
         courseId,
         type: "single_choice",
         content: "Truth question",
-        score: 100,
         options: [
           { id: "a", content: "A" },
           { id: "b", content: "B" },
@@ -571,10 +570,11 @@ describe("unsupported control flags — activation gate (#516)", () => {
 
     // Draft update revalidates the FULL merged policy: editing an unrelated
     // field cannot sneak a historical unsupported row back into authority.
+    // A title-only PATCH is a rename, which skips policy revalidation in any status.
     const patchRes = await ctx.app.inject({
       method: "PATCH",
       url: `/api/exams/${id}`,
-      payload: { title: "Renamed historical exam" },
+      payload: { description: "Edited historical exam" },
       cookies: { "auth-token": ctx.adminToken },
     });
     expect(patchRes.statusCode).toBe(400);

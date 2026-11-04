@@ -65,7 +65,8 @@ describe("repo round-trip: text_response + submitted_answers", () => {
       content: "请阐述你的观点",
       options: [],
       standardAnswer: null,
-      attachments: [],
+      image: null,
+      scale: null,
       difficulty: 3,
       tags: [],
       gradingRule: {
@@ -90,7 +91,8 @@ describe("repo round-trip: text_response + submitted_answers", () => {
       content: "1+1=2?",
       options: [],
       standardAnswer: true,
-      attachments: [],
+      image: null,
+      scale: null,
       difficulty: 1,
       tags: [],
       gradingRule: {

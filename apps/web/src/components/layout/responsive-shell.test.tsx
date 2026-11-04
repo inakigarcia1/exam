@@ -92,15 +92,15 @@ describe("Shared navigation authority", () => {
     );
 
     // Desktop sidebar (rendered, visually hidden below lg via CSS) contains
-    // the full nav. "Gestión de exámenes" is a stable label from the shared authority.
+    // the full nav. "Exámenes" is a stable label from the shared authority.
     expect(
-      screen.getAllByRole("link", { name: "Gestión de exámenes" }).length,
+      screen.getAllByRole("link", { name: "Exámenes" }).length,
     ).toBeGreaterThan(0);
 
     // Open the mobile drawer and confirm the same authority is surfaced there.
     await user.click(screen.getByTestId("mobile-nav-trigger"));
     const drawerLinks = screen
-      .getAllByRole("link", { name: "Gestión de exámenes" })
+      .getAllByRole("link", { name: "Exámenes" })
       .map((a) => a.getAttribute("href"));
     expect(drawerLinks).toContain("/admin/exams");
   });
@@ -114,7 +114,7 @@ describe("Shared navigation authority", () => {
         </BrandProvider>
       </MemoryRouter>,
     );
-    expect(screen.getByRole("link", { name: "Gestión de exámenes" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Exámenes" })).toHaveAttribute(
       "href",
       "/admin/exams",
     );
@@ -132,7 +132,7 @@ describe("Shared navigation authority", () => {
         </BrandProvider>
       </MemoryRouter>,
     );
-    expect(screen.getByRole("link", { name: "Gestión de exámenes" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Exámenes" })).toHaveAttribute(
       "href",
       "/admin/exams",
     );

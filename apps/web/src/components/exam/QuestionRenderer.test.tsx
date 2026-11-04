@@ -15,7 +15,8 @@ const baseQuestion = {
   content: "请阐述你的观点",
   contentDocument: null,
   answerMode: "plain" as const,
-  attachments: [],
+  image: null,
+  scale: null,
   options: [],
   score: 20,
   order: 0,
@@ -173,5 +174,52 @@ describe("QuestionRenderer — mount isolation (issue 301)", () => {
     // The prompt itself is not rendered by QuestionRenderer (owned by the
     // page), so no editor may appear for prompt display either.
     expect(document.querySelector(".ProseMirror")).toBeNull();
+  });
+});
+
+describe("QuestionRenderer � likert and ranking", () => {
+  const rows = [
+    { id: "A", content: "Statement A", contentDocument: null },
+    { id: "B", content: "Statement B", contentDocument: null },
+  ];
+
+  it("likert reports the whole row ? column record on each pick", async () => {
+    const onChange = vi.fn();
+    render(
+      <QuestionRenderer
+        question={{
+          ...baseQuestion,
+          type: "likert",
+          options: rows,
+          scale: ["No", "Maybe", "Yes"],
+        }}
+        answer={{ A: 0 }}
+        onChange={onChange}
+      />,
+    );
+
+    const radios = screen.getAllByRole("radio");
+    expect(radios).toHaveLength(6);
+    expect(radios[0]).toBeChecked();
+    await userEvent.setup().click(radios[5]!);
+    expect(onChange).toHaveBeenLastCalledWith({ A: 0, B: 2 });
+  });
+
+  it("ranking shows the presented order until moved, then reports the full order", async () => {
+    const onChange = vi.fn();
+    render(
+      <QuestionRenderer
+        question={{ ...baseQuestion, type: "ranking", options: rows }}
+        answer={null}
+        onChange={onChange}
+      />,
+    );
+
+    const items = screen.getAllByRole("listitem");
+    expect(items[0]).toHaveTextContent("Statement A");
+    const [firstUp, firstDown] = screen.getAllByRole("button");
+    expect(firstUp).toBeDisabled();
+    await userEvent.setup().click(firstDown!);
+    expect(onChange).toHaveBeenLastCalledWith(["B", "A"]);
   });
 });

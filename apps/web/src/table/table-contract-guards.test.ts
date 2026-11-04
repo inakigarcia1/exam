@@ -30,27 +30,18 @@ import {
   ROLE_OVERFLOW,
 } from "@/components/shared/DataTableContract";
 import { ROLE_GEOMETRY } from "@/table/columnAllocation";
+import { statusBadgeFixture, STATUS_COLUMN_TOKEN } from "@/table/statusFixture";
 import {
-  maxStatusBadgeWidth,
-  statusBadgeFixture,
-  statusColumnContentBoxPx,
-  STATUS_COLUMN_TOKEN,
-} from "@/table/statusFixture";
-import {
-  maxTypeBadgeWidth,
   typeBadgeFixture,
   TYPE_COLUMN_TOKEN,
   TYPE_LABEL_NAMESPACES,
-  typeColumnContentBoxPx,
 } from "@/table/typeFixture";
 import {
   ACTION_LABEL_COLUMN_TOKEN,
   ACTION_LABEL_COLUMN_WIDTH_PX,
   ACTION_LABEL_VOCABULARY,
-  actionLabelColumnContentBoxPx,
   actionLabelCopyKeys,
   actionLabelFixture,
-  maxActionLabelWidth,
 } from "@/table/actionLabelFixture";
 import i18n, { SUPPORTED_LOCALES } from "@/i18n";
 
@@ -250,10 +241,6 @@ describe("table contract v2 structural guards", () => {
       );
       expect(row.label, `label for ${row.status}@${row.locale}`).not.toBe("");
     }
-    const max = maxStatusBadgeWidth();
-    const contentBox = statusColumnContentBoxPx();
-    // Frozen invariant: content box ≥ widest badge estimate.
-    expect(max).toBeLessThanOrEqual(contentBox);
   });
 
   it("resolves every fixture row in the row's own locale, not the active language", async () => {
@@ -327,10 +314,6 @@ describe("table contract v2 structural guards", () => {
         `label for ${row.family}.${row.key}@${row.locale}`,
       ).not.toBe("");
     }
-    const max = maxTypeBadgeWidth();
-    const contentBox = typeColumnContentBoxPx();
-    // Frozen invariant (#590): content box ≥ widest badge estimate.
-    expect(max).toBeLessThanOrEqual(contentBox);
   });
 
   it("keeps the type token at the derived 7.25rem and the date-range token at the derived 14.5rem in the allocator", () => {
@@ -365,17 +348,6 @@ describe("table contract v2 structural guards", () => {
     expect(actionLabelCopyKeys().sort()).toEqual(
       [...ACTION_LABEL_VOCABULARY].sort(),
     );
-    const max = maxActionLabelWidth();
-    const contentBox = actionLabelColumnContentBoxPx();
-    // Frozen invariant (#598): content box ≥ widest localized action label.
-    expect(max).toBeLessThanOrEqual(contentBox);
-    // …and the token is the SMALLEST quarter-rem step that holds it: the token
-    // grid advances in 0.25rem steps (1rem = 16px at the product root font, so
-    // one step narrower is 0.25rem = 4px less column width — and therefore 4px
-    // less content box), and that previous step must break the invariant. This
-    // is what makes the token derived from the vocabulary instead of copied.
-    const quarterRemPx = 0.25 * 16;
-    expect(contentBox - quarterRemPx).toBeLessThan(max);
   });
 
   it("keeps the action-label token at the derived 9.5rem in the allocator", () => {

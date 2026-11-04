@@ -81,6 +81,10 @@ export const QuestionType = {
   // gradingMode=inputMode derivation is owned by
   // docs/architecture/exam-runtime.md §1.2/§1.3.
   TextResponse: "text_response",
+  // Options are the rows, `scale` the columns; all rows right or zero.
+  Likert: "likert",
+  // Options in the correct order; the exact order or zero.
+  Ranking: "ranking",
 } as const;
 export type QuestionType = (typeof QuestionType)[keyof typeof QuestionType];
 

@@ -14,6 +14,8 @@ export const QUESTION_TYPE_LABEL_KEYS: Record<QuestionType, string> = {
   fill_blank: "questionType.fill_blank",
   true_false: "questionType.true_false",
   text_response: "questionType.text_response",
+  likert: "questionType.likert",
+  ranking: "questionType.ranking",
 };
 
 /** Minimal translation function shape — accepts i18next's TFunction. */
@@ -64,4 +66,6 @@ export const TYPE_VARIANT: Record<string, "default" | "secondary" | "outline"> =
     // text_response gets an explicit variant so it never silently falls back
     // to default; secondary keeps it visually neutral.
     text_response: "secondary",
+    likert: "outline",
+    ranking: "outline",
   };

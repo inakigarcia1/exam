@@ -132,7 +132,7 @@ describe("ExamProfilePage (list)", () => {
     // Summary should contain human labels, not raw enum values.
     const summary = row.closest("tr")?.textContent ?? "";
     expect(summary).toContain("60");
-    expect(summary).toContain("最多");
+    expect(summary).toContain("Hasta 2 intentos");
     expect(summary).not.toContain("max_attempts");
     expect(summary).not.toContain("bounded_grace");
   });
@@ -159,7 +159,11 @@ describe("ExamProfilePage (list)", () => {
     await userEvent.click(deleteBtn);
     const dialog = await screen.findByRole("alertdialog");
     // The COPY-ON-APPLY safety message MUST be present.
-    expect(within(dialog).getByText(/删除此模板不会影响/)).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(
+        /Eliminar esta plantilla no cambia los exámenes ya creados/,
+      ),
+    ).toBeInTheDocument();
   });
 
   it("calls DELETE and reloads the list on confirm", async () => {

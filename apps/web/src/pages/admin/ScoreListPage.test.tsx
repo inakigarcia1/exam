@@ -122,7 +122,9 @@ describe("ScoreListPage", () => {
     const table = await screen.findByRole("table");
     expect(within(table).getByText("张三")).toBeInTheDocument();
     expect(within(table).getByText("85")).toBeInTheDocument();
-    expect(within(table).getAllByText("Aprobado").length).toBeGreaterThanOrEqual(1);
+    expect(
+      within(table).getAllByText("Aprobado").length,
+    ).toBeGreaterThanOrEqual(1);
   });
 
   it("export calls authenticated downloadFile with the scores export path", async () => {
@@ -206,7 +208,9 @@ describe("ScoreListPage", () => {
       await screen.findByRole("tab", { name: "Todos" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Aprobado" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "No aprobado" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("tab", { name: "Desaprobado" }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByPlaceholderText("Buscar alumnos..."),
     ).not.toBeInTheDocument();
@@ -247,7 +251,9 @@ describe("ScoreListPage", () => {
     getMock.mockResolvedValue(null);
     renderPage();
     expect(
-      await screen.findByText("Las calificaciones no cargaron bien. Intentá de nuevo."),
+      await screen.findByText(
+        "Las calificaciones no cargaron bien. Intentá de nuevo.",
+      ),
     ).toBeInTheDocument();
   });
 });

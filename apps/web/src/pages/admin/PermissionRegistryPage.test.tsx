@@ -162,9 +162,9 @@ describe("PermissionRegistryPage", () => {
       1,
     );
     // Category grouping headings render from i18n (catalog card + matrix header).
-    expect(screen.getAllByText("Ciclo del examen").length).toBeGreaterThanOrEqual(
-      1,
-    );
+    expect(
+      screen.getAllByText("Ciclo del examen").length,
+    ).toBeGreaterThanOrEqual(1);
   });
 
   it("renders the role matrix over assignable presets only", async () => {
@@ -181,7 +181,9 @@ describe("PermissionRegistryPage", () => {
     renderPage();
     await screen.findAllByText("exam.publish");
 
-    await user.click(screen.getByRole("combobox", { name: /Elegir usuario del personal/ }));
+    await user.click(
+      screen.getByRole("combobox", { name: /Elegir usuario del personal/ }),
+    );
     await user.click(await screen.findByRole("option", { name: "Alice" }));
 
     // The primary role badge + assignment row role are both "Teacher".

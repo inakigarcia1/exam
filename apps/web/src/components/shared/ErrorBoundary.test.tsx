@@ -27,7 +27,9 @@ describe("ErrorBoundary", () => {
       </ErrorBoundary>,
     );
     expect(screen.getByText("Error del sistema")).toBeInTheDocument();
-    expect(screen.getByText("Ocurrió un error inesperado.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Ocurrió un error inesperado."),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /Volver a cargar/ }),
     ).toBeInTheDocument();

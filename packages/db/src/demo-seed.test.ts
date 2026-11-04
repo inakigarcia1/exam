@@ -159,7 +159,8 @@ describe("demo seed", { timeout: 30_000 }, () => {
       content: "消防通道的宽度不得低于____米",
       options: [],
       standardAnswer: "1.2",
-      attachments: [],
+      image: null,
+      scale: null,
       difficulty: 3,
       tags: ["safety", "regulation"],
       gradingRule: {

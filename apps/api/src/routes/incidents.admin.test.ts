@@ -46,7 +46,7 @@ describe("admin incident routes — integration", () => {
     await ctx.db.insert(schema.courses).values({
       id: courseId,
       organizationId: orgId,
-      name: "Incident Test Course",
+      name: `Incident Test Course ${crypto.randomUUID()}`,
       code: `ITC-${prefix}`,
       description: "",
       createdAt: now,
@@ -468,7 +468,7 @@ describe("admin incident routes — creation authority + error contract", () => 
     await ctx.db.insert(schema.courses).values({
       id: courseId,
       organizationId: orgId,
-      name: "Incident Auth Course",
+      name: `Incident Auth Course ${crypto.randomUUID()}`,
       code: `IAC-${prefix}`,
       description: "",
       createdAt: now,

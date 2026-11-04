@@ -50,7 +50,7 @@ describe("identity email renderers (#297)", () => {
     expect(rendered.bodyHtml).toContain("60 minutos");
   });
 
-  it("renders a zh label for EVERY invitable role with no raw fallback (C6 F-14)", () => {
+  it("renders a localized label for EVERY invitable role with no raw fallback (C6 F-14)", () => {
     // The role contract is the closed STAFF_INVITATION_ROLES enum (enforced
     // by the wire schema); the renderer must localize each of them and never
     // emit the raw machine key into the Email copy.
@@ -60,10 +60,12 @@ describe("identity email renderers (#297)", () => {
         acceptUrl: `${ORIGIN}/invite/accept?token=abc`,
         expiresInDays: 7,
       });
+      // "Administrador" legitimately contains "Admin"; the raw key is a whole word.
+      const rawKey = new RegExp(`\\b${role}\\b`);
       expect(rendered.bodyText).toContain(STAFF_ROLE_LABELS_ZH[role]);
-      expect(rendered.bodyText).not.toContain(role);
+      expect(rendered.bodyText).not.toMatch(rawKey);
       expect(rendered.bodyHtml).toContain(STAFF_ROLE_LABELS_ZH[role]);
-      expect(rendered.bodyHtml).not.toContain(role);
+      expect(rendered.bodyHtml).not.toMatch(rawKey);
     }
   });
 });

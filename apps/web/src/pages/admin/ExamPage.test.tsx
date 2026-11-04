@@ -103,6 +103,20 @@ function renderPage(role: "Admin" | "Teacher" = "Admin") {
   );
 }
 
+/** Open a desktop-table row's overflow menu (Admin rows declare more than two
+ * actions, so view/delete live in the kebab under the RowActions API). */
+async function openRowMenu(
+  user: ReturnType<typeof userEvent.setup>,
+  index = 0,
+) {
+  const table = await screen.findByRole("table");
+  const kebabs = await within(table).findAllByRole("button", {
+    name: "Más acciones",
+  });
+  await user.click(kebabs[index]!);
+  return await screen.findByRole("menu");
+}
+
 describe("ExamPage", () => {
   it("shows Teacher create access without rendering Admin-only delete actions", async () => {
     renderPage("Teacher");
@@ -116,32 +130,43 @@ describe("ExamPage", () => {
   });
 
   it("shows delete only as enabled for draft exams", async () => {
+    const user = userEvent.setup();
     renderPage();
 
     expect(await screen.findByText("Gestión de exámenes")).toBeInTheDocument();
 
     // Row actions render twice by design (desktop table + mobile cards);
     // scope to the desktop table representation.
-    const table = await screen.findByRole("table");
-    const deleteButtons = await within(table).findAllByRole("button", {
-      name: "Eliminar examen",
+    const draftMenu = await openRowMenu(user, 0);
+    expect(
+      within(draftMenu).getByRole("menuitem", { name: /^Eliminar examen/ }),
+    ).not.toHaveAttribute("aria-disabled");
+    await user.keyboard("{Escape}");
+    await waitFor(() => {
+      expect(screen.queryByRole("menu")).not.toBeInTheDocument();
     });
-    expect(deleteButtons).toHaveLength(2);
-    expect(deleteButtons[0]).toBeEnabled();
-    expect(deleteButtons[1]).toBeDisabled();
+
+    const publishedMenu = await openRowMenu(user, 1);
+    expect(
+      within(publishedMenu).getByRole("menuitem", {
+        name: /^Eliminar examen/,
+      }),
+    ).toHaveAttribute("aria-disabled", "true");
   });
 
   it("renders through the shared list-page template", async () => {
     renderPage();
 
-    const heading = await screen.findByRole("heading", { name: "Lista de exámenes" });
+    const heading = await screen.findByRole("heading", {
+      name: "Lista de exámenes",
+    });
     const shell = heading.closest('[data-slot="admin-table-shell"]');
 
     expect(shell).toBeInTheDocument();
     // The footer's range line is the single count authority (#785) — the
     // loaded-row summary line is gone.
-    expect(shell).toHaveTextContent("共 2 条");
-    expect(shell).not.toHaveTextContent("共 2 场考试");
+    expect(shell).toHaveTextContent("2 en total");
+    expect(shell).not.toHaveTextContent("2 exámenes");
     // The status filter lives in the shell's toolbar band.
     expect(
       screen.getByRole("toolbar", { name: "Barra de la lista de exámenes" }),
@@ -154,10 +179,10 @@ describe("ExamPage", () => {
     // Non-compressible columns are a desktop-table declaration; scope to it
     // (row content also renders in the mobile card list).
     const table = await screen.findByRole("table");
-    const duration = within(table).getAllByText("60分钟");
+    const duration = within(table).getAllByText("60 minutos");
     const score = within(table).getAllByText("60/100");
-    const deleteButtons = within(table).getAllByRole("button", {
-      name: "Eliminar examen",
+    const overflowTriggers = within(table).getAllByRole("button", {
+      name: "Más acciones",
     });
 
     expect(duration[0]?.closest("td")).toHaveAttribute(
@@ -178,7 +203,14 @@ describe("ExamPage", () => {
     expect(
       document.querySelector('col[data-column-role="actions"]'),
     ).toBeInTheDocument();
-    expect(deleteButtons[0]).toHaveAttribute("data-action-id", "delete");
+    expect(overflowTriggers[0]).toHaveAttribute(
+      "data-action-id",
+      "overflow-menu",
+    );
+    expect(overflowTriggers[0]?.closest("td")).toHaveAttribute(
+      "data-column-role",
+      "actions",
+    );
   });
 });
 
@@ -248,7 +280,7 @@ describe("ExamPage #785 pagination and status filter (BDD L2)", () => {
     expect(within(table).getByText("旧考试 1")).toBeInTheDocument();
     expect(within(table).queryByText("新考试 21")).not.toBeInTheDocument();
     // The footer states the REAL total, not the loaded-row count.
-    expect(screen.getByText(/共 21 条/)).toBeInTheDocument();
+    expect(screen.getByText(/^21 en total/)).toBeInTheDocument();
     expect(apiGet).toHaveBeenCalledWith("/api/exams?page=1&pageSize=20");
 
     await user.click(screen.getByRole("button", { name: "Página siguiente" }));
@@ -302,7 +334,9 @@ describe("ExamPage #785 pagination and status filter (BDD L2)", () => {
       expect(apiGet).toHaveBeenCalledWith("/api/exams?page=2&pageSize=20");
     });
 
-    await user.click(screen.getByRole("combobox", { name: "Filtrar por estado" }));
+    await user.click(
+      screen.getByRole("combobox", { name: "Filtrar por estado" }),
+    );
     await user.click(await screen.findByRole("option", { name: "Publicado" }));
 
     await waitFor(() => {
@@ -351,10 +385,9 @@ describe("ExamPage #785 pagination and status filter (BDD L2)", () => {
       await within(await screen.findByRole("table")).findByText("待删除考试"),
     ).toBeInTheDocument();
 
+    const rowMenu = await openRowMenu(user, 0);
     await user.click(
-      within(await screen.findByRole("table")).getByRole("button", {
-        name: "Eliminar examen",
-      }),
+      within(rowMenu).getByRole("menuitem", { name: "Eliminar examen" }),
     );
     await user.click(await screen.findByRole("button", { name: "Confirmar" }));
 
@@ -476,10 +509,9 @@ describe("ExamPage #785 pagination and status filter (BDD L2)", () => {
       await within(await screen.findByRole("table")).findByText("待删除考试"),
     ).toBeInTheDocument();
 
+    const rowMenu = await openRowMenu(user, 0);
     await user.click(
-      within(await screen.findByRole("table")).getByRole("button", {
-        name: "Eliminar examen",
-      }),
+      within(rowMenu).getByRole("menuitem", { name: "Eliminar examen" }),
     );
     await user.click(await screen.findByRole("button", { name: "Confirmar" }));
     await waitFor(() => {
@@ -500,7 +532,7 @@ describe("ExamPage #785 pagination and status filter (BDD L2)", () => {
     expect(
       await within(await screen.findByRole("table")).findByText("旧考试 1"),
     ).toBeInTheDocument();
-    expect(screen.getByText(/共 20 条/)).toBeInTheDocument();
+    expect(screen.getByText(/^20 en total/)).toBeInTheDocument();
   });
 
   // ── B12 — 请求进行中，旧记录不得被呈现为新查询的结果 ──────────────────
@@ -545,7 +577,9 @@ describe("ExamPage #785 pagination and status filter (BDD L2)", () => {
     renderPage();
     await within(await screen.findByRole("table")).findByText("草稿考试 1");
 
-    await user.click(screen.getByRole("combobox", { name: "Filtrar por estado" }));
+    await user.click(
+      screen.getByRole("combobox", { name: "Filtrar por estado" }),
+    );
     await user.click(await screen.findByRole("option", { name: "Publicado" }));
 
     // The published query is in flight: the draft rows must not stay on
@@ -564,6 +598,6 @@ describe("ExamPage #785 pagination and status filter (BDD L2)", () => {
     expect(
       await within(await screen.findByRole("table")).findByText("已发布考试"),
     ).toBeInTheDocument();
-    expect(screen.getByText(/共 1 条/)).toBeInTheDocument();
+    expect(screen.getByText(/^1 en total/)).toBeInTheDocument();
   });
 });

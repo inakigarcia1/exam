@@ -7,6 +7,8 @@ export function emptyQuestionFormData(): QuestionFormData {
     type: "single_choice",
     content: "",
     contentDocument: null,
+    image: null,
+    scale: null,
     answerMode: "plain",
     options: [
       { id: "A", content: "" },
@@ -29,6 +31,8 @@ export function questionToFormData(q: QuestionDTO): QuestionFormData {
     type: q.type as QuestionFormData["type"],
     content: q.content,
     contentDocument: q.contentDocument ?? null,
+    image: q.image,
+    scale: q.scale ?? null,
     answerMode: q.answerMode ?? "plain",
     options: q.options,
     standardAnswer: q.standardAnswer,
@@ -52,6 +56,15 @@ export function validateQuestionForm(
   if (formData.type === "fill_blank" && !formData.content.includes("____")) {
     return t("admin.questionEdit.fillBlankPlaceholder");
   }
+  const answer = formData.standardAnswer;
+  if (
+    formData.type === "likert" &&
+    (typeof answer !== "object" ||
+      answer === null ||
+      formData.options.some((row) => !(row.id in answer)))
+  ) {
+    return t("admin.questionEdit.likertIncomplete");
+  }
   return null;
 }
 
@@ -66,6 +79,8 @@ export function buildQuestionPayload(formData: QuestionFormData) {
     type: formData.type,
     content: formData.content,
     contentDocument: formData.contentDocument ?? null,
+    image: formData.image,
+    scale: formData.type === "likert" ? formData.scale : null,
     options:
       formData.type === "text_response"
         ? []
@@ -91,5 +106,8 @@ export function buildQuestionPayload(formData: QuestionFormData) {
         answerMode: formData.answerMode,
         standardAnswer: referenceAnswer,
       }
-    : { ...common, standardAnswer: formData.standardAnswer };
+    : formData.type === "ranking"
+      ? // The authored order is the answer.
+        { ...common, standardAnswer: formData.options.map((o) => o.id) }
+      : { ...common, standardAnswer: formData.standardAnswer };
 }

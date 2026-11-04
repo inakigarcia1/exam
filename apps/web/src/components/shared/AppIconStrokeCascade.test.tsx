@@ -54,7 +54,7 @@ import { DataTablePagination } from "./DataTablePagination";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SRC_ROOT = join(HERE, "..", "..", "..", "src");
 const STYLESHEETS = listAuthorStylesheets(SRC_ROOT).map((path) => ({
-  file: relative(SRC_ROOT, path),
+  file: relative(SRC_ROOT, path).replace(/\\/g, "/"),
   css: readFileSync(path, "utf8"),
 }));
 const ALL_CSS = STYLESHEETS.map((s) => s.css).join("\n");

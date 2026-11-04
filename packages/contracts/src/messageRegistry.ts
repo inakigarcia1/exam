@@ -106,9 +106,9 @@ export function getErrorMessage(code: ErrorCode): string {
 export const candidateFieldValidationMessages = {
   configurationInvalid:
     "La configuración de los campos de identidad no es válida",
-  required: (label: string) => `${label}为必填项`,
-  numberRequired: (label: string) => `${label}必须为数字`,
-  textRequired: (label: string) => `${label}必须为文本`,
+  required: (label: string) => `${label} es obligatorio`,
+  numberRequired: (label: string) => `${label} debe ser un número`,
+  textRequired: (label: string) => `${label} debe ser texto`,
 };
 
 /**

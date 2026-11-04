@@ -79,8 +79,12 @@ describe("AdminTodoCard", () => {
     const card = getCard();
     expect(card).toHaveAttribute("data-state", "ready");
     expect(within(card).getByText("0")).toBeInTheDocument();
-    expect(within(card).getByText("No hay entregas pendientes de calificar")).toBeInTheDocument();
-    expect(within(card).queryByText("No se pudo obtener")).not.toBeInTheDocument();
+    expect(
+      within(card).getByText("No hay entregas pendientes de calificar"),
+    ).toBeInTheDocument();
+    expect(
+      within(card).queryByText("No se pudo obtener"),
+    ).not.toBeInTheDocument();
   });
 
   it("verified nonzero renders the exact number with its unit", () => {
@@ -88,7 +92,9 @@ describe("AdminTodoCard", () => {
     const card = getCard();
     expect(within(card).getByText("25")).toBeInTheDocument();
     expect(within(card).getByText("entregas")).toBeInTheDocument();
-    expect(within(card).queryByText("No hay entregas pendientes de calificar")).not.toBeInTheDocument();
+    expect(
+      within(card).queryByText("No hay entregas pendientes de calificar"),
+    ).not.toBeInTheDocument();
   });
 
   it("bounded count renders the >min lower bound, never min as an exact total", () => {
@@ -124,7 +130,9 @@ describe("AdminTodoCard", () => {
     const card = getCard();
     expect(card).toHaveAttribute("data-state", "stale");
     expect(within(card).getByText("5")).toBeInTheDocument();
-    expect(within(card).getByText("Los datos pueden estar desactualizados")).toBeInTheDocument();
+    expect(
+      within(card).getByText("Los datos pueden estar desactualizados"),
+    ).toBeInTheDocument();
     expect(within(card).getByText("Actualizar")).toBeInTheDocument();
   });
 
@@ -141,7 +149,9 @@ describe("AdminTodoCard", () => {
 
   it("the retry Button and the navigation Link are siblings — no interactive nesting", () => {
     renderCard({ kind: "unknown" });
-    const link = screen.getByRole("link", { name: /Calificación manual pendiente/ });
+    const link = screen.getByRole("link", {
+      name: /Calificación manual pendiente/,
+    });
     expect(within(link).queryByRole("button")).not.toBeInTheDocument();
     // Both actions live in the same card.
     const card = getCard();
@@ -153,7 +163,9 @@ describe("AdminTodoCard", () => {
   it("the Link navigates natively to the queue route", async () => {
     renderCard(ready(3));
     const user = userEvent.setup();
-    await user.click(screen.getByRole("link", { name: /Calificación manual pendiente/ }));
+    await user.click(
+      screen.getByRole("link", { name: /Calificación manual pendiente/ }),
+    );
     await waitFor(() =>
       expect(screen.getByTestId("location")).toHaveTextContent(
         "/admin/grading-queue",

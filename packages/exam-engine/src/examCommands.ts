@@ -101,7 +101,8 @@ export function buildQuestionSnapshot(
       // projection. Null (Plain) on legacy rows.
       contentDocument: q.contentDocument ?? null,
       answerMode: q.answerMode ?? null,
-      attachments: q.attachments,
+      image: q.image ?? null,
+      scale: q.scale ?? null,
       options: q.options.map((o) => ({
         id: o.id,
         content: o.content,

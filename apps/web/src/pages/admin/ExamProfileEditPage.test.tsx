@@ -78,12 +78,10 @@ describe("ExamProfileEditPage — create path", () => {
       renderPage();
     });
     expect(
-      screen.getByRole("heading", { name: "Nueva plantilla de política" }),
+      screen.getByRole("heading", { name: "Nueva plantilla de reglas" }),
     ).toBeInTheDocument();
     // Default duration is 60.
-    expect(screen.getByLabelText("Duración del examen (minutos)")).toHaveValue(
-      60,
-    );
+    expect(screen.getByLabelText("Duración (minutos)")).toHaveValue(60);
   });
 
   it("requires a name and shows a field error", async () => {
@@ -147,11 +145,9 @@ describe("ExamProfileEditPage — create path", () => {
     );
     // After prefill, the bounded_grace caps inputs are visible.
     expect(
-      screen.getByLabelText("Tope de tiempo extra por interrupción (segundos)"),
+      screen.getByLabelText("Tope de gracia por corte (segundos)"),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("Duración del examen (minutos)")).toHaveValue(
-      60,
-    );
+    expect(screen.getByLabelText("Duración (minutos)")).toHaveValue(60);
   });
 
   it("maps a 409 duplicate-name server error to a friendly message", async () => {
@@ -184,9 +180,7 @@ describe("ExamProfileEditPage — conditional fields", () => {
       renderPage();
     });
     // Default retakePolicy is unlimited → maxAttempts input absent.
-    expect(
-      screen.queryByLabelText("Máximo de intentos"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Tope de intentos")).not.toBeInTheDocument();
   });
 
   it("shows maxAttempts when retakePolicy becomes max_attempts", async () => {
@@ -195,13 +189,13 @@ describe("ExamProfileEditPage — conditional fields", () => {
     });
     // Open the retake policy select (Radix combobox).
     await userEvent.click(
-      screen.getByRole("combobox", { name: "Política de reintentos" }),
+      screen.getByRole("combobox", { name: "Volver a rendir" }),
     );
     await userEvent.click(
-      await screen.findByRole("option", { name: "Cantidad limitada" }),
+      await screen.findByRole("option", { name: "Con tope" }),
     );
     expect(
-      await screen.findByLabelText("Máximo de intentos"),
+      await screen.findByLabelText("Tope de intentos"),
     ).toBeInTheDocument();
   });
 
@@ -210,9 +204,7 @@ describe("ExamProfileEditPage — conditional fields", () => {
       renderPage();
     });
     expect(
-      screen.queryByLabelText(
-        "Tope de tiempo extra por interrupción (segundos)",
-      ),
+      screen.queryByLabelText("Tope de gracia por corte (segundos)"),
     ).not.toBeInTheDocument();
   });
 
@@ -221,18 +213,16 @@ describe("ExamProfileEditPage — conditional fields", () => {
       renderPage();
     });
     await userEvent.click(
-      screen.getByRole("combobox", { name: "Política si se interrumpe" }),
+      screen.getByRole("combobox", { name: "Si se corta la conexión" }),
     );
     await userEvent.click(
-      await screen.findByRole("option", { name: "Tiempo extra limitado" }),
+      await screen.findByRole("option", { name: "Tiempo de gracia limitado" }),
     );
     expect(
-      await screen.findByLabelText(
-        "Tope de tiempo extra por interrupción (segundos)",
-      ),
+      await screen.findByLabelText("Tope de gracia por corte (segundos)"),
     ).toBeInTheDocument();
     expect(
-      screen.getByLabelText("Tope acumulado de tiempo extra (segundos)"),
+      screen.getByLabelText("Tope de gracia acumulado (segundos)"),
     ).toBeInTheDocument();
   });
 });
@@ -245,12 +235,10 @@ describe("ExamProfileEditPage — edit path", () => {
     });
     expect(
       await screen.findByRole("heading", {
-        name: "Editar plantilla de política",
+        name: "Editar plantilla de reglas",
       }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("Duración del examen (minutos)")).toHaveValue(
-      90,
-    );
+    expect(screen.getByLabelText("Duración (minutos)")).toHaveValue(90);
     expect(screen.getByLabelText("Nombre de la plantilla")).toHaveValue(
       "Examen en línea estándar",
     );
@@ -283,7 +271,7 @@ describe("ExamProfileEditPage — edit path", () => {
       renderPage("/admin/exam-profiles/p-1/edit");
     });
     await screen.findByRole("heading", {
-      name: "Editar plantilla de política",
+      name: "Editar plantilla de reglas",
     });
     await userEvent.click(screen.getByRole("button", { name: "Guardar" }));
     expect(api.patch).toHaveBeenCalledWith(

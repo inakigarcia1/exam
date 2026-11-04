@@ -51,6 +51,9 @@ function buildSnapshot(
         type: "single_choice",
         prompt: "选择一项",
         promptDocument: null,
+
+        image: null,
+        scale: null,
         answerMode: "plain" as const,
         options: [
           { id: "opt-a", content: "A", contentDocument: null },
@@ -83,6 +86,9 @@ function lockedSnapshot(
         type: "single_choice",
         prompt: "选择一项",
         promptDocument: null,
+
+        image: null,
+        scale: null,
         answerMode: "plain" as const,
         options: [
           { id: "opt-a", content: "A", contentDocument: null },
@@ -249,7 +255,9 @@ describe("terminal-signal reconciliation", () => {
     expect(initialCalls).toBe(1);
     const radioA = screen.getByRole("radio", { name: "A" });
     expect(radioA).toBeEnabled();
-    expect(screen.queryByText("Conexión con problemas")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Conexión con problemas"),
+    ).not.toBeInTheDocument();
 
     // First real heartbeat period: 409 → reconcile → frozen snapshot locks.
     await act(async () => {
@@ -263,14 +271,20 @@ describe("terminal-signal reconciliation", () => {
     // submitted attempt shows the terminal copy, not the deadline/auto-submit
     // one — the header carries the same ended title by design.
     expect(overlay).toHaveAttribute("data-lock-reason", "submitted");
-    expect(within(overlay).getByText("El examen ya terminó")).toBeInTheDocument();
+    expect(
+      within(overlay).getByText("El examen ya terminó"),
+    ).toBeInTheDocument();
     expect(
       within(overlay).queryByText("Enviando tus respuestas..."),
     ).not.toBeInTheDocument();
     // The generic disconnect banner must NOT appear for a terminal signal.
-    expect(screen.queryByText("Conexión con problemas")).not.toBeInTheDocument();
     expect(
-      screen.queryByText("El guardado sigue cuando vuelva la conexión. No cierres la página."),
+      screen.queryByText("Conexión con problemas"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        "El guardado sigue cuando vuelva la conexión. No cierres la página.",
+      ),
     ).not.toBeInTheDocument();
 
     // Second heartbeat period: already locked → terminal 409 is a no-op,
@@ -294,14 +308,18 @@ describe("terminal-signal reconciliation", () => {
     heartbeatRejectsWith(new ApiError(0, "Network request failed"));
 
     await renderPageUnderFakeTimers();
-    expect(screen.queryByText("Conexión con problemas")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Conexión con problemas"),
+    ).not.toBeInTheDocument();
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(30_000);
     });
     expect(screen.getByText("Conexión con problemas")).toBeInTheDocument();
     expect(
-      screen.getByText("El guardado sigue cuando vuelva la conexión. No cierres la página."),
+      screen.getByText(
+        "El guardado sigue cuando vuelva la conexión. No cierres la página.",
+      ),
     ).toBeInTheDocument();
     // A transport failure is NOT an authority signal — no re-read.
     expect(takeCalls).toBe(1);
@@ -349,8 +367,12 @@ describe("terminal-signal reconciliation", () => {
     expect(screen.getByTestId("deadline-overlay")).toBeInTheDocument();
     // Accurate terminal feedback retained (NOT suppressed by a disconnect).
     const alert = screen.getByTestId("save-rejection-alert");
-    expect(alert).toHaveTextContent("Las respuestas se enviaron. El examen terminó.");
-    expect(screen.queryByText("Conexión con problemas")).not.toBeInTheDocument();
+    expect(alert).toHaveTextContent(
+      "Las respuestas se enviaron. El examen terminó.",
+    );
+    expect(
+      screen.queryByText("Conexión con problemas"),
+    ).not.toBeInTheDocument();
     // The frozen server answer wins over the stale local edit (B17).
     expect(screen.getByRole("radio", { name: "A" })).toBeChecked();
     expect(screen.getByRole("radio", { name: "B" })).not.toBeChecked();
@@ -530,6 +552,8 @@ describe("terminal-signal reconciliation", () => {
       "att-2 terminal signal re-reads att-2 despite att-1's hung promise",
     ).toHaveLength(2);
     expect(screen.getByRole("radio", { name: "A" })).toBeDisabled();
-    expect(screen.queryByText("Conexión con problemas")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Conexión con problemas"),
+    ).not.toBeInTheDocument();
   });
 });

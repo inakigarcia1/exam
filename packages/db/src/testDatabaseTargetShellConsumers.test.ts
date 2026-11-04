@@ -30,10 +30,17 @@ import { fileURLToPath } from "node:url";
 
 const REPO_ROOT = fileURLToPath(new URL("../../..", import.meta.url));
 
+// WHY: the scripts under test are POSIX bash tooling. On Windows `bash` is the
+// WSL launcher, which neither forwards the fixture env (only WSLENV-listed
+// vars cross the boundary) nor understands Windows paths, so the proofs only
+// run where bash shares the test process's filesystem and environment.
+const describePosix = describe.skipIf(process.platform === "win32");
+
 // Absolute real-pnpm path, resolved once so the fake pnpm can pass the
 // canonical projection through to the real mechanism without recursing into
 // itself (the fake dir is prepended to PATH).
 const REAL_PNPM = (() => {
+  if (process.platform === "win32") return "";
   const probe = spawnSync("bash", ["-c", "command -v pnpm"], {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "ignore"],
@@ -177,133 +184,139 @@ function runScript(
   };
 }
 
-describe("list-test-schemas.sh observes the canonical TEST_DATABASE_TARGET", () => {
-  it("hostile matrix: DATABASE_URL decoy loses to TEST_DATABASE_URL (consumer proof)", async () => {
-    const fixture = await makeFixture({
-      DATABASE_URL: DECOY_A,
-      TEST_DATABASE_URL: TARGET_B,
-      FAKE_CURRENT_DB: "exam_test",
+describePosix(
+  "list-test-schemas.sh observes the canonical TEST_DATABASE_TARGET",
+  () => {
+    it("hostile matrix: DATABASE_URL decoy loses to TEST_DATABASE_URL (consumer proof)", async () => {
+      const fixture = await makeFixture({
+        DATABASE_URL: DECOY_A,
+        TEST_DATABASE_URL: TARGET_B,
+        FAKE_CURRENT_DB: "exam_test",
+      });
+      const run = runScript("scripts/db/list-test-schemas.sh", [], fixture.env);
+      expect(run.status, run.stderr).toBe(0);
+      const urls = invokedUrls(fixture);
+      expect(urls.length).toBeGreaterThan(0);
+      expect(urls).toContain(TARGET_B);
+      expect(urls.every((url) => url === TARGET_B)).toBe(true);
+      expect(run.stdout).not.toContain("decoy_a");
     });
-    const run = runScript("scripts/db/list-test-schemas.sh", [], fixture.env);
-    expect(run.status, run.stderr).toBe(0);
-    const urls = invokedUrls(fixture);
-    expect(urls.length).toBeGreaterThan(0);
-    expect(urls).toContain(TARGET_B);
-    expect(urls.every((url) => url === TARGET_B)).toBe(true);
-    expect(run.stdout).not.toContain("decoy_a");
-  });
 
-  it("hostile matrix: legacy TEST_DB_URL alias is honored over DATABASE_URL", async () => {
-    const fixture = await makeFixture({
-      DATABASE_URL: DECOY_A,
-      TEST_DB_URL: LEGACY_D,
-      FAKE_CURRENT_DB: "exam_test",
+    it("hostile matrix: legacy TEST_DB_URL alias is honored over DATABASE_URL", async () => {
+      const fixture = await makeFixture({
+        DATABASE_URL: DECOY_A,
+        TEST_DB_URL: LEGACY_D,
+        FAKE_CURRENT_DB: "exam_test",
+      });
+      const run = runScript("scripts/db/list-test-schemas.sh", [], fixture.env);
+      expect(run.status, run.stderr).toBe(0);
+      expect(invokedUrls(fixture)).toContain(LEGACY_D);
     });
-    const run = runScript("scripts/db/list-test-schemas.sh", [], fixture.env);
-    expect(run.status, run.stderr).toBe(0);
-    expect(invokedUrls(fixture)).toContain(LEGACY_D);
-  });
 
-  it("hostile matrix: implicit local target comes from DB_HOST_PORT via the resolver, DATABASE_URL ignored", async () => {
-    const fixture = await makeFixture({
-      DATABASE_URL: DECOY_A,
-      DB_HOST_PORT: "55432",
-      FAKE_CURRENT_DB: "exam_test",
+    it("hostile matrix: implicit local target comes from DB_HOST_PORT via the resolver, DATABASE_URL ignored", async () => {
+      const fixture = await makeFixture({
+        DATABASE_URL: DECOY_A,
+        DB_HOST_PORT: "55432",
+        FAKE_CURRENT_DB: "exam_test",
+      });
+      const run = runScript("scripts/db/list-test-schemas.sh", [], fixture.env);
+      expect(run.status, run.stderr).toBe(0);
+      const urls = invokedUrls(fixture);
+      expect(urls).toContain(CONSTRUCTED_55432);
+      expect(urls.every((url) => url === CONSTRUCTED_55432)).toBe(true);
     });
-    const run = runScript("scripts/db/list-test-schemas.sh", [], fixture.env);
-    expect(run.status, run.stderr).toBe(0);
-    const urls = invokedUrls(fixture);
-    expect(urls).toContain(CONSTRUCTED_55432);
-    expect(urls.every((url) => url === CONSTRUCTED_55432)).toBe(true);
-  });
 
-  it("set-but-empty TEST_DATABASE_URL counts as unset (no shell divergence from canonical empty semantics)", async () => {
-    const fixture = await makeFixture({
-      DATABASE_URL: DECOY_A,
-      TEST_DATABASE_URL: "",
-      TEST_DB_URL: LEGACY_D,
-      FAKE_CURRENT_DB: "exam_test",
+    it("set-but-empty TEST_DATABASE_URL counts as unset (no shell divergence from canonical empty semantics)", async () => {
+      const fixture = await makeFixture({
+        DATABASE_URL: DECOY_A,
+        TEST_DATABASE_URL: "",
+        TEST_DB_URL: LEGACY_D,
+        FAKE_CURRENT_DB: "exam_test",
+      });
+      const run = runScript("scripts/db/list-test-schemas.sh", [], fixture.env);
+      expect(run.status, run.stderr).toBe(0);
+      expect(invokedUrls(fixture)).toContain(LEGACY_D);
+      expect(invokedUrls(fixture).every((url) => url === LEGACY_D)).toBe(true);
     });
-    const run = runScript("scripts/db/list-test-schemas.sh", [], fixture.env);
-    expect(run.status, run.stderr).toBe(0);
-    expect(invokedUrls(fixture)).toContain(LEGACY_D);
-    expect(invokedUrls(fixture).every((url) => url === LEGACY_D)).toBe(true);
-  });
 
-  it("unsafe test database name: the seam's refusal fails the script closed before any psql call", async () => {
-    const fixture = await makeFixture({
-      DATABASE_URL: DECOY_A,
-      TEST_DATABASE_URL: "postgresql://exam:exam@localhost:5432/exam",
+    it("unsafe test database name: the seam's refusal fails the script closed before any psql call", async () => {
+      const fixture = await makeFixture({
+        DATABASE_URL: DECOY_A,
+        TEST_DATABASE_URL: "postgresql://exam:exam@localhost:5432/exam",
+      });
+      const run = runScript("scripts/db/list-test-schemas.sh", [], fixture.env);
+      expect(run.status).not.toBe(0);
+      expect(run.stderr).toContain('does not contain "test"');
+      expect(invokedUrls(fixture)).toEqual([]);
     });
-    const run = runScript("scripts/db/list-test-schemas.sh", [], fixture.env);
-    expect(run.status).not.toBe(0);
-    expect(run.stderr).toContain('does not contain "test"');
-    expect(invokedUrls(fixture)).toEqual([]);
-  });
 
-  it("ALLOW_UNSAFE_TEST_DATABASE_URL=1 passes the seam canonically (the shell cannot bypass nor veto it)", async () => {
-    const unsafe = "postgresql://exam:exam@localhost:5432/exam";
-    const fixture = await makeFixture({
-      DATABASE_URL: DECOY_A,
-      TEST_DATABASE_URL: unsafe,
-      ALLOW_UNSAFE_TEST_DATABASE_URL: "1",
-      FAKE_CURRENT_DB: "exam_test",
+    it("ALLOW_UNSAFE_TEST_DATABASE_URL=1 passes the seam canonically (the shell cannot bypass nor veto it)", async () => {
+      const unsafe = "postgresql://exam:exam@localhost:5432/exam";
+      const fixture = await makeFixture({
+        DATABASE_URL: DECOY_A,
+        TEST_DATABASE_URL: unsafe,
+        ALLOW_UNSAFE_TEST_DATABASE_URL: "1",
+        FAKE_CURRENT_DB: "exam_test",
+      });
+      const run = runScript("scripts/db/list-test-schemas.sh", [], fixture.env);
+      expect(run.status, run.stderr).toBe(0);
+      const urls = invokedUrls(fixture);
+      expect(urls).toContain(unsafe);
+      expect(urls.every((url) => url === unsafe)).toBe(true);
     });
-    const run = runScript("scripts/db/list-test-schemas.sh", [], fixture.env);
-    expect(run.status, run.stderr).toBe(0);
-    const urls = invokedUrls(fixture);
-    expect(urls).toContain(unsafe);
-    expect(urls.every((url) => url === unsafe)).toBe(true);
-  });
-});
+  },
+);
 
-describe("drop-test-schemas.sh keeps both safety layers on the canonical target", () => {
-  it("destructive path runs only after the identity guard, against the canonical target", async () => {
-    const fixture = await makeFixture({
-      DATABASE_URL: DECOY_A,
-      TEST_DATABASE_URL: TARGET_B,
-      FAKE_CURRENT_DB: "exam_test",
-      FAKE_SCHEMA_COUNT: "1",
+describePosix(
+  "drop-test-schemas.sh keeps both safety layers on the canonical target",
+  () => {
+    it("destructive path runs only after the identity guard, against the canonical target", async () => {
+      const fixture = await makeFixture({
+        DATABASE_URL: DECOY_A,
+        TEST_DATABASE_URL: TARGET_B,
+        FAKE_CURRENT_DB: "exam_test",
+        FAKE_SCHEMA_COUNT: "1",
+      });
+      const run = runScript("scripts/db/drop-test-schemas.sh", [], fixture.env);
+      expect(run.status, run.stderr).toBe(0);
+      const urls = invokedUrls(fixture);
+      expect(urls).toContain(TARGET_B);
+      expect(urls.every((url) => url === TARGET_B)).toBe(true);
+      // The destructive DO block was dispatched against the canonical target…
+      const destructive = readFileSync(fixture.destructiveLog, "utf8");
+      expect(destructive).toContain("DROP SCHEMA IF EXISTS");
+      // …while the decoy never appeared anywhere.
+      expect(readFileSync(fixture.psqlLog, "utf8")).not.toContain("decoy_a");
     });
-    const run = runScript("scripts/db/drop-test-schemas.sh", [], fixture.env);
-    expect(run.status, run.stderr).toBe(0);
-    const urls = invokedUrls(fixture);
-    expect(urls).toContain(TARGET_B);
-    expect(urls.every((url) => url === TARGET_B)).toBe(true);
-    // The destructive DO block was dispatched against the canonical target…
-    const destructive = readFileSync(fixture.destructiveLog, "utf8");
-    expect(destructive).toContain("DROP SCHEMA IF EXISTS");
-    // …while the decoy never appeared anywhere.
-    expect(readFileSync(fixture.psqlLog, "utf8")).not.toContain("decoy_a");
-  });
 
-  it("connected-DB identity guard still refuses when the actual database is not an approved test identity", async () => {
-    const fixture = await makeFixture({
-      DATABASE_URL: DECOY_A,
-      TEST_DATABASE_URL: TARGET_B,
-      // Requested target resolves to exam_test, but the observed connection
-      // identity is the dev database — the destructive layer must veto.
-      FAKE_CURRENT_DB: "exam",
+    it("connected-DB identity guard still refuses when the actual database is not an approved test identity", async () => {
+      const fixture = await makeFixture({
+        DATABASE_URL: DECOY_A,
+        TEST_DATABASE_URL: TARGET_B,
+        // Requested target resolves to exam_test, but the observed connection
+        // identity is the dev database — the destructive layer must veto.
+        FAKE_CURRENT_DB: "exam",
+      });
+      const run = runScript("scripts/db/drop-test-schemas.sh", [], fixture.env);
+      expect(run.status).toBe(2);
+      expect(run.stderr).toContain("refusing to drop schemas");
+      expect(
+        readFileSync(fixture.psqlLog, "utf8")
+          .split("\n")
+          .filter((l) => l.length > 0),
+      ).toHaveLength(1);
+      let destructive = "";
+      try {
+        destructive = readFileSync(fixture.destructiveLog, "utf8");
+      } catch {
+        destructive = "";
+      }
+      expect(destructive).toBe("");
     });
-    const run = runScript("scripts/db/drop-test-schemas.sh", [], fixture.env);
-    expect(run.status).toBe(2);
-    expect(run.stderr).toContain("refusing to drop schemas");
-    expect(
-      readFileSync(fixture.psqlLog, "utf8")
-        .split("\n")
-        .filter((l) => l.length > 0),
-    ).toHaveLength(1);
-    let destructive = "";
-    try {
-      destructive = readFileSync(fixture.destructiveLog, "utf8");
-    } catch {
-      destructive = "";
-    }
-    expect(destructive).toBe("");
-  });
-});
+  },
+);
 
-describe("db-isolation-stress.sh direct leak-count path", () => {
+describePosix("db-isolation-stress.sh direct leak-count path", () => {
   it("targets the canonical TEST_DATABASE_TARGET, never the DATABASE_URL decoy", async () => {
     const fixture = await makeFixture({
       DATABASE_URL: DECOY_A,

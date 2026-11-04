@@ -72,7 +72,7 @@ describe("getApiErrorMessage (Web i18n authority)", () => {
       },
     );
     expect(getApiErrorMessage(error, t)).toBe(
-      "该课程下仍有 3 道题目，无法删除",
+      "Esta comisión todavía tiene 3 preguntas y no se puede eliminar",
     );
   });
 
@@ -123,7 +123,7 @@ describe("getApiErrorMessage (Web i18n authority)", () => {
         }),
         t,
       ),
-    ).toBe("El examen todavía no termina");
+    ).toBe("El examen todavía no terminó");
     // Real brownfield wire shape (scores/export routes): the dynamic fact is
     // flat on details, NOT inside details.params.
     expect(
@@ -134,7 +134,7 @@ describe("getApiErrorMessage (Web i18n authority)", () => {
         }),
         t,
       ),
-    ).toBe("考试仍有 2 场未结束的作答");
+    ).toBe("Todavía hay 2 intentos sin terminar");
   });
 
   it("T3: known code + unknown reason falls back to code-level Web copy", () => {
@@ -236,7 +236,7 @@ describe("getApiErrorMessage (Web i18n authority)", () => {
  * C2 field violation protocol (message contract D0.7/D0.10): first-party
  * field semantics come from the machine `code + params` via the Web
  * catalog; the required server compatibility `message` is only a fallback
- * for unknown codes. Assertions use resolved Chinese (i18n copy policy
+ * for unknown codes. Assertions use resolved Spanish (i18n copy policy
  * Rule 3) to verify the full localization pipeline.
  */
 describe("resolveFieldError — C2 field violation protocol", () => {
@@ -245,10 +245,10 @@ describe("resolveFieldError — C2 field violation protocol", () => {
       resolveFieldError({
         field: "fields.employeeId",
         code: "REQUIRED",
-        params: { label: "身份编号" },
+        params: { label: "Legajo" },
         message: "COMPLETELY DIFFERENT SERVER WORDING",
       }),
-    ).toBe("身份编号为必填项");
+    ).toBe("Legajo es obligatorio");
   });
 
   // T-R1/T-R2: TOO_SMALL/TOO_BIG copy must stay semantically safe. The wire
@@ -294,7 +294,7 @@ describe("resolveFieldError — C2 field violation protocol", () => {
         params: { resource: "examProfile" },
         message: "SERVER WORDING",
       }),
-    ).toBe("考试策略模板不存在");
+    ).toBe("Plantilla de reglas del examen no existe");
     expect(
       resolveFieldError({
         field: "courseId",
@@ -302,7 +302,7 @@ describe("resolveFieldError — C2 field violation protocol", () => {
         params: { resource: "course" },
         message: "SERVER WORDING",
       }),
-    ).toBe("课程不存在");
+    ).toBe("Comisión no existe");
   });
 
   it("falls back to the compatibility message for an unknown future code without crashing (T5/M4)", () => {
@@ -350,7 +350,7 @@ describe("resolveFieldError — C2 field violation protocol", () => {
           ],
         },
       }),
-    ).toEqual({ courseId: "课程不存在", future: "未来错误" });
+    ).toEqual({ courseId: "Comisión no existe", future: "未来错误" });
   });
 
   it("drops detail entries without a message (legacy shape filter)", () => {

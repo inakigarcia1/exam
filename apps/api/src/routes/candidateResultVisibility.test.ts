@@ -47,7 +47,7 @@ describe("candidate result visibility projection", () => {
     await ctx.db.insert(schema.courses).values({
       id: courseId,
       organizationId: ctx.org.id,
-      name: "Course",
+      name: `Course ${crypto.randomUUID()}`,
       code: `324-${uniquePrefix()}`,
       description: "",
       createdAt: new Date(),
@@ -63,7 +63,8 @@ describe("candidate result visibility projection", () => {
         { id: "b", content: "B" },
       ],
       standardAnswer: "a",
-      attachments: [],
+      image: null,
+      scale: null,
       difficulty: 1,
       tags: [],
       gradingRule: {
@@ -140,6 +141,7 @@ describe("candidate result visibility projection", () => {
         totalScore: 10,
         questionSelectionMode: "manual",
         questionIds: [questionId],
+        questionScores: { [questionId]: 10 },
         controlFlags: {
           shuffleQuestions: false,
           shuffleOptions: false,
@@ -416,6 +418,7 @@ describe("candidate result visibility projection", () => {
           totalScore: 10,
           questionSelectionMode: "manual",
           questionIds: [questionId],
+          questionScores: { [questionId]: 10 },
           controlFlags: {
             shuffleQuestions: false,
             shuffleOptions: false,

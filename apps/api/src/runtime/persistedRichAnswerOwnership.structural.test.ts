@@ -77,7 +77,7 @@ describe("persisted-answer read authority — structural ownership (D4-A/D4-K)",
       .filter((file) =>
         CLASSIFIER_DEFINITION.test(stripComments(readFileSync(file, "utf8"))),
       )
-      .map((file) => relative(REPO_ROOT, file));
+      .map((file) => relative(REPO_ROOT, file).replaceAll("\\", "/"));
 
     expect(definitions).toEqual([
       "packages/contracts/src/persistedRichAnswer.ts",

@@ -209,7 +209,7 @@ describe("result publication is single-winner", () => {
     await shared.db.insert(schema.courses).values({
       id: courseId,
       organizationId: ORG_ID,
-      name: "c",
+      name: `c ${crypto.randomUUID()}`,
       code: `code-${randomUUID().slice(0, 6)}`,
       description: "",
       createdAt: now,

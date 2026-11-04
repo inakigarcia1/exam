@@ -80,7 +80,8 @@ function makeQuestion(
       { id: "b", content: "B" },
     ],
     standardAnswer: "a",
-    attachments: [],
+    image: null,
+    scale: null,
     difficulty: 1,
     tags: [],
     gradingRule: {

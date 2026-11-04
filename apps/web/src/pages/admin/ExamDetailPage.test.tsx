@@ -117,7 +117,7 @@ describe("ExamDetailPage", () => {
       expect(await screen.findByText("期末能力测评")).toBeInTheDocument();
       expect(screen.getByText("Estado")).toBeInTheDocument();
       expect(screen.getByText("Duración del examen")).toBeInTheDocument();
-      expect(screen.getByText("Puntaje de aprobación")).toBeInTheDocument();
+      expect(screen.getByText("Puntaje para aprobar")).toBeInTheDocument();
       expect(screen.getByText("Cantidad de preguntas")).toBeInTheDocument();
     });
 
@@ -127,7 +127,7 @@ describe("ExamDetailPage", () => {
         await screen.findByText("Configuración del examen"),
       ).toBeInTheDocument();
       // Policy enums render as localized labels, never raw values.
-      expect(screen.getByText("Ventana con límite")).toBeInTheDocument();
+      expect(screen.getByText("Ventana horaria")).toBeInTheDocument();
       expect(screen.queryByText("timed_window")).not.toBeInTheDocument();
     });
 
@@ -142,7 +142,7 @@ describe("ExamDetailPage", () => {
       const configLabel = await screen.findByText("Configuración del examen");
       const configSection = configLabel.closest("section");
       expect(configSection).toBeInTheDocument();
-      expect(configSection).toHaveTextContent("Ventana con límite");
+      expect(configSection).toHaveTextContent("Ventana horaria");
     });
 
     it("renders Phase 1 tabs without audit placeholder", async () => {
@@ -151,7 +151,7 @@ describe("ExamDetailPage", () => {
         await screen.findByRole("tab", { name: "Inscripción" }),
       ).toBeInTheDocument();
       expect(
-        screen.getByRole("tab", { name: "Calificaciones" }),
+        screen.getByRole("tab", { name: "Calificación" }),
       ).toBeInTheDocument();
       expect(
         screen.queryByRole("tab", { name: "操作日志" }),
@@ -201,9 +201,9 @@ describe("ExamDetailPage", () => {
   describe("scores tab", () => {
     it("shows scores tab content with link to score list", async () => {
       renderPage();
-      await screen.findByRole("tab", { name: "Calificaciones" });
+      await screen.findByRole("tab", { name: "Calificación" });
       const user = userEvent.setup();
-      await user.click(screen.getByRole("tab", { name: "Calificaciones" }));
+      await user.click(screen.getByRole("tab", { name: "Calificación" }));
       expect(screen.getByText("Gestión de calificaciones")).toBeInTheDocument();
     });
   });
@@ -381,7 +381,7 @@ describe("ExamDetailPage", () => {
       // initial page rendered open, the refresh must observe closed.
       currentExam = { ...currentExam, status: "closed" };
       await user.click(
-        within(dialog).getByRole("button", { name: "延长 15 分钟" }),
+        within(dialog).getByRole("button", { name: "Extender 15 minutos" }),
       );
 
       // Exactly one rejected extend mutation, then exactly one refresh.
@@ -436,7 +436,7 @@ describe("ExamDetailPage", () => {
       const dialog = screen.getByRole("dialog");
       refreshMustFail = true;
       await user.click(
-        within(dialog).getByRole("button", { name: "延长 15 分钟" }),
+        within(dialog).getByRole("button", { name: "Extender 15 minutos" }),
       );
 
       await waitFor(() => {
@@ -509,7 +509,7 @@ describe("ExamDetailPage", () => {
       await user.click(screen.getByTestId("exam-detail-extend-btn"));
       const dialog = screen.getByRole("dialog");
       await user.click(
-        within(dialog).getByRole("button", { name: "延长 15 分钟" }),
+        within(dialog).getByRole("button", { name: "Extender 15 minutos" }),
       );
 
       await waitFor(() => {
@@ -762,8 +762,8 @@ describe("ExamDetailPage", () => {
         });
       });
       renderPage();
-      expect(await screen.findByText("45分钟")).toBeInTheDocument();
-      expect(screen.getByText("Ventana con límite")).toBeInTheDocument();
+      expect(await screen.findByText("45 minutos")).toBeInTheDocument();
+      expect(screen.getByText("Ventana horaria")).toBeInTheDocument();
     });
 
     it("renders deadline mode without fabricating a duration", async () => {
@@ -778,12 +778,12 @@ describe("ExamDetailPage", () => {
       });
       renderPage();
       expect(await screen.findByText("Con hora límite")).toBeInTheDocument();
-      // i18next collapses a null interpolation to a bare “分钟” unit — the
+      // i18next collapses a null interpolation to a bare “minutos” unit — the
       // fabricated-duration render this regression locks out.
-      expect(screen.queryByText("分钟")).not.toBeInTheDocument();
-      expect(screen.queryByText("0分钟")).not.toBeInTheDocument();
+      expect(screen.queryByText("minutos")).not.toBeInTheDocument();
+      expect(screen.queryByText("0 minutos")).not.toBeInTheDocument();
       // The config row localizes the mode instead of leaking the raw enum.
-      expect(screen.getByText("Hora límite")).toBeInTheDocument();
+      expect(screen.getByText("Fecha límite")).toBeInTheDocument();
       expect(screen.queryByText("deadline")).not.toBeInTheDocument();
     });
 
@@ -802,7 +802,7 @@ describe("ExamDetailPage", () => {
       expect(
         (await screen.findAllByText("Sin límite de tiempo")).length,
       ).toBeGreaterThanOrEqual(2);
-      expect(screen.queryByText("分钟")).not.toBeInTheDocument();
+      expect(screen.queryByText("minutos")).not.toBeInTheDocument();
       // formatDateTime(null) renders the 1970 epoch — never reachable.
       expect(screen.queryByText(/1970/)).not.toBeInTheDocument();
       expect(screen.queryByText("untimed")).not.toBeInTheDocument();

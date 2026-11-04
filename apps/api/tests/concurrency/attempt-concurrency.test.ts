@@ -58,7 +58,7 @@ async function buildFixture(db: Database): Promise<Fixture> {
   await db.insert(schema.courses).values({
     id: courseId,
     organizationId: orgId,
-    name: "Concurrency Course",
+    name: `Concurrency Course ${crypto.randomUUID()}`,
     code: `CC-${Date.now()}`,
     description: "",
     createdAt: new Date(),
@@ -74,7 +74,8 @@ async function buildFixture(db: Database): Promise<Fixture> {
     content: "Test question",
     options: [],
     standardAnswer: true,
-    attachments: [],
+    image: null,
+    scale: null,
     score: 10,
     difficulty: 1,
     tags: [],

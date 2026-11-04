@@ -86,11 +86,19 @@ describe("LaunchpadPage", () => {
     renderLaunchpad();
 
     await waitFor(() => {
-      expect(screen.getByLabelText("Nombre de la organización")).toBeInTheDocument();
+      expect(
+        screen.getByLabelText("Nombre de la organización"),
+      ).toBeInTheDocument();
     });
-    expect(screen.getByLabelText("Nombre del administrador")).toBeInTheDocument();
-    expect(screen.getByLabelText("Usuario del administrador")).toBeInTheDocument();
-    expect(screen.getByLabelText("Contraseña del administrador")).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Nombre del administrador"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Usuario del administrador"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Contraseña del administrador"),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText("Token de configuración")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Terminar la configuración" }),
@@ -103,16 +111,30 @@ describe("LaunchpadPage", () => {
 
     renderLaunchpad();
     await waitFor(() =>
-      expect(screen.getByLabelText("Nombre de la organización")).toBeInTheDocument(),
+      expect(
+        screen.getByLabelText("Nombre de la organización"),
+      ).toBeInTheDocument(),
     );
 
-    await user.click(screen.getByRole("button", { name: "Terminar la configuración" }));
+    await user.click(
+      screen.getByRole("button", { name: "Terminar la configuración" }),
+    );
 
-    expect(screen.getByText("Ingresa el nombre de la organización")).toBeInTheDocument();
-    expect(screen.getByText("Ingresa el nombre del administrador")).toBeInTheDocument();
-    expect(screen.getByText("Ingresa el usuario del administrador")).toBeInTheDocument();
-    expect(screen.getByText("Ingresa la contraseña del administrador")).toBeInTheDocument();
-    expect(screen.getByText("Ingresa el token de configuración")).toBeInTheDocument();
+    expect(
+      screen.getByText("Ingresa el nombre de la organización"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Ingresa el nombre del administrador"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Ingresa el usuario del administrador"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Ingresa la contraseña del administrador"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Ingresa el token de configuración"),
+    ).toBeInTheDocument();
     expect(apiPost).not.toHaveBeenCalled();
   });
 
@@ -127,16 +149,35 @@ describe("LaunchpadPage", () => {
 
     renderLaunchpad();
     await waitFor(() =>
-      expect(screen.getByLabelText("Nombre de la organización")).toBeInTheDocument(),
+      expect(
+        screen.getByLabelText("Nombre de la organización"),
+      ).toBeInTheDocument(),
     );
 
-    await user.type(screen.getByLabelText("Nombre de la organización"), "Fresh Org");
-    await user.type(screen.getByLabelText("Nombre del administrador"), "New Admin");
-    await user.type(screen.getByLabelText("Usuario del administrador"), "newadmin");
-    await user.type(screen.getByLabelText("Contraseña del administrador"), "Strong-Admin-1!");
-    await user.type(screen.getByLabelText("Token de configuración"), "the-setup-token");
+    await user.type(
+      screen.getByLabelText("Nombre de la organización"),
+      "Fresh Org",
+    );
+    await user.type(
+      screen.getByLabelText("Nombre del administrador"),
+      "New Admin",
+    );
+    await user.type(
+      screen.getByLabelText("Usuario del administrador"),
+      "newadmin",
+    );
+    await user.type(
+      screen.getByLabelText("Contraseña del administrador"),
+      "Strong-Admin-1!",
+    );
+    await user.type(
+      screen.getByLabelText("Token de configuración"),
+      "the-setup-token",
+    );
 
-    await user.click(screen.getByRole("button", { name: "Terminar la configuración" }));
+    await user.click(
+      screen.getByRole("button", { name: "Terminar la configuración" }),
+    );
 
     // The payload excludes organizationDisplayName when left blank and sends
     // the canonical field names the backend expects.
@@ -167,16 +208,35 @@ describe("LaunchpadPage", () => {
 
     renderLaunchpad();
     await waitFor(() =>
-      expect(screen.getByLabelText("Nombre de la organización")).toBeInTheDocument(),
+      expect(
+        screen.getByLabelText("Nombre de la organización"),
+      ).toBeInTheDocument(),
     );
 
-    await user.type(screen.getByLabelText("Nombre de la organización"), "Fresh Org");
-    await user.type(screen.getByLabelText("Nombre del administrador"), "New Admin");
-    await user.type(screen.getByLabelText("Usuario del administrador"), "newadmin");
-    await user.type(screen.getByLabelText("Contraseña del administrador"), "Strong-Admin-1!");
-    await user.type(screen.getByLabelText("Token de configuración"), "wrong-token");
+    await user.type(
+      screen.getByLabelText("Nombre de la organización"),
+      "Fresh Org",
+    );
+    await user.type(
+      screen.getByLabelText("Nombre del administrador"),
+      "New Admin",
+    );
+    await user.type(
+      screen.getByLabelText("Usuario del administrador"),
+      "newadmin",
+    );
+    await user.type(
+      screen.getByLabelText("Contraseña del administrador"),
+      "Strong-Admin-1!",
+    );
+    await user.type(
+      screen.getByLabelText("Token de configuración"),
+      "wrong-token",
+    );
 
-    await user.click(screen.getByRole("button", { name: "Terminar la configuración" }));
+    await user.click(
+      screen.getByRole("button", { name: "Terminar la configuración" }),
+    );
 
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent(

@@ -139,6 +139,16 @@ function fillTitle(value: string) {
   );
 }
 
+/** Step 1 requires a Materia and one of its Comisiones before Next advances. */
+async function chooseSubjectAndCommission(
+  user: ReturnType<typeof userEvent.setup>,
+) {
+  await user.click(screen.getByRole("combobox", { name: "Materia" }));
+  await user.click(await screen.findByRole("option", { name: "Álgebra" }));
+  await user.click(screen.getByRole("combobox", { name: "Comisión" }));
+  await user.click(await screen.findByRole("option", { name: "数学" }));
+}
+
 describe("ExamCreatePage wizard — materia y comisión", () => {
   it("creates a subject from the plus button and selects it", async () => {
     apiPost.mockImplementation((path: string, body: { name?: string }) => {
@@ -206,7 +216,7 @@ describe("ExamCreatePage wizard — step 1 (basic + profile)", () => {
     renderPage();
     expect(await screen.findByText("Crear examen")).toBeInTheDocument();
     expect(
-      screen.getByPlaceholderText("Ingresa el nombre del examen"),
+      screen.getByPlaceholderText("Ingresá el nombre del examen"),
     ).toBeInTheDocument();
     // Profile picker is present on step 1.
     expect(
@@ -220,8 +230,9 @@ describe("ExamCreatePage wizard — step 1 (basic + profile)", () => {
     await screen.findByText("Crear examen");
     // Step 1, then step 2 (policy fields — where such flags would appear)…
     fillTitle("Flags Exam");
+    await chooseSubjectAndCommission(user);
     await user.click(screen.getByRole("button", { name: /Siguiente/ }));
-    await screen.findByLabelText("Duración del examen (minutos)");
+    await screen.findByLabelText("Duración (minutos)");
     // …then the review step, covering every conditional surface.
     for (let i = 0; i < 2; i++) {
       await user.click(screen.getByRole("button", { name: /Siguiente/ }));
@@ -248,7 +259,7 @@ describe("ExamCreatePage wizard — step 1 (basic + profile)", () => {
     await screen.findByText("Crear examen");
     await user.click(screen.getByRole("button", { name: /Siguiente/ }));
     expect(
-      await screen.findByText("Ingresa el nombre del examen"),
+      await screen.findByText("Ingresá el nombre del examen"),
     ).toBeInTheDocument();
     // Still on step 1.
     expect(apiPost).not.toHaveBeenCalled();
@@ -449,6 +460,7 @@ describe("ExamCreatePage wizard — no-profile create flow", () => {
     renderPage();
     await screen.findByText("Crear examen");
     fillTitle("My Exam");
+    await chooseSubjectAndCommission(user);
     // 1 → 2 → 3 → 4 (schedule), then fill the schedule, then 4 → 5.
     await user.click(screen.getByRole("button", { name: /Siguiente/ }));
     await user.click(screen.getByRole("button", { name: /Siguiente/ }));
@@ -499,13 +511,15 @@ describe("ExamCreatePage wizard — profile path", () => {
 
   it("selecting a profile shows its values in step 2 and 'Con cambios' after override", async () => {
     apiGet.mockImplementation((path: string) => {
-      if (path.includes("/api/exam-profiles")) return [profile];
-      return defaultApiGet(path);
+      if (path.includes("/api/exam-profiles"))
+        return Promise.resolve([profile]);
+      return Promise.resolve(defaultApiGet(path));
     });
     const user = userEvent.setup();
     renderPage();
     await screen.findByText("Crear examen");
     fillTitle("Profiled Exam");
+    await chooseSubjectAndCommission(user);
     // Select the profile.
     await user.click(
       screen.getByRole("combobox", { name: "Usar plantilla existente" }),
@@ -515,17 +529,17 @@ describe("ExamCreatePage wizard — profile path", () => {
     );
     // COPY-ON-APPLY hint now visible.
     expect(
-      screen.getAllByText(/选择模板后，模板中的设置将复制到本次考试/).length,
+      screen.getAllByText(
+        /Al elegir una plantilla, sus ajustes se copian a este examen/,
+      ).length,
     ).toBeGreaterThan(0);
     // Go to step 2.
     await user.click(screen.getByRole("button", { name: /Siguiente/ }));
-    // Profile duration (90) shown; at least one field badge says 来自「Examen en línea estándar」.
-    const durationInput = screen.getByLabelText(
-      "Duración del examen (minutos)",
-    );
+    // Profile duration (90) shown; at least one field badge says Desde «Examen en línea estándar».
+    const durationInput = screen.getByLabelText("Duración (minutos)");
     expect(durationInput).toHaveValue(90);
     expect(
-      screen.getAllByText("来自「Examen en línea estándar」").length,
+      screen.getAllByText("Desde «Examen en línea estándar»").length,
     ).toBeGreaterThan(0);
     // Override duration → badge switches to Con cambios for that field.
     fireEvent.change(durationInput, { target: { value: 45 } });
@@ -538,13 +552,15 @@ describe("ExamCreatePage wizard — profile path", () => {
 
   it("override is preserved as explicit value in the final POST payload", async () => {
     apiGet.mockImplementation((path: string) => {
-      if (path.includes("/api/exam-profiles")) return [profile];
-      return defaultApiGet(path);
+      if (path.includes("/api/exam-profiles"))
+        return Promise.resolve([profile]);
+      return Promise.resolve(defaultApiGet(path));
     });
     const user = userEvent.setup();
     renderPage();
     await screen.findByText("Crear examen");
     fillTitle("Profiled Exam 2");
+    await chooseSubjectAndCommission(user);
     await user.click(
       screen.getByRole("combobox", { name: "Usar plantilla existente" }),
     );
@@ -554,12 +570,14 @@ describe("ExamCreatePage wizard — profile path", () => {
     // Step 1 → 2.
     await user.click(screen.getByRole("button", { name: /Siguiente/ }));
     // Override duration.
-    fireEvent.change(screen.getByLabelText("Duración del examen (minutos)"), {
+    fireEvent.change(screen.getByLabelText("Duración (minutos)"), {
       target: { value: 120 },
     });
     // Override latestStartOffsetMinutes → explicit null (clear the field).
     fireEvent.change(
-      screen.getByLabelText("Último ingreso (minutos desde el inicio)"),
+      screen.getByLabelText(
+        "Tiempo límite para comenzar el examen una vez el alumno ingresa",
+      ),
       {
         target: { value: "" },
       },
@@ -598,13 +616,15 @@ describe("ExamCreatePage wizard — profile path", () => {
 
   it("reset-to-profile removes the override from the POST payload", async () => {
     apiGet.mockImplementation((path: string) => {
-      if (path.includes("/api/exam-profiles")) return [profile];
-      return defaultApiGet(path);
+      if (path.includes("/api/exam-profiles"))
+        return Promise.resolve([profile]);
+      return Promise.resolve(defaultApiGet(path));
     });
     const user = userEvent.setup();
     renderPage();
     await screen.findByText("Crear examen");
     fillTitle("Reset Exam");
+    await chooseSubjectAndCommission(user);
     await user.click(
       screen.getByRole("combobox", { name: "Usar plantilla existente" }),
     );
@@ -612,7 +632,7 @@ describe("ExamCreatePage wizard — profile path", () => {
       await screen.findByRole("option", { name: "Examen en línea estándar" }),
     );
     await user.click(screen.getByRole("button", { name: /Siguiente/ }));
-    fireEvent.change(screen.getByLabelText("Duración del examen (minutos)"), {
+    fireEvent.change(screen.getByLabelText("Duración (minutos)"), {
       target: { value: 45 },
     });
     // Reset.
@@ -620,11 +640,9 @@ describe("ExamCreatePage wizard — profile path", () => {
       screen.getByRole("button", { name: "Volver a la plantilla" }),
     );
     // Field reverted to profile value; at least one badge is from template.
-    expect(screen.getByLabelText("Duración del examen (minutos)")).toHaveValue(
-      90,
-    );
+    expect(screen.getByLabelText("Duración (minutos)")).toHaveValue(90);
     expect(
-      screen.getAllByText("来自「Examen en línea estándar」").length,
+      screen.getAllByText("Desde «Examen en línea estándar»").length,
     ).toBeGreaterThan(0);
   });
 });
@@ -643,6 +661,7 @@ describe("ExamCreatePage wizard — validation routing", () => {
     renderPage();
     await screen.findByText("Crear examen");
     fillTitle("Bad Schedule");
+    await chooseSubjectAndCommission(user);
     // Walk to step 4 with a LOCALLY VALID schedule, so the local gate passes
     // and the POST is actually reached (this test proves server routing).
     for (let i = 0; i < 3; i++) {
@@ -696,6 +715,7 @@ describe("ExamCreatePage wizard — validation routing", () => {
     renderPage();
     await screen.findByText("Crear examen");
     fillTitle("Machine Course Error");
+    await chooseSubjectAndCommission(user);
     for (let i = 0; i < 3; i++) {
       await user.click(screen.getByRole("button", { name: /Siguiente/ }));
     }
@@ -708,10 +728,10 @@ describe("ExamCreatePage wizard — validation routing", () => {
     await user.click(screen.getByRole("button", { name: /Siguiente/ }));
     await screen.findByText("Revisar antes de crear");
     await user.click(screen.getByRole("button", { name: "Crear borrador" }));
-    // The meaning comes from code+params via the Web catalog ("课程不存在");
+    // The meaning comes from code+params via the Web catalog ("Comisión no existe");
     // the mutated server wording must never surface.
     expect(
-      await screen.findByText("课程不存在", {}, { timeout: 3000 }),
+      await screen.findByText("Comisión no existe", {}, { timeout: 3000 }),
     ).toBeInTheDocument();
     expect(screen.queryByText("SERVER COMPAT WORDING")).not.toBeInTheDocument();
     // stepForField routes courseId back to step 1.
@@ -743,14 +763,15 @@ describe("ExamCreatePage wizard — validation routing", () => {
     // Trigger the title-required error.
     await user.click(screen.getByRole("button", { name: /Siguiente/ }));
     expect(
-      await screen.findByText("Ingresa el nombre del examen"),
+      await screen.findByText("Ingresá el nombre del examen"),
     ).toBeInTheDocument();
     // Fix the title and advance — the error must be gone (we land on step 2).
     fillTitle("Fixed Title");
+    await chooseSubjectAndCommission(user);
     await user.click(screen.getByRole("button", { name: /Siguiente/ }));
-    await screen.findByLabelText("Duración del examen (minutos)");
+    await screen.findByLabelText("Duración (minutos)");
     expect(
-      screen.queryByText("Ingresa el nombre del examen"),
+      screen.queryByText("Ingresá el nombre del examen"),
     ).not.toBeInTheDocument();
   });
 });
@@ -778,25 +799,27 @@ describe("ExamCreatePage wizard — interruption policy override semantics", () 
       updatedAt: "2026-08-10T00:00:00.000Z",
     };
     apiGet.mockImplementation((path: string) => {
-      if (path.includes("/api/exam-profiles")) return [profile];
-      return defaultApiGet(path);
+      if (path.includes("/api/exam-profiles"))
+        return Promise.resolve([profile]);
+      return Promise.resolve(defaultApiGet(path));
     });
     const user = userEvent.setup();
     renderPage();
     await screen.findByText("Crear examen");
     fillTitle("Strict Exam");
+    await chooseSubjectAndCommission(user);
     await user.click(
       screen.getByRole("combobox", { name: "Usar plantilla existente" }),
     );
     await user.click(await screen.findByRole("option", { name: "宽限模板" }));
     // Step 1 → 2.
     await user.click(screen.getByRole("button", { name: /Siguiente/ }));
-    // Switch policy from bounded_grace to strict (Sin tiempo extra).
+    // Switch policy from bounded_grace to strict (Sin tiempo de gracia).
     await user.click(
-      screen.getByRole("combobox", { name: "Política si se interrumpe" }),
+      screen.getByRole("combobox", { name: "Si se corta la conexión" }),
     );
     await user.click(
-      await screen.findByRole("option", { name: "Sin tiempo extra" }),
+      await screen.findByRole("option", { name: "Sin tiempo de gracia" }),
     );
     // Walk to review and create.
     for (let i = 0; i < 3; i++) {

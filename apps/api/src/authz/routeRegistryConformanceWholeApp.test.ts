@@ -308,6 +308,9 @@ describe("whole-application authorization route regression lock", () => {
       ["GET", "/api/notifications/unread-count"],
       ["POST", "/api/notifications/:id/read"],
       ["POST", "/api/notifications/read-all"],
+      // ADR-024: candidates render question images while taking an exam;
+      // org-scoped lookup by an unguessable content hash.
+      ["GET", "/api/question-images/:sha256"],
     ];
     return set.some(([m, u]) => m === method && url === u);
   }
@@ -347,6 +350,9 @@ describe("whole-application authorization route regression lock", () => {
       ["POST", "/api/auth/invitations/accept"],
       ["POST", "/api/auth/password-reset/request"],
       ["POST", "/api/auth/password-reset/consume"],
+      ["GET", "/api/auth/inscriptions/:token"],
+      ["POST", "/api/auth/inscriptions/:token/lookup"],
+      ["POST", "/api/auth/inscriptions/:token"],
     ];
     return set.some(([m, u]) => m === method && u === url);
   }
@@ -369,7 +375,7 @@ describe("whole-application authorization route regression lock", () => {
     ).toEqual([]);
   });
 
-  it("the full composition reconciles to 143 primary routes (122 protected + 21 non-protected)", () => {
+  it("the full composition reconciles to 159 primary routes (134 protected + 25 non-protected)", () => {
     const protectedCount = capturedRoutes.filter(
       (r) => categorize(r) === "protected",
     ).length;
@@ -384,11 +390,11 @@ describe("whole-application authorization route regression lock", () => {
     expect(
       protectedCount,
       "protected (capability/ownership-gated) routes",
-    ).toBe(122);
+    ).toBe(134);
     expect(nonProtectedCount, "non-protected (auth-only + public) routes").toBe(
-      21,
+      25,
     );
-    expect(capturedRoutes.length, "total primary routes").toBe(143);
+    expect(capturedRoutes.length, "total primary routes").toBe(159);
   });
 
   it("every protected route's capability gate carries a valid catalog permission (no ad-hoc permission strings)", () => {

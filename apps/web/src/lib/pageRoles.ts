@@ -31,6 +31,13 @@ export const ROUTE_PAGE_ROLES: readonly RoutePageRole[] = [
   { route: "/invite/accept", page: "InviteAcceptPage", role: "auth" },
   { route: "/forgot-password", page: "ForgotPasswordPage", role: "auth" },
   { route: "/reset-password", page: "ResetPasswordPage", role: "auth" },
+  { route: "/inscripcion/:token", page: "InscriptionPage", role: "auth" },
+  // Staff preview of the candidate surface, outside both layouts.
+  {
+    route: "/preview/exams/:id",
+    page: "ExamPreviewPage",
+    role: "candidate",
+  },
 
   // /admin (AdminLayout owns the gutter; each page declares its role)
   { route: "/admin/dashboard", page: "DashboardPage", role: "admin-standard" },
@@ -145,6 +152,11 @@ export const ROUTE_PAGE_ROLES: readonly RoutePageRole[] = [
   {
     route: "/admin/import-logs",
     page: "ImportLogsPage",
+    role: "admin-standard",
+  },
+  {
+    route: "/admin/attempts/:attemptId/live",
+    page: "AttemptLiveViewPage",
     role: "admin-standard",
   },
   {

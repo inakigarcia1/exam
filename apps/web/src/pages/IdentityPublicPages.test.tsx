@@ -64,13 +64,17 @@ describe("public identity pages (#297)", () => {
     renderAt("/forgot-password");
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole("button", { name: "Enviar enlace de restablecimiento" }));
-    expect(await screen.findByText("Ingresa el usuario")).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", { name: "Enviar enlace de restablecimiento" }),
+    );
+    expect(await screen.findByText("Ingresa tu usuario")).toBeInTheDocument();
     expect(apiPost).not.toHaveBeenCalled();
 
     apiPost.mockResolvedValueOnce({ ok: true });
     await user.type(screen.getByLabelText("Usuario"), "someone");
-    await user.click(screen.getByRole("button", { name: "Enviar enlace de restablecimiento" }));
+    await user.click(
+      screen.getByRole("button", { name: "Enviar enlace de restablecimiento" }),
+    );
     await waitFor(() =>
       expect(screen.getByTestId("forgot-password-sent")).toBeInTheDocument(),
     );
@@ -80,12 +84,16 @@ describe("public identity pages (#297)", () => {
   });
 
   it("forgot-password keeps the confirmation generic even on rejection", async () => {
-    apiPost.mockRejectedValueOnce(new Error("El link para restablecer la contraseña no sirve o venció"));
+    apiPost.mockRejectedValueOnce(
+      new Error("El link para restablecer la contraseña no sirve o venció"),
+    );
     renderAt("/forgot-password");
     const user = userEvent.setup();
 
     await user.type(screen.getByLabelText("Usuario"), "someone");
-    await user.click(screen.getByRole("button", { name: "Enviar enlace de restablecimiento" }));
+    await user.click(
+      screen.getByRole("button", { name: "Enviar enlace de restablecimiento" }),
+    );
     await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
     // No success view: a genuine request failure must not fake success.
     expect(screen.queryByTestId("forgot-password-sent")).toBeNull();
@@ -100,8 +108,14 @@ describe("public identity pages (#297)", () => {
 
     await user.type(screen.getByLabelText("Usuario"), "invited");
     await user.type(screen.getByLabelText("Nombre"), "受邀");
-    await user.type(screen.getByLabelText("Definir contraseña"), "Sup3rSecret!");
-    await user.type(screen.getByLabelText("Confirmar contraseña"), "Sup3rSecret!");
+    await user.type(
+      screen.getByLabelText("Definir contraseña"),
+      "Sup3rSecret!",
+    );
+    await user.type(
+      screen.getByLabelText("Confirmar contraseña"),
+      "Sup3rSecret!",
+    );
     await user.click(screen.getByRole("button", { name: "Activar cuenta" }));
 
     await waitFor(() =>
@@ -121,11 +135,19 @@ describe("public identity pages (#297)", () => {
 
     await user.type(screen.getByLabelText("Usuario"), "invited");
     await user.type(screen.getByLabelText("Nombre"), "受邀");
-    await user.type(screen.getByLabelText("Definir contraseña"), "Sup3rSecret!");
-    await user.type(screen.getByLabelText("Confirmar contraseña"), "Different1!");
+    await user.type(
+      screen.getByLabelText("Definir contraseña"),
+      "Sup3rSecret!",
+    );
+    await user.type(
+      screen.getByLabelText("Confirmar contraseña"),
+      "Different1!",
+    );
     await user.click(screen.getByRole("button", { name: "Activar cuenta" }));
 
-    expect(await screen.findByText("Las contraseñas no coinciden")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Las contraseñas no coinciden"),
+    ).toBeInTheDocument();
     expect(apiPost).not.toHaveBeenCalled();
   });
 
@@ -135,8 +157,13 @@ describe("public identity pages (#297)", () => {
     const user = userEvent.setup();
 
     await user.type(screen.getByLabelText("Contraseña nueva"), "NewPassword1!");
-    await user.type(screen.getByLabelText("Confirmar contraseña nueva"), "NewPassword1!");
-    await user.click(screen.getByRole("button", { name: "Restablecer contraseña" }));
+    await user.type(
+      screen.getByLabelText("Confirmar contraseña nueva"),
+      "NewPassword1!",
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Restablecer contraseña" }),
+    );
 
     await waitFor(() =>
       expect(screen.getByTestId("reset-password-success")).toBeInTheDocument(),

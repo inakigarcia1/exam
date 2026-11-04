@@ -14,7 +14,7 @@ import {
   detectDuplicate,
   MAX_IMPORT_ROWS,
 } from "@/lib/candidateImport";
-import type { CandidateFieldConfig } from "@/lib/candidateImport";
+import { downloadFile } from "@/lib/download";
 import { FieldGroup, Field } from "@/components/shared/FieldGroup";
 import { AppIcon } from "@/components/shared/AppIcon";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -37,6 +37,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Download,
   Pencil,
   Plus,
   Search,
@@ -371,55 +372,43 @@ export function CandidatesPage() {
     }
   }
 
-  function fieldConfigs(): CandidateFieldConfig[] {
-    return fields.map((f) => ({
-      name: f.name,
-      label: f.label,
-      fieldType: f.fieldType,
-      required: f.required,
-      unique: f.unique,
-    }));
-  }
-
-  function importRows() {
-    return parseImportCsv(csv, fieldConfigs()).rows;
-  }
-
-  function importTruncated(): boolean {
-    return parseImportCsv(csv, fieldConfigs()).truncated;
-  }
+  const parsedImport = parseImportCsv(csv);
 
   function previewRows(): ImportPreviewRow[] {
-    const rows = importRows();
+    if (parsedImport.missingColumns.length > 0) {
+      return [
+        {
+          row: 1,
+          status: "error",
+          message: t("admin.candidates.importDialog.missingColumns", {
+            columns: parsedImport.missingColumns.join(", "),
+          }),
+        },
+      ];
+    }
     const seenUsernames = new Set<string>();
-    return rows.map((row, index) => {
-      const missing = fields.find(
-        (field) => field.required && !row.fields[field.name],
-      );
-      if (!row.username || !row.name || missing) {
+    return parsedImport.rows.map((row, index) => {
+      if (!row.username || !row.name) {
         return {
           row: index + 2,
           status: "error",
-          message: missing
-            ? t("admin.candidates.importDialog.missingField", {
-                label: missing.label,
-              })
-            : t("admin.candidates.importDialog.missingUsername"),
+          message: t("admin.candidates.importDialog.missingUsername"),
         };
       }
       const inBatch = seenUsernames.has(row.username);
       seenUsernames.add(row.username);
-      const existsInDb = detectDuplicate(row, fieldConfigs(), candidates);
+      const existsInDb = detectDuplicate(row, candidates);
       const exists = existsInDb || inBatch;
+      // The list holds one page only, so an unknown legajo without password
+      // may still exist: the server decides and reports the row if it doesn't.
       if (!exists && !row.password) {
         return {
           row: index + 2,
-          status: "error",
-          message: t("admin.candidates.importDialog.needPassword"),
+          status: "update",
+          message: t("admin.candidates.importDialog.noPassword"),
         };
       }
       if (
-        !exists &&
         row.password &&
         row.password.length < DEFAULT_PASSWORD_POLICY.minLength
       ) {
@@ -450,7 +439,7 @@ export function CandidatesPage() {
         created: number;
         updated: number;
         errors: unknown[];
-      }>("/api/candidates/import", { rows: importRows() });
+      }>("/api/candidates/import", { rows: parsedImport.rows });
       setImportSummary(
         t("admin.candidates.importDialog.result", {
           created: result.created,
@@ -483,6 +472,20 @@ export function CandidatesPage() {
           onSearch={handleSearchCommit}
           clearLabel={t("admin.candidates.clearSearchLabel")}
         />
+      }
+      actions={
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            downloadFile("/api/candidates/export", "alumnos.csv").catch(() =>
+              toast.error(t("admin.candidates.exportFailed")),
+            )
+          }
+        >
+          <AppIcon icon={Download} size="inline" />
+          {t("admin.candidates.exportBtn")}
+        </Button>
       }
     />
   );
@@ -897,7 +900,7 @@ export function CandidatesPage() {
         title={t("admin.candidates.importDialog.title")}
         instructions={t("admin.candidates.importDialog.instructions")}
         warning={
-          importTruncated()
+          parsedImport.truncated
             ? t("admin.candidates.importDialog.truncated", {
                 max: MAX_IMPORT_ROWS,
               })

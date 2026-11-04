@@ -111,7 +111,7 @@ async function createExam(ctx: TestContext, status: ExamStatus) {
   await ctx.db.insert(schema.courses).values({
     id: courseId,
     organizationId: ctx.org.id,
-    name: "Audit Atomicity Course",
+    name: `Audit Atomicity Course ${crypto.randomUUID()}`,
     code: `AUD-${uniquePrefix()}`,
     description: "",
     createdAt: now,
@@ -396,7 +396,8 @@ describe("ADR-006 audit durability and atomicity", () => {
       answerMode: null,
       options: [],
       standardAnswer: null,
-      attachments: [],
+      image: null,
+      scale: null,
       score: 10,
       gradingRule: {
         multiSelectScoring: "all_correct_full",

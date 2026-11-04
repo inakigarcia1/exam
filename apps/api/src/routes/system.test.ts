@@ -604,7 +604,8 @@ describe("system routes", () => {
         content: "Q",
         contentDocument: null,
         answerMode: null,
-        attachments: [],
+        image: null,
+        scale: null,
         options: [],
         standardAnswer: "a",
         score: 10,
@@ -645,7 +646,7 @@ describe("system routes", () => {
       await ctx.db.insert(schema.courses).values({
         id: courseId,
         organizationId: orgId,
-        name: "Legacy",
+        name: `Legacy ${crypto.randomUUID()}`,
         code: `LG-${randomUUID().slice(0, 6)}`,
         description: "",
         createdAt: now,
@@ -920,7 +921,7 @@ describe("system routes", () => {
       await ctx.db.insert(schema.courses).values({
         id: courseId,
         organizationId: orgId,
-        name: "Bulk",
+        name: `Bulk ${crypto.randomUUID()}`,
         code: `BK-${randomUUID().slice(0, 6)}`,
         description: "",
         createdAt: now,

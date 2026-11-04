@@ -652,7 +652,7 @@ export async function seedDemo(
         content: qd.content,
         options: qd.options,
         standardAnswer: qd.standardAnswer,
-        attachments: [],
+        image: null,
         difficulty: qd.difficulty,
         tags: qd.tags,
         gradingRule: qd.gradingRule,
@@ -697,7 +697,8 @@ export async function seedDemo(
         contentDocument:
           (q.contentDocument as QuestionSnapshot["contentDocument"]) ?? null,
         answerMode: (q.answerMode as QuestionSnapshot["answerMode"]) ?? null,
-        attachments: (q.attachments as QuestionSnapshot["attachments"]) ?? [],
+        image: q.image ?? null,
+        scale: q.scale ?? null,
         options: (
           (q.options as Array<{ id: string; content: string }>) ?? []
         ).map((o) => ({ id: o.id, content: o.content })),

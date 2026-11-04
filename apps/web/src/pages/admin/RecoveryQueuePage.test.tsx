@@ -165,19 +165,23 @@ describe("RecoveryQueuePage", () => {
     expect(within(table).getByText("监考李四")).toBeInTheDocument();
     // Incident status renders through StatusBadge (statusMeta authority).
     expect(within(table).getByText("Pendiente")).toBeInTheDocument();
-    expect(within(table).getByText("1 条关联")).toBeInTheDocument();
+    expect(within(table).getByText("1 vínculo")).toBeInTheDocument();
   });
 
   it("shows empty state when no incidents match", async () => {
     getMock.mockResolvedValue({ items: [], nextCursor: null });
     renderPage();
-    expect(await screen.findByText("No hay interrupciones")).toBeInTheDocument();
+    expect(
+      await screen.findByText("No hay interrupciones"),
+    ).toBeInTheDocument();
   });
 
   it("shows error state on fetch failure and retry refetches", async () => {
     getMock.mockRejectedValueOnce(new Error("Network error"));
     renderPage();
-    expect(await screen.findByText("No se pudo cargar la cola de recuperación")).toBeInTheDocument();
+    expect(
+      await screen.findByText("No se pudo cargar la cola de recuperación"),
+    ).toBeInTheDocument();
 
     getMock.mockResolvedValue(mockQueueData);
     await userEvent.setup().click(screen.getByText("Reintentar"));
@@ -200,7 +204,9 @@ describe("RecoveryQueuePage", () => {
 
     const trigger = screen.getByRole("combobox", { name: "Todos los estados" });
     await user.click(trigger);
-    await user.click(await screen.findByRole("option", { name: "En investigación" }));
+    await user.click(
+      await screen.findByRole("option", { name: "En investigación" }),
+    );
 
     expect(screen.getByTestId("location-search")).toHaveTextContent(
       "status=investigating",
@@ -420,8 +426,10 @@ describe("RecoveryQueuePage", () => {
 
     // Empty queue: EmptyState visible, Refresh button visible, snapshot visible.
     expect(screen.getByText("No hay interrupciones")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Actualizar" })).toBeInTheDocument();
-    expect(screen.getByText(/数据快照/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Actualizar" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Instantánea:/)).toBeInTheDocument();
 
     // Background poll fails — must keep EmptyState, not switch to ErrorState.
     getMock.mockRejectedValueOnce(new Error("network"));
@@ -432,11 +440,15 @@ describe("RecoveryQueuePage", () => {
     // EmptyState still visible (not replaced by full-screen ErrorState).
     expect(screen.getByText("No hay interrupciones")).toBeInTheDocument();
     // Inline warning appears.
-    expect(screen.getByText("No se pudo cargar la cola de recuperación")).toBeInTheDocument();
+    expect(
+      screen.getByText("No se pudo cargar la cola de recuperación"),
+    ).toBeInTheDocument();
     // Refresh button still clickable.
-    expect(screen.getByRole("button", { name: "Actualizar" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Actualizar" }),
+    ).toBeInTheDocument();
     // Snapshot still visible.
-    expect(screen.getByText(/数据快照/)).toBeInTheDocument();
+    expect(screen.getByText(/Instantánea:/)).toBeInTheDocument();
   });
 
   it("changing status while a free-text debounce is pending keeps BOTH in the URL", async () => {
@@ -487,15 +499,23 @@ describe("RecoveryQueuePage", () => {
     renderPage();
     await screen.findAllByText("网络恢复考试");
 
-    await user.click(screen.getByRole("combobox", { name: "Todos los incidentes" }));
-    await user.click(await screen.findByRole("option", { name: "Solo sin resolver" }));
+    await user.click(
+      screen.getByRole("combobox", { name: "Todos los incidentes" }),
+    );
+    await user.click(
+      await screen.findByRole("option", { name: "Solo sin resolver" }),
+    );
     expect(screen.getByTestId("location-search")).toHaveTextContent(
       "unresolvedOnly=true",
     );
     expect(getMock.mock.calls.at(-1)?.[0]).toContain("unresolvedOnly=true");
 
-    await user.click(screen.getByRole("combobox", { name: "Todos los incidentes" }));
-    await user.click(await screen.findByRole("option", { name: "Todos los incidentes" }));
+    await user.click(
+      screen.getByRole("combobox", { name: "Todos los incidentes" }),
+    );
+    await user.click(
+      await screen.findByRole("option", { name: "Todos los incidentes" }),
+    );
     expect(screen.getByTestId("location-search")).not.toHaveTextContent(
       "unresolvedOnly",
     );
@@ -507,8 +527,12 @@ describe("RecoveryQueuePage", () => {
     renderPage(["/admin/recovery?status=resolved"]);
     await screen.findAllByText("网络恢复考试");
 
-    await user.click(screen.getByRole("combobox", { name: "Todos los incidentes" }));
-    await user.click(await screen.findByRole("option", { name: "Solo sin resolver" }));
+    await user.click(
+      screen.getByRole("combobox", { name: "Todos los incidentes" }),
+    );
+    await user.click(
+      await screen.findByRole("option", { name: "Solo sin resolver" }),
+    );
     expect(screen.getByTestId("location-search")).toHaveTextContent(
       "unresolvedOnly=true",
     );
@@ -525,7 +549,9 @@ describe("RecoveryQueuePage", () => {
     renderPage(["/admin/recovery?unresolvedOnly=true"]);
     await screen.findAllByText("网络恢复考试");
 
-    await user.click(screen.getByRole("combobox", { name: "Todos los estados" }));
+    await user.click(
+      screen.getByRole("combobox", { name: "Todos los estados" }),
+    );
     await user.click(await screen.findByRole("option", { name: "Resuelto" }));
     expect(screen.getByTestId("location-search")).toHaveTextContent(
       "status=resolved",
@@ -544,8 +570,12 @@ describe("RecoveryQueuePage", () => {
     renderPage(["/admin/recovery?unresolvedOnly=true"]);
     await screen.findAllByText("网络恢复考试");
 
-    await user.click(screen.getByRole("combobox", { name: "Todos los estados" }));
-    await user.click(await screen.findByRole("option", { name: "En investigación" }));
+    await user.click(
+      screen.getByRole("combobox", { name: "Todos los estados" }),
+    );
+    await user.click(
+      await screen.findByRole("option", { name: "En investigación" }),
+    );
     expect(screen.getByTestId("location-search")).toHaveTextContent(
       "unresolvedOnly=true",
     );

@@ -20,7 +20,8 @@ const QUESTION_SNAPSHOT = [
     content: "Q1",
     contentDocument: null,
     answerMode: null,
-    attachments: [],
+    image: null,
+    scale: null,
     options: [],
     standardAnswer: "b",
     score: 100,
@@ -52,7 +53,7 @@ async function seedAttempt(db: Database, orgId: string, input: SeedInput) {
   await db.insert(schema.courses).values({
     id: courseId,
     organizationId: orgId,
-    name: "Test Course",
+    name: `Test Course ${crypto.randomUUID()}`,
     code: `TC-${courseId.slice(0, 8)}`,
     description: "",
     createdAt: now,

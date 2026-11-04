@@ -44,7 +44,6 @@ async function createExamWithTimeWindow(
       type: "true_false",
       content: `Q ${title}`,
       standardAnswer: true,
-      score: 100,
     },
     cookies: adminCookies(ctx.adminToken),
   });
@@ -62,6 +61,7 @@ async function createExamWithTimeWindow(
       passingScore: 60,
       totalScore: 100,
       questionIds: [questionId],
+      questionScores: { [questionId]: 100 },
     },
     cookies: adminCookies(ctx.adminToken),
   });

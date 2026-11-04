@@ -170,8 +170,10 @@ describe("RecoveryAttemptDetailPage", () => {
 
   it("renders the attempt header with status and attempt number", async () => {
     renderPage();
-    expect(await screen.findByText("第 1 次答题")).toBeInTheDocument();
-    expect(screen.getAllByText("Desconectado").length).toBeGreaterThanOrEqual(1);
+    expect(await screen.findByText("Intento 1")).toBeInTheDocument();
+    expect(screen.getAllByText("Desconectado").length).toBeGreaterThanOrEqual(
+      1,
+    );
     expect(screen.getByText("考生张三")).toBeInTheDocument();
   });
 
@@ -181,7 +183,9 @@ describe("RecoveryAttemptDetailPage", () => {
       (await screen.findAllByText(/Cierre vigente/)).length,
     ).toBeGreaterThanOrEqual(1);
     expect(
-      screen.getByText("El cierre vigente es distinto del original porque hubo un ajuste de tiempo."),
+      screen.getByText(
+        "El cierre vigente es distinto del original porque hubo un ajuste de tiempo.",
+      ),
     ).toBeInTheDocument();
   });
 
@@ -197,7 +201,7 @@ describe("RecoveryAttemptDetailPage", () => {
 
   it("renders interruption episodes with nested events", async () => {
     renderPage();
-    expect(await screen.findByText("第 1 次中断")).toBeInTheDocument();
+    expect(await screen.findByText("Interrupción 1")).toBeInTheDocument();
     expect(screen.getByText("Interrupción detectada")).toBeInTheDocument();
     expect(screen.getByText("Restablecida")).toBeInTheDocument();
     expect(screen.getByText(/heartbeat_timeout/)).toBeInTheDocument();
@@ -212,7 +216,9 @@ describe("RecoveryAttemptDetailPage", () => {
     expect(screen.getByText(/Cierre nuevo/)).toBeInTheDocument();
     // The ledger caption makes the full-vs-incident-scoped distinction explicit.
     expect(
-      screen.getByText(/完整时间调整台账（含所有来源）/),
+      screen.getByText(
+        /Listado completo de ajustes de tiempo, de todos los orígenes/,
+      ),
     ).toBeInTheDocument();
   });
 
@@ -243,7 +249,7 @@ describe("RecoveryAttemptDetailPage", () => {
 
   it("renders the Operations section with allowedActions-gated command buttons", async () => {
     renderPage();
-    await screen.findByText("第 1 次答题");
+    await screen.findByText("Intento 1");
     // The Operations section renders the three commands (server-computed
     // allowedActions from the mock).
     expect(screen.getByText("Acciones")).toBeInTheDocument();
@@ -264,10 +270,12 @@ describe("RecoveryAttemptDetailPage", () => {
       allowedActions: [],
     });
     renderPage();
-    await screen.findByText("第 1 次答题");
+    await screen.findByText("Intento 1");
     expect(screen.queryByText("Acciones")).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /Extender el tiempo del intento|Forzar entrega|Marcar irregularidad/ }),
+      screen.queryByRole("button", {
+        name: /Extender el tiempo del intento|Forzar entrega|Marcar irregularidad/,
+      }),
     ).not.toBeInTheDocument();
   });
 
@@ -277,7 +285,7 @@ describe("RecoveryAttemptDetailPage", () => {
       allowedActions: ["misconduct_mark"],
     });
     renderPage();
-    await screen.findByText("第 1 次答题");
+    await screen.findByText("Intento 1");
     expect(
       screen.getByRole("button", { name: "Marcar irregularidad" }),
     ).toBeInTheDocument();
@@ -293,10 +301,17 @@ describe("RecoveryAttemptDetailPage", () => {
     const user = userEvent.setup();
     renderPage();
     await user.click(
-      await screen.findByRole("button", { name: "Extender el tiempo del intento" }),
+      await screen.findByRole("button", {
+        name: "Extender el tiempo del intento",
+      }),
     );
-    await user.type(screen.getByLabelText("Detalle del motivo"), "网络故障补偿");
-    await user.click(screen.getByRole("button", { name: "Extender el tiempo del intento" }));
+    await user.type(
+      screen.getByLabelText("Detalle del motivo"),
+      "网络故障补偿",
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Extender el tiempo del intento" }),
+    );
 
     expect(postMock).toHaveBeenCalledTimes(1);
     const [url, body] = postMock.mock.calls[0]! as unknown as [
@@ -315,7 +330,7 @@ describe("RecoveryAttemptDetailPage", () => {
     expect(body.addedSeconds).toBe(600);
     expect(body.reasonText).toBe("网络故障补偿");
     // Confirmed success reloads the authoritative projection.
-    await screen.findByText("第 1 次答题");
+    await screen.findByText("Intento 1");
     expect(getMock.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
 
@@ -323,14 +338,21 @@ describe("RecoveryAttemptDetailPage", () => {
     const user = userEvent.setup();
     renderPage();
     await user.click(
-      await screen.findByRole("button", { name: "Extender el tiempo del intento" }),
+      await screen.findByRole("button", {
+        name: "Extender el tiempo del intento",
+      }),
     );
-    const confirm = screen.getByRole("button", { name: "Extender el tiempo del intento" });
+    const confirm = screen.getByRole("button", {
+      name: "Extender el tiempo del intento",
+    });
     // Dialog confirm (the second button with that name).
     expect(confirm).toBeInTheDocument();
     await user.click(confirm);
     expect(postMock).not.toHaveBeenCalled();
-    await user.type(screen.getByLabelText("Detalle del motivo"), "网络故障补偿");
+    await user.type(
+      screen.getByLabelText("Detalle del motivo"),
+      "网络故障补偿",
+    );
     expect(postMock).not.toHaveBeenCalled();
   });
 
@@ -346,8 +368,13 @@ describe("RecoveryAttemptDetailPage", () => {
         }),
     );
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "Forzar entrega" }));
-    await user.type(screen.getByLabelText("Detalle del motivo (obligatorio)"), "El alumno no puede continuar");
+    await user.click(
+      await screen.findByRole("button", { name: "Forzar entrega" }),
+    );
+    await user.type(
+      screen.getByLabelText("Detalle del motivo (obligatorio)"),
+      "El alumno no puede continuar",
+    );
     await user.click(screen.getByRole("button", { name: "Forzar entrega" }));
 
     // The pending authority was persisted BEFORE the POST — visible in flight.
@@ -370,9 +397,16 @@ describe("RecoveryAttemptDetailPage", () => {
   it("marks misconduct with operationId + severity + notes and reloads", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "Marcar irregularidad" }));
-    await user.type(screen.getByLabelText("Descripción"), "查看手机");
-    await user.click(screen.getByRole("button", { name: "Marcar irregularidad" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Marcar irregularidad" }),
+    );
+    await user.type(
+      screen.getByLabelText("Detalle de la irregularidad"),
+      "查看手机",
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Marcar irregularidad" }),
+    );
 
     expect(postMock).toHaveBeenCalledTimes(1);
     const [url, body] = postMock.mock.calls[0]! as unknown as [
@@ -388,15 +422,24 @@ describe("RecoveryAttemptDetailPage", () => {
     const user = userEvent.setup();
     postMock.mockRejectedValueOnce(new ApiError(0, "Network request failed"));
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "Forzar entrega" }));
-    await user.type(screen.getByLabelText("Detalle del motivo (obligatorio)"), "El alumno no puede continuar");
+    await user.click(
+      await screen.findByRole("button", { name: "Forzar entrega" }),
+    );
+    await user.type(
+      screen.getByLabelText("Detalle del motivo (obligatorio)"),
+      "El alumno no puede continuar",
+    );
     await user.click(screen.getByRole("button", { name: "Forzar entrega" }));
 
     // Indeterminate — dialog stays open with a retry affordance (the retry
     // button name keeps the operation: "Reintentar · Forzar entrega").
-    expect(await screen.findByText("Reintentar · Forzar entrega")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Reintentar · Forzar entrega"),
+    ).toBeInTheDocument();
     const firstBody = postMock.mock.calls[0]![1] as { operationId: string };
-    await user.click(screen.getByRole("button", { name: "Reintentar · Forzar entrega" }));
+    await user.click(
+      screen.getByRole("button", { name: "Reintentar · Forzar entrega" }),
+    );
 
     expect(postMock).toHaveBeenCalledTimes(2);
     const secondBody = postMock.mock.calls[1]![1] as { operationId: string };
@@ -407,46 +450,59 @@ describe("RecoveryAttemptDetailPage", () => {
     const user = userEvent.setup();
     postMock.mockRejectedValueOnce(new ApiError(403, "Forbidden"));
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "Forzar entrega" }));
-    await user.type(screen.getByLabelText("Detalle del motivo (obligatorio)"), "El alumno no puede continuar");
+    await user.click(
+      await screen.findByRole("button", { name: "Forzar entrega" }),
+    );
+    await user.type(
+      screen.getByLabelText("Detalle del motivo (obligatorio)"),
+      "El alumno no puede continuar",
+    );
     await user.click(screen.getByRole("button", { name: "Forzar entrega" }));
 
     // Confirmed rejection — dialog closes, no retry affordance.
     expect(screen.queryByText("Reintentar")).not.toBeInTheDocument();
-    expect(screen.queryByText("Detalle del motivo (obligatorio)")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Detalle del motivo (obligatorio)"),
+    ).not.toBeInTheDocument();
   });
 
   it("shows not-found for 404 and retry works", async () => {
     getMock.mockRejectedValueOnce(new ApiError(404, "Not found"));
     renderPage();
-    expect(await screen.findByText("No se encontró este intento")).toBeInTheDocument();
+    expect(
+      await screen.findByText("No se encontró este intento"),
+    ).toBeInTheDocument();
 
     getMock.mockResolvedValue(mockContext);
     await userEvent.setup().click(screen.getByText("Reintentar"));
-    expect(await screen.findByText("第 1 次答题")).toBeInTheDocument();
+    expect(await screen.findByText("Intento 1")).toBeInTheDocument();
   });
 
   it("shows the classified network error state on fetch failure", async () => {
     getMock.mockRejectedValueOnce(new ApiError(0, "Network request failed"));
     renderPage();
     // status 0 → network kind → networkError message (classifier authority).
-    expect(await screen.findByText(/网络异常/)).toBeInTheDocument();
+    expect(await screen.findByText(/Problema de red/)).toBeInTheDocument();
   });
 
   it("keeps the loaded page on screen with an inline warning when a background refresh fails", async () => {
     renderPage();
-    await screen.findByText("第 1 次答题");
+    await screen.findByText("Intento 1");
 
     // Manual refresh fails while data is on screen (503 → unavailable).
     getMock.mockRejectedValueOnce(new ApiError(503, "unavailable"));
-    await userEvent.setup().click(screen.getByRole("button", { name: "Actualizar" }));
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Actualizar" }));
 
     // Old data stays visible, the failure is an INLINE banner (not a
     // full-screen ErrorState — no retry button, no data swap).
     expect(
-      await screen.findByText("Los datos de recuperación no están disponibles. Inténtalo más tarde."),
+      await screen.findByText(
+        "Los datos de recuperación no están disponibles. Inténtalo más tarde.",
+      ),
     ).toBeInTheDocument();
-    expect(screen.getByText("第 1 次答题")).toBeInTheDocument();
+    expect(screen.getByText("Intento 1")).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Reintentar" }),
     ).not.toBeInTheDocument();
@@ -477,10 +533,17 @@ describe("RecoveryAttemptDetailPage", () => {
 
       renderPage();
       await user.click(
-        await screen.findByRole("button", { name: "Extender el tiempo del intento" }),
+        await screen.findByRole("button", {
+          name: "Extender el tiempo del intento",
+        }),
       );
-      await user.type(screen.getByLabelText("Detalle del motivo"), "网络故障补偿");
-      await user.click(screen.getByRole("button", { name: "Extender el tiempo del intento" }));
+      await user.type(
+        screen.getByLabelText("Detalle del motivo"),
+        "网络故障补偿",
+      );
+      await user.click(
+        screen.getByRole("button", { name: "Extender el tiempo del intento" }),
+      );
 
       // First POST captured; the coordinator persisted the authority BEFORE
       // the request (the operationId in storage matches the POST body).
@@ -494,7 +557,9 @@ describe("RecoveryAttemptDetailPage", () => {
       // Retry — replays the SAME operationId (the dialog re-confirms; the
       // inputs are frozen read-only in the indeterminate phase).
       await user.click(
-        screen.getByRole("button", { name: "Reintentar · Extender el tiempo del intento" }),
+        screen.getByRole("button", {
+          name: "Reintentar · Extender el tiempo del intento",
+        }),
       );
       await waitFor(() => expect(postMock).toHaveBeenCalledTimes(2));
       const retryBody = postMock.mock.calls[1]![1] as { operationId: string };
@@ -536,7 +601,9 @@ describe("RecoveryAttemptDetailPage", () => {
       renderPage();
       // Open the dialog — it restores the frozen command (indeterminate phase).
       await user.click(
-        await screen.findByRole("button", { name: "Extender el tiempo del intento" }),
+        await screen.findByRole("button", {
+          name: "Extender el tiempo del intento",
+        }),
       );
       // The confirm button relabels to the retry affordance.
       const retry = await screen.findByRole("button", {
@@ -574,7 +641,9 @@ describe("RecoveryAttemptDetailPage", () => {
         });
 
       renderPage();
-      await user.click(await screen.findByRole("button", { name: "Forzar entrega" }));
+      await user.click(
+        await screen.findByRole("button", { name: "Forzar entrega" }),
+      );
       await user.type(
         screen.getByLabelText("Detalle del motivo (obligatorio)"),
         "E2E 清理失败",
@@ -608,9 +677,16 @@ describe("RecoveryAttemptDetailPage", () => {
         });
 
       renderPage();
-      await user.click(await screen.findByRole("button", { name: "Marcar irregularidad" }));
-      await user.type(screen.getByLabelText("Descripción"), "清理失败场景");
-      await user.click(screen.getByRole("button", { name: "Marcar irregularidad" }));
+      await user.click(
+        await screen.findByRole("button", { name: "Marcar irregularidad" }),
+      );
+      await user.type(
+        screen.getByLabelText("Detalle de la irregularidad"),
+        "清理失败场景",
+      );
+      await user.click(
+        screen.getByRole("button", { name: "Marcar irregularidad" }),
+      );
 
       await waitFor(() => {
         expect(

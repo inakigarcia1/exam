@@ -250,7 +250,7 @@ function presenterPairingViolations(
   sources: readonly { rel: string; text: string }[] = listSourceFiles(
     webRoot,
   ).map((path) => ({
-    rel: relative(webRoot, path),
+    rel: relative(webRoot, path).replace(/\\/g, "/"),
     text: readFileSync(path, "utf8"),
   })),
 ): string[] {

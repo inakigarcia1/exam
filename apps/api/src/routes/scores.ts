@@ -120,6 +120,8 @@ function buildQuestionResults(
       type: question.type,
       content: question.content,
       contentDocument: question.contentDocument ?? null,
+      image: question.image ?? null,
+      scale: question.scale ?? null,
       // #301: frozen answer input mode — the candidate-view
       // render authority for candidateAnswer (never JOIN live rows).
       answerMode: question.answerMode ?? null,

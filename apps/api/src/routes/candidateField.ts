@@ -4,6 +4,7 @@ import {
   CreateCandidateFieldRequestSchema,
   UpdateCandidateFieldRequestSchema,
   ErrorResponseSchema,
+  CANDIDATE_CSV_HEADER,
 } from "@exam/contracts";
 import { createCandidateFieldRepo } from "@exam/db/repository/candidateFieldRepo";
 import { createCandidateRepo } from "@exam/db/repository/candidateRepo";
@@ -266,22 +267,12 @@ const candidateFieldRoutes: FastifyPluginAsync = async (fastify) => {
     /**
      * GET /candidate-fields/template — return import template headers.
      *
-     * Headers are the fixed import columns followed by the configured custom
-     * field names, in the fields' configured sort order.
+     * The candidate CSV format is fixed (`CANDIDATE_CSV_HEADER`); custom
+     * fields are not part of it.
      */
     async (request) => {
-      const ctx = ensureTargetOrg(getRequestContext(request));
-      const fields = (
-        await createCandidateFieldRepo(fastify.db).list(ctx)
-      ).sort((a, b) => a.sortOrder - b.sortOrder);
-      return {
-        headers: [
-          "username",
-          "password",
-          "name",
-          ...fields.map((field) => field.name),
-        ],
-      };
+      ensureTargetOrg(getRequestContext(request));
+      return { headers: [...CANDIDATE_CSV_HEADER] };
     },
   );
 };

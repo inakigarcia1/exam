@@ -62,7 +62,6 @@ describe("exam routes — capability cutover (Teacher authoring)", () => {
         type: "true_false",
         content: "teacher-authoring question.",
         standardAnswer: true,
-        score: 100,
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -123,6 +122,7 @@ describe("exam routes — capability cutover (Teacher authoring)", () => {
         passingScore: 50,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
         ...overrides,
       },
       cookies: { "auth-token": teacherToken },
@@ -143,6 +143,7 @@ describe("exam routes — capability cutover (Teacher authoring)", () => {
         passingScore: 50,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": teacherToken },
     });
@@ -200,6 +201,7 @@ describe("exam routes — capability cutover (Teacher authoring)", () => {
         passingScore: 50,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": teacherToken },
     });
@@ -212,7 +214,7 @@ describe("exam routes — capability cutover (Teacher authoring)", () => {
       cookies: { "auth-token": teacherToken },
     });
     expect(pubRes.statusCode).toBe(200);
-    expect(pubRes.json().status).toBe("published");
+    expect(pubRes.json().status).toBe("open");
   });
 
   it("Teacher closes an open exam and publishes manual results", async () => {
@@ -413,6 +415,7 @@ describe("exam routes — capability cutover (Teacher authoring)", () => {
         passingScore: 50,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": candidateToken },
     });
@@ -436,6 +439,7 @@ describe("exam routes — capability cutover (Teacher authoring)", () => {
         passingScore: 50,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });

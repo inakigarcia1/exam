@@ -14,7 +14,7 @@ import {
 // in the assertion detail where useful.
 
 describe("QuestionType contains the supported closed question-type set", () => {
-  it("题型集合为 5 个封闭值（single/multiple/true_false/fill_blank/text_response）", () => {
+  it("question types are a closed set of 7 values", () => {
     const values = Object.values(QuestionType);
     expect(values).toEqual([
       "single_choice",
@@ -22,6 +22,8 @@ describe("QuestionType contains the supported closed question-type set", () => {
       "fill_blank",
       "true_false",
       "text_response",
+      "likert",
+      "ranking",
     ]);
   });
 });

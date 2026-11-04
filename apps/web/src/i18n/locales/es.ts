@@ -113,6 +113,8 @@ const es = {
     fill_blank: "Completar",
     true_false: "Verdadero o falso",
     text_response: "Respuesta de texto",
+    likert: "Likert",
+    ranking: "Clasificación",
   },
 
   /**
@@ -371,11 +373,15 @@ const es = {
     /** Duration token labels used by formatDurationParts / formatDuration. */
     duration: {
       millisecond: "{{value}}ms",
-      second: "{{value}} segundos",
-      minute: "{{value}} minutos",
-      minuteSecond: "{{minutes}} minutos {{seconds}} segundos",
-      hour: "{{value}} horas",
-      hourMinute: "{{hours}} horas {{minutes}} minutos",
+      second_one: "{{count}} segundo",
+      second_other: "{{count}} segundos",
+      minute_one: "{{count}} minuto",
+      minute_other: "{{count}} minutos",
+      hour_one: "{{count}} hora",
+      hour_other: "{{count}} horas",
+      /** Joins the already-pluralized second/minute/hour tokens. */
+      minuteSecond: "{{minutes}} {{seconds}}",
+      hourMinute: "{{hours}} {{minutes}}",
     },
     /** ErrorBoundary copy. */
     errorBoundary: {
@@ -648,7 +654,7 @@ const es = {
       idle: "Sin guardar",
       saving: "Guardando...",
       saved: "Guardado",
-      error: "Fallos al guardar",
+      error: "No se guardó",
     },
     navigator: {
       ariaLabel: "Navegación de preguntas",
@@ -724,10 +730,15 @@ const es = {
     answer: {
       panelTitle: "Respuesta",
       unsupportedType: "Tipo de pregunta no admitido: {{type}}",
+      likertRow: "Respuesta para «{{row}}»",
+      rankingHint: "Ordená las opciones con las flechas.",
+      moveUp: "Subir «{{option}}»",
+      moveDown: "Bajar «{{option}}»",
       subjective: {
         label: "Respuesta abierta",
         placeholder: "Escribe la respuesta",
-        charCount: "{{count}} caracteres",
+        charCount_one: "{{count}} carácter",
+        charCount_other: "{{count}} caracteres",
         charCountWithMax: "{{count}} / {{max}}",
       },
       fillBlank: {
@@ -802,6 +813,8 @@ const es = {
       true_false: "Verdadero o falso",
       fill_blank: "Completar espacios",
       text_response: "Texto libre",
+      likert: "Likert",
+      ranking: "Clasificación",
     },
     answer: {
       unanswered: "Sin responder",
@@ -902,8 +915,8 @@ const es = {
           "El rol actual «{{role}}» no está entre los roles que se pueden asignar. Al guardar se conserva y no cambia.",
       },
       validation: {
-        nameRequired: "Ingresa tu nombre",
-        usernameRequired: "Ingresa tu usuario",
+        nameRequired: "Ingresa el nombre",
+        usernameRequired: "Ingresa el usuario",
         passwordMin: "La contraseña debe tener al menos {{min}} caracteres",
       },
       teacherCourses: {
@@ -999,6 +1012,8 @@ const es = {
       loadFailed: "No se pudo cargar la lista de alumnos",
       createBtn: "Nuevo alumno",
       importBtn: "Importar",
+      exportBtn: "Exportar CSV",
+      exportFailed: "No se pudo exportar la lista de alumnos",
       empty: "No hay alumnos",
       emptyDescription: "Puedes crear alumnos con «Nuevo alumno» o «Importar».",
       searchPlaceholder: "Buscar por nombre o legajo...",
@@ -1035,8 +1050,8 @@ const es = {
         confirmReset: "Restablecer",
       },
       validation: {
-        nameRequired: "Ingresa tu nombre",
-        usernameRequired: "Ingresa tu usuario",
+        nameRequired: "Ingresa el nombre",
+        usernameRequired: "Ingresa el legajo",
         passwordMin: "La contraseña debe tener al menos {{min}} caracteres",
         fieldRequired: "Este campo es obligatorio",
         passwordMismatch: "Las contraseñas no coinciden",
@@ -1054,15 +1069,15 @@ const es = {
       importDialog: {
         title: "Importar alumnos",
         instructions:
-          "Pega el contenido CSV. El encabezado debe incluir username, password, name y los campos de identidad configurados.",
+          "Subí o pegá un CSV con el encabezado legajo,nombre,contraseña. Si la contraseña queda vacía, el alumno existente conserva la suya.",
         truncated:
           "Se tomaron solo las primeras {{max}} filas. El resto se ignoró.",
-        missingField: "{{label}} no puede estar vacío",
+        missingColumns: "Al encabezado le faltan columnas: {{columns}}",
         missingUsername: "Falta el legajo o el nombre",
-        needPassword: "Un alumno nuevo necesita contraseña inicial",
-        passwordMin:
-          "La contraseña inicial debe tener al menos {{min}} caracteres",
-        exists: "Ya existe. Importarlo de nuevo reemplaza sus datos.",
+        noPassword:
+          "Sin contraseña: si el legajo ya existe se actualiza el nombre; si no existe, la fila se rechaza",
+        passwordMin: "La contraseña debe tener al menos {{min}} caracteres",
+        exists: "Ya existe. Se actualiza el nombre y, si viene, la contraseña.",
         duplicateInBatch:
           "Legajo repetido en este lote; reemplaza la fila anterior",
         willCreate: "Se creará el alumno",
@@ -1233,6 +1248,8 @@ const es = {
         fill_blank: "Completar espacios",
         true_false: "Verdadero o falso",
         text_response: "Texto libre",
+        likert: "Likert",
+        ranking: "Clasificación",
       },
       editLabel: "Editar pregunta",
       deleteLabel: "Eliminar pregunta",
@@ -1666,10 +1683,10 @@ const es = {
         descriptionPlaceholder:
           "Opcional. Ayuda a entender cuándo conviene usar esta plantilla.",
         durationMinutes: "Duración (minutos)",
-        latestStartOffsetMinutes: "Ingreso más tarde (minutos desde el inicio)",
-        minSubmitAfterStartMinutes:
-          "Mínimo para entregar (minutos desde el inicio)",
-        noLimitPlaceholder: "Vacío = sin límite",
+        latestStartOffsetMinutes:
+          "Tiempo límite para comenzar el examen una vez el alumno ingresa",
+        minSubmitAfterStartMinutes: "Tiempo mínimo para poder entregar",
+        noLimitPlaceholder: "En minutos. Vacío = sin límite",
         retakePolicy: "Volver a rendir",
         maxAttempts: "Tope de intentos",
         scoreStrategy: "Qué puntaje cuenta",
@@ -1695,7 +1712,7 @@ const es = {
         interruptionOperatorIncident: "Lo resuelve una persona",
       },
       interruptionHint:
-        "«Tiempo extra limitado» compensa parte del tiempo si se corta la conexión. «Sin tiempo extra» calcula el cierre desde el inicio, sin compensar.",
+        "«Tiempo de gracia limitado» compensa parte del tiempo si se corta la conexión. «Sin tiempo de gracia» calcula el cierre desde el inicio, sin compensar.",
       summaryDuration: "{{count}} minutos",
       summaryNoDuration: "Sin duración individual",
       summaryLatestStart: "Último ingreso: {{count}} minutos",
@@ -1789,10 +1806,10 @@ const es = {
         course: "Comisión",
         coursePlaceholder: "Elegí una comisión",
         durationMinutes: "Duración (minutos)",
-        latestStartOffsetMinutes: "Ingreso más tarde (minutos desde el inicio)",
-        minSubmitAfterStartMinutes:
-          "Mínimo para entregar (minutos desde el inicio)",
-        noLimitPlaceholder: "Vacío = sin límite",
+        latestStartOffsetMinutes:
+          "Tiempo límite para comenzar el examen una vez el alumno ingresa",
+        minSubmitAfterStartMinutes: "Tiempo mínimo para poder entregar",
+        noLimitPlaceholder: "En minutos. Vacío = sin límite",
         retakePolicy: "Volver a rendir",
         maxAttempts: "Tope de intentos",
         scoreStrategy: "Qué puntaje cuenta",
@@ -1944,6 +1961,7 @@ const es = {
       rubricRequired: "El criterio de corrección no puede estar vacío",
       fillBlankPlaceholder:
         "El enunciado de completar espacios tiene que incluir ____",
+      likertIncomplete: "Marcá la columna correcta en cada afirmación",
       actions: {
         cancel: "Cancelar",
         saving: "Guardando...",
@@ -2010,9 +2028,10 @@ const es = {
         startTime: "Inicio",
         endTime: "Fin",
         duration: "Duración (minutos)",
-        latestStart: "Ingreso más tarde (minutos desde el inicio)",
-        minSubmit: "Mínimo para entregar (minutos desde el inicio)",
-        noLimit: "Vacío = sin límite",
+        latestStart:
+          "Tiempo límite para comenzar el examen una vez el alumno ingresa",
+        minSubmit: "Tiempo mínimo para poder entregar",
+        noLimit: "En minutos. Vacío = sin límite",
         timingMode: "Modo de tiempo",
         timingModeHint: {
           timed_window:
@@ -2078,6 +2097,38 @@ const es = {
         optionFalse: "No",
         content: "Enunciado",
         contentPlaceholder: "Escribí el enunciado",
+        image: "Imagen (opcional)",
+        imageHint:
+          "PNG, JPG o WebP. Se muestra después del enunciado y antes de la respuesta.",
+        imageUploading: "Subiendo imagen…",
+        imageNone: "Ningún archivo seleccionado",
+        imageSelect: "Elegir imagen",
+        typeLikert: "Likert",
+        typeRanking: "Clasificación",
+        likertRows: "Afirmaciones",
+        likertColumns: "Columnas",
+        likertHint:
+          "Marcá la columna correcta en cada afirmación. Para sumar el puntaje, el alumno tiene que acertar todas.",
+        likertRowPlaceholder: "Afirmación {{n}}",
+        likertColumnLabel: "Columna {{n}}",
+        addRow: "Agregar afirmación",
+        removeRow: "Quitar afirmación {{n}}",
+        addColumn: "Agregar columna",
+        removeColumn: "Quitar última columna",
+        likertCorrect: "Columna correcta de la afirmación {{n}}",
+        likertDefaultScale:
+          "Muy en desacuerdo|En desacuerdo|Neutral|De acuerdo|Muy de acuerdo",
+        rankingHint:
+          "Escribí las opciones en el orden correcto. Al alumno le aparecen mezcladas.",
+        moveUp: "Subir opción {{n}}",
+        moveDown: "Bajar opción {{n}}",
+        imageTooLarge:
+          "La imagen sigue pesando más de 1 MB después de comprimirla. Probá con una más chica.",
+        imageUnreadable: "No se pudo leer la imagen. Probá con otro archivo.",
+        imageAlt: "Descripción de la imagen",
+        imageAltPlaceholder:
+          "Qué muestra la imagen, para quien no la puede ver",
+        imageRemove: "Quitar imagen",
         contentFillBlankPlaceholder:
           "Escribí el enunciado y marcá cada espacio con ____",
         options: "Opciones",
@@ -2472,7 +2523,7 @@ const es = {
         cleanupFailedBannerTitle:
           "La entrega forzada ya está confirmada, pero no se pudo limpiar el registro local",
         cleanupFailedBannerBody:
-          "No se va a ejecutar dos veces, aunque puede bloquear una entrega forzada nueva. Hacé clic en «Descartar» para borrar el registro, o actualizá la página.",
+          "No se va a ejecutar dos veces, aunque puede bloquear una entrega forzada nueva. Hacé clic en «Limpiar comando sin confirmar» para borrar el registro, o actualizá la página.",
       },
       extendDialog: {
         title: "Extender el tiempo del examen",
@@ -2545,7 +2596,7 @@ const es = {
         cleanupFailedBannerTitle:
           "La irregularidad ya está confirmada, pero no se pudo limpiar el registro local",
         cleanupFailedBannerBody:
-          "No se va a ejecutar dos veces, aunque puede bloquear una marca nueva. Hacé clic en «Descartar» para borrar el registro, o actualizá la página.",
+          "No se va a ejecutar dos veces, aunque puede bloquear una marca nueva. Hacé clic en «Limpiar comando sin confirmar» para borrar el registro, o actualizá la página.",
       },
     },
     proctorWorkspace: {
@@ -2586,6 +2637,7 @@ const es = {
       errors: {
         loadCoursesFailed: "No se pudo cargar la lista de comisiones",
         importFailed: "No se pudo importar",
+        missingColumns: "Al encabezado le faltan columnas: {{columns}}",
       },
       courseLabel: "Comisión de destino",
       coursePlaceholder: "Elegí una comisión",
@@ -2856,7 +2908,9 @@ const es = {
       primaryAttempt: "Respondiendo",
       noAttempt: "Sin intento",
       noCandidate: "Sin alumno",
+      linkedCount_one: "{{count}} vínculo",
       linkedCount: "{{count}} vínculos",
+      proctorCount_one: "{{count}} supervisor",
       proctorCount: "{{count}} supervisores",
       loadMore: "Cargar más",
       loadingMore: "Cargando…",
@@ -3086,6 +3140,7 @@ const es = {
       noRecentIncidents: "No hay incidentes",
       noProctors: "No hay supervisores",
       noAttempts: "No hay intentos",
+      attemptCount_one: "{{count}} intento",
       attemptCount: "{{count}} intentos",
       loadFailed: "No se pudo cargar la recuperación del examen",
       permissionDenied:
@@ -3514,6 +3569,7 @@ const es = {
       settings: "Configuración de la plataforma",
       candidateFields: "Campos del alumno",
       courses: "Gestión de comisiones",
+      subjects: "Gestión de materias",
       questions: "Gestión de preguntas",
       questionsNew: "Nueva pregunta",
       questionsImport: "Importar preguntas",
@@ -3537,6 +3593,8 @@ const es = {
     dynamic: {
       questionEdit: "Editar pregunta",
       examDetail: "Detalle del examen",
+      examPreview: "Vista previa del examen",
+      inscription: "Inscripción al examen",
       examEdit: "Editar examen",
       examScores: "Lista de calificaciones",
       examProctor: "Supervisión",

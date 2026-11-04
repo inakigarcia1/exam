@@ -33,6 +33,7 @@ export function buildExamPayload(
     title: string;
     courseId: string;
     questionIds: string[];
+    questionScores: Record<string, number>;
     controlFlags: object;
     retakePolicy: string;
     scoreStrategy: string;
@@ -49,6 +50,8 @@ export function buildExamPayload(
   }> = {},
 ) {
   const untimed = overrides.timingMode === "untimed";
+  const questionIds = overrides.questionIds ?? [];
+  const totalScore = overrides.totalScore ?? 100;
   return {
     title: overrides.title ?? "Test Exam",
     description: "",
@@ -70,9 +73,11 @@ export function buildExamPayload(
           : new Date(Date.now() + 86400000).toISOString()
         : overrides.closeAt,
     passingScore: overrides.passingScore ?? 60,
-    totalScore: overrides.totalScore ?? 100,
+    totalScore,
     questionSelectionMode: "manual" as const,
-    questionIds: overrides.questionIds ?? [],
+    questionIds,
+    questionScores:
+      overrides.questionScores ?? evenQuestionScores(questionIds, totalScore),
     controlFlags: overrides.controlFlags ?? { ...DEFAULT_CONTROL_FLAGS },
     retakePolicy: overrides.retakePolicy ?? "unlimited",
     scoreStrategy: overrides.scoreStrategy ?? "highest",
@@ -80,6 +85,25 @@ export function buildExamPayload(
     minSubmitAfterStartMinutes: overrides.minSubmitAfterStartMinutes ?? null,
     latestStartOffsetMinutes: overrides.latestStartOffsetMinutes ?? null,
   };
+}
+
+/**
+ * Splits `totalScore` across the questions so publish's sum check holds; the
+ * last question absorbs the integer remainder.
+ */
+export function evenQuestionScores(
+  questionIds: string[],
+  totalScore: number,
+): Record<string, number> {
+  const base = Math.floor(totalScore / Math.max(questionIds.length, 1));
+  return Object.fromEntries(
+    questionIds.map((id, i) => [
+      id,
+      i === questionIds.length - 1
+        ? totalScore - base * (questionIds.length - 1)
+        : base,
+    ]),
+  );
 }
 
 /**
@@ -158,7 +182,7 @@ export async function buildSharedAttemptFixture(): Promise<SharedAttemptFixture>
   await ctx.db.insert(schema.courses).values({
     id: courseId,
     organizationId: ctx.org.id,
-    name: "Test Course",
+    name: `Test Course ${crypto.randomUUID()}`,
     code: `TC-${uniquePrefix()}`,
     description: "Test",
     createdAt: new Date(),
@@ -176,7 +200,8 @@ export async function buildSharedAttemptFixture(): Promise<SharedAttemptFixture>
       { id: "c", content: "3" },
     ],
     standardAnswer: "b",
-    attachments: [],
+    image: null,
+    scale: null,
     difficulty: 1,
     tags: [],
     gradingRule: {
@@ -194,7 +219,8 @@ export async function buildSharedAttemptFixture(): Promise<SharedAttemptFixture>
     content: "安全出口标识的颜色是____色",
     options: [],
     standardAnswer: "绿",
-    attachments: [],
+    image: null,
+    scale: null,
     difficulty: 1,
     tags: [],
     gradingRule: {

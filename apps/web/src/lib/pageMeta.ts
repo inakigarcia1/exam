@@ -33,6 +33,7 @@ export const staticRouteTitleKeys = new Map<string, string>([
   [routes.admin.settings, "pageMeta.static.settings"],
   [routes.admin.candidateFields, "pageMeta.static.candidateFields"],
   [routes.admin.courses, "pageMeta.static.courses"],
+  [routes.admin.subjects, "pageMeta.static.subjects"],
   [routes.admin.questions, "pageMeta.static.questions"],
   [routes.admin.questionsNew, "pageMeta.static.questionsNew"],
   [routes.admin.questionsImport, "pageMeta.static.questionsImport"],
@@ -118,6 +119,14 @@ export const dynamicRouteTitleKeys: RouteTitleRule[] = [
   {
     pattern: /^\/admin\/attempts\/[^/]+\/live$/,
     titleKey: "pageMeta.dynamic.attemptLive",
+  },
+  {
+    pattern: /^\/preview\/exams\/[^/]+$/,
+    titleKey: "pageMeta.dynamic.examPreview",
+  },
+  {
+    pattern: /^\/inscripcion\/[^/]+$/,
+    titleKey: "pageMeta.dynamic.inscription",
   },
   {
     pattern: /^\/exam\/[^/]+\/start$/,

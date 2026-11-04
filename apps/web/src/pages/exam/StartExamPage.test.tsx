@@ -123,7 +123,9 @@ describe("StartExamPage", () => {
 
     expect(await screen.findByText("Continuar examen")).toBeInTheDocument();
     expect(
-      screen.getByText("Hay un intento sin terminar. Se retoma desde donde quedó."),
+      screen.getByText(
+        "Hay un intento sin terminar. Se retoma desde donde quedó.",
+      ),
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Continuar examen" }));
@@ -167,7 +169,9 @@ describe("StartExamPage", () => {
     renderPage();
 
     expect(
-      await screen.findByText("Alcanzaste el máximo de intentos. No puedes comenzar el examen de nuevo."),
+      await screen.findByText(
+        "Alcanzaste el máximo de intentos. No puedes comenzar el examen de nuevo.",
+      ),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Ver calificación" }),
@@ -205,7 +209,9 @@ describe("StartExamPage", () => {
     renderPage();
 
     expect(
-      await screen.findByText("Alcanzaste el máximo de intentos. No puedes comenzar el examen de nuevo."),
+      await screen.findByText(
+        "Alcanzaste el máximo de intentos. No puedes comenzar el examen de nuevo.",
+      ),
     ).toBeInTheDocument();
   });
 
@@ -282,8 +288,8 @@ describe("StartExamPage", () => {
     renderPage();
 
     expect(await screen.findByText("Math Exam")).toBeInTheDocument();
-    expect(screen.getByText("90分钟")).toBeInTheDocument();
-    expect(screen.getByText("20题")).toBeInTheDocument();
+    expect(screen.getByText("90 minutos")).toBeInTheDocument();
+    expect(screen.getByText("20 preguntas")).toBeInTheDocument();
   });
 
   it("never renders tab-switch/copy-paste enforcement warnings, even for a historical row with the flags true (#516)", async () => {
@@ -328,7 +334,9 @@ describe("StartExamPage", () => {
 
     renderPage();
 
-    expect(await screen.findByText("No se pudo cargar la información del examen")).toBeInTheDocument();
+    expect(
+      await screen.findByText("No se pudo cargar la información del examen"),
+    ).toBeInTheDocument();
   });
 
   it("shows max-attempt message from error code not message text", async () => {
@@ -368,7 +376,9 @@ describe("StartExamPage", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText("Alcanzaste el máximo de intentos. No puedes comenzar el examen de nuevo."),
+        screen.getByText(
+          "Alcanzaste el máximo de intentos. No puedes comenzar el examen de nuevo.",
+        ),
       ).toBeInTheDocument();
     });
   });
@@ -410,7 +420,9 @@ describe("StartExamPage", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText("Ya aprobaste este examen. No necesitas rendirlo de nuevo."),
+        screen.getByText(
+          "Ya aprobaste este examen. No necesitas rendirlo de nuevo.",
+        ),
       ).toBeInTheDocument();
     });
   });
@@ -451,7 +463,9 @@ describe("StartExamPage", () => {
     await user.click(screen.getByRole("button", { name: "Comenzar examen" }));
 
     await waitFor(() => {
-      expect(screen.getByText("El examen no está abierto en este momento.")).toBeInTheDocument();
+      expect(
+        screen.getByText("El examen no está abierto en este momento."),
+      ).toBeInTheDocument();
     });
   });
 
@@ -601,7 +615,7 @@ describe("StartExamPage", () => {
     renderPage();
 
     expect(await screen.findByText("Scored Exam")).toBeInTheDocument();
-    expect(screen.getByText("最高成绩: 85/100")).toBeInTheDocument();
+    expect(screen.getByText("Mejor calificación: 85/100")).toBeInTheDocument();
     expect(screen.getByText("(85%)")).toBeInTheDocument();
   });
 
@@ -633,7 +647,7 @@ describe("StartExamPage", () => {
 
     renderPage();
 
-    expect(await screen.findByText("已考 2/5 次")).toBeInTheDocument();
+    expect(await screen.findByText("Intentos: 2/5")).toBeInTheDocument();
   });
 
   it("shows view_result action for exhausted attempts", async () => {
@@ -667,7 +681,9 @@ describe("StartExamPage", () => {
     renderPage();
 
     expect(await screen.findByText("Exhausted Exam")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Ver calificación" })).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Ver calificación" }),
+    ).toBeVisible();
     expect(
       screen.queryByRole("button", { name: /Comenzar examen|Rendir de nuevo/ }),
     ).not.toBeInTheDocument();
@@ -720,7 +736,7 @@ describe("StartExamPage timing modes (A2 corrective)", () => {
     renderPage();
 
     expect(await screen.findByText("Timed Exam")).toBeInTheDocument();
-    expect(screen.getByText("45分钟")).toBeInTheDocument();
+    expect(screen.getByText("45 minutos")).toBeInTheDocument();
   });
 
   it("deadline shows deadline-mode info and never a fabricated duration", async () => {

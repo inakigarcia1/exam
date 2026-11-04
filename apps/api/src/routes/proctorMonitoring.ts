@@ -206,6 +206,8 @@ const proctorMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
           type: question.type,
           content: question.content,
           contentDocument: question.contentDocument ?? null,
+          image: question.image ?? null,
+          scale: question.scale ?? null,
           answerMode: question.answerMode ?? null,
           options: question.options.map((option) => ({
             id: option.id,

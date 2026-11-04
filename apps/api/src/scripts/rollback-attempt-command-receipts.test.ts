@@ -530,7 +530,7 @@ async function seedActivatedReceipt(schemaName: string): Promise<void> {
     await db.insert(schema.courses).values({
       id: courseId,
       organizationId: orgId,
-      name: "Course",
+      name: `Course ${crypto.randomUUID()}`,
       code: `c-${randomUUID().slice(0, 8)}`,
       description: "",
       createdAt: now,

@@ -144,7 +144,10 @@ function renderPage(initialEntry: string | string[] = "/admin/exams") {
         <BrandProvider>
           <Routes>
             <Route path="/admin/exams" element={<ExamPage />} />
-            <Route path="/admin/exams/:id" element={<div>Detalle del examen</div>} />
+            <Route
+              path="/admin/exams/:id"
+              element={<div>Detalle del examen</div>}
+            />
           </Routes>
           <LocationProbe />
           <HistoryNav />
@@ -351,14 +354,16 @@ describe("ExamPage URL query state (#784 A3)", () => {
     renderPage();
     await within(await screen.findByRole("table")).findByText("Exámenes1");
     // The loaded query's own count is on screen.
-    expect(screen.getByText(/共 61 条/)).toBeInTheDocument();
+    expect(screen.getByText(/^61 en total/)).toBeInTheDocument();
 
-    await user.click(screen.getByRole("combobox", { name: "Filtrar por estado" }));
+    await user.click(
+      screen.getByRole("combobox", { name: "Filtrar por estado" }),
+    );
     await user.click(await screen.findByRole("option", { name: "Publicado" }));
 
     // Pending: the previous query's total must not produce page numbers for
     // the new one, so neither the count nor the page links are offered.
-    expect(screen.queryByText(/共 61 条/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^61 en total/)).not.toBeInTheDocument();
     expect(screen.getByText("Buscando…")).toBeInTheDocument();
     expect(
       screen.queryByRole("link", { name: "第 2 页" }),
@@ -369,7 +374,7 @@ describe("ExamPage URL query state (#784 A3)", () => {
       resolvePublished(examsPayload(1, 3, "published"));
     });
     await waitFor(() =>
-      expect(screen.getByText(/共 3 条/)).toBeInTheDocument(),
+      expect(screen.getByText(/^3 en total/)).toBeInTheDocument(),
     );
   });
 
@@ -391,7 +396,7 @@ describe("ExamPage URL query state (#784 A3)", () => {
     await user.click(screen.getByRole("button", { name: "Página siguiente" }));
     // Same query, different page: the count still describes this result set,
     // so the footer keeps stating it (and the page links stay meaningful).
-    expect(screen.getByText(/共 61 条/)).toBeInTheDocument();
+    expect(screen.getByText(/^61 en total/)).toBeInTheDocument();
     expect(screen.queryByText("Buscando…")).not.toBeInTheDocument();
 
     await act(async () => {
@@ -491,7 +496,12 @@ describe("ExamPage URL query state (#784 A3)", () => {
       .getAllByRole("row")
       .find((r) => r.textContent?.includes("Exámenes21"));
     await user.click(
-      within(row as HTMLElement).getByRole("button", { name: "Ver detalle" }),
+      within(row as HTMLElement).getByRole("button", { name: "Más acciones" }),
+    );
+    await user.click(
+      within(await screen.findByRole("menu")).getByRole("menuitem", {
+        name: "Ver detalle",
+      }),
     );
     expect(await screen.findByText("Detalle del examen")).toBeInTheDocument();
     expect(screen.getByTestId("location-state")).toHaveTextContent(

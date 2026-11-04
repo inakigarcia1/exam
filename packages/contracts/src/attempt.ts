@@ -6,6 +6,18 @@ import { InterruptionTimePolicySchema } from "./interruption.js";
 import { AnswerModeEnum, ContentDocumentV1Schema } from "./contentDocument.js";
 import { PERSISTED_RICH_ANSWER_STATES } from "./persistedRichAnswer.js";
 import { TimingModeEnum } from "./exam.js";
+import { QuestionImageSchema, QuestionTypeEnum } from "./question.js";
+
+/** Frozen image reference; snapshots predating ADR-024 omit it and read as null. */
+const SnapshotImageSchema = QuestionImageSchema.nullish().transform(
+  (v) => v ?? null,
+);
+
+/** Frozen likert columns; non-likert and older snapshots read as null. */
+const SnapshotScaleSchema = z
+  .array(z.string())
+  .nullish()
+  .transform((v) => v ?? null);
 
 // ── Attempt ───────────────────────────────────────────────────────
 
@@ -73,25 +85,14 @@ export type SaveAnswerRejectReason = z.infer<typeof SaveAnswerRejectReasonEnum>;
  */
 export const QuestionSnapshotSchema = z.object({
   originalQuestionId: z.string(),
-  type: z.enum([
-    "single_choice",
-    "multiple_choice",
-    "fill_blank",
-    "true_false",
-    "text_response",
-  ]),
+  type: QuestionTypeEnum,
   content: z.string(),
   contentDocument: ContentDocumentV1Schema.nullish().transform(
     (v) => v ?? null,
   ),
   answerMode: AnswerModeEnum.nullish().transform((v) => v ?? null),
-  attachments: z.array(
-    z.object({
-      url: z.string(),
-      type: z.enum(["image", "file"]),
-      name: z.string(),
-    }),
-  ),
+  image: SnapshotImageSchema,
+  scale: SnapshotScaleSchema,
   options: z.array(
     z.object({
       id: z.string(),
@@ -1076,6 +1077,8 @@ export const InputModeEnum = z.enum([
   "boolean",
   "single_line",
   "multi_line",
+  "matrix",
+  "order",
 ]);
 export type InputMode = z.infer<typeof InputModeEnum>;
 
@@ -1120,16 +1123,12 @@ export type LockReason = z.infer<typeof LockReasonEnum>;
  */
 export const CandidateTakeQuestionSchema = z.object({
   id: z.string(),
-  type: z.enum([
-    "single_choice",
-    "multiple_choice",
-    "fill_blank",
-    "true_false",
-    "text_response",
-  ]),
+  type: QuestionTypeEnum,
   prompt: z.string(),
   promptDocument: ContentDocumentV1Schema.nullish().transform((v) => v ?? null),
   answerMode: AnswerModeEnum.nullish().transform((v) => v ?? "plain"),
+  image: SnapshotImageSchema,
+  scale: SnapshotScaleSchema,
   options: z.array(
     z.object({
       id: z.string(),

@@ -162,7 +162,8 @@ describe("attempt routes", () => {
               { id: "c", content: "3" },
             ],
             standardAnswer: "b",
-            attachments: [],
+            image: null,
+            scale: null,
             difficulty: 1,
             tags: [],
             gradingRule: {

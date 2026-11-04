@@ -5,7 +5,9 @@ import { DefinitionList } from "./DefinitionList";
 describe("DefinitionList", () => {
   it("renders real definition semantics: dl > div > dt + dd", () => {
     const { container } = render(
-      <DefinitionList items={[{ label: "Nombre del examen", value: "期中考试" }]} />,
+      <DefinitionList
+        items={[{ label: "Nombre del examen", value: "期中考试" }]}
+      />,
     );
     const dl = container.querySelector("dl");
     expect(dl).not.toBeNull();

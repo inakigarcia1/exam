@@ -1,7 +1,16 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { ContentDocumentV1 } from "@exam/domain";
 import { RichTextAnswerInput } from "./RichTextAnswerInput";
+
+// WHY: the editor sits behind React.lazy. Its first import (Tiptap +
+// ProseMirror transform) takes longer than vi.waitFor's budget, so whichever
+// test mounts the editor first would be measuring module loading instead of
+// mount behavior. Loading the chunk up front lets lazy() resolve from the
+// module cache.
+beforeAll(async () => {
+  await import("@/components/shared/content/RichContentEditor");
+});
 
 /**
  * Read-trust regressions (#669).
@@ -104,7 +113,9 @@ async function expectIntegrityState(
   callsAllowed = 0,
 ) {
   const notice = await screen.findByTestId("rich-answer-integrity-error");
-  expect(notice.textContent).toContain("Esta respuesta no se puede abrir para editarla");
+  expect(notice.textContent).toContain(
+    "Esta respuesta no se puede abrir para editarla",
+  );
   // Fail closed: the editor never mounts, so no transaction — and no
   // synthetic onChange/autosave — can arise from this value.
   expect(document.querySelector(".ProseMirror")).toBeNull();

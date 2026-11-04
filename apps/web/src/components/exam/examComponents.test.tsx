@@ -29,7 +29,9 @@ describe("QuestionRenderer", () => {
         onChange={() => {}}
       />,
     );
-    expect(screen.getByText(/不支持的题目类型/)).toBeInTheDocument();
+    expect(
+      screen.getByText("Tipo de pregunta no admitido: unknown_type"),
+    ).toBeInTheDocument();
   });
 
   it("renders true_false question", () => {
@@ -41,7 +43,8 @@ describe("QuestionRenderer", () => {
           contentDocument: null,
           answerMode: "plain",
           options: [],
-          attachments: [],
+          image: null,
+          scale: null,
           score: 10,
           order: 0,
           originalQuestionId: "q1",
@@ -222,14 +225,16 @@ describe("QuestionNavigator", () => {
     );
 
     expect(
-      screen.getByRole("button", { name: "第 1 题，Sin responder，当前题" }),
+      screen.getByRole("button", {
+        name: "Pregunta 1, Sin responder, actual",
+      }),
     ).toHaveAttribute("aria-current", "true");
     await userEvent.click(
-      screen.getByRole("button", { name: "第 2 题，Respondida" }),
+      screen.getByRole("button", { name: "Pregunta 2, Respondida" }),
     );
     expect(onSelect).toHaveBeenCalledWith("q2");
     expect(
-      screen.getByRole("button", { name: "第 3 题，Marcada" }),
+      screen.getByRole("button", { name: "Pregunta 3, Marcada" }),
     ).toBeInTheDocument();
   });
 
@@ -246,7 +251,9 @@ describe("QuestionNavigator", () => {
     expect(screen.getByText("Respondida")).toBeInTheDocument();
     expect(screen.getByText("Marcada")).toBeInTheDocument();
 
-    const legend = screen.getByText("Sin responder").closest("div")!.parentElement!;
+    const legend = screen
+      .getByText("Sin responder")
+      .closest("div")!.parentElement!;
     const swatches = legend.querySelectorAll("span.inline-block");
     expect(swatches.length).toBe(3);
   });
@@ -279,7 +286,9 @@ describe("SubjectiveAnswerInput", () => {
       />,
     );
 
-    expect(screen.getByLabelText("Respuesta abierta")).toHaveAttribute("readonly");
+    expect(screen.getByLabelText("Respuesta abierta")).toHaveAttribute(
+      "readonly",
+    );
     expect(screen.getByText("答案不能为空")).toBeInTheDocument();
   });
 
@@ -287,7 +296,13 @@ describe("SubjectiveAnswerInput", () => {
     render(<SubjectiveAnswerInput value={null} onChange={() => {}} />);
 
     expect(screen.getByLabelText("Respuesta abierta")).toHaveValue("");
-    expect(screen.getByText("0 字")).toBeInTheDocument();
+    expect(screen.getByText("0 caracteres")).toBeInTheDocument();
+  });
+
+  it("pluralizes the character counter", () => {
+    render(<SubjectiveAnswerInput value="a" onChange={() => {}} />);
+
+    expect(screen.getByText("1 carácter")).toBeInTheDocument();
   });
 
   it("uses unique accessibility ids for multiple instances", () => {

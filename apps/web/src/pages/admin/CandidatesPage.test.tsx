@@ -199,7 +199,9 @@ describe("CandidatesPage", () => {
   it("opens create dialog with dynamic fields", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "Nuevo alumno" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Nuevo alumno" }),
+    );
     const dialog = await screen.findByRole("dialog");
     expect(dialog).toBeInTheDocument();
     expect(within(dialog).getByText("Nuevo alumno")).toBeInTheDocument();
@@ -208,21 +210,29 @@ describe("CandidatesPage", () => {
   it("shows validation errors for empty fields on create", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "Nuevo alumno" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Nuevo alumno" }),
+    );
     const dialog = await screen.findByRole("dialog");
     await user.click(dialogSaveBtn(dialog));
-    expect(within(dialog).getByText("Ingresa el usuario")).toBeInTheDocument();
+    expect(within(dialog).getByText("Ingresa el legajo")).toBeInTheDocument();
     expect(within(dialog).getByText("Ingresa el nombre")).toBeInTheDocument();
-    expect(within(dialog).getByText("密码至少 8 位")).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(
+        "La contraseña debe tener al menos 8 caracteres",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("creates a new candidate with valid data", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "Nuevo alumno" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Nuevo alumno" }),
+    );
     const dialog = await screen.findByRole("dialog");
 
-    fireEvent.change(within(dialog).getByLabelText(/Usuario/), {
+    fireEvent.change(within(dialog).getByLabelText(/Nro\. de Legajo/), {
       target: { value: "newuser" },
     });
     fireEvent.change(within(dialog).getByLabelText(/Contraseña/), {
@@ -280,7 +290,9 @@ describe("CandidatesPage", () => {
     renderPage();
     await screen.findByRole("table");
     const menu = await openRowMenu(user, 0);
-    await user.click(within(menu).getByRole("menuitem", { name: "Desactivar" }));
+    await user.click(
+      within(menu).getByRole("menuitem", { name: "Desactivar" }),
+    );
     const dialog = await screen.findByRole("alertdialog");
     expect(within(dialog).getByText(/Candidate One/)).toBeInTheDocument();
     const confirm = within(dialog).getByRole("button", { name: "Confirmar" });
@@ -318,7 +330,9 @@ describe("CandidatesPage", () => {
     renderPage();
     await screen.findByRole("table");
     const menu = await openRowMenu(user, 0);
-    await user.click(within(menu).getByRole("menuitem", { name: "Desactivar" }));
+    await user.click(
+      within(menu).getByRole("menuitem", { name: "Desactivar" }),
+    );
     const dialog = await screen.findByRole("alertdialog");
     await user.click(within(dialog).getByRole("button", { name: "Confirmar" }));
     // While the toggle is in flight the busy guard disables the action in
@@ -397,7 +411,7 @@ describe("CandidatesPage", () => {
     expect(
       await screen.findByRole("heading", { name: "Ningún alumno coincide" }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("Buscar alumnos")).toBeInTheDocument();
+    expect(screen.getByLabelText("Buscar alumno")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Borrar búsqueda de alumnos" }),
     ).toBeInTheDocument();
@@ -407,13 +421,15 @@ describe("CandidatesPage", () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByRole("table");
-    await user.type(screen.getByLabelText("Buscar alumnos"), "不存在");
+    await user.type(screen.getByLabelText("Buscar alumno"), "不存在");
     await waitFor(() => {
       expect(
         new URLSearchParams(lastCandidatesUrl().split("?")[1]).get("search"),
       ).toBe("不存在");
     });
-    await user.click(screen.getByRole("button", { name: "Borrar búsqueda de alumnos" }));
+    await user.click(
+      screen.getByRole("button", { name: "Borrar búsqueda de alumnos" }),
+    );
     await waitFor(() => {
       expect(lastCandidatesUrl()).toBe("/api/candidates?page=1&pageSize=20");
     });
@@ -422,7 +438,7 @@ describe("CandidatesPage", () => {
         "Candidate One",
       ),
     ).toBeInTheDocument();
-    await user.type(screen.getByLabelText("Buscar alumnos"), "不存在");
+    await user.type(screen.getByLabelText("Buscar alumno"), "不存在");
     await waitFor(() => {
       expect(
         new URLSearchParams(lastCandidatesUrl().split("?")[1]).get("search"),
@@ -430,7 +446,9 @@ describe("CandidatesPage", () => {
     });
     // The empty-state action only exists once the no-match response has
     // rendered; findByRole is the sync point that proves it is clickable.
-    await user.click(await screen.findByRole("button", { name: "Borrar búsqueda" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Borrar búsqueda" }),
+    );
     await waitFor(() => {
       expect(lastCandidatesUrl()).toBe("/api/candidates?page=1&pageSize=20");
     });
@@ -444,7 +462,9 @@ describe("CandidatesPage", () => {
   it("shows error state when loading fails", async () => {
     apiGet.mockRejectedValue(new Error("fail"));
     renderPage();
-    expect(await screen.findByText("No se pudo cargar la lista de alumnos")).toBeInTheDocument();
+    expect(
+      await screen.findByText("No se pudo cargar la lista de alumnos"),
+    ).toBeInTheDocument();
   });
 
   it("shows empty state when no candidates", async () => {
@@ -471,7 +491,9 @@ describe("CandidatesPage", () => {
     );
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "Nuevo alumno" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Nuevo alumno" }),
+    );
     const dialog = await screen.findByRole("dialog");
     const inputs = dialog.querySelectorAll("input");
     await user.type(inputs[0]!, "newuser");
@@ -479,7 +501,9 @@ describe("CandidatesPage", () => {
     await user.type(inputs[2]!, "Name");
     await user.type(inputs[3]!, "123");
     await user.click(dialogSaveBtn(dialog));
-    expect(await screen.findByText("Ese usuario ya existe")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Ese usuario ya existe"),
+    ).toBeInTheDocument();
   });
 
   it("preserves CANDIDATE_IDENTITY_CONFLICT save error", async () => {
@@ -492,7 +516,9 @@ describe("CandidatesPage", () => {
     );
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "Nuevo alumno" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Nuevo alumno" }),
+    );
     const dialog = await screen.findByRole("dialog");
     const inputs = dialog.querySelectorAll("input");
     await user.type(inputs[0]!, "newuser");
@@ -500,7 +526,9 @@ describe("CandidatesPage", () => {
     await user.type(inputs[2]!, "Name");
     await user.type(inputs[3]!, "123");
     await user.click(dialogSaveBtn(dialog));
-    expect(await screen.findByText("Esos datos de identidad ya existen")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Esos datos de identidad ya existen"),
+    ).toBeInTheDocument();
   });
 
   it("renders API field errors from ApiError details", async () => {
@@ -511,7 +539,9 @@ describe("CandidatesPage", () => {
     );
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "Nuevo alumno" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Nuevo alumno" }),
+    );
     const dialog = await screen.findByRole("dialog");
     const inputs = dialog.querySelectorAll("input");
     await user.type(inputs[0]!, "newuser");
@@ -540,7 +570,9 @@ describe("CandidatesPage", () => {
     );
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "Nuevo alumno" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Nuevo alumno" }),
+    );
     const dialog = await screen.findByRole("dialog");
     const inputs = dialog.querySelectorAll("input");
     await user.type(inputs[0]!, "newuser");
@@ -550,7 +582,7 @@ describe("CandidatesPage", () => {
     // rejects with the machine-coded identity-field error.
     await user.type(inputs[3]!, "123");
     await user.click(dialogSaveBtn(dialog));
-    expect(await screen.findByText("编号为必填项")).toBeInTheDocument();
+    expect(await screen.findByText("编号 es obligatorio")).toBeInTheDocument();
     expect(
       screen.queryByText("COMPLETELY DIFFERENT SERVER WORDING"),
     ).not.toBeInTheDocument();
@@ -565,7 +597,9 @@ describe("CandidatesPage", () => {
     );
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "Nuevo alumno" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Nuevo alumno" }),
+    );
     const dialog = await screen.findByRole("dialog");
     const inputs = dialog.querySelectorAll("input");
     await user.type(inputs[0]!, "newuser");
@@ -588,10 +622,14 @@ describe("CandidatesPage", () => {
       await screen.findByRole("table");
       const resetMenu = await openRowMenu(user, 0);
       await user.click(
-        within(resetMenu).getByRole("menuitem", { name: "Restablecer contraseña" }),
+        within(resetMenu).getByRole("menuitem", {
+          name: "Restablecer contraseña",
+        }),
       );
       const dialog = await screen.findByRole("dialog");
-      expect(within(dialog).getByText("Restablecer contraseña")).toBeInTheDocument();
+      expect(
+        within(dialog).getByText("Restablecer contraseña"),
+      ).toBeInTheDocument();
       expect(within(dialog).getByText(/Candidate One/)).toBeInTheDocument();
     });
 
@@ -601,17 +639,23 @@ describe("CandidatesPage", () => {
       await screen.findByRole("table");
       const resetMenu = await openRowMenu(user, 0);
       await user.click(
-        within(resetMenu).getByRole("menuitem", { name: "Restablecer contraseña" }),
+        within(resetMenu).getByRole("menuitem", {
+          name: "Restablecer contraseña",
+        }),
       );
       const dialog = await screen.findByRole("dialog");
-      const inputs = within(dialog).getAllByPlaceholderText(/位|再次/);
+      const inputs = within(dialog).getAllByPlaceholderText(
+        /Al menos|Vuelve a ingresar/,
+      );
       await user.type(inputs[0]!, "short");
       await user.type(inputs[1]!, "short");
       await user.click(
         within(dialog).getByRole("button", { name: "Restablecer" }),
       );
       await waitFor(() => {
-        expect(within(dialog).getByText(/密码长度必须在/)).toBeInTheDocument();
+        expect(
+          within(dialog).getByText(/La contraseña debe tener entre/),
+        ).toBeInTheDocument();
       });
       expect(apiPost).not.toHaveBeenCalled();
     });
@@ -622,10 +666,14 @@ describe("CandidatesPage", () => {
       await screen.findByRole("table");
       const resetMenu = await openRowMenu(user, 0);
       await user.click(
-        within(resetMenu).getByRole("menuitem", { name: "Restablecer contraseña" }),
+        within(resetMenu).getByRole("menuitem", {
+          name: "Restablecer contraseña",
+        }),
       );
       const dialog = await screen.findByRole("dialog");
-      const inputs = within(dialog).getAllByPlaceholderText(/位|再次/);
+      const inputs = within(dialog).getAllByPlaceholderText(
+        /Al menos|Vuelve a ingresar/,
+      );
       await user.type(inputs[0]!, "newpassword123");
       await user.type(inputs[1]!, "differentpass1");
       await user.click(
@@ -645,10 +693,14 @@ describe("CandidatesPage", () => {
       await screen.findByRole("table");
       const resetMenu = await openRowMenu(user, 0);
       await user.click(
-        within(resetMenu).getByRole("menuitem", { name: "Restablecer contraseña" }),
+        within(resetMenu).getByRole("menuitem", {
+          name: "Restablecer contraseña",
+        }),
       );
       const dialog = await screen.findByRole("dialog");
-      const inputs = within(dialog).getAllByPlaceholderText(/位|再次/);
+      const inputs = within(dialog).getAllByPlaceholderText(
+        /Al menos|Vuelve a ingresar/,
+      );
       await user.type(inputs[0]!, "newpassword123");
       await user.type(inputs[1]!, "newpassword123");
       await user.click(
@@ -673,17 +725,23 @@ describe("CandidatesPage", () => {
       await screen.findByRole("table");
       const resetMenu = await openRowMenu(user, 0);
       await user.click(
-        within(resetMenu).getByRole("menuitem", { name: "Restablecer contraseña" }),
+        within(resetMenu).getByRole("menuitem", {
+          name: "Restablecer contraseña",
+        }),
       );
       const dialog = await screen.findByRole("dialog");
-      const inputs = within(dialog).getAllByPlaceholderText(/位|再次/);
+      const inputs = within(dialog).getAllByPlaceholderText(
+        /Al menos|Vuelve a ingresar/,
+      );
       await user.type(inputs[0]!, "newpassword123");
       await user.type(inputs[1]!, "newpassword123");
       await user.click(
         within(dialog).getByRole("button", { name: "Restablecer" }),
       );
       await waitFor(() => {
-        expect(toast.error).toHaveBeenCalledWith("Error interno del servidor. Inténtalo más tarde.");
+        expect(toast.error).toHaveBeenCalledWith(
+          "Error interno del servidor. Inténtalo más tarde.",
+        );
       });
     });
   });
@@ -751,7 +809,7 @@ describe("CandidatesPage #785 server-side search and pagination (BDD L2)", () =>
     const table = await screen.findByRole("table");
     expect(within(table).getByText("Alumno01")).toBeInTheDocument();
     expect(within(table).queryByText("Alumno41")).not.toBeInTheDocument();
-    expect(screen.getByText(/共 41 条/)).toBeInTheDocument();
+    expect(screen.getByText(/^41 en total/)).toBeInTheDocument();
     expect(apiGet).toHaveBeenCalledWith("/api/candidates?page=1&pageSize=20");
 
     await user.click(screen.getByRole("button", { name: "Página siguiente" }));
@@ -783,7 +841,7 @@ describe("CandidatesPage #785 server-side search and pagination (BDD L2)", () =>
 
     renderPage();
     await screen.findByRole("table");
-    await user.type(screen.getByLabelText("Buscar alumnos"), "ZEBRA785");
+    await user.type(screen.getByLabelText("Buscar alumno"), "ZEBRA785");
 
     await waitFor(() => {
       expect(apiGet).toHaveBeenCalledWith(
@@ -793,7 +851,7 @@ describe("CandidatesPage #785 server-side search and pagination (BDD L2)", () =>
     expect(
       await within(await screen.findByRole("table")).findByText("Zoe zebra785"),
     ).toBeInTheDocument();
-    expect(screen.getByText(/共 1 条/)).toBeInTheDocument();
+    expect(screen.getByText(/^1 en total/)).toBeInTheDocument();
   });
 
   it("B02: a no-match search renders the true empty state; clearing restores the full set", async () => {
@@ -805,22 +863,26 @@ describe("CandidatesPage #785 server-side search and pagination (BDD L2)", () =>
 
     renderPage();
     await screen.findByRole("table");
-    await user.type(screen.getByLabelText("Buscar alumnos"), "nomatch785");
+    await user.type(screen.getByLabelText("Buscar alumno"), "nomatch785");
     await waitFor(() => {
       expect(apiGet).toHaveBeenCalledWith(
         "/api/candidates?page=1&pageSize=20&search=nomatch785",
       );
     });
-    expect(await screen.findAllByText("Ningún alumno coincide")).not.toHaveLength(0);
+    expect(
+      await screen.findAllByText("Ningún alumno coincide"),
+    ).not.toHaveLength(0);
 
-    await user.click(screen.getByRole("button", { name: "Borrar búsqueda de alumnos" }));
+    await user.click(
+      screen.getByRole("button", { name: "Borrar búsqueda de alumnos" }),
+    );
     await waitFor(() => {
       expect(lastCandidatesUrl()).toBe("/api/candidates?page=1&pageSize=20");
     });
     expect(
       await within(await screen.findByRole("table")).findByText("Alumno1"),
     ).toBeInTheDocument();
-    expect(screen.getByText(/共 25 条/)).toBeInTheDocument();
+    expect(screen.getByText(/^25 en total/)).toBeInTheDocument();
   });
 
   it("B02: search composes with paging — the filtered set spans page boundaries", async () => {
@@ -837,9 +899,9 @@ describe("CandidatesPage #785 server-side search and pagination (BDD L2)", () =>
 
     renderPage();
     await screen.findByRole("table");
-    await user.type(screen.getByLabelText("Buscar alumnos"), "bulk785");
+    await user.type(screen.getByLabelText("Buscar alumno"), "bulk785");
     await waitFor(() => {
-      expect(screen.getByText(/共 25 条/)).toBeInTheDocument();
+      expect(screen.getByText(/^25 en total/)).toBeInTheDocument();
     });
 
     await user.click(screen.getByRole("button", { name: "Página siguiente" }));
@@ -854,7 +916,7 @@ describe("CandidatesPage #785 server-side search and pagination (BDD L2)", () =>
         "bulk785 批次21",
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText(/共 25 条/)).toBeInTheDocument();
+    expect(screen.getByText(/^25 en total/)).toBeInTheDocument();
   });
 
   // ── B12 — 请求进行中，旧记录不得被呈现为新查询的结果 ──────────────────
@@ -898,7 +960,7 @@ describe("CandidatesPage #785 server-side search and pagination (BDD L2)", () =>
     renderPage();
     await within(await screen.findByRole("table")).findByText("普通考生甲");
 
-    await user.type(screen.getByLabelText("Buscar alumnos"), "关键词");
+    await user.type(screen.getByLabelText("Buscar alumno"), "关键词");
     await waitFor(() => {
       expect(
         new URLSearchParams(lastCandidatesUrl().split("?")[1]).get("search"),
@@ -908,12 +970,14 @@ describe("CandidatesPage #785 server-side search and pagination (BDD L2)", () =>
     // masquerade as the search result, and no fake empty state may appear.
     expect(screen.queryByText("普通考生甲")).not.toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
-    expect(screen.queryByText("Ningún alumno coincide")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Ningún alumno coincide"),
+    ).not.toBeInTheDocument();
 
     resolveSearch(undefined);
     expect(
       await within(await screen.findByRole("table")).findByText("关键词考生"),
     ).toBeInTheDocument();
-    expect(screen.getByText(/共 1 条/)).toBeInTheDocument();
+    expect(screen.getByText(/^1 en total/)).toBeInTheDocument();
   });
 });

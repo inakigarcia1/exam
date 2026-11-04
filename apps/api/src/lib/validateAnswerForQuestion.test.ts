@@ -18,7 +18,8 @@ function snapshot(overrides: Partial<QuestionSnapshot>): QuestionSnapshot {
     content: "Q",
     contentDocument: null,
     answerMode: null,
-    attachments: [],
+    image: null,
+    scale: null,
     options: [
       { id: "A", content: "a", contentDocument: null },
       { id: "B", content: "b", contentDocument: null },
@@ -399,6 +400,40 @@ describe("rich canonical closure (#669)", () => {
           `accepted candidate #${i} must stay legal after canonicalization`,
         ).toBe(true);
       }
+    }
+  });
+});
+
+describe("validateAnswerForQuestion � likert and ranking", () => {
+  const likert = snapshot({
+    type: "likert",
+    scale: ["No", "Maybe", "Yes"],
+    standardAnswer: { A: 0, B: 2 },
+  });
+  const ranking = snapshot({ type: "ranking", standardAnswer: ["A", "B"] });
+
+  it("accepts partial likert drafts on known rows and scale columns", () => {
+    expect(validateAnswerForQuestion(likert, { A: 1 }).ok).toBe(true);
+    expect(validateAnswerForQuestion(likert, { A: 1, B: 2 }).ok).toBe(true);
+  });
+
+  it("rejects likert answers with unknown rows, out-of-scale or non-integer columns", () => {
+    for (const answer of [
+      { C: 0 },
+      { A: 3 },
+      { A: -1 },
+      { A: 0.5 },
+      [0, 1],
+      "A",
+    ]) {
+      expect(validateAnswerForQuestion(likert, answer).ok).toBe(false);
+    }
+  });
+
+  it("ranking accepts only a full permutation of the option ids", () => {
+    expect(validateAnswerForQuestion(ranking, ["B", "A"]).ok).toBe(true);
+    for (const answer of [["A"], ["A", "A"], ["A", "C"], "A"]) {
+      expect(validateAnswerForQuestion(ranking, answer).ok).toBe(false);
     }
   });
 });

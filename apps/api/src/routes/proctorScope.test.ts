@@ -45,7 +45,7 @@ describe("J4-I1B Proctor assignment enforcement (assignment_scoped)", () => {
     await ctx.db.insert(schema.courses).values({
       id: courseId,
       organizationId: ctx.org.id,
-      name: "Proctor scope course",
+      name: `Proctor scope course ${crypto.randomUUID()}`,
       code: `PSC-${uniquePrefix()}`,
       description: "",
       createdAt: now,
@@ -224,7 +224,8 @@ describe("J4-I1B Proctor assignment enforcement (assignment_scoped)", () => {
             content: "Live view question",
             contentDocument: null,
             answerMode: null,
-            attachments: [],
+            image: null,
+            scale: null,
             options: [
               { id: "opt-a", content: "Opción A" },
               { id: "opt-b", content: "Opción B" },

@@ -1685,7 +1685,8 @@ describe("attempt routes", () => {
           { id: "d", content: "4" },
         ],
         standardAnswer: ["b", "d"],
-        attachments: [],
+        image: null,
+        scale: null,
         difficulty: 1,
         tags: [],
         gradingRule: {
@@ -1708,7 +1709,8 @@ describe("attempt routes", () => {
           { id: "d", content: "4" },
         ],
         standardAnswer: ["b", "d"],
-        attachments: [],
+        image: null,
+        scale: null,
         difficulty: 1,
         tags: [],
         gradingRule: {
@@ -1729,7 +1731,8 @@ describe("attempt routes", () => {
           { id: "false", content: "False" },
         ],
         standardAnswer: true,
-        attachments: [],
+        image: null,
+        scale: null,
         difficulty: 1,
         tags: [],
         gradingRule: {

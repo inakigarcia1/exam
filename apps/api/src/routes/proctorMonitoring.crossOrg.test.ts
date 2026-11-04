@@ -54,7 +54,7 @@ describe("Proctor scoped routes — cross-org isolation", () => {
     await ctx.db.insert(schema.courses).values({
       id: randomUUID(),
       organizationId: orgBId,
-      name: "Org B Course",
+      name: `Org B Course ${crypto.randomUUID()}`,
       code: `orgb-course-${randomUUID().slice(0, 8)}`,
       description: "",
     });

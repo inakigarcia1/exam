@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { render } from "@testing-library/react";
 import type { ContentBlock, ContentDocumentV1 } from "@exam/domain";
@@ -203,7 +203,8 @@ describe("ContentRenderer — hostile HTML-looking strings stay inert text", () 
 });
 
 describe("ContentDocumentRenderer — defense-in-depth fail-safes (boundary bypassed)", () => {
-  const UNSUPPORTED = "Este contenido incluye elementos que esta versión no admite";
+  const UNSUPPORTED =
+    "Este contenido incluye elementos que esta versión no admite";
 
   it("replaces an unknown block node with the controlled placeholder", () => {
     const hostile = doc([
@@ -305,7 +306,7 @@ describe("dangerouslySetInnerHTML stays confined to the KaTeX seam", () => {
       .filter((f) =>
         readFileSync(f, "utf8").includes("dangerouslySetInnerHTML={{"),
       )
-      .map((f) => f.split("/").pop());
+      .map((f) => basename(f));
     expect(offenders).toEqual(["KatexHtmlRenderer.tsx"]);
   });
 });

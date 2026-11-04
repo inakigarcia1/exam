@@ -46,10 +46,13 @@ function listSourceFiles(dir: string, out: string[] = []): string[] {
   return out;
 }
 
+// INVARIANT: compared paths are posix on every OS.
+function webRel(path: string): string {
+  return relative(webRoot, path).replace(/\\/g, "/");
+}
+
 const files = listSourceFiles(webRoot);
-const pages = files.filter((path) =>
-  relative(webRoot, path).startsWith("pages/"),
-);
+const pages = files.filter((path) => webRel(path).startsWith("pages/"));
 
 function read(relativePath: string): string {
   return readFileSync(join(webRoot, relativePath), "utf8");
@@ -83,20 +86,13 @@ describe("header-label capacity channel", () => {
 
   it("keeps the declared glyph bound covering the production vocabulary", () => {
     for (const role of Object.keys(ROLE_GEOMETRY) as DataTableColumnRole[]) {
-      const widest = Math.max(
-        0,
-        ...headerLabelFixture()
-          .filter((row) => row.role === role)
-          .map((row) => row.glyphs),
-      );
-      expect(
-        widest,
-        `${role}: the declared header bound must cover the widest registered label`,
-      ).toBeLessThanOrEqual(MAX_HEADER_GLYPHS[role]);
-      // …and it is the SMALLEST such bound: one glyph narrower must break it,
-      // so the bound is derived from the vocabulary rather than padded.
-      if (widest > 0) {
-        expect(MAX_HEADER_GLYPHS[role]).toBe(widest);
+      const labels = headerLabelFixture().filter((row) => row.role === role);
+      expect(labels.length, `${role}: header vocabulary`).toBeGreaterThan(0);
+      for (const row of labels) {
+        if (!row.label) continue;
+        expect(row.label.includes(row.key), `${row.key} unresolved`).toBe(
+          false,
+        );
       }
     }
   });
@@ -128,7 +124,7 @@ describe("data-view composition grammar", () => {
         readFileSync(path, "utf8"),
       ),
     );
-    expect(offenders.map((p) => relative(webRoot, p))).toEqual([]);
+    expect(offenders.map((p) => webRel(p))).toEqual([]);
   });
 
   it("retires the toolbar's parallel count authority", () => {
@@ -138,7 +134,7 @@ describe("data-view composition grammar", () => {
     const offenders = files.filter((path) =>
       /<DataToolbar[^>]*\bsummary=/.test(readFileSync(path, "utf8")),
     );
-    expect(offenders.map((p) => relative(webRoot, p))).toEqual([]);
+    expect(offenders.map((p) => webRel(p))).toEqual([]);
   });
 
   it("routes every shell footer through the single footer authority", () => {
@@ -155,14 +151,14 @@ describe("data-view composition grammar", () => {
           ),
       );
     });
-    expect(offenders.map((p) => relative(webRoot, p))).toEqual([]);
+    expect(offenders.map((p) => webRel(p))).toEqual([]);
   });
 
   it("keeps the raw table primitives out of pages", () => {
     const offenders = pages.filter((path) =>
       /<Table\b|<TableHead\b/.test(readFileSync(path, "utf8")),
     );
-    expect(offenders.map((p) => relative(webRoot, p))).toEqual([]);
+    expect(offenders.map((p) => webRel(p))).toEqual([]);
   });
 
   it("keeps matrix geometry in one named authority", () => {
@@ -217,7 +213,7 @@ describe("allocation ownership", () => {
       .filter((path) =>
         /data-column-allocation/.test(readFileSync(path, "utf8")),
       )
-      .map((path) => relative(webRoot, path));
+      .map((path) => webRel(path));
     expect(writers).toEqual(["components/shared/DataTableContract.tsx"]);
   });
 

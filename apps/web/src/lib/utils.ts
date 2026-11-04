@@ -90,10 +90,10 @@ export function formatDurationParts(ms: number): DurationParts {
 
 /**
  * Formats milliseconds into a human-readable duration string using the default
- * i18n instance (zh-CN). Kept as a convenience for the few non-component
- * call sites that want a ready-to-render string; component call sites should
- * prefer `formatDurationParts(ms)` + their own `t()` scope. Output matches the
- * historical Chinese format exactly (resolves `common.duration.*` keys).
+ * i18n instance. Kept as a convenience for the few non-component call sites
+ * that want a ready-to-render string; component call sites should prefer
+ * `formatDurationParts(ms)` + their own `t()` scope. Resolves the plural-aware
+ * `common.duration.*` keys.
  */
 export function formatDuration(ms: number): string {
   const t = i18n.getFixedT?.(i18n.language) ?? i18n.t.bind(i18n);
@@ -102,20 +102,20 @@ export function formatDuration(ms: number): string {
     case "ms":
       return t("common.duration.millisecond", { value: parts.milliseconds });
     case "seconds":
-      return t("common.duration.second", { value: parts.seconds });
+      return t("common.duration.second", { count: parts.seconds });
     case "minutes":
-      return t("common.duration.minute", { value: parts.minutes });
+      return t("common.duration.minute", { count: parts.minutes });
     case "minuteSecond":
       return t("common.duration.minuteSecond", {
-        minutes: parts.minutes,
-        seconds: parts.seconds,
+        minutes: t("common.duration.minute", { count: parts.minutes }),
+        seconds: t("common.duration.second", { count: parts.seconds }),
       });
     case "hours":
-      return t("common.duration.hour", { value: parts.hours });
+      return t("common.duration.hour", { count: parts.hours });
     case "hourMinute":
       return t("common.duration.hourMinute", {
-        hours: parts.hours,
-        minutes: parts.minutes,
+        hours: t("common.duration.hour", { count: parts.hours }),
+        minutes: t("common.duration.minute", { count: parts.minutes }),
       });
   }
 }

@@ -170,7 +170,9 @@ test.describe("refresh during exam", () => {
 
     // Submit. standardAnswer is true, our answer is false → score 0.
     await submitExam(page);
-    await expect(page.getByText("No aprobado")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("No aprobado")).toBeVisible({
+      timeout: 15_000,
+    });
     await expect(page.getByTestId("result-total-score")).toHaveText("0");
   });
 });

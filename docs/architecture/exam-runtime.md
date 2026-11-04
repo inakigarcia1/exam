@@ -46,7 +46,9 @@ type QuestionType =
   | 'multiple_choice'
   | 'true_false'
   | 'fill_blank'
-  | 'text_response';
+  | 'text_response'
+  | 'likert'
+  | 'ranking';
 ```
 
 | QuestionType    | 语义 | inputMode   | gradingMode | options        | standardAnswer   | rubric           |
@@ -56,6 +58,10 @@ type QuestionType =
 | true_false      | 判断 | boolean     | auto        | empty or fixed | required         | N/A              |
 | fill_blank      | 填空 | single_line | auto        | empty          | required         | N/A              |
 | text_response   | 主观文本 | multi_line | manual   | empty          | optional/null    | required at publish |
+| likert          | 量表矩阵 | matrix   | auto        | 行（≥2）       | `Record<rowId, columnIndex>`，覆盖每一行 | N/A |
+| ranking         | 排序 | order       | auto        | 按正确顺序（≥2）| option id 的完整排列 | N/A |
+
+likert 的列在 `scale`（2–10 个标签）。ranking 的选项在 attempt 创建时总是打乱，且保证不等于正确顺序（与 `shuffleOptions` 无关）。两者都是全对得分、否则 0 分。
 
 **关键约束**：`text_response` 是独立 `QuestionType`，**不是** fill_blank 变体。旧编码方式 `type=fill_blank + standardAnswer=null` 不再作为主观文本题的正式编码。
 
@@ -71,6 +77,8 @@ function getInputMode(type: QuestionType): InputMode {
     case 'true_false': return 'boolean';
     case 'fill_blank': return 'single_line';
     case 'text_response': return 'multi_line';
+    case 'likert': return 'matrix';
+    case 'ranking': return 'order';
   }
 }
 ```
@@ -85,7 +93,9 @@ function getGradingMode(type: QuestionType): GradingMode {
     case 'single_choice':
     case 'multiple_choice':
     case 'true_false':
-    case 'fill_blank': return 'auto';
+    case 'fill_blank':
+    case 'likert':
+    case 'ranking': return 'auto';
     case 'text_response': return 'manual';
   }
 }
@@ -93,7 +103,7 @@ function getGradingMode(type: QuestionType): GradingMode {
 
 ### 1.4 standardAnswer
 
-自动评分题（single_choice / multiple_choice / true_false / fill_blank）的 standardAnswer **必填**。text_response 的 standardAnswer **可选**。`standardAnswer == null` 不再作为主观性判断依据。
+自动评分题（single_choice / multiple_choice / true_false / fill_blank / likert / ranking）的 standardAnswer **必填**。text_response 的 standardAnswer **可选**。`standardAnswer == null` 不再作为主观性判断依据。
 
 ### 1.5 rubric 双层存储
 

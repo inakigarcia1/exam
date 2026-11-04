@@ -28,7 +28,7 @@ describe("Admin teacher-to-course assignment API (issue #286)", () => {
     await ctx.db.insert(schema.courses).values({
       id: courseId,
       organizationId: ctx.org.id,
-      name: "Teacher assignment course",
+      name: `Teacher assignment course ${crypto.randomUUID()}`,
       code: `TAC-${uniquePrefix()}`,
       description: "",
       createdAt: now,
@@ -186,7 +186,7 @@ describe("Admin teacher-to-course assignment API (issue #286)", () => {
     await ctx.db.insert(schema.courses).values({
       id: foreignCourseId,
       organizationId: foreignOrgId,
-      name: "Foreign course",
+      name: `Foreign course ${crypto.randomUUID()}`,
       code: `FC-${uniquePrefix()}`,
       description: "",
       createdAt: now,
@@ -209,7 +209,7 @@ describe("Admin teacher-to-course assignment API (issue #286)", () => {
     await ctx.db.insert(schema.courses).values({
       id: otherCourseId,
       organizationId: ctx.org.id,
-      name: "Revoke course",
+      name: `Revoke course ${crypto.randomUUID()}`,
       code: `RC-${uniquePrefix()}`,
       description: "",
       createdAt: now,

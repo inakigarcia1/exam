@@ -34,7 +34,9 @@ describe("RowActions representation contract", () => {
     ]);
     const group = screen.getByRole("group");
     expect(screen.getByRole("button", { name: "Editar" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Eliminar" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Eliminar" }),
+    ).toBeInTheDocument();
     // Inline vocabulary is icon-only: no button carries visible text.
     const buttons = group.querySelectorAll("button");
     expect(buttons).toHaveLength(2);
@@ -74,15 +76,16 @@ describe("RowActions representation contract", () => {
     expect(
       await screen.findByRole("menuitem", { name: "Restablecer contraseña" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: "Desactivar" })).toHaveAttribute(
-      "data-variant",
-      "destructive",
-    );
+    expect(
+      screen.getByRole("menuitem", { name: "Desactivar" }),
+    ).toHaveAttribute("data-variant", "destructive");
     expect(
       screen.queryByRole("menuitem", { name: "Editar" }),
     ).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("menuitem", { name: "Restablecer contraseña" }));
+    await user.click(
+      screen.getByRole("menuitem", { name: "Restablecer contraseña" }),
+    );
     await waitFor(() => expect(onReset).toHaveBeenCalledWith({ id: "r1" }));
   });
 
@@ -149,7 +152,9 @@ describe("RowActions representation contract", () => {
     const group = screen.getByRole("group");
     expect(group.querySelectorAll("button")).toHaveLength(2);
     await user.click(screen.getByRole("button", { name: "Más acciones" }));
-    const disableItem = await screen.findByRole("menuitem", { name: "Desactivar" });
+    const disableItem = await screen.findByRole("menuitem", {
+      name: "Desactivar",
+    });
     expect(disableItem).toHaveAttribute("aria-disabled", "true");
     expect(disableItem).toHaveAttribute("data-action-id", "disable");
   });
@@ -238,7 +243,9 @@ describe("RowActions disabled reason accessibility", () => {
     await user.keyboard("{Enter}");
 
     // The disabled action is present in the menu and cannot be activated.
-    const item = await screen.findByRole("menuitem", { name: /Restablecer contraseña/ });
+    const item = await screen.findByRole("menuitem", {
+      name: /Restablecer contraseña/,
+    });
     expect(item).toHaveAttribute("aria-disabled", "true");
     fireEvent.click(item);
     expect(onReset).not.toHaveBeenCalled();
@@ -267,7 +274,9 @@ describe("RowActions disabled reason accessibility", () => {
     // N=2 → inline: same declaration renders as a disabled icon button whose
     // reason stays reachable through the focusable tooltip anchor.
     const { rerender } = renderActions([viewAction, editAction]);
-    expect(screen.getByRole("button", { name: "Ver calificación" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Ver calificación" }),
+    ).toBeDisabled();
     expect(
       screen.getByRole("group").querySelector("span[tabindex]"),
     ).toHaveAttribute("aria-label", "Ver calificación");
@@ -281,13 +290,19 @@ describe("RowActions disabled reason accessibility", () => {
         actions={[
           editAction,
           viewAction,
-          decl({ id: "reset", label: "Restablecer contraseña", icon: KeyRound }),
+          decl({
+            id: "reset",
+            label: "Restablecer contraseña",
+            icon: KeyRound,
+          }),
         ]}
         row={{ id: "r1" }}
       />,
     );
     await user.click(screen.getByRole("button", { name: "Más acciones" }));
-    const item = await screen.findByRole("menuitem", { name: /Ver calificación/ });
+    const item = await screen.findByRole("menuitem", {
+      name: /Ver calificación/,
+    });
     expect(item).toHaveAttribute("aria-disabled", "true");
     expect(screen.getByText(reason)).toBeVisible();
     fireEvent.click(item);

@@ -247,7 +247,9 @@ describe("GradingDetailPage", () => {
     const submitButtons = screen.getAllByText("Enviar calificación");
     await user.click(submitButtons[0]!);
 
-    expect(screen.getByText("分数不能超过满分 (10)")).toBeInTheDocument();
+    expect(
+      screen.getByText("El puntaje no puede superar el máximo (10)"),
+    ).toBeInTheDocument();
     expect(postMock).not.toHaveBeenCalled();
     // Validation failure must not open the confirmation dialog.
     expect(
@@ -272,7 +274,9 @@ describe("GradingDetailPage", () => {
     await user.clear(firstInput);
     await user.type(firstInput, "15");
     await user.click(screen.getAllByText("Enviar calificación")[0]!);
-    expect(screen.getByText("分数不能超过满分 (10)")).toBeInTheDocument();
+    expect(
+      screen.getByText("El puntaje no puede superar el máximo (10)"),
+    ).toBeInTheDocument();
 
     // Correct the score and submit successfully (submit + confirm).
     await user.clear(firstInput);
@@ -283,7 +287,9 @@ describe("GradingDetailPage", () => {
     });
 
     // The field-error feedback for q1 is gone.
-    expect(screen.queryByText("分数不能超过满分 (10)")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("El puntaje no puede superar el máximo (10)"),
+    ).not.toBeInTheDocument();
   });
 
   it("scopes the score validation error to its own question", async () => {
@@ -304,7 +310,9 @@ describe("GradingDetailPage", () => {
     await user.click(submitButtons[0]!);
 
     // q1 (maxScore 10) over-max → exactly one field-error text node present.
-    const errors = screen.getAllByText("分数不能超过满分 (10)");
+    const errors = screen.getAllByText(
+      "El puntaje no puede superar el máximo (10)",
+    );
     expect(errors).toHaveLength(1);
   });
 
@@ -374,7 +382,11 @@ describe("GradingDetailPage", () => {
   it("shows error on fetch failure", async () => {
     getMock.mockRejectedValue(new Error("fail"));
     renderPage();
-    expect(await screen.findByText("No se pudo cargar el detalle de la calificación")).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        "No se pudo cargar el detalle de la calificación",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("submits non-empty comment with score", async () => {
@@ -388,7 +400,9 @@ describe("GradingDetailPage", () => {
     await user.clear(firstInput);
     await user.type(firstInput, "8");
 
-    const commentInputs = screen.getAllByPlaceholderText("Escribe un comentario...");
+    const commentInputs = screen.getAllByPlaceholderText(
+      "Escribe un comentario...",
+    );
     await user.type(commentInputs[0]!, "回答基本完整，但缺少细节");
 
     await confirmSubmitFirstQuestion(user);
@@ -445,7 +459,7 @@ describe("GradingDetailPage — one-time submission UX", () => {
     renderPage();
     await screen.findByText(/期末考试 — 张三/);
     expect(screen.getByTestId("grading-irrevocable-notice")).toHaveTextContent(
-      "评分提交后不可修改",
+      "Una vez enviada, la calificación no se puede modificar.",
     );
   });
 
@@ -472,7 +486,7 @@ describe("GradingDetailPage — one-time submission UX", () => {
     renderPage();
     await screen.findByText(/期末考试 — 张三/);
     expect(screen.getByTestId("grading-fully-graded-notice")).toHaveTextContent(
-      "Calificación completa",
+      "La calificación está completa.",
     );
     expect(
       screen.queryByTestId("grading-irrevocable-notice"),
@@ -516,7 +530,7 @@ describe("GradingDetailPage — one-time submission UX", () => {
     expect(screen.getByText("Calificación enviada")).toBeInTheDocument();
     expect(
       screen.getByTestId("grading-submitted-meta-q-done"),
-    ).toHaveTextContent("Calificado: 7 分");
+    ).toHaveTextContent("Calificado: 7 puntos");
     expect(
       screen.getByTestId("grading-submitted-comment-q-done"),
     ).toHaveTextContent("不错的回答");
@@ -553,7 +567,9 @@ describe("GradingDetailPage — one-time submission UX", () => {
       .closest("[role='alertdialog']")!;
     expect(dialog).toHaveTextContent("Puntaje: 8");
     expect(dialog).toHaveTextContent("Puntaje máximo: 10");
-    expect(dialog).toHaveTextContent("提交后不可通过普通阅卷流程修改");
+    expect(dialog).toHaveTextContent(
+      "Después de enviarla, no se puede cambiar con la corrección habitual.",
+    );
     expect(dialog).toHaveTextContent("Cancelar");
 
     // Confirming runs the POST.
@@ -699,7 +715,9 @@ describe("GradingDetailPage — one-time submission UX", () => {
     await user.clear(q2Input);
     await user.type(q2Input, "6");
     // Also fill a comment on q2.
-    const commentInputs = screen.getAllByPlaceholderText("Escribe un comentario...");
+    const commentInputs = screen.getAllByPlaceholderText(
+      "Escribe un comentario...",
+    );
     await user.type(commentInputs[1]!, "q2 draft comment");
 
     // Submit q1 (first question).
@@ -1152,7 +1170,9 @@ describe("frozen grading metadata rendering", () => {
     });
     renderPage();
     await screen.findByText(/期末考试 — 张三/);
-    expect(screen.getByTestId("grading-rubric-q1")).toHaveTextContent("Sin definir");
+    expect(screen.getByTestId("grading-rubric-q1")).toHaveTextContent(
+      "Sin definir",
+    );
     expect(screen.getByTestId("grading-standard-answer-q1")).toHaveTextContent(
       "Sin definir",
     );
@@ -1321,7 +1341,9 @@ describe("frozen grading metadata rendering", () => {
     const answerEl = screen.getByTestId("grading-candidate-answer-q1");
     // The deep document validation refused the corrupt payload; the page
     // shows the controlled unsupported message instead of crashing.
-    expect(answerEl).toHaveTextContent("Esta respuesta no se puede mostrar como texto enriquecido");
+    expect(answerEl).toHaveTextContent(
+      "Esta respuesta no se puede mostrar como texto enriquecido",
+    );
   });
 
   it("keeps the legacy formatter for a document-looking payload on a non-rich answer (#301)", async () => {
@@ -1388,12 +1410,14 @@ describe("parseScoreInput", () => {
   });
 
   it("rejects a negative score with the range message", () => {
-    expect(parseScoreInput("-1", 10)).toEqual({ error: "El puntaje no puede ser negativo" });
+    expect(parseScoreInput("-1", 10)).toEqual({
+      error: "El puntaje no puede ser negativo",
+    });
   });
 
   it("rejects a score exceeding maxScore with the range message", () => {
     expect(parseScoreInput("15", 10)).toEqual({
-      error: "分数不能超过满分 (10)",
+      error: "El puntaje no puede superar el máximo (10)",
     });
   });
 
@@ -1420,7 +1444,9 @@ describe("validateScore", () => {
   });
 
   it("returns error when score exceeds maxScore", () => {
-    expect(validateScore(15, 10)).toBe("分数不能超过满分 (10)");
+    expect(validateScore(15, 10)).toBe(
+      "El puntaje no puede superar el máximo (10)",
+    );
   });
 
   it("does not white-screen on a malformed/null response (shows a retryable error)", async () => {
@@ -1431,6 +1457,8 @@ describe("validateScore", () => {
     // Either the catch-block message or the !data fallback message is fine;
     // both are visible error states with a retry button.
     await screen.findByRole("alert");
-    expect(screen.getByRole("button", { name: "Reintentar" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Reintentar" }),
+    ).toBeInTheDocument();
   });
 });

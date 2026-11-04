@@ -39,6 +39,8 @@ const previewFixture = {
       type: "true_false" as const,
       prompt: "¿Afirmación uno?",
       promptDocument: null,
+      image: null,
+      scale: null,
       answerMode: "plain" as const,
       options: [],
       inputMode: "boolean" as const,
@@ -51,6 +53,8 @@ const previewFixture = {
       type: "single_choice" as const,
       prompt: "¿Opción correcta?",
       promptDocument: null,
+      image: null,
+      scale: null,
       answerMode: "plain" as const,
       options: [
         { id: "o1", content: "A", contentDocument: null },

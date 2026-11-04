@@ -483,7 +483,7 @@ async function seedActivatedIncident(schemaName: string): Promise<void> {
     await db.insert(schema.courses).values({
       id: courseId,
       organizationId: orgId,
-      name: "c",
+      name: `c ${crypto.randomUUID()}`,
       code: `code-${randomUUID().slice(0, 6)}`,
       description: "",
       createdAt: now,

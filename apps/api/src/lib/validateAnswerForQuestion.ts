@@ -1,6 +1,7 @@
 import {
   ContentDocumentV1Schema,
   canonicalizeContentDocument,
+  isPermutationOf,
 } from "@exam/contracts";
 import {
   preflightContentDocumentStructure,
@@ -111,6 +112,42 @@ export function validateAnswerForQuestion(
             reason: `fill_blank answer key ${key} is outside the question's blank universe`,
           };
         }
+      }
+      return { ok: true, value: answer };
+    }
+
+    case "likert": {
+      // Partial answers are legal drafts: any subset of rows, each on a
+      // column of the frozen scale.
+      const columns = question.scale?.length ?? 0;
+      if (typeof answer !== "object" || Array.isArray(answer)) {
+        return {
+          ok: false,
+          reason: "likert answer must be a Record<rowId, columnIndex>",
+        };
+      }
+      for (const [rowId, column] of Object.entries(answer)) {
+        if (
+          !optionIds.has(rowId) ||
+          !Number.isInteger(column) ||
+          (column as number) < 0 ||
+          (column as number) >= columns
+        ) {
+          return {
+            ok: false,
+            reason: "likert answer must map known rows to scale columns",
+          };
+        }
+      }
+      return { ok: true, value: answer };
+    }
+
+    case "ranking": {
+      if (!isPermutationOf(answer, [...optionIds])) {
+        return {
+          ok: false,
+          reason: "ranking answer must order every option exactly once",
+        };
       }
       return { ok: true, value: answer };
     }

@@ -145,20 +145,24 @@ describe("CandidateFieldsPage", () => {
     // table and the mobile cards; scope to the desktop table representation.
     const table = await screen.findByRole("table");
     expect(within(table).getByText("department")).toBeInTheDocument();
-    expect(screen.getByText("Opción")).toBeInTheDocument();
+    expect(within(table).getByText("Opciones")).toBeInTheDocument();
   });
 
   it("opens create dialog", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /Agregar campo/ }));
+    await user.click(
+      await screen.findByRole("button", { name: /Agregar campo/ }),
+    );
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
   it("saves a new field", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /Agregar campo/ }));
+    await user.click(
+      await screen.findByRole("button", { name: /Agregar campo/ }),
+    );
     const dialog = screen.getByRole("dialog");
     const inputs = dialog.querySelectorAll("input");
     await user.type(inputs[0]!, "phone");
@@ -183,7 +187,9 @@ describe("CandidateFieldsPage", () => {
     );
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /Agregar campo/ }));
+    await user.click(
+      await screen.findByRole("button", { name: /Agregar campo/ }),
+    );
     const dialog = screen.getByRole("dialog");
     const inputs = dialog.querySelectorAll("input");
     await user.type(inputs[0]!, "phone");
@@ -193,7 +199,9 @@ describe("CandidateFieldsPage", () => {
       .find((b) => b.textContent === "Guardar")!;
     await user.click(saveBtn);
     expect(
-      await within(dialog).findByText("Solo puede haber un campo de identidad único"),
+      await within(dialog).findByText(
+        "Solo se puede marcar un campo de identidad como único",
+      ),
     ).toBeInTheDocument();
   });
 
@@ -203,7 +211,9 @@ describe("CandidateFieldsPage", () => {
     );
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /Agregar campo/ }));
+    await user.click(
+      await screen.findByRole("button", { name: /Agregar campo/ }),
+    );
     const dialog = screen.getByRole("dialog");
     const inputs = dialog.querySelectorAll("input");
     await user.type(inputs[0]!, "phone");
@@ -213,7 +223,9 @@ describe("CandidateFieldsPage", () => {
       .find((b) => b.textContent === "Guardar")!;
     await user.click(saveBtn);
     expect(
-      await within(dialog).findByText("Solo puede haber un campo de identidad único"),
+      await within(dialog).findByText(
+        "Solo se puede marcar un campo de identidad como único",
+      ),
     ).toBeInTheDocument();
     const cancelBtn = within(dialog)
       .getAllByRole("button")
@@ -223,7 +235,9 @@ describe("CandidateFieldsPage", () => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
     expect(
-      screen.queryByText("Solo puede haber un campo de identidad único"),
+      screen.queryByText(
+        "Solo se puede marcar un campo de identidad como único",
+      ),
     ).not.toBeInTheDocument();
   });
 
@@ -236,7 +250,9 @@ describe("CandidateFieldsPage", () => {
     );
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /Agregar campo/ }));
+    await user.click(
+      await screen.findByRole("button", { name: /Agregar campo/ }),
+    );
     const dialog = screen.getByRole("dialog");
     const inputs = dialog.querySelectorAll("input");
     await user.type(inputs[0]!, "phone");
@@ -256,7 +272,9 @@ describe("CandidateFieldsPage", () => {
   it("does not save when name and label are empty", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /Agregar campo/ }));
+    await user.click(
+      await screen.findByRole("button", { name: /Agregar campo/ }),
+    );
     const dialog = screen.getByRole("dialog");
     const saveBtn = within(dialog)
       .getAllByRole("button")
@@ -272,7 +290,9 @@ describe("CandidateFieldsPage", () => {
     await user.click(editButtons[0]!);
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByText("Editar campo")).toBeInTheDocument();
-    expect(screen.getByText(/不可修改/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/no se puede cambiar después de crearlo/),
+    ).toBeInTheDocument();
     const inputs = dialog.querySelectorAll("input");
     expect(inputs[0]!).toHaveValue("工号");
   });
@@ -303,7 +323,9 @@ describe("CandidateFieldsPage", () => {
     renderPage();
     await within(await screen.findByRole("table")).findByText("employeeId");
     const menu = await openRowMenu(user, 0);
-    await user.click(within(menu).getByRole("menuitem", { name: "Eliminar campo" }));
+    await user.click(
+      within(menu).getByRole("menuitem", { name: "Eliminar campo" }),
+    );
     const alertDialog = await screen.findByRole("alertdialog");
     const confirmBtn = within(alertDialog).getByRole("button", {
       name: "Confirmar",
@@ -349,7 +371,9 @@ describe("CandidateFieldsPage", () => {
     const user = userEvent.setup();
     renderPage();
     await within(await screen.findByRole("table")).findByText("employeeId");
-    const kebabs = await screen.findAllByRole("button", { name: "Más acciones" });
+    const kebabs = await screen.findAllByRole("button", {
+      name: "Más acciones",
+    });
     await user.click(kebabs[0]!);
     const firstMenu = await screen.findByRole("menu");
     expect(
@@ -366,7 +390,9 @@ describe("CandidateFieldsPage", () => {
   it("cancels dialog", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /Agregar campo/ }));
+    await user.click(
+      await screen.findByRole("button", { name: /Agregar campo/ }),
+    );
     const dialog = screen.getByRole("dialog");
     const cancelBtn = within(dialog)
       .getAllByRole("button")
@@ -383,18 +409,24 @@ describe("CandidateFieldsPage", () => {
       .mockResolvedValueOnce([...mockFields]);
     const user = userEvent.setup();
     renderPage();
-    expect(await screen.findByText("No se pudo cargar la configuración de campos")).toBeInTheDocument();
+    expect(
+      await screen.findByText("No se pudo cargar la configuración de campos"),
+    ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Reintentar" }));
     expect(
       await within(await screen.findByRole("table")).findByText("employeeId"),
     ).toBeInTheDocument();
-    expect(screen.queryByText("No se pudo cargar la configuración de campos")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("No se pudo cargar la configuración de campos"),
+    ).not.toBeInTheDocument();
   });
 
   it("shows empty state when no fields", async () => {
     apiGet.mockResolvedValue([]);
     renderPage();
-    expect(await screen.findByText("No hay campos de alumno")).toBeInTheDocument();
+    expect(
+      await screen.findByText("No hay campos de alumno"),
+    ).toBeInTheDocument();
   });
 
   it("downloads template", async () => {
@@ -414,7 +446,9 @@ describe("CandidateFieldsPage", () => {
   it("toggles required and unique checkboxes in dialog", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: /Agregar campo/ }));
+    await user.click(
+      await screen.findByRole("button", { name: /Agregar campo/ }),
+    );
     const dialog = screen.getByRole("dialog");
     const inputs = dialog.querySelectorAll("input");
     await user.type(inputs[0]!, "test");

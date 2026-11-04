@@ -43,7 +43,7 @@ import { resolveTestScope } from "@exam/db/testScope";
  */
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const API_DIR = join(__dirname, "../..");
-const VITEST_BIN = join(API_DIR, "node_modules/.bin/vitest");
+const VITEST_ENTRY = join(API_DIR, "node_modules/vitest/vitest.mjs");
 const CHILD_CONFIG = "tests/bootstrapLifetime/vitest.child.config.ts";
 const FIRST_HANDOFF = "first-handoff.json";
 const SECOND_HANDOFF = "second-handoff.json";
@@ -89,10 +89,14 @@ describe("worker-DB bootstrap lifetime (two files, one pool slot)", () => {
 
     const run = await new Promise<{ code: number; output: string }>(
       (resolve, reject) => {
-        const child = spawn(VITEST_BIN, ["run", "--config", CHILD_CONFIG], {
-          cwd: API_DIR,
-          env,
-        });
+        const child = spawn(
+          process.execPath,
+          [VITEST_ENTRY, "run", "--config", CHILD_CONFIG],
+          {
+            cwd: API_DIR,
+            env,
+          },
+        );
         let output = "";
         child.stdout.on("data", (d: Buffer) => {
           output += d.toString();

@@ -1,6 +1,5 @@
 import type {
   AnswerRecord,
-  Attachment,
   AttemptGradingEntry,
   AttemptStatus,
   ContentDocumentV1,
@@ -16,6 +15,7 @@ import type {
   GradingStatus,
   MisconductFlag,
   NotificationType,
+  QuestionImage,
   QuestionScoreResult,
   QuestionSnapshot,
   ResultPublicationMode,
@@ -31,6 +31,7 @@ import {
   bigint,
   boolean,
   check,
+  customType,
   doublePrecision,
   foreignKey,
   index,
@@ -250,6 +251,44 @@ export const courseSubjects = pgTable(
   ],
 );
 
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType: () => "bytea",
+});
+
+/**
+ * Immutable, append-only image bytes keyed by content hash (ADR-024). No
+ * update or delete path: frozen snapshots reference rows by `sha256`.
+ */
+export const questionImages = pgTable(
+  "question_images",
+  {
+    organizationId: organizationId().references(() => organizations.id),
+    sha256: text("sha256").notNull(),
+    mimeType: text("mime_type").notNull(),
+    bytes: bytea("bytes").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    primaryKey({
+      name: "question_images_pkey",
+      columns: [table.organizationId, table.sha256],
+    }),
+    check(
+      "question_images_sha256_check",
+      sql`${table.sha256} ~ '^[0-9a-f]{64}$'`,
+    ),
+    check(
+      "question_images_mime_type_check",
+      sql`${table.mimeType} in ('image/png', 'image/jpeg', 'image/webp')`,
+    ),
+    check(
+      "question_images_size_check",
+      sql`${table.sizeBytes} = octet_length(${table.bytes})`,
+    ),
+  ],
+);
+
 /** Questions table — stores question bank items with options, scoring, and grading rules. */
 export const questions = pgTable(
   "questions",
@@ -286,7 +325,14 @@ export const questions = pgTable(
     // requires non-empty at publish; objective questions are null.
     // Copied into QuestionSnapshot.rubric at attempt creation.
     rubric: text("rubric"),
-    attachments: jsonb("attachments").$type<Attachment[]>().notNull(),
+    image: jsonb("image").$type<QuestionImage>(),
+    // INVARIANT: derived from `image` so the FK below guarantees the image
+    // exists in the SAME organization; never written directly.
+    imageSha256: text("image_sha256").generatedAlwaysAs(
+      sql`(image ->> 'sha256')`,
+    ),
+    // Likert column labels; null for every other type.
+    scale: jsonb("scale").$type<string[]>(),
     difficulty: integer("difficulty").notNull(),
     tags: jsonb("tags").$type<string[]>().notNull(),
     gradingRule: jsonb("grading_rule").$type<GradingRule>().notNull(),
@@ -298,6 +344,11 @@ export const questions = pgTable(
       "questions_answer_mode_check",
       sql`${table.answerMode} in ('plain', 'rich')`,
     ),
+    foreignKey({
+      name: "questions_image_fk",
+      columns: [table.organizationId, table.imageSha256],
+      foreignColumns: [questionImages.organizationId, questionImages.sha256],
+    }),
   ],
 );
 
@@ -2491,6 +2542,7 @@ export const schema = {
   userRoleAssignments,
   courses,
   courseSubjects,
+  questionImages,
   questions,
   exams,
   examEnrollments,

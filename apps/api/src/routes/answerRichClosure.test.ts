@@ -130,6 +130,7 @@ describe("rich answer canonical closure (save-answer route)", () => {
         totalScore: 10,
         questionSelectionMode: "manual",
         questionIds: [questionId],
+        questionScores: { [questionId]: 10 },
         controlFlags: {
           shuffleQuestions: false,
           shuffleOptions: false,

@@ -43,9 +43,9 @@ async function insertQuestionWithRawTags(
   const now = new Date().toISOString();
   await db.execute(sql`
     insert into questions (id, organization_id, type, content, options,
-      standard_answer, rubric, attachments, difficulty, tags, grading_rule, created_at, updated_at)
+      standard_answer, rubric, difficulty, tags, grading_rule, created_at, updated_at)
     values (${randomUUID()}, ${organizationId}, 'true_false', ${content},
-      '[]'::jsonb, null, null, '[]'::jsonb, 1, ${tagsJson}::jsonb, '{}'::jsonb, ${now}::timestamptz, ${now}::timestamptz)
+      '[]'::jsonb, null, null, 1, ${tagsJson}::jsonb, '{}'::jsonb, ${now}::timestamptz, ${now}::timestamptz)
   `);
 }
 
@@ -79,7 +79,8 @@ describe("questionRepo.listAllTags (vocabulary resilience)", () => {
       content: "vocab one",
       options: [],
       standardAnswer: true,
-      attachments: [],
+      image: null,
+      scale: null,
       difficulty: 1,
       tags: ["beta", "alpha"],
       gradingRule: {
@@ -92,7 +93,8 @@ describe("questionRepo.listAllTags (vocabulary resilience)", () => {
       content: "vocab two",
       options: [],
       standardAnswer: true,
-      attachments: [],
+      image: null,
+      scale: null,
       difficulty: 1,
       tags: ["alpha", "gamma"],
       gradingRule: {

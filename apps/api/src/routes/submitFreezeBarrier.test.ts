@@ -150,7 +150,6 @@ describe("submit freeze barrier (ADR-008) — concurrent save vs submit", () => 
         type: "true_false",
         content: "correct answer is true",
         standardAnswer: true,
-        score: 100,
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -168,6 +167,7 @@ describe("submit freeze barrier (ADR-008) — concurrent save vs submit", () => 
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });

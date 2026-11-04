@@ -40,6 +40,9 @@ describe("refresh-restore integration", () => {
           type: "text_response",
           prompt: "free text",
           promptDocument: null,
+
+          image: null,
+          scale: null,
           answerMode: "plain",
           options: [],
           inputMode: "multi_line",

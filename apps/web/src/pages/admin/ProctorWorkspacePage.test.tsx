@@ -95,7 +95,9 @@ describe("ProctorWorkspacePage", () => {
     renderPage();
     await screen.findByRole("table");
 
-    await user.click(screen.getByRole("combobox", { name: "Estado del examen" }));
+    await user.click(
+      screen.getByRole("combobox", { name: "Estado del examen" }),
+    );
     await user.click(screen.getByRole("option", { name: "Cerrado" }));
 
     const table = screen.getByRole("table");
@@ -121,7 +123,9 @@ describe("ProctorWorkspacePage", () => {
     getMock.mockResolvedValue({ items: [], total: 0 });
     renderPage();
     // The empty fact renders in both representations.
-    const empties = await screen.findAllByText("No hay exámenes para supervisar");
+    const empties = await screen.findAllByText(
+      "No hay exámenes para supervisar",
+    );
     expect(empties.length).toBeGreaterThanOrEqual(1);
     expect(
       screen.queryByText("页面将在后续任务中实现。"),
@@ -132,8 +136,12 @@ describe("ProctorWorkspacePage", () => {
     getMock.mockRejectedValue(new Error("403"));
     renderPage();
     // The error fact renders in both representations.
-    const errors = await screen.findAllByText("No se pudieron cargar los exámenes para supervisar");
+    const errors = await screen.findAllByText(
+      "No se pudieron cargar los exámenes para supervisar",
+    );
     expect(errors.length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByRole("button", { name: "Reintentar" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Reintentar" }),
+    ).toBeInTheDocument();
   });
 });

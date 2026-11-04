@@ -152,7 +152,9 @@ describe("CoursePage", () => {
   it("opens create dialog", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "Nueva comisión" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Nueva comisión" }),
+    );
     const dialog = screen.getByRole("dialog");
     expect(dialog).toBeInTheDocument();
     expect(within(dialog).getByLabelText(/Nombre/)).toHaveValue("");
@@ -162,7 +164,9 @@ describe("CoursePage", () => {
   it("exposes required state and hides the visual asterisk from AT", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "Nueva comisión" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Nueva comisión" }),
+    );
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getByLabelText(/Nombre/)).toBeRequired();
     const nameLabel = within(dialog).getByText("Nombre").closest("label")!;
@@ -180,16 +184,22 @@ describe("CoursePage", () => {
   it("shows validation errors for empty fields", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "Nueva comisión" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Nueva comisión" }),
+    );
     await user.click(screen.getByRole("button", { name: "Guardar" }));
-    expect(screen.getByText("Ingresa el nombre de la comisión")).toBeInTheDocument();
+    expect(
+      screen.getByText("Ingresa el nombre de la comisión"),
+    ).toBeInTheDocument();
     expect(screen.getByText("Elegí la materia")).toBeInTheDocument();
   });
 
   it("creates a new course", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "Nueva comisión" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Nueva comisión" }),
+    );
     await user.type(screen.getByLabelText(/Nombre/), "物理");
     await user.click(screen.getByLabelText("Materia"));
     await user.click(await screen.findByRole("option", { name: "Álgebra" }));
@@ -205,11 +215,17 @@ describe("CoursePage", () => {
   it("clears field error on input change", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "Nueva comisión" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Nueva comisión" }),
+    );
     await user.click(screen.getByRole("button", { name: "Guardar" }));
-    expect(screen.getByText("Ingresa el nombre de la comisión")).toBeInTheDocument();
+    expect(
+      screen.getByText("Ingresa el nombre de la comisión"),
+    ).toBeInTheDocument();
     await user.type(screen.getByLabelText(/Nombre/), "物理");
-    expect(screen.queryByText("Ingresa el nombre de la comisión")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Ingresa el nombre de la comisión"),
+    ).not.toBeInTheDocument();
   });
 
   it("opens edit dialog with course data", async () => {
@@ -243,7 +259,9 @@ describe("CoursePage", () => {
     const deleteButtons = await screen.findAllByLabelText("Eliminar comisión");
     await user.click(deleteButtons[0]!);
     const dialog = await screen.findByRole("alertdialog");
-    const confirmBtn = within(dialog).getByRole("button", { name: "Confirmar" });
+    const confirmBtn = within(dialog).getByRole("button", {
+      name: "Confirmar",
+    });
     await user.click(confirmBtn);
     expect(apiDelete).toHaveBeenCalledWith("/api/courses/c1");
   });
@@ -252,7 +270,10 @@ describe("CoursePage", () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByRole("table");
-    await user.type(screen.getByPlaceholderText("Buscar comisión por nombre..."), "数");
+    await user.type(
+      screen.getByPlaceholderText("Buscar comisión por nombre..."),
+      "数",
+    );
     await waitFor(() => {
       const [lastUrl] = apiGet.mock.lastCall!;
       expect(
@@ -305,7 +326,9 @@ describe("CoursePage", () => {
       await screen.findByRole("heading", { name: "Ninguna comisión coincide" }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("Buscar comisiones")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Borrar búsqueda de comisiones" }));
+    await user.click(
+      screen.getByRole("button", { name: "Borrar búsqueda de comisiones" }),
+    );
     await waitFor(() => {
       expect(apiGet).toHaveBeenLastCalledWith(
         "/api/courses?page=1&pageSize=20",
@@ -322,7 +345,9 @@ describe("CoursePage", () => {
       ).toBe("不存在");
     });
     // The empty-state action only exists once the no-match response rendered.
-    await user.click(await screen.findByRole("button", { name: "Borrar búsqueda" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Borrar búsqueda" }),
+    );
     await waitFor(() => {
       expect(apiGet).toHaveBeenLastCalledWith(
         "/api/courses?page=1&pageSize=20",
@@ -336,7 +361,9 @@ describe("CoursePage", () => {
   it("shows error state when loading fails", async () => {
     apiGet.mockRejectedValue(new Error("fail"));
     renderPage();
-    expect(await screen.findByText("No se pudo cargar la lista de comisiones")).toBeInTheDocument();
+    expect(
+      await screen.findByText("No se pudo cargar la lista de comisiones"),
+    ).toBeInTheDocument();
   });
 
   it("shows empty state when no courses", async () => {
@@ -362,7 +389,9 @@ describe("CoursePage", () => {
     );
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "Nueva comisión" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Nueva comisión" }),
+    );
     await user.type(screen.getByLabelText(/Nombre/), "物理");
     await user.click(screen.getByLabelText("Materia"));
     await user.click(await screen.findByRole("option", { name: "Álgebra" }));
@@ -377,7 +406,9 @@ describe("CoursePage", () => {
   it("closes dialog on cancel", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "Nueva comisión" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Nueva comisión" }),
+    );
     const dialog = screen.getByRole("dialog");
     const cancelBtn = within(dialog)
       .getAllByRole("button")
@@ -467,7 +498,7 @@ describe("CoursePage #785 server-side search and pagination (BDD L2)", () => {
     const table = await screen.findByRole("table");
     expect(within(table).getByText("Comisión01")).toBeInTheDocument();
     expect(within(table).queryByText("Comisión21")).not.toBeInTheDocument();
-    expect(screen.getByText(/共 21 条/)).toBeInTheDocument();
+    expect(screen.getByText(/^21 en total/)).toBeInTheDocument();
     expect(apiGet).toHaveBeenCalledWith("/api/courses?page=1&pageSize=20");
 
     await user.click(screen.getByRole("button", { name: "Página siguiente" }));
@@ -499,7 +530,7 @@ describe("CoursePage #785 server-side search and pagination (BDD L2)", () => {
         "/api/courses?page=1&pageSize=20&search=bulk785",
       );
     });
-    expect(await screen.findByText(/共 25 条/)).toBeInTheDocument();
+    expect(await screen.findByText(/^25 en total/)).toBeInTheDocument();
 
     // Paging keeps the search condition.
     await user.click(screen.getByRole("button", { name: "Página siguiente" }));
@@ -510,13 +541,15 @@ describe("CoursePage #785 server-side search and pagination (BDD L2)", () => {
     });
 
     // Clearing restores the unfiltered full set on page 1.
-    await user.click(screen.getByRole("button", { name: "Borrar búsqueda de comisiones" }));
+    await user.click(
+      screen.getByRole("button", { name: "Borrar búsqueda de comisiones" }),
+    );
     await waitFor(() => {
       expect(apiGet).toHaveBeenLastCalledWith(
         "/api/courses?page=1&pageSize=20",
       );
     });
-    expect(await screen.findByText(/共 40 条/)).toBeInTheDocument();
+    expect(await screen.findByText(/^40 en total/)).toBeInTheDocument();
   });
 
   it("B07: deleting the only course on page 2 steps back to page 1", async () => {

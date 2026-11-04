@@ -190,7 +190,8 @@ describe("attempt routes", () => {
               { id: "c", content: "3" },
             ],
             standardAnswer: "b",
-            attachments: [],
+            image: null,
+            scale: null,
             difficulty: 1,
             tags: [],
             gradingRule: {
@@ -325,7 +326,7 @@ describe("attempt routes", () => {
       expect(body).toContain("Respuesta correcta");
       expect(body).toContain("Puntaje");
       expect(body).toContain("Puntaje máximo");
-      expect(body).toContain("是否正确");
+      expect(body).toContain("Correcta");
       expect(body).toContain("single_choice");
       expect(body).toContain("What is 1+1?");
     });
@@ -580,8 +581,8 @@ describe("attempt routes", () => {
         expect(res.statusCode).toBe(200);
         // Fixture fields are comma-free, so the data row splits cleanly. The
         // first eight columns are the frozen positional contract (Número,Tipo,
-        // Enunciado,Respuesta del alumno,Respuesta correcta,Puntaje,Puntaje máximo,是否正确); D4 appended 考生答案模式
-        // and 考生答案状态 after them, so index 3 still holds the answer.
+        // Enunciado,Respuesta del alumno,Respuesta correcta,Puntaje,Puntaje máximo,Correcta);
+        // "Modo de respuesta" and "Estado de la respuesta" follow, so index 3 still holds the answer.
         const dataRow = res.body.trimEnd().split("\n")[1]!.split(",");
         expect(dataRow[3]).toBe("b");
       });

@@ -54,6 +54,7 @@ describe("exam creation with exam policy profile (profile resolution)", () => {
     passingScore: 60,
     totalScore: 100,
     questionIds: [] as string[],
+    questionScores: {} as Record<string, number>,
   };
 
   async function createProfile(
@@ -109,13 +110,13 @@ describe("exam creation with exam policy profile (profile resolution)", () => {
         type: "true_false",
         content: "Profile question.",
         standardAnswer: true,
-        score: 100,
       },
       cookies: { "auth-token": ctx.adminToken },
     });
     questionId = qRes.json().id;
     examBasePayload.courseId = courseId;
     examBasePayload.questionIds = [questionId];
+    examBasePayload.questionScores = { [questionId]: 100 };
   });
 
   afterAll(async () => {
@@ -401,7 +402,7 @@ describe("exam creation with exam policy profile (profile resolution)", () => {
 
     // Publish must not touch the profile.
     const published = await publishExamViaApi(ctx.app, ctx.adminToken, examId);
-    expect(published.status).toBe("published");
+    expect(published.status).toBe("open");
     expect(published.durationMinutes).toBe(60);
 
     // Attempt start consumes Exam authority only.

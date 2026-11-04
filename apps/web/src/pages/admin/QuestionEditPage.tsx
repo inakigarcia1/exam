@@ -118,19 +118,27 @@ export function QuestionEditPage() {
         }
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div>
+      {/* The Likert editor already is the candidate's grid, so it drops the
+          preview and takes the full width. */}
+      <div
+        className={`grid grid-cols-1 gap-6 ${formData.type === "likert" ? "" : "lg:grid-cols-2"}`}
+      >
+        <div className="min-w-0">
           <QuestionForm initial={formData} onChange={setFormData} />
         </div>
-        <div>
-          <QuestionPreview
-            type={formData.type}
-            content={formData.content}
-            contentDocument={formData.contentDocument}
-            options={formData.options}
-            standardAnswer={formData.standardAnswer}
-          />
-        </div>
+        {formData.type !== "likert" && (
+          <div>
+            <QuestionPreview
+              type={formData.type}
+              content={formData.content}
+              contentDocument={formData.contentDocument}
+              image={formData.image}
+              scale={formData.scale}
+              options={formData.options}
+              standardAnswer={formData.standardAnswer}
+            />
+          </div>
+        )}
       </div>
 
       <Separator />

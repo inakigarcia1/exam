@@ -247,7 +247,9 @@ describe("api client", () => {
       await expect(api.get("/api/unreachable")).rejects.toThrow(
         "Network request failed",
       );
-      expect(toast.error).toHaveBeenCalledWith("No hay conexión. Inténtalo más tarde.");
+      expect(toast.error).toHaveBeenCalledWith(
+        "No hay conexión. Inténtalo más tarde.",
+      );
     });
 
     it("wraps unknown errors as ApiError with status 0", async () => {

@@ -125,7 +125,11 @@ describe("ExamConfigForm totalScore", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /Carga manual/ }));
 
-    expect(screen.getByText(/总分与题目分值之和不匹配/)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "El puntaje total no coincide con la suma de las preguntas (tiene que ser 30)",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("syncs computed totalScore to data via onChange on mount", () => {
@@ -187,9 +191,7 @@ describe("ExamConfigForm fields", () => {
       />,
     );
     expect(screen.getByText("Nombre del examen")).toBeInTheDocument();
-    expect(
-      screen.getByText("Duración del examen (minutos)"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Duración (minutos)")).toBeInTheDocument();
   });
 
   it("calls onChange when title input is typed", async () => {
@@ -202,7 +204,7 @@ describe("ExamConfigForm fields", () => {
         onChange={onChange}
       />,
     );
-    const input = screen.getByPlaceholderText("Ingresa el nombre del examen");
+    const input = screen.getByPlaceholderText("Ingresá el nombre del examen");
     await userEvent.type(input, "A");
     expect(onChange).toHaveBeenCalled();
   });
@@ -221,9 +223,7 @@ describe("ExamConfigForm fields", () => {
       />,
     );
     expect(
-      screen.getByText(
-        /La hora de cierre tiene que ser posterior a la de inicio/,
-      ),
+      screen.getByText(/La hora de fin tiene que ser posterior al inicio/),
     ).toBeInTheDocument();
   });
 
@@ -241,9 +241,7 @@ describe("ExamConfigForm fields", () => {
       />,
     );
     expect(
-      screen.getByText(
-        /El puntaje de aprobación no puede superar el puntaje total/,
-      ),
+      screen.getByText(/El puntaje para aprobar no puede superar el total/),
     ).toBeInTheDocument();
   });
 
@@ -261,9 +259,7 @@ describe("ExamConfigForm fields", () => {
       />,
     );
     expect(
-      screen.getByText(
-        /La hora de cierre tiene que ser posterior a la de inicio/,
-      ),
+      screen.getByText(/La hora de fin tiene que ser posterior al inicio/),
     ).toBeInTheDocument();
 
     rerender(
@@ -279,9 +275,7 @@ describe("ExamConfigForm fields", () => {
       />,
     );
     expect(
-      screen.queryByText(
-        /La hora de cierre tiene que ser posterior a la de inicio/,
-      ),
+      screen.queryByText(/La hora de fin tiene que ser posterior al inicio/),
     ).not.toBeInTheDocument();
   });
 
@@ -299,9 +293,7 @@ describe("ExamConfigForm fields", () => {
       />,
     );
     expect(
-      screen.getByText(
-        /El puntaje de aprobación no puede superar el puntaje total/,
-      ),
+      screen.getByText(/El puntaje para aprobar no puede superar el total/),
     ).toBeInTheDocument();
 
     rerender(
@@ -317,9 +309,7 @@ describe("ExamConfigForm fields", () => {
       />,
     );
     expect(
-      screen.queryByText(
-        /El puntaje de aprobación no puede superar el puntaje total/,
-      ),
+      screen.queryByText(/El puntaje para aprobar no puede superar el total/),
     ).not.toBeInTheDocument();
   });
 
@@ -366,7 +356,7 @@ describe("ExamConfigForm fields", () => {
       />,
     );
     expect(
-      screen.getAllByText("Política de reintentos").length,
+      screen.getAllByText("Volver a rendir").length,
     ).toBeGreaterThanOrEqual(1);
   });
 
@@ -379,7 +369,7 @@ describe("ExamConfigForm fields", () => {
         onChange={() => {}}
       />,
     );
-    expect(screen.getByText("Máximo de intentos")).toBeInTheDocument();
+    expect(screen.getByText("Tope de intentos")).toBeInTheDocument();
   });
 
   it("renders result publication mode selector with default immediate", () => {
@@ -391,9 +381,7 @@ describe("ExamConfigForm fields", () => {
         onChange={() => {}}
       />,
     );
-    expect(
-      screen.getByText("Cómo se publican los resultados"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Cuándo se publican")).toBeInTheDocument();
     expect(screen.getByText("Al entregar")).toBeInTheDocument();
   });
 
@@ -406,7 +394,9 @@ describe("ExamConfigForm fields", () => {
         onChange={() => {}}
       />,
     );
-    expect(screen.getByText("Lo publica un administrador")).toBeInTheDocument();
+    expect(
+      screen.getByText("Cuando un administrador las publique"),
+    ).toBeInTheDocument();
   });
 });
 
@@ -447,9 +437,7 @@ describe("ExamConfigForm passing-score invariant (EXAM-SCORE-INV-1)", () => {
       />,
     );
     expect(
-      screen.getByText(
-        /El puntaje de aprobación no puede superar el puntaje total/,
-      ),
+      screen.getByText(/El puntaje para aprobar no puede superar el total/),
     ).toBeInTheDocument();
   });
 
@@ -463,9 +451,7 @@ describe("ExamConfigForm passing-score invariant (EXAM-SCORE-INV-1)", () => {
       />,
     );
     expect(
-      screen.queryByText(
-        /El puntaje de aprobación no puede superar el puntaje total/,
-      ),
+      screen.queryByText(/El puntaje para aprobar no puede superar el total/),
     ).not.toBeInTheDocument();
   });
 
@@ -479,9 +465,7 @@ describe("ExamConfigForm passing-score invariant (EXAM-SCORE-INV-1)", () => {
       />,
     );
     expect(
-      screen.queryByText(
-        /El puntaje de aprobación no puede superar el puntaje total/,
-      ),
+      screen.queryByText(/El puntaje para aprobar no puede superar el total/),
     ).not.toBeInTheDocument();
   });
 });

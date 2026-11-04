@@ -91,7 +91,7 @@ describe("attempt export — Rich answer integrity (D4 / F-05)", () => {
     await ctx.db.insert(schema.courses).values({
       id: courseId,
       organizationId: ctx.org.id,
-      name: "Rich Export Course",
+      name: `Rich Export Course ${crypto.randomUUID()}`,
       code: `RE-${uniquePrefix()}`,
       description: "",
       createdAt: now,
@@ -116,7 +116,8 @@ describe("attempt export — Rich answer integrity (D4 / F-05)", () => {
       rubric: "按要点给分",
       options: [],
       standardAnswer: null,
-      attachments: [],
+      image: null,
+      scale: null,
       difficulty: 1,
       tags: [],
       gradingRule: {
@@ -137,7 +138,8 @@ describe("attempt export — Rich answer integrity (D4 / F-05)", () => {
       rubric: "按要点给分",
       options: [],
       standardAnswer: "reference answer",
-      attachments: [],
+      image: null,
+      scale: null,
       difficulty: 1,
       tags: [],
       gradingRule: {
@@ -161,7 +163,8 @@ describe("attempt export — Rich answer integrity (D4 / F-05)", () => {
         { id: "b", content: "Beta" },
       ],
       standardAnswer: ["a"],
-      attachments: [],
+      image: null,
+      scale: null,
       difficulty: 1,
       tags: [],
       gradingRule: {
@@ -366,7 +369,7 @@ describe("attempt export — Rich answer integrity (D4 / F-05)", () => {
     const csv = await exportCsv(attemptId);
     const row = csvRowFor(csv, RICH_PROMPT);
     expect(row["Respuesta del alumno"]).toBe("");
-    expect(row["考生答案状态"]).toBe("empty");
+    expect(row["Estado de la respuesta"]).toBe("empty");
   });
 
   it("R1/F-05: a string in a frozen rich slot never exports as normal Plain answer text", async () => {
@@ -387,8 +390,8 @@ describe("attempt export — Rich answer integrity (D4 / F-05)", () => {
     expect(csv.raw).not.toContain(LEGACY_LOOKING_STRING);
     const row = csvRowFor(csv, RICH_PROMPT);
     expect(row["Respuesta del alumno"]).toBe(NOT_APPLICABLE_CELL);
-    expect(row["考生答案模式"]).toBe("rich");
-    expect(row["考生答案状态"]).toBe("corrupt");
+    expect(row["Modo de respuesta"]).toBe("rich");
+    expect(row["Estado de la respuesta"]).toBe("corrupt");
   });
 
   it("R2: plain and typed objective answers still export normally", async () => {
@@ -428,7 +431,7 @@ describe("attempt export — Rich answer integrity (D4 / F-05)", () => {
     const csv = await exportCsv(attemptId);
     const row = csvRowFor(csv, RICH_PROMPT);
     expect(row["Respuesta del alumno"]).toBe("canonical answer");
-    expect(row["考生答案状态"]).toBe("rich_valid");
+    expect(row["Estado de la respuesta"]).toBe("rich_valid");
   });
 
   it("R5: historical noncanonical Rich stays identifiable, is projected, and is never repaired", async () => {
@@ -445,7 +448,7 @@ describe("attempt export — Rich answer integrity (D4 / F-05)", () => {
     const csv = await exportCsv(attemptId);
     const row = csvRowFor(csv, RICH_PROMPT);
     expect(row["Respuesta del alumno"]).toBe("答案");
-    expect(row["考生答案状态"]).toBe("rich_noncanonical");
+    expect(row["Estado de la respuesta"]).toBe("rich_noncanonical");
 
     // Read-only export: the persisted value is returned as-is, unrepaired.
     expect(await readDraftAnswer(attemptId, RICH_QUESTION_ID)).toEqual(
@@ -468,8 +471,8 @@ describe("attempt export — Rich answer integrity (D4 / F-05)", () => {
     expect(csv.raw).not.toContain("docVersion");
     const row = csvRowFor(csv, RICH_PROMPT);
     expect(row["Respuesta del alumno"]).toBe(NOT_APPLICABLE_CELL);
-    expect(row["考生答案模式"]).toBe("rich");
-    expect(row["考生答案状态"]).toBe("unsupported_version");
+    expect(row["Modo de respuesta"]).toBe("rich");
+    expect(row["Estado de la respuesta"]).toBe("unsupported_version");
   });
 
   it("R7: a malformed Rich envelope exports as corrupt without a Plain projection", async () => {
@@ -487,7 +490,7 @@ describe("attempt export — Rich answer integrity (D4 / F-05)", () => {
     expect(csv.raw).not.toContain("mysteryInline");
     const row = csvRowFor(csv, RICH_PROMPT);
     expect(row["Respuesta del alumno"]).toBe(NOT_APPLICABLE_CELL);
-    expect(row["考生答案状态"]).toBe("corrupt");
+    expect(row["Estado de la respuesta"]).toBe("corrupt");
   });
 
   it("D4-G: export classifies with the frozen snapshot mode, not the live question row", async () => {

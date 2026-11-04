@@ -15,6 +15,7 @@ import {
   uniquePrefix,
   type TestContext,
 } from "../routes/testHelpers.js";
+import { evenQuestionScores } from "../routes/attempts/__tests__/attempts.testHelpers.js";
 
 /**
  * Issue #286 — Teacher@Course adversarial scope matrix (Course A / Course B;
@@ -146,6 +147,7 @@ describe("Teacher@Course scope matrix (issue #286)", () => {
             passingScore: 60,
             totalScore: 100,
             questionIds,
+            questionScores: evenQuestionScores(questionIds, 100),
           },
           cookies: { "auth-token": ctx.adminToken },
         });
@@ -401,6 +403,7 @@ describe("Teacher@Course scope matrix (issue #286)", () => {
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionAId],
+        questionScores: { [questionAId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -465,7 +468,7 @@ describe("Teacher@Course scope matrix (issue #286)", () => {
   it("Teacher publishes in-scope Exam A (capability holds within scope)", async () => {
     const res = await tPost(`/api/exams/${examAId}/publish`, {});
     expect(res.statusCode).toBe(200);
-    expect(res.json().status).toBe("published");
+    expect(res.json().status).toBe("open");
   });
 
   it("enrollment manage on Exam B → 404 (list / add / remove)", async () => {
@@ -556,7 +559,6 @@ describe("Teacher@Course scope matrix (issue #286)", () => {
         type: "true_false",
         content: `Score fixture ${uniquePrefix()}`,
         standardAnswer: true,
-        score: 100,
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -575,6 +577,7 @@ describe("Teacher@Course scope matrix (issue #286)", () => {
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });

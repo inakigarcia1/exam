@@ -80,7 +80,6 @@ function createGraderMatrixHarness(
         content: `论述题 ${examTitle}`,
         standardAnswer: null,
         rubric: `按逻辑完整性给分（${examTitle}）`,
-        score: 100,
       },
       cookies: { "auth-token": ctx.adminToken },
     });
@@ -100,6 +99,7 @@ function createGraderMatrixHarness(
         passingScore: 60,
         totalScore: 100,
         questionIds: [questionId],
+        questionScores: { [questionId]: 100 },
       },
       cookies: { "auth-token": ctx.adminToken },
     });

@@ -171,7 +171,8 @@ describe("repository tenant isolation", () => {
       content: "Is this statement correct?",
       options: [],
       standardAnswer: true,
-      attachments: [],
+      image: null,
+      scale: null,
       difficulty: 1,
       tags: [],
       gradingRule: {

@@ -30,14 +30,26 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   getTypeLabel,
   isQuestionType,
   QUESTION_TYPE_LABEL_KEYS,
   TYPE_VARIANT,
 } from "@/lib/constants";
 import { formatStandardAnswerForDisplay } from "@/lib/answerDisplay";
+import {
+  StructuredAnswer,
+  isStructuredType,
+} from "@/components/shared/QuestionReviewList";
 import { listReturnState } from "@/lib/listReturnNavigation";
 import { cn } from "@/lib/utils";
+import { downloadFile } from "@/lib/download";
+import { downloadQuestionTemplate, readQuestionCsv } from "@/lib/questionCsv";
 import {
   ChevronDown,
   ChevronRight,
@@ -64,6 +76,7 @@ interface QuestionRow {
     contentDocument?: ContentDocumentV1 | null;
   }>;
   standardAnswer?: unknown;
+  scale?: string[] | null;
   difficulty: number;
   tags: string[];
   createdAt?: string;
@@ -308,79 +321,6 @@ function correctOptionIds(answer: unknown): string[] {
   return [String(answer)];
 }
 
-const QUESTION_CSV_HEADER =
-  "Tipo,Enunciado,OpciónA,OpciónB,OpciónC,OpciónD,Respuesta correcta,Dificultad,Etiqueta";
-
-function downloadQuestionTemplate() {
-  const blob = new Blob([`${QUESTION_CSV_HEADER}\n`], {
-    type: "text/csv;charset=utf-8",
-  });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = "plantilla-preguntas.csv";
-  anchor.click();
-  URL.revokeObjectURL(url);
-}
-
-function parseQuestionCsvLine(line: string): string[] {
-  const result: string[] = [];
-  let current = "";
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') {
-      if (inQuotes && line[i + 1] === '"') {
-        current += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if (ch === "," && !inQuotes) {
-      result.push(current);
-      current = "";
-    } else {
-      current += ch;
-    }
-  }
-  result.push(current);
-  return result;
-}
-
-function parseQuestionCsv(text: string) {
-  const lines = text.split(/\r?\n/).filter((line) => line.trim());
-  if (lines.length < 2) return [];
-  const rows = [];
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i];
-    if (!line) continue;
-    const cols = parseQuestionCsvLine(line);
-    if (cols.length < 2) continue;
-    const type = cols[0] ?? "";
-    const answer = cols[6] ?? "";
-    rows.push({
-      type,
-      content: cols[1] ?? "",
-      optionA: cols[2] || undefined,
-      optionB: cols[3] || undefined,
-      optionC: cols[4] || undefined,
-      optionD: cols[5] || undefined,
-      standardAnswer:
-        type === "true_false"
-          ? answer.toLowerCase() === "true" || answer === "Sí"
-          : type === "multiple_choice"
-            ? answer
-                .split(/[|,]/)
-                .map((item) => item.trim())
-                .filter(Boolean)
-            : answer,
-      difficulty: cols[7] ? Number(cols[7]) : undefined,
-      tags: cols[8] || undefined,
-    });
-  }
-  return rows;
-}
-
 function QuestionCard({
   question,
   showAnswers,
@@ -456,7 +396,19 @@ function QuestionCard({
         </Link>
 
         {showAnswers &&
-          (options.length > 0 ? (
+          (isStructuredType(question.type) ? (
+            <StructuredAnswer
+              item={{
+                type: question.type,
+                scale: question.scale ?? null,
+                options: options.map((o) => ({
+                  ...o,
+                  contentDocument: o.contentDocument ?? null,
+                })),
+              }}
+              answer={question.standardAnswer}
+            />
+          ) : options.length > 0 ? (
             <ul className="flex flex-col gap-2">
               {options.map((option) => {
                 const correct = correctIds.includes(option.id);
@@ -799,17 +751,25 @@ export function QuestionPage() {
         title={t("admin.questions.title")}
         actions={
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={downloadQuestionTemplate}>
-              <AppIcon icon={Download} size="inline" />
-              Descargar plantilla
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => csvInputRef.current?.click()}
-            >
-              <AppIcon icon={FileUp} size="inline" />
-              Subir CSV
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <AppIcon icon={FileUp} size="inline" />
+                  Importar CSV
+                  <AppIcon icon={ChevronDown} size="inline" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={() => downloadQuestionTemplate()}>
+                  <AppIcon icon={Download} size="inline" />
+                  Descargar plantilla
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => csvInputRef.current?.click()}>
+                  <AppIcon icon={FileUp} size="inline" />
+                  Subir CSV
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <input
               ref={csvInputRef}
               type="file"
@@ -821,7 +781,15 @@ export function QuestionPage() {
                 if (!file) return;
                 void (async () => {
                   try {
-                    const rows = parseQuestionCsv(await file.text());
+                    const { records: rows, missingColumns } = readQuestionCsv(
+                      await file.text(),
+                    );
+                    if (missingColumns.length > 0) {
+                      toast.error(
+                        `Al encabezado le faltan columnas: ${missingColumns.join(", ")}`,
+                      );
+                      return;
+                    }
                     if (rows.length === 0) {
                       toast.error("El CSV no tiene filas para importar");
                       return;
@@ -904,6 +872,18 @@ export function QuestionPage() {
                 {t("admin.questions.clearFilter")}
               </Button>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                downloadFile("/api/questions/export", "preguntas.csv").catch(
+                  () => toast.error("No se pudo exportar el CSV"),
+                )
+              }
+            >
+              <AppIcon icon={Download} size="inline" />
+              Exportar CSV
+            </Button>
           </>
         }
       >

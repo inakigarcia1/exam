@@ -31,6 +31,10 @@
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
+
+function posixRel(from, to) {
+  return relative(from, to).replaceAll("\\", "/");
+}
 import { fileURLToPath } from "node:url";
 import { SUPPORTED_ROOT_ENV_FILES } from "../config/envFilePolicy.ts";
 
@@ -114,7 +118,7 @@ console.log(
   const unsupportedRoot = [];
   walk(ROOT, (full, top) => {
     if (!isEnvFileName(basename(full))) return;
-    const rel = relative(top, full);
+    const rel = posixRel(top, full);
     if (dirname(rel) !== ".") {
       nonRoot.push(rel);
     } else if (!SUPPORTED_ROOT_ENV_FILES.includes(basename(full))) {
@@ -164,7 +168,7 @@ console.log("G3. Checking env reader allowlist…");
     /import\s*\{[^}]*\bloadEnv\b[^}]*\}\s*from\s*["']vite["']/;
 
   walkSourceFiles((full) => {
-    const rel = relative(ROOT, full);
+    const rel = posixRel(ROOT, full);
     if (allowedReaders.has(rel)) return;
     if (basename(full).includes(".test.")) return; // test fixtures/mocks
     const text = readFileSync(full, "utf8");
@@ -208,7 +212,7 @@ console.log("G4. Checking for real-candidate env writers in tests…");
     /resolve\(\s*__dirname\s*,\s*["'][^"']*\.env(?:["']|\.)/;
 
   walkSourceFiles((full) => {
-    const rel = relative(ROOT, full);
+    const rel = posixRel(ROOT, full);
     if (!basename(full).includes(".test.")) return;
     const text = readFileSync(full, "utf8");
     for (const [index, line] of text.split("\n").entries()) {
@@ -253,7 +257,7 @@ console.log("G5. Checking envDir / drizzle / web admission structural pins…");
   walk(ROOT, (full, top) => {
     const name = basename(full);
     if (/^vite(?:st)?[\w.-]*\.config\.ts$/.test(name)) {
-      configFiles.push(relative(top, full));
+      configFiles.push(posixRel(top, full));
     }
   });
   if (configFiles.length === 0) {

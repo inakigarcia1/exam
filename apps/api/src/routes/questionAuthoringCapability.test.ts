@@ -135,10 +135,9 @@ describe("question routes — Teacher authoring capabilities", () => {
         confirm: true,
         rows: [
           {
-            type: "true_false",
-            content: "Teacher imported question",
-            standardAnswer: true,
-            score: 5,
+            tipo: "true_false",
+            enunciado: "Teacher imported question",
+            respuesta: "verdadero",
           },
         ],
       },

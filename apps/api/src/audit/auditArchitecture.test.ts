@@ -265,7 +265,8 @@ describe("audit architecture", () => {
     const bypasses = sources
       .filter(
         (file) =>
-          relative(root, file.path) !== "audit/auditWriter.ts" &&
+          relative(root, file.path).replaceAll("\\", "/") !==
+            "audit/auditWriter.ts" &&
           (/createAuditLogWriter/.test(file.source) ||
             /\.insert\(auditLogs\)/.test(file.source)),
       )

@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { QuestionNavigator } from "@/components/exam/QuestionNavigator";
 import { ContentRenderer } from "@/components/shared/content/ContentRenderer";
+import { QuestionImage } from "@/components/shared/QuestionImage";
 import { QuestionRenderer } from "@/components/exam/QuestionRenderer";
 
 export function ExamPreviewPage() {
@@ -124,6 +125,11 @@ export function ExamPreviewPage() {
               content={current.prompt}
               document={current.promptDocument}
             />
+            {current.image && (
+              <div className="mt-4">
+                <QuestionImage image={current.image} />
+              </div>
+            )}
             <div className="mt-6">
               <QuestionRenderer
                 question={rendererQuestion}

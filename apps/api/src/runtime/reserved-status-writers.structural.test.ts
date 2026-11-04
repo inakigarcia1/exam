@@ -44,7 +44,7 @@ const TEST_INFRA = [
 function collectSourceFiles(dir: string): string[] {
   const files: string[] = [];
   for (const entry of readdirSync(dir)) {
-    const full = join(dir, entry);
+    const full = join(dir, entry).replaceAll("\\", "/");
     const st = statSync(full);
     if (st.isDirectory()) {
       files.push(...collectSourceFiles(full));

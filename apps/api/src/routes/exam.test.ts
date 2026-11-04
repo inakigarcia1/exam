@@ -586,7 +586,7 @@ describe("exam routes", () => {
       await ctx.db.insert(schema.courses).values({
         id: otherCourseId,
         organizationId: otherOrgId,
-        name: "Foreign Course",
+        name: `Foreign Course ${crypto.randomUUID()}`,
         code: `FC-${uniquePrefix()}`,
         description: "",
         createdAt: now,
@@ -599,7 +599,8 @@ describe("exam routes", () => {
         content: "Cross-org question.",
         options: [],
         standardAnswer: true,
-        attachments: [],
+        image: null,
+        scale: null,
         difficulty: 1,
         tags: [],
         gradingRule: {
@@ -1315,7 +1316,8 @@ describe("exam close (ADR-005 Slice 1)", () => {
       content: "Close pending manual essay",
       options: [],
       standardAnswer: null,
-      attachments: [],
+      image: null,
+      scale: null,
       difficulty: 3,
       tags: [],
       gradingRule: {

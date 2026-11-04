@@ -31,7 +31,12 @@ export function FormSection({
       description={description}
       actions={actions}
       className={className}
-      contentClassName={cn("grid gap-4", contentClassName)}
+      // minmax(0,1fr): an `auto` track sizes to content min-width, so a wide
+      // child (e.g. an open question editor) would push past the viewport.
+      contentClassName={cn(
+        "grid grid-cols-[minmax(0,1fr)] gap-4",
+        contentClassName,
+      )}
     >
       {children}
     </PageSection>

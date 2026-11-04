@@ -22,7 +22,7 @@ describe("EnrollmentPicker", () => {
       />,
     );
 
-    expect(screen.getByPlaceholderText("Buscar alumnos")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Buscar alumno")).toBeInTheDocument();
   });
 
   it("shows all candidates by default", () => {
@@ -52,7 +52,7 @@ describe("EnrollmentPicker", () => {
       />,
     );
 
-    await userEvent.type(screen.getByPlaceholderText("Buscar alumnos"), "张");
+    await userEvent.type(screen.getByPlaceholderText("Buscar alumno"), "张");
 
     expect(screen.getByText("张三")).toBeInTheDocument();
     expect(screen.getByText("张伟")).toBeInTheDocument();
@@ -71,7 +71,7 @@ describe("EnrollmentPicker", () => {
       />,
     );
 
-    await userEvent.type(screen.getByPlaceholderText("Buscar alumnos"), "zhang");
+    await userEvent.type(screen.getByPlaceholderText("Buscar alumno"), "zhang");
 
     expect(screen.getByText("张三")).toBeInTheDocument();
     expect(screen.getByText("张伟")).toBeInTheDocument();
@@ -119,7 +119,9 @@ describe("EnrollmentPicker", () => {
       />,
     );
 
-    expect(screen.getByRole("checkbox", { name: /Seleccionar todo/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole("checkbox", { name: /Seleccionar todo/ }),
+    ).toBeInTheDocument();
   });
 
   it("select all toggles non-enrolled visible candidates", async () => {
@@ -133,7 +135,9 @@ describe("EnrollmentPicker", () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole("checkbox", { name: /Seleccionar todo/ }));
+    await userEvent.click(
+      screen.getByRole("checkbox", { name: /Seleccionar todo/ }),
+    );
 
     expect(onChange).toHaveBeenCalledWith(new Set(["c1", "c3", "c4", "c5"]));
   });
@@ -165,8 +169,10 @@ describe("EnrollmentPicker", () => {
       />,
     );
 
-    await userEvent.type(screen.getByPlaceholderText("Buscar alumnos"), "张");
-    await userEvent.click(screen.getByRole("checkbox", { name: /Seleccionar todo/ }));
+    await userEvent.type(screen.getByPlaceholderText("Buscar alumno"), "张");
+    await userEvent.click(
+      screen.getByRole("checkbox", { name: /Seleccionar todo/ }),
+    );
 
     expect(onChange).toHaveBeenCalledWith(new Set(["c1", "c3"]));
   });

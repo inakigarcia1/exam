@@ -8,6 +8,7 @@ export * from "./invitation.js";
 export * from "./candidate.js";
 export * from "./course.js";
 export * from "./question.js";
+export * from "./csvFormats.js";
 export * from "./contentDocument.js";
 export * from "./persistedRichAnswer.js";
 export * from "./persistedQuestionContent.js";

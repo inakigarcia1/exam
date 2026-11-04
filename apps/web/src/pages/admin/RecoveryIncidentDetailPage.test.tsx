@@ -204,7 +204,9 @@ describe("RecoveryIncidentDetailPage", () => {
       .getByText("Intento")
       .closest("section") as HTMLElement;
     expect(within(attemptsSection).getByText(/88\.5/)).toBeInTheDocument();
-    expect(within(attemptsSection).getByText("Desconectado")).toBeInTheDocument();
+    expect(
+      within(attemptsSection).getByText("Desconectado"),
+    ).toBeInTheDocument();
   });
 
   it("renders events, notes, actions, memberships and interruption links", async () => {
@@ -215,7 +217,9 @@ describe("RecoveryIncidentDetailPage", () => {
       (await screen.findAllByText("Iniciar investigación")).length,
     ).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("已联系考生")).toBeInTheDocument();
-    expect(screen.getAllByText("Compensación de tiempo").length).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getAllByText("Compensación de tiempo").length,
+    ).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Afectado")).toBeInTheDocument();
     expect(screen.getByText("interruption-1")).toBeInTheDocument();
   });
@@ -285,8 +289,12 @@ describe("RecoveryIncidentDetailPage", () => {
   it("investigates with operationId + expectedVersion and reloads", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "Iniciar investigación" }));
-    await user.click(screen.getByRole("button", { name: "Iniciar investigación" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Iniciar investigación" }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Iniciar investigación" }),
+    );
 
     expect(postMock).toHaveBeenCalledTimes(1);
     const [url, body] = postMock.mock.calls[0]! as unknown as [
@@ -302,7 +310,9 @@ describe("RecoveryIncidentDetailPage", () => {
   it("requires a resolution summary before resolving (terminal judgment)", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "Resolver incidente" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Resolver incidente" }),
+    );
     const confirm = screen.getByRole("button", { name: "Resolver incidente" });
     await user.click(confirm);
     expect(postMock).not.toHaveBeenCalled();
@@ -312,12 +322,16 @@ describe("RecoveryIncidentDetailPage", () => {
   it("resolves with the resolution summary + expectedVersion", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "Resolver incidente" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Resolver incidente" }),
+    );
     await user.type(
       screen.getByLabelText("Resolución"),
       "考生已恢复，网络已修复",
     );
-    await user.click(screen.getByRole("button", { name: "Resolver incidente" }));
+    await user.click(
+      screen.getByRole("button", { name: "Resolver incidente" }),
+    );
 
     expect(postMock).toHaveBeenCalledTimes(1);
     const [url, body] = postMock.mock.calls[0]! as unknown as [
@@ -339,13 +353,17 @@ describe("RecoveryIncidentDetailPage", () => {
       new ApiError(409, "version conflict", "INCIDENT_VERSION_CONFLICT"),
     );
     renderPage();
-    await user.click(await screen.findByRole("button", { name: "Iniciar investigación" }));
-    await user.click(screen.getByRole("button", { name: "Iniciar investigación" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Iniciar investigación" }),
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Iniciar investigación" }),
+    );
 
     // Confirmed rejection — dialog closes; the dedicated version-conflict
     // toast is surfaced (reload and retry).
     expect(toast.error).toHaveBeenCalledWith(
-      expect.stringContaining("版本冲突"),
+      expect.stringContaining("conflicto de versión"),
     );
     expect(screen.queryByText("Reintentar")).not.toBeInTheDocument();
   });
@@ -356,8 +374,14 @@ describe("RecoveryIncidentDetailPage", () => {
       snapshotAt: "2025-01-01T00:00:00Z",
     });
     renderPage();
-    expect(await screen.findByText(/快照时间：/)).toBeInTheDocument();
-    expect(screen.getByText("La instantánea es antigua. Los datos pueden haber cambiado.")).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Hora de la instantánea:/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "La instantánea es antigua. Los datos pueden haber cambiado.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("shows a fresh snapshot without a stale warning", async () => {
@@ -366,16 +390,22 @@ describe("RecoveryIncidentDetailPage", () => {
       snapshotAt: new Date().toISOString(),
     });
     renderPage();
-    expect(await screen.findByText(/快照时间：/)).toBeInTheDocument();
     expect(
-      screen.queryByText("La instantánea es antigua. Los datos pueden haber cambiado."),
+      await screen.findByText(/Hora de la instantánea:/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        "La instantánea es antigua. Los datos pueden haber cambiado.",
+      ),
     ).not.toBeInTheDocument();
   });
 
   it("shows not-found for 404 and retry works", async () => {
     getMock.mockRejectedValueOnce(new ApiError(404, "Not found"));
     renderPage();
-    expect(await screen.findByText("No se encontró este incidente")).toBeInTheDocument();
+    expect(
+      await screen.findByText("No se encontró este incidente"),
+    ).toBeInTheDocument();
 
     getMock.mockResolvedValue(mockAggregate);
     await userEvent.setup().click(screen.getByText("Reintentar"));
@@ -388,7 +418,7 @@ describe("RecoveryIncidentDetailPage", () => {
     getMock.mockRejectedValueOnce(new ApiError(0, "Network request failed"));
     renderPage();
     // status 0 → network kind → networkError message (classifier authority).
-    expect(await screen.findByText(/网络异常/)).toBeInTheDocument();
+    expect(await screen.findByText(/Problema de red/)).toBeInTheDocument();
   });
 
   it("keeps the loaded page on screen with an inline warning when a background refresh fails", async () => {
@@ -397,12 +427,16 @@ describe("RecoveryIncidentDetailPage", () => {
 
     // Manual refresh fails while data is on screen (503 → unavailable).
     getMock.mockRejectedValueOnce(new ApiError(503, "unavailable"));
-    await userEvent.setup().click(screen.getByRole("button", { name: "Actualizar" }));
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: "Actualizar" }));
 
     // Old data stays visible, the failure is an INLINE banner (not a
     // full-screen ErrorState — no retry button, no data swap).
     expect(
-      await screen.findByText("Los datos de recuperación no están disponibles. Inténtalo más tarde."),
+      await screen.findByText(
+        "Los datos de recuperación no están disponibles. Inténtalo más tarde.",
+      ),
     ).toBeInTheDocument();
     expect(screen.getByText("detail page test incident")).toBeInTheDocument();
     expect(

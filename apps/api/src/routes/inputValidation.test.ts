@@ -11,7 +11,7 @@ import { buildTestApp, uniquePrefix } from "./testHelpers.js";
 // the sole wire-boundary witnesses for schema members that NO other lane
 // covers (verified member-by-member in the #716 adversarial pass): title
 // min/max, openAt datetime, durationMinutes positivity, question content
-// non-empty, question score positivity, and the duplicate-username → 409
+// non-empty, exam question score positivity, and the duplicate-username → 409
 // mapping. Adversarial review D restored them after the first deletion pass.
 describe("API input validation (Zod schema boundary)", () => {
   let ctx: Awaited<ReturnType<typeof buildTestApp>>;
@@ -133,17 +133,11 @@ describe("API input validation (Zod schema boundary)", () => {
     expect(res.json().error.code).toBe("VALIDATION_ERROR");
   });
 
-  it("question creation rejects negative score", async () => {
+  it("exam creation rejects a negative question score", async () => {
     const res = await ctx.app.inject({
       method: "POST",
-      url: "/api/questions",
-      payload: {
-        courseId,
-        type: "true_false",
-        content: "Valid content.",
-        standardAnswer: true,
-        score: -1,
-      },
+      url: "/api/exams",
+      payload: { ...baseExamPayload(), questionScores: { [questionId]: -1 } },
       cookies: { "auth-token": ctx.adminToken },
     });
     expect(res.statusCode).toBe(400);

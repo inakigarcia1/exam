@@ -1,8 +1,12 @@
 import { useTranslation } from "react-i18next";
 import { CircleCheck, CircleX } from "lucide-react";
 import { resolveRichAnswerDocument } from "@exam/contracts";
-import type { ContentDocumentV1 } from "@exam/domain";
+import type {
+  ContentDocumentV1,
+  QuestionImage as QuestionImageRef,
+} from "@exam/domain";
 import { AppIcon } from "@/components/shared/AppIcon";
+import { QuestionImage } from "@/components/shared/QuestionImage";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ContentDocumentRenderer } from "@/components/shared/content/ContentDocumentRenderer";
@@ -24,6 +28,8 @@ export type QuestionReviewItem = {
   type: string;
   content: string;
   contentDocument: ContentDocumentV1 | null;
+  image: QuestionImageRef | null;
+  scale: string[] | null;
   answerMode: string | null;
   options: QuestionReviewOption[];
   candidateAnswer?: unknown;
@@ -67,6 +73,69 @@ function RichAnswerBlock({
       {formatAnswerForDisplay(answer, answerMode)}
     </p>
   );
+}
+
+function OptionText({ option }: { option: QuestionReviewOption }) {
+  return option.contentDocument ? (
+    <ContentDocumentRenderer document={option.contentDocument} />
+  ) : (
+    <>{option.content}</>
+  );
+}
+
+/** Likert and ranking answers read through the question's rows/columns. */
+export function StructuredAnswer({
+  item,
+  answer,
+}: {
+  item: Pick<QuestionReviewItem, "type" | "options" | "scale">;
+  answer: unknown;
+}) {
+  const { t } = useTranslation();
+  if (item.type === "ranking" && Array.isArray(answer)) {
+    const byId = new Map(item.options.map((o) => [o.id, o]));
+    return (
+      <ol className="flex list-decimal flex-col gap-1 pl-6">
+        {answer.map((id) => {
+          const option = byId.get(String(id));
+          return (
+            <li key={String(id)}>
+              {option ? <OptionText option={option} /> : String(id)}
+            </li>
+          );
+        })}
+      </ol>
+    );
+  }
+  if (item.type === "likert" && typeof answer === "object" && answer !== null) {
+    const picks = answer as Record<string, unknown>;
+    return (
+      <ul className="flex flex-col gap-1">
+        {item.options.map((row) => {
+          const column = picks[row.id];
+          return (
+            <li key={row.id} className="flex flex-wrap gap-x-2">
+              <OptionText option={row} />
+              <span className="type-secondary">
+                {typeof column === "number"
+                  ? (item.scale?.[column] ?? String(column))
+                  : t("candidateResult.answer.unanswered")}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    );
+  }
+  return (
+    <p className="break-words whitespace-pre-wrap">
+      {formatAnswerForDisplay(answer, null)}
+    </p>
+  );
+}
+
+export function isStructuredType(type: string): boolean {
+  return type === "likert" || type === "ranking";
 }
 
 function normalizeSelectedIds(answer: unknown): string[] {
@@ -151,6 +220,7 @@ export function QuestionReviewList({
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               <QuestionPrompt item={item} />
+              <QuestionImage image={item.image} />
 
               {isChoiceType(item.type) && item.options.length > 0 ? (
                 <ul className="flex flex-col gap-2">
@@ -197,10 +267,18 @@ export function QuestionReviewList({
               ) : (
                 <div className="flex flex-col gap-1">
                   <span className="type-label">{yourAnswerLabel}</span>
-                  <RichAnswerBlock
-                    answer={item.candidateAnswer}
-                    answerMode={item.answerMode}
-                  />
+                  {isStructuredType(item.type) &&
+                  item.candidateAnswer != null ? (
+                    <StructuredAnswer
+                      item={item}
+                      answer={item.candidateAnswer}
+                    />
+                  ) : (
+                    <RichAnswerBlock
+                      answer={item.candidateAnswer}
+                      answerMode={item.answerMode}
+                    />
+                  )}
                 </div>
               )}
 
@@ -209,14 +287,22 @@ export function QuestionReviewList({
                 !isChoiceType(item.type) && (
                   <div className="flex flex-col gap-1">
                     <span className="type-label">{referenceLabel}</span>
-                    <p className="break-words whitespace-pre-wrap">
-                      {item.manualGraded && item.type === "text_response"
-                        ? t("candidateResult.answer.manual")
-                        : formatStandardAnswerForDisplay(
-                            item.standardAnswer,
-                            item.type,
-                          )}
-                    </p>
+                    {isStructuredType(item.type) &&
+                    item.standardAnswer != null ? (
+                      <StructuredAnswer
+                        item={item}
+                        answer={item.standardAnswer}
+                      />
+                    ) : (
+                      <p className="break-words whitespace-pre-wrap">
+                        {item.manualGraded && item.type === "text_response"
+                          ? t("candidateResult.answer.manual")
+                          : formatStandardAnswerForDisplay(
+                              item.standardAnswer,
+                              item.type,
+                            )}
+                      </p>
+                    )}
                   </div>
                 )}
 

@@ -62,7 +62,10 @@ async function pgReachable(url: string): Promise<boolean> {
 }
 
 const PG_UP = await pgReachable(resolveTestDbUrl());
-const PG_DESCRIBE = PG_UP ? describe : describe.skip;
+// WHY: Windows has no catchable SIGTERM — `kill("SIGTERM")` terminates the
+// child outright, so the graceful-shutdown oracle only exists on POSIX.
+const PG_DESCRIBE =
+  PG_UP && process.platform !== "win32" ? describe : describe.skip;
 
 interface ChildRun {
   code: number | null;

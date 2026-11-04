@@ -179,13 +179,15 @@ export async function generateOpenAPISpec(): Promise<OpenAPISpecDocument> {
 /**
  * Patches CSV export routes whose 200 response is declared as `z.string()`
  * (which fastify-swagger renders as `application/json`) to correctly report
- * `text/csv`. Only the two known CSV endpoints are affected.
+ * `text/csv`. Only the known CSV endpoints are affected.
  */
 function fixCsvContentTypes(spec: OpenAPISpecDocument): void {
   if (!spec.paths) return;
   const csvPaths = [
     "/api/exams/{id}/export/scores",
     "/api/admin/attempts/{attemptId}/export/csv",
+    "/api/questions/export",
+    "/api/candidates/export",
   ];
 
   for (const path of csvPaths) {

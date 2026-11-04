@@ -33,7 +33,8 @@ import { fileURLToPath } from "node:url";
  */
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const API_DIR = join(__dirname, "../..");
-const VITEST_BIN = join(API_DIR, "node_modules/.bin/vitest");
+// WHY: spawn the JS entry through node — `.bin/vitest` is a POSIX shim.
+const VITEST_ENTRY = join(API_DIR, "node_modules/vitest/vitest.mjs");
 const CHILD_CONFIG = "tests/slotReuse/vitest.child.config.ts";
 const ORDINARY_TEST = "src/adapters/repoAdapters.test.ts";
 
@@ -69,7 +70,10 @@ function spawnVitest(
       if (value === undefined) delete env[key];
       else env[key] = value;
     }
-    const child = spawn(VITEST_BIN, args, { cwd: API_DIR, env });
+    const child = spawn(process.execPath, [VITEST_ENTRY, ...args], {
+      cwd: API_DIR,
+      env,
+    });
     let output = "";
     child.stdout.on("data", (d: Buffer) => {
       output += d.toString();

@@ -1,8 +1,12 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { createCandidateFieldRepo } from "@exam/db/repository/candidateFieldRepo";
 import { createImportJobLogRepo } from "@exam/db/repository/importJobLogRepo";
-import { getErrorMessage } from "@exam/contracts";
-import { hashPassword } from "@exam/auth/password";
+import {
+  CANDIDATE_CSV_HEADER,
+  getErrorMessage,
+  parseCsvRecords,
+} from "@exam/contracts";
+import { hashPassword, verifyPassword } from "@exam/auth/password";
 import { signJWT } from "@exam/auth/session";
 import { schema } from "@exam/db/schema/pg";
 import { cleanupOrganizationTestData } from "@exam/db/testCleanup";
@@ -482,6 +486,102 @@ describe("candidate routes", () => {
     expect(body.created).toBe(0);
     expect(body.updated).toBe(1);
     expect(body.errors).toHaveLength(0);
+  });
+
+  it("CSV re-import: empty password keeps it and the fields, a new one replaces it", async () => {
+    const username = `csv-${Date.now()}`;
+    const identity = `C-${Date.now()}`;
+    const importRows = (rows: unknown[]) =>
+      ctx.app.inject({
+        method: "POST",
+        url: "/api/candidates/import",
+        payload: { rows },
+        cookies: { "auth-token": adminToken },
+      });
+    const readUser = async () => {
+      const [user] = await ctx.db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.username, username));
+      const [candidate] = await ctx.db
+        .select()
+        .from(schema.candidateProfiles)
+        .where(eq(schema.candidateProfiles.userId, user!.id));
+      return { user: user!, candidate: candidate! };
+    };
+
+    await importRows([
+      {
+        username,
+        password: "password123",
+        name: "Csv User",
+        fields: { [identityFieldName]: identity },
+      },
+    ]);
+    const before = await readUser();
+
+    const noPassword = await importRows([{ username, name: "Csv Renamed" }]);
+    expect(noPassword.json()).toMatchObject({ created: 0, updated: 1 });
+    const kept = await readUser();
+    expect(kept.user.name).toBe("Csv Renamed");
+    expect(kept.user.passwordHash).toBe(before.user.passwordHash);
+    expect(kept.user.authEpoch).toBe(before.user.authEpoch);
+    expect(kept.candidate.fields).toEqual(before.candidate.fields);
+
+    await importRows([
+      { username, name: "Csv Renamed", password: "nueva-clave-1" },
+    ]);
+    const changed = await readUser();
+    expect(changed.user.passwordHash).not.toBe(before.user.passwordHash);
+    expect(
+      await verifyPassword("nueva-clave-1", changed.user.passwordHash),
+    ).toBe(true);
+    expect(changed.user.authEpoch).toBe(before.user.authEpoch + 1);
+  });
+
+  it("GET /api/candidates/export returns legajo,nombre,contraseña with empty passwords", async () => {
+    const username = `exp-${Date.now()}`;
+    await ctx.app.inject({
+      method: "POST",
+      url: "/api/candidates/import",
+      payload: {
+        rows: [
+          {
+            username,
+            password: "password123",
+            name: "Gómez, Ana",
+            fields: { [identityFieldName]: `E-${Date.now()}` },
+          },
+        ],
+      },
+      cookies: { "auth-token": adminToken },
+    });
+    const res = await ctx.app.inject({
+      method: "GET",
+      url: "/api/candidates/export",
+      cookies: { "auth-token": adminToken },
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers["content-type"]).toContain("text/csv");
+    const { records, missingColumns } = parseCsvRecords(
+      res.body,
+      CANDIDATE_CSV_HEADER,
+    );
+    expect(missingColumns).toEqual([]);
+    expect(records).toContainEqual({
+      legajo: username,
+      nombre: "Gómez, Ana",
+      contraseña: "",
+    });
+  });
+
+  it("GET /api/candidates/export is admin-only", async () => {
+    const res = await ctx.app.inject({
+      method: "GET",
+      url: "/api/candidates/export",
+      cookies: { "auth-token": teacherToken },
+    });
+    expect(res.statusCode).toBe(403);
   });
 
   it("rolls back a newly created identity row when its import audit fails", async () => {

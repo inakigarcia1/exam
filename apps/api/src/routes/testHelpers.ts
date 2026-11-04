@@ -667,7 +667,8 @@ export async function createExamViaApi(
     method: "POST",
     url: "/api/courses",
     payload: {
-      name: opts.courseName,
+      // Commission names are unique per organization (case-insensitive).
+      name: `${opts.courseName} ${courseCode}`,
       code: courseCode,
       description: "",
     },
@@ -684,11 +685,9 @@ export async function createExamViaApi(
     method: "POST",
     url: "/api/questions",
     payload: {
-      courseId,
       type: "true_false",
       content: opts.questionContent,
       standardAnswer: opts.questionAnswer,
-      score: opts.questionScore,
     },
     cookies: { "auth-token": adminToken },
   });
@@ -711,6 +710,7 @@ export async function createExamViaApi(
       passingScore: opts.passingScore,
       totalScore: opts.totalScore,
       questionIds: [questionId],
+      questionScores: { [questionId]: opts.questionScore },
     },
     cookies: { "auth-token": adminToken },
   });

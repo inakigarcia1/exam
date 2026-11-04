@@ -94,7 +94,7 @@ describe("考试管理请求状态", () => {
     await waitFor(() => {
       expect(resolveExams).toBeDefined();
     });
-    expect(screen.getByText(/加载中/)).toBeInTheDocument();
+    expect(screen.getByText(/Cargando/)).toBeInTheDocument();
 
     resolveExams!(
       HttpResponse.json({
@@ -126,7 +126,7 @@ describe("考试管理请求状态", () => {
     await waitFor(() => {
       expect(screen.getAllByText("示例考试").length).toBeGreaterThanOrEqual(1);
     });
-    expect(screen.queryByText(/加载中/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Cargando/)).not.toBeInTheDocument();
   });
 
   it("应该显示错误状态当请求失败时", async () => {
@@ -143,7 +143,9 @@ describe("考试管理请求状态", () => {
 
     await waitFor(
       () => {
-        expect(screen.getByText(/No se pudo cargar la lista de exámenes/)).toBeInTheDocument();
+        expect(
+          screen.getByText(/No se pudo cargar la lista de exámenes/),
+        ).toBeInTheDocument();
       },
       { timeout: 3000 },
     );

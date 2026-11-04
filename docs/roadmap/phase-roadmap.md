@@ -223,8 +223,9 @@ Implemented items are marked ✅; open items are Issue-tracked:
 - ✅ Fill-blank answer protocol, auto-grading, result flow, and E2E closeout (auto-graded exact/keyword matching).
 - ✅ Plain-text `text_response` authoring, optional reference answer, candidate answering, snapshot freeze, grading-queue discovery, manual grading, and result flow.
 - ✅ Rich-text/WYSIWYG authoring and answering protocol (ADR-019; **Issue #301**
-  closed 2026-08-31) — formula/table/code content delivered; attachments remain
-  unsupported and no attachment policy has been adopted.
+  closed 2026-08-31) — formula/table/code content delivered. Inline images in
+  rich documents remain unsupported.
+- ✅ One image per question, shown between prompt and answer area (ADR-024).
 - Closed not planned: the generic final-answer submit barrier (Option D, ADR-008 — `/submit` carrying a final-answer payload or version/hash barrier; **Issue #302**, closed 2026-08-27 as superseded). Normal-submit correctness is owned by the pre-submit flush plus the server-side locked submit/freeze path.
 - ⏳ Remaining i18n page-level copy migration — folded into **Issue #305**.
 - ✅ In-app notification Inbox for selected operational events (architecture: ADR-011).

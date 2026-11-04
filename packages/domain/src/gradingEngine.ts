@@ -113,6 +113,38 @@ function gradeFillBlank(
   return makeResult(question, candidateAnswer, correct ? question.score : 0);
 }
 
+/** Every row must be answered with its correct column; otherwise zero. */
+function gradeLikert(
+  question: QuestionSnapshot,
+  candidateAnswer: unknown,
+): QuestionScoreResult {
+  const standard = question.standardAnswer;
+  const correct =
+    isRecord(standard) &&
+    isRecord(candidateAnswer) &&
+    question.options.length > 0 &&
+    question.options.every(
+      (option) =>
+        standard[option.id] !== undefined &&
+        candidateAnswer[option.id] === standard[option.id],
+    );
+  return makeResult(question, candidateAnswer, correct ? question.score : 0);
+}
+
+/** The candidate's order must equal the standard order exactly; otherwise zero. */
+function gradeRanking(
+  question: QuestionSnapshot,
+  candidateAnswer: unknown,
+): QuestionScoreResult {
+  const standard = toStringArray(question.standardAnswer);
+  const candidate = toStringArray(candidateAnswer);
+  const correct =
+    standard.length > 0 &&
+    candidate.length === standard.length &&
+    candidate.every((id, index) => id === standard[index]);
+  return makeResult(question, candidateAnswer, correct ? question.score : 0);
+}
+
 /**
  * Grade a single question against a candidate's answer.
  *
@@ -120,6 +152,8 @@ function gradeFillBlank(
  * - `single_choice` / `true_false`: exact value match.
  * - `multiple_choice`: set comparison with configurable partial scoring.
  * - `fill_blank`: string matching with exact or keyword mode.
+ * - `likert`: every row on its correct column, all or nothing.
+ * - `ranking`: exact order, all or nothing.
  * - `text_response`: NOT auto-graded here. Returns a zero-score placeholder;
  *   manual scoring in {@link manualGrading} owns the real score. Including
  *   the case keeps the switch exhaustive as QuestionType widens.
@@ -138,6 +172,10 @@ export function gradeQuestion(
       return gradeMultipleChoice(question, candidateAnswer);
     case "fill_blank":
       return gradeFillBlank(question, candidateAnswer);
+    case "likert":
+      return gradeLikert(question, candidateAnswer);
+    case "ranking":
+      return gradeRanking(question, candidateAnswer);
     case "text_response":
       // Manual-graded: the auto-grading engine does not score this type.
       // The zero-score placeholder is overwritten by manualGrading on

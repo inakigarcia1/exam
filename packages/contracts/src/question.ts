@@ -5,13 +5,25 @@ import type { AnswerMode, ContentSlot } from "./contentDocument.js";
 
 // ── Question ──────────────────────────────────────────────────────
 
-const QuestionTypeEnum = z.enum([
+/** Every question type. The single wire list; other schemas reuse it. */
+export const QuestionTypeEnum = z.enum([
   "single_choice",
   "multiple_choice",
   "fill_blank",
   "true_false",
   "text_response",
+  "likert",
+  "ranking",
 ]);
+
+/**
+ * Likert column labels, left to right. `options` are the rows; a likert
+ * standardAnswer maps every row id to the index of its correct column.
+ */
+export const LikertScaleSchema = z
+  .array(z.string().trim().min(1).max(100))
+  .min(2)
+  .max(10);
 
 /**
  * A stored option. `contentDocument == null` → Plain (content authoritative);
@@ -33,10 +45,24 @@ const OptionInputSchema = OptionSchema.extend({
   content: z.string().optional(),
 });
 
-const AttachmentSchema = z.object({
-  url: z.string(),
-  type: z.enum(["image", "file"]),
-  name: z.string(),
+/** Largest accepted question image upload, in bytes (ADR-024). */
+export const QUESTION_IMAGE_MAX_BYTES = 1024 * 1024;
+
+/** Content hash of a stored question image: lowercase hex SHA-256. */
+export const QuestionImageSha256Schema = z.string().regex(/^[0-9a-f]{64}$/);
+
+/**
+ * A question's single image: a reference to an immutable `question_images`
+ * row of the same organization, plus its alternative text (ADR-024).
+ */
+export const QuestionImageSchema = z.object({
+  sha256: QuestionImageSha256Schema,
+  alt: z.string().max(300),
+});
+
+/** Response of `POST /question-images`. */
+export const QuestionImageUploadResponseSchema = z.object({
+  sha256: QuestionImageSha256Schema,
 });
 
 /**
@@ -93,6 +119,7 @@ function validateQuestionType(
     content?: string | undefined;
     contentDocument?: ContentSlot;
     answerMode?: AnswerMode | null | undefined;
+    scale?: string[] | null | undefined;
     options?:
       | Array<{
           id: string;
@@ -169,13 +196,31 @@ function validateQuestionType(
 
   if (
     (question.type === "single_choice" ||
-      question.type === "multiple_choice") &&
+      question.type === "multiple_choice" ||
+      question.type === "likert" ||
+      question.type === "ranking") &&
     (!question.options || question.options.length < 2)
   ) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       message: "choice questions require at least two options",
       path: ["options"],
+    });
+  }
+
+  const scale = question.scale ?? null;
+  if (question.type === "likert" && scale === null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "likert questions require a scale",
+      path: ["scale"],
+    });
+  }
+  if (question.type !== "likert" && scale !== null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "scale is only meaningful for likert questions",
+      path: ["scale"],
     });
   }
 
@@ -256,11 +301,56 @@ function validateQuestionType(
       path: ["standardAnswer"],
     });
   }
+
+  if (question.type === "likert" && scale !== null) {
+    const answer = question.standardAnswer;
+    const valid =
+      typeof answer === "object" &&
+      !Array.isArray(answer) &&
+      Object.keys(answer as object).length === optionIds.length &&
+      optionIds.every((id) => {
+        const column = (answer as Record<string, unknown>)[id];
+        return (
+          Number.isInteger(column) &&
+          (column as number) >= 0 &&
+          (column as number) < scale.length
+        );
+      });
+    if (!valid) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "likert standardAnswer must map every row to a column of the scale",
+        path: ["standardAnswer"],
+      });
+    }
+  }
+
+  if (
+    question.type === "ranking" &&
+    !isPermutationOf(question.standardAnswer, optionIds)
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "ranking standardAnswer must order every option exactly once",
+      path: ["standardAnswer"],
+    });
+  }
+}
+
+/** True when `value` lists every id of `ids` exactly once. */
+export function isPermutationOf(value: unknown, ids: string[]): boolean {
+  return (
+    Array.isArray(value) &&
+    value.length === ids.length &&
+    new Set(value).size === ids.length &&
+    value.every((id) => typeof id === "string" && ids.includes(id))
+  );
 }
 
 /**
  * Schema for a question entity in the question bank, including content, options,
- * standard answer, attachments, scoring, difficulty, tags, and grading rules.
+ * standard answer, image, scoring, difficulty, tags, and grading rules.
  *
  * `contentDocument` carries the B′ dual-mode authority: null → Plain
  * (content authoritative), non-null → Rich (document authoritative, content
@@ -276,7 +366,8 @@ export const QuestionSchema = z.object({
   answerMode: AnswerModeEnum.nullable().default(null),
   options: z.array(OptionSchema),
   standardAnswer: StandardAnswerSchema,
-  attachments: z.array(AttachmentSchema),
+  image: QuestionImageSchema.nullable(),
+  scale: z.array(z.string()).nullable(),
   difficulty: z.number().int().min(1).max(5),
   tags: z.array(z.string()),
   gradingRule: GradingRuleSchema,
@@ -341,7 +432,8 @@ export const CreateQuestionRequestSchema = z
     answerMode: AnswerModeEnum.nullable().optional(),
     options: z.array(OptionInputSchema).optional(),
     standardAnswer: StandardAnswerSchema,
-    attachments: z.array(AttachmentSchema).default([]),
+    image: QuestionImageSchema.nullable().default(null),
+    scale: LikertScaleSchema.nullable().default(null),
     difficulty: z.number().int().min(1).max(5).default(3),
     tags: QuestionTagsSchema.default([]),
     gradingRule: GradingRuleSchema.default({
@@ -429,7 +521,8 @@ export const UpdateQuestionRequestSchema = z
     answerMode: AnswerModeEnum.nullable().optional(),
     options: z.array(OptionInputSchema).optional(),
     standardAnswer: StandardAnswerSchema.optional(),
-    attachments: z.array(AttachmentSchema).optional(),
+    image: QuestionImageSchema.nullable().optional(),
+    scale: LikertScaleSchema.nullable().optional(),
     difficulty: z.number().int().min(1).max(5).optional(),
     tags: QuestionTagsSchema.optional(),
     gradingRule: GradingRuleSchema.optional(),
@@ -443,36 +536,12 @@ export type UpdateQuestionRequest = z.infer<typeof UpdateQuestionRequestSchema>;
 // ── Question Import ───────────────────────────────────────────────
 
 /**
- * Schema for a single row in a question import batch, supporting choice options as A-D columns.
- */
-export const QuestionImportRowSchema = z.object({
-  type: QuestionTypeEnum,
-  content: z.string().min(1),
-  optionA: z.string().optional(),
-  optionB: z.string().optional(),
-  optionC: z.string().optional(),
-  optionD: z.string().optional(),
-  standardAnswer: StandardAnswerSchema,
-  difficulty: z.number().int().min(1).max(5).optional(),
-  tags: z.string().optional(),
-  gradingRule: GradingRuleSchema.default({
-    multiSelectScoring: "all_correct_full",
-    fillBlankMatchMode: "exact",
-  }),
-  rubric: z.string().nullable().default(null),
-});
-
-/** Type for a single question import row. */
-export type QuestionImportRow = z.infer<typeof QuestionImportRowSchema>;
-
-/**
- * Request schema for batch-importing questions into a course.
- * Accepts 1 to 500 raw rows that the import route validates per-row against
- * CreateQuestionRequestSchema (mapping the CSV option columns A-D and
- * splitting tags), which is also the single score write authority.
+ * Request schema for batch-importing questions. Each row is one CSV record
+ * keyed by `QUESTION_CSV_HEADER`; the route maps it with
+ * `questionFromCsvRecord` and validates it with CreateQuestionRequestSchema.
  */
 export const QuestionImportRequestSchema = z.object({
-  rows: z.array(z.record(z.unknown())).min(1).max(500),
+  rows: z.array(z.record(z.string())).min(1).max(500),
   confirm: z.boolean().default(false),
 });
 

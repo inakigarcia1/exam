@@ -1,9 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useTranslation } from "react-i18next";
-import type { ContentDocumentV1 } from "@exam/domain";
+import type {
+  ContentDocumentV1,
+  QuestionImage as QuestionImageRef,
+} from "@exam/domain";
 import { resolveRichAnswerDocument } from "@exam/contracts";
 import { ContentRenderer } from "@/components/shared/content/ContentRenderer";
+import { QuestionImage } from "@/components/shared/QuestionImage";
 import { ContentDocumentRenderer } from "@/components/shared/content/ContentDocumentRenderer";
 import i18n from "@/i18n";
 import { api } from "@/lib/api";
@@ -145,6 +149,7 @@ interface GradingQuestion {
   content: string;
   /** Rich prompt document; null in Plain mode. */
   contentDocument?: ContentDocumentV1 | null;
+  image: QuestionImageRef | null;
   /** Frozen answer input mode — the render authority
    * for candidateAnswer. */
   answerMode?: string | null;
@@ -486,6 +491,7 @@ export function GradingDetailPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              <QuestionImage image={q.image} />
               <div className="space-y-2">
                 <Label>
                   {t("admin.gradingDetail.question.candidateAnswer")}

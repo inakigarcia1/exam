@@ -336,7 +336,8 @@ describe("EXAM-668 — shared candidate deadline reader lock relations", () => {
             { id: "b", content: "2" },
           ],
           standardAnswer: "a",
-          attachments: [],
+          image: null,
+          scale: null,
           difficulty: 1,
           tags: [],
           gradingRule: {
@@ -402,7 +403,8 @@ describe("EXAM-668 — shared candidate deadline reader lock relations", () => {
               content: "EXAM-668",
               contentDocument: null,
               answerMode: null,
-              attachments: [],
+              image: null,
+              scale: null,
               options: [
                 { id: "a", content: "1" },
                 { id: "b", content: "2" },

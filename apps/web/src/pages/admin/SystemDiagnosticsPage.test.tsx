@@ -132,7 +132,9 @@ describe("SystemDiagnosticsPage", () => {
     getMock.mockResolvedValueOnce(health());
     getMock.mockResolvedValueOnce(diag());
     renderPage();
-    expect(await screen.findByText("Monitoreo del sistema")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Monitoreo del sistema"),
+    ).toBeInTheDocument();
     // Routine successful refreshes are debug-level telemetry (S3): polling
     // fires health every 10s and diag every 30s, so info would flood the table.
     await waitFor(() => {
@@ -153,10 +155,14 @@ describe("SystemDiagnosticsPage", () => {
     getMock.mockResolvedValueOnce(health());
     getMock.mockResolvedValueOnce(diag());
     renderPage();
-    expect(await screen.findByText("Monitoreo del sistema")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Monitoreo del sistema"),
+    ).toBeInTheDocument();
     expect(await screen.findByText("Uso de CPU")).toBeInTheDocument();
     expect(screen.getByText("Uso de memoria")).toBeInTheDocument();
-    expect(screen.getByText("Tiempo de respuesta de la base de datos")).toBeInTheDocument();
+    expect(
+      screen.getByText("Tiempo de respuesta de la base de datos"),
+    ).toBeInTheDocument();
     expect(screen.getByText("10")).toBeInTheDocument();
     expect(screen.getByText("20")).toBeInTheDocument();
     expect(screen.getByText("5")).toBeInTheDocument();
@@ -184,7 +190,9 @@ describe("SystemDiagnosticsPage", () => {
     getMock.mockResolvedValueOnce(health());
     getMock.mockResolvedValueOnce(diag());
     renderPage();
-    expect(await screen.findByText("Estado de la base de datos")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Estado de la base de datos"),
+    ).toBeInTheDocument();
     expect(screen.getByText("5ms")).toBeInTheDocument();
     // Redis ready state renders infra-available badge; email also renders
     // "Disponible" so assert count >= 2 (one Redis + at least one email).
@@ -204,7 +212,9 @@ describe("SystemDiagnosticsPage", () => {
       },
     });
     renderPage();
-    expect(await screen.findByText("Estado de la base de datos")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Estado de la base de datos"),
+    ).toBeInTheDocument();
     expect(screen.getByText("Degradado")).toBeInTheDocument();
   });
 
@@ -221,7 +231,9 @@ describe("SystemDiagnosticsPage", () => {
       },
     });
     renderPage();
-    expect(await screen.findByText("Estado de la base de datos")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Estado de la base de datos"),
+    ).toBeInTheDocument();
     // StatusBadge renders the infra-disabled label
     expect(screen.getByText("Desactivado")).toBeInTheDocument();
     expect(screen.queryByText("未连接")).not.toBeInTheDocument();
@@ -240,7 +252,9 @@ describe("SystemDiagnosticsPage", () => {
       },
     });
     renderPage();
-    expect(await screen.findByText("Estado de la base de datos")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Estado de la base de datos"),
+    ).toBeInTheDocument();
     expect(screen.getByText("Conectando")).toBeInTheDocument();
   });
 
@@ -250,17 +264,17 @@ describe("SystemDiagnosticsPage", () => {
     renderPage();
     expect(await screen.findByText("Escáner de latidos")).toBeInTheDocument();
     expect(screen.getByText("Escáner de plazos")).toBeInTheDocument();
-    expect(screen.getByText("Interrumpidos")).toBeInTheDocument();
-    expect(screen.getByText("Envíos automáticos")).toBeInTheDocument();
+    expect(screen.getByText("Interrumpido")).toBeInTheDocument();
+    expect(screen.getByText("Entrega automática")).toBeInTheDocument();
     expect(screen.getAllByText("0").length).toBeGreaterThanOrEqual(1);
     expect(
       document.querySelectorAll('[data-diagnostic-role="scanner"]'),
     ).toHaveLength(2);
     // Timestamp rows: each scanner card has a "Último escaneo" row
     expect(screen.getAllByText("Último escaneo")).toHaveLength(2);
-    // Signal rows: heartbeat has "Interrumpidos", deadline has "Envíos automáticos"
-    expect(screen.getByText("Interrumpidos")).toBeInTheDocument();
-    expect(screen.getByText("Envíos automáticos")).toBeInTheDocument();
+    // Signal rows: heartbeat has "Interrumpido", deadline has "Entrega automática"
+    expect(screen.getByText("Interrumpido")).toBeInTheDocument();
+    expect(screen.getByText("Entrega automática")).toBeInTheDocument();
   });
 
   it("emits distinct information, scanner, disabled, and raised metric roles", async () => {
@@ -275,7 +289,9 @@ describe("SystemDiagnosticsPage", () => {
       },
     });
     renderPage();
-    expect(await screen.findByText("Información del servidor")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Información del servidor"),
+    ).toBeInTheDocument();
     expect(
       document.querySelectorAll('[data-diagnostic-role="information"]'),
     ).toHaveLength(3);
@@ -298,7 +314,9 @@ describe("SystemDiagnosticsPage", () => {
     getMock.mockResolvedValueOnce(health());
     getMock.mockResolvedValueOnce(diag());
     renderPage();
-    expect(await screen.findByText("Información del servidor")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Información del servidor"),
+    ).toBeInTheDocument();
     expect(screen.getByText("1.0.0")).toBeInTheDocument();
   });
 
@@ -306,7 +324,9 @@ describe("SystemDiagnosticsPage", () => {
     getMock.mockResolvedValueOnce(health());
     getMock.mockResolvedValueOnce(diag());
     renderPage();
-    expect(await screen.findByText("Configuración de ejecución")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Configuración de ejecución"),
+    ).toBeInTheDocument();
     expect(screen.getByText("Intervalo de latido")).toBeInTheDocument();
     expect(screen.getByText("Tiempo de espera del latido")).toBeInTheDocument();
     expect(screen.getByText("Intervalo de plazos")).toBeInTheDocument();
@@ -316,7 +336,9 @@ describe("SystemDiagnosticsPage", () => {
     getMock.mockRejectedValueOnce(new Error("health down"));
     getMock.mockResolvedValueOnce(diag());
     renderPage();
-    expect(await screen.findByText("Monitoreo del sistema")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Monitoreo del sistema"),
+    ).toBeInTheDocument();
     expect(screen.getByText("Información del servidor")).toBeInTheDocument();
     expect(screen.getByText("1.0.0")).toBeInTheDocument();
   });
@@ -325,7 +347,9 @@ describe("SystemDiagnosticsPage", () => {
     getMock.mockResolvedValueOnce(health());
     getMock.mockRejectedValueOnce(new Error("diag down"));
     renderPage();
-    expect(await screen.findByText("Monitoreo del sistema")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Monitoreo del sistema"),
+    ).toBeInTheDocument();
     expect(screen.getByText("Uso de CPU")).toBeInTheDocument();
     expect(screen.getByText("10")).toBeInTheDocument();
   });
@@ -334,13 +358,17 @@ describe("SystemDiagnosticsPage", () => {
     getMock.mockResolvedValueOnce(health());
     getMock.mockResolvedValueOnce(diag());
     renderPage();
-    expect(await screen.findByText("Monitoreo del sistema")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Monitoreo del sistema"),
+    ).toBeInTheDocument();
     expect(debugMock).toHaveBeenCalled();
 
     vi.clearAllMocks();
     getMock.mockResolvedValueOnce(health());
     getMock.mockResolvedValueOnce(diag());
-    const refreshBtn = screen.getByRole("button", { name: "Actualizar datos del sistema" });
+    const refreshBtn = screen.getByRole("button", {
+      name: "Actualizar datos del sistema",
+    });
     // Click inside act: handleRefresh calls setIsLoading(true) synchronously,
     // which is an out-of-act state update if the native .click() runs bare.
     await act(async () => {
@@ -401,7 +429,9 @@ describe("SystemDiagnosticsPage", () => {
     // S5: the stale warning must actually render in the DOM — the user sees a
     // visible "stale data" Alert, not just a swallowed log.
     expect(
-      screen.getByText("No se pudo actualizar el estado. Se muestran los últimos datos correctos."),
+      screen.getByText(
+        "No se pudo actualizar el estado. Se muestran los últimos datos correctos.",
+      ),
     ).toBeInTheDocument();
   });
 
@@ -418,7 +448,9 @@ describe("SystemDiagnosticsPage", () => {
       },
     });
     renderPage();
-    expect(await screen.findByText("Infraestructura de correo")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Infraestructura de correo"),
+    ).toBeInTheDocument();
     // overall email status badge (degraded label) + worker status badge.
     expect(screen.getByText("Degradado")).toBeInTheDocument();
     expect(screen.getByText("Estado del correo")).toBeInTheDocument();
@@ -448,7 +480,9 @@ describe("SystemDiagnosticsPage", () => {
       },
     });
     renderPage();
-    expect(await screen.findByText("Infraestructura de correo")).toBeInTheDocument();
+    expect(
+      await screen.findByText("Infraestructura de correo"),
+    ).toBeInTheDocument();
     // "Desactivado" appears on the email status badge, the email-enabled badge,
     // and the worker badge when everything is disabled — assert presence.
     expect(screen.getAllByText("Desactivado").length).toBeGreaterThanOrEqual(2);

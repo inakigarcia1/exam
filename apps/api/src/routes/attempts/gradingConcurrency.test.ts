@@ -147,7 +147,8 @@ async function buildFixture(
       { id: "c", content: "3" },
     ],
     standardAnswer: "b",
-    attachments: [],
+    image: null,
+    scale: null,
     difficulty: 1,
     tags: [],
     gradingRule: {
@@ -165,7 +166,8 @@ async function buildFixture(
       content: "1+1=?",
       contentDocument: null,
       answerMode: null,
-      attachments: [],
+      image: null,
+      scale: null,
       options: [
         { id: "a", content: "1" },
         { id: "b", content: "2" },

@@ -1,11 +1,21 @@
 import { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
+import { ErrorResponseSchema } from "@exam/contracts";
 import { Permission } from "@exam/authz";
 import { createSubjectRepo } from "@exam/db/repository/subjectRepo";
 import { ensureTargetOrg, getRequestContext } from "./helpers.js";
 import { buildErrorResponse } from "../lib/errorResponse.js";
 
 const cookieAuth = [{ cookieAuth: [] }] as const;
+const idParamsSchema = z.object({ id: z.string().uuid() });
+const subjectItemSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+});
+const subjectListSchema = z.object({
+  items: z.array(subjectItemSchema),
+  total: z.number().int(),
+});
 
 const subjectRoutes: FastifyPluginAsync = async (fastify) => {
   const repo = () => createSubjectRepo(fastify.db);
@@ -17,7 +27,10 @@ const subjectRoutes: FastifyPluginAsync = async (fastify) => {
         fastify.authenticate,
         fastify.requireCapability(Permission.CourseView),
       ],
-      schema: { security: cookieAuth },
+      schema: {
+        security: cookieAuth,
+        response: { 200: subjectListSchema },
+      },
     },
     async (request) => {
       const ctx = ensureTargetOrg(getRequestContext(request));
@@ -39,7 +52,11 @@ const subjectRoutes: FastifyPluginAsync = async (fastify) => {
         fastify.authenticate,
         fastify.requireCapability(Permission.CourseCreate),
       ],
-      schema: { security: cookieAuth },
+      schema: {
+        security: cookieAuth,
+        body: z.object({ name: z.string().min(1).max(200) }),
+        response: { 201: subjectItemSchema },
+      },
     },
     async (request, reply) => {
       const ctx = ensureTargetOrg(getRequestContext(request));
@@ -60,7 +77,12 @@ const subjectRoutes: FastifyPluginAsync = async (fastify) => {
         fastify.authenticate,
         fastify.requireCapability(Permission.CourseUpdate),
       ],
-      schema: { security: cookieAuth },
+      schema: {
+        security: cookieAuth,
+        params: idParamsSchema,
+        body: z.object({ name: z.string().min(1).max(200) }),
+        response: { 200: subjectItemSchema, 404: ErrorResponseSchema },
+      },
     },
     async (request, reply) => {
       const ctx = ensureTargetOrg(getRequestContext(request));
@@ -85,7 +107,11 @@ const subjectRoutes: FastifyPluginAsync = async (fastify) => {
         fastify.authenticate,
         fastify.requireCapability(Permission.CourseDelete),
       ],
-      schema: { security: cookieAuth },
+      schema: {
+        security: cookieAuth,
+        params: idParamsSchema,
+        response: { 204: z.null(), 404: ErrorResponseSchema },
+      },
     },
     async (request, reply) => {
       const ctx = ensureTargetOrg(getRequestContext(request));

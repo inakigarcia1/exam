@@ -256,7 +256,7 @@ describe("incident version-race recovery (ADR-014 §9)", () => {
     await dbShared.insert(schema.courses).values({
       id: courseId,
       organizationId: ORG_ID,
-      name: "c",
+      name: `c ${crypto.randomUUID()}`,
       code: `code-${randomUUID().slice(0, 6)}`,
       description: "",
       createdAt: now,

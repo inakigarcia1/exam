@@ -310,7 +310,9 @@ describe("AuditLogPage", () => {
       return Promise.resolve({ items: [], nextCursor: null });
     });
     renderPage();
-    expect(await screen.findByText("No hay registros de auditoría")).toBeInTheDocument();
+    expect(
+      await screen.findByText("No hay registros de auditoría"),
+    ).toBeInTheDocument();
   });
 
   it("shows error state on fetch failure", async () => {
@@ -321,7 +323,9 @@ describe("AuditLogPage", () => {
       return Promise.reject(new Error("Network error"));
     });
     renderPage();
-    expect(await screen.findByText("No se pudo cargar el registro de auditoría")).toBeInTheDocument();
+    expect(
+      await screen.findByText("No se pudo cargar el registro de auditoría"),
+    ).toBeInTheDocument();
   });
 
   it("navigates pages with keyset next/prev", async () => {
@@ -348,7 +352,9 @@ describe("AuditLogPage", () => {
   it("disables the prev button on the first page", async () => {
     renderPage();
     await screen.findByText("Registrar puntaje");
-    expect(screen.getByRole("button", { name: /Página anterior/ })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /Página anterior/ }),
+    ).toBeDisabled();
   });
 
   it("retry button re-fetches data on error", async () => {
@@ -423,11 +429,15 @@ describe("AuditLogPage", () => {
     renderPage();
     await screen.findByText("Registrar puntaje");
 
-    fireEvent.click(screen.getByRole("combobox", { name: /Todas las acciones/ }));
-    fireEvent.click(await screen.findByRole("option", { name: "Publicar resultados" }));
+    fireEvent.click(
+      screen.getByRole("combobox", { name: /Todas las acciones/ }),
+    );
+    fireEvent.click(
+      await screen.findByRole("option", { name: "Publicar resultados" }),
+    );
     await screen.findByText("Registrar puntaje");
 
-    fireEvent.click(screen.getByText("Limpiar filtros"));
+    fireEvent.click(screen.getByText("Quitar filtros"));
 
     await waitFor(() => {
       const lastCall = getMock.mock.calls.at(-1)?.[0] as string;
@@ -452,7 +462,9 @@ describe("AuditLogPage", () => {
     await screen.findByText("管理员张三");
     // A #297 action shipped after the old hardcoded list: present because the
     // dropdown is backend-driven, with a Chinese label from i18n.
-    await user.click(screen.getByRole("combobox", { name: /Todas las acciones/ }));
+    await user.click(
+      screen.getByRole("combobox", { name: /Todas las acciones/ }),
+    );
     expect(
       await screen.findByRole("option", { name: "Invitar usuario" }),
     ).toBeInTheDocument();
@@ -467,9 +479,11 @@ describe("AuditLogPage", () => {
     renderPage();
     await screen.findByText("管理员张三");
 
-    await user.click(screen.getByRole("combobox", { name: /Todas las acciones/ }));
+    await user.click(
+      screen.getByRole("combobox", { name: /Todas las acciones/ }),
+    );
     const grantOption = await screen.findByRole("option", {
-      name: "Otorgar tiempo de examen",
+      name: "Se otorgó tiempo de examen",
     });
     expect(grantOption).toBeInTheDocument();
     // The raw action key must not appear as a visible label.

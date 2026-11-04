@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { ROLE_GEOMETRY } from "@/table/columnAllocation";
 
 const here = dirname(fileURLToPath(import.meta.url));
+const webRoot = join(here, "..");
 const tableCss = readFileSync(join(here, "recipes.css"), "utf8");
 const workbenchCss = readFileSync(join(here, "workbench.css"), "utf8");
 const indexCss = readFileSync(join(here, "../index.css"), "utf8");
@@ -20,6 +21,11 @@ function listSourceFiles(dir: string, out: string[] = []): string[] {
     }
   }
   return out;
+}
+
+// INVARIANT: compared paths are posix on every OS.
+function webRel(path: string): string {
+  return relative(webRoot, path).replace(/\\/g, "/");
 }
 
 /** The hex value a `--var: #rrggbb;` definition carries in index.css. */
@@ -254,13 +260,12 @@ describe("table and color visual-finish authority", () => {
     // runtime probes have one element to read. A second writer — e.g. the
     // archetype repeated on the outer section — would let a probe read a
     // stale value from an element that is not the measured region.
-    const webRoot = join(here, "..");
     // Matches the attribute WRITE (JSX `data-table-archetype={...}` or an
     // attribute object key), not a comment that names the attribute.
     const write = /["']?data-table-(?:archetype|tier)["']?\s*[:=]/;
     const writers = listSourceFiles(webRoot)
       .filter((path) => write.test(readFileSync(path, "utf8")))
-      .map((path) => relative(webRoot, path))
+      .map((path) => webRel(path))
       .sort();
     expect(writers).toEqual(["components/shared/TableScrollSurface.tsx"]);
   });
@@ -295,11 +300,10 @@ describe("table and color visual-finish authority", () => {
     //
     // The probe matches property READS (`el.scrollWidth`), not prose: a doc
     // comment that quotes the measurement vocabulary is not an owner.
-    const webRoot = join(here, "..");
     const owners = listSourceFiles(webRoot)
       .filter((path) => !path.startsWith(join(webRoot, "test")))
       .map((path) => ({
-        path: relative(webRoot, path),
+        path: webRel(path),
         text: readFileSync(path, "utf8"),
       }))
       .filter(({ text }) =>

@@ -59,7 +59,9 @@ test.describe("staff invitation end to end", () => {
     await page.goto(`${BASE_URL}/login`);
     await page.getByLabel("Usuario").fill(username);
     await page.getByLabel("Contraseña", { exact: true }).fill(password);
-    await page.getByRole("button", { name: "Iniciar sesión", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Iniciar sesión", exact: true })
+      .click();
     // A Teacher lands on the capability-driven console surface.
     await page.waitForURL(/\/admin\/exams(?:$|[/?#])/, {
       timeout: 15_000,

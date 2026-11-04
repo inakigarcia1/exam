@@ -1,5 +1,6 @@
-import { FastifyPluginAsync } from "fastify";
+import type { FastifyInstance, FastifyPluginAsync } from "fastify";
 import { z } from "zod";
+import type { QuestionImage, RequestContext } from "@exam/domain";
 import {
   CreateQuestionRequestSchema,
   QuestionImportRequestSchema,
@@ -8,8 +9,13 @@ import {
   QuestionSchema,
   QuestionImportResultSchema,
   ErrorResponseSchema,
+  QUESTION_CSV_HEADER,
+  questionFromCsvRecord,
+  questionToCsvRecord,
 } from "@exam/contracts";
+import { generateCSV } from "@exam/import-export";
 import { createQuestionRepo } from "@exam/db/repository/questionRepo";
+import { createQuestionImageRepo } from "@exam/db/repository/questionImageRepo";
 import { createImportJobLogRepo } from "@exam/db/repository/importJobLogRepo";
 import { executeInTransaction } from "@exam/db/types";
 import { Permission } from "@exam/authz";
@@ -72,7 +78,8 @@ function toQuestionResponse(question: QuestionRow) {
     answerMode: question.answerMode ?? null,
     options: question.options,
     standardAnswer: question.standardAnswer,
-    attachments: question.attachments,
+    image: question.image ?? null,
+    scale: question.scale ?? null,
     difficulty: question.difficulty,
     tags: question.tags,
     gradingRule: question.gradingRule,
@@ -80,6 +87,20 @@ function toQuestionResponse(question: QuestionRow) {
     createdAt: question.createdAt.toISOString(),
     updatedAt: question.updatedAt.toISOString(),
   };
+}
+
+/**
+ * A referenced image must already be uploaded to the actor's organization.
+ * The `questions_image_fk` constraint enforces the same rule; this check turns
+ * a violation into a 400 instead of a database error.
+ */
+async function imageBelongsToOrg(
+  fastify: FastifyInstance,
+  ctx: RequestContext,
+  image: QuestionImage | null | undefined,
+): Promise<boolean> {
+  if (!image) return true;
+  return createQuestionImageRepo(fastify.db).exists(ctx, image.sha256);
 }
 
 /** Fastify plugin that registers all question CRUD and import routes. */
@@ -163,6 +184,44 @@ const questionRoutes: FastifyPluginAsync = async (fastify) => {
   );
 
   fastify.get(
+    "/questions/export",
+    {
+      preHandler: [
+        fastify.authenticate,
+        fastify.requireCapability(Permission.QuestionView),
+      ],
+      schema: {
+        security: cookieAuth,
+        "x-role": ["Admin", "Teacher"],
+        response: { 200: z.string() },
+      },
+    },
+    /** Export the whole question bank as CSV in the import format (`QUESTION_CSV_HEADER`). */
+    async (request: any, reply: any) => {
+      const ctx = ensureTargetOrg(getRequestContext(request));
+      const questions = await createQuestionRepo(fastify.db).list(ctx);
+      const rows = questions.map((q) =>
+        questionToCsvRecord({
+          type: q.type,
+          content: q.content,
+          options: q.options,
+          standardAnswer: q.standardAnswer,
+          scale: q.scale ?? null,
+          rubric: q.rubric,
+          difficulty: q.difficulty,
+          tags: q.tags,
+        }),
+      );
+      reply.header("Content-Type", "text/csv; charset=utf-8");
+      reply.header(
+        "Content-Disposition",
+        'attachment; filename="preguntas.csv"',
+      );
+      return reply.send("\uFEFF" + generateCSV([...QUESTION_CSV_HEADER], rows));
+    },
+  );
+
+  fastify.get(
     "/questions/:id",
     {
       preHandler: [
@@ -222,6 +281,11 @@ const questionRoutes: FastifyPluginAsync = async (fastify) => {
           .send(buildValidationErrorResponse(request.id, parsed.error));
       }
       const data = parsed.data;
+      if (!(await imageBelongsToOrg(fastify, ctx, data.image))) {
+        return reply
+          .code(400)
+          .send(buildErrorResponse(request.id, "VALIDATION_ERROR"));
+      }
 
       const resolved = resolveQuestionContentWrite({
         type: data.type,
@@ -238,7 +302,8 @@ const questionRoutes: FastifyPluginAsync = async (fastify) => {
         answerMode: resolved.answerMode,
         options: resolved.options,
         standardAnswer: data.standardAnswer,
-        attachments: data.attachments,
+        image: data.image,
+        scale: data.scale,
         difficulty: data.difficulty,
         tags: data.tags,
         gradingRule: data.gradingRule,
@@ -294,6 +359,11 @@ const questionRoutes: FastifyPluginAsync = async (fastify) => {
         updateContent: data.content,
         updateDocument: data.contentDocument,
       });
+      if (!(await imageBelongsToOrg(fastify, ctx, data.image))) {
+        return reply
+          .code(400)
+          .send(buildErrorResponse(request.id, "VALIDATION_ERROR"));
+      }
       const resolved = resolveQuestionContentWrite({
         type: validated.type,
         content: validated.content,
@@ -308,7 +378,8 @@ const questionRoutes: FastifyPluginAsync = async (fastify) => {
         answerMode: resolved.answerMode,
         options: resolved.options,
         standardAnswer: validated.standardAnswer,
-        attachments: validated.attachments,
+        image: validated.image,
+        scale: validated.scale,
         difficulty: validated.difficulty,
         tags: validated.tags,
         gradingRule: validated.gradingRule,
@@ -414,51 +485,9 @@ const questionRoutes: FastifyPluginAsync = async (fastify) => {
         for (let i = 0; i < body.rows.length; i++) {
           const raw = body.rows[i];
           if (!raw) continue;
-          const parsedRow = CreateQuestionRequestSchema.safeParse({
-            type: raw.type,
-            content: raw.content,
-            options:
-              raw.optionA || raw.optionB
-                ? [
-                    raw.optionA
-                      ? {
-                          id: "A",
-                          content: raw.optionA,
-                          isCorrect: false as boolean,
-                        }
-                      : undefined,
-                    raw.optionB
-                      ? {
-                          id: "B",
-                          content: raw.optionB,
-                          isCorrect: false as boolean,
-                        }
-                      : undefined,
-                    raw.optionC
-                      ? {
-                          id: "C",
-                          content: raw.optionC,
-                          isCorrect: false as boolean,
-                        }
-                      : undefined,
-                    raw.optionD
-                      ? {
-                          id: "D",
-                          content: raw.optionD,
-                          isCorrect: false as boolean,
-                        }
-                      : undefined,
-                  ].filter((o): o is NonNullable<typeof o> => o !== undefined)
-                : undefined,
-            standardAnswer: raw.standardAnswer,
-            difficulty: raw.difficulty,
-            tags:
-              typeof raw.tags === "string"
-                ? raw.tags.split(",").map((t: string) => t.trim())
-                : undefined,
-            gradingRule: raw.gradingRule,
-            rubric: raw.rubric,
-          });
+          const parsedRow = CreateQuestionRequestSchema.safeParse(
+            questionFromCsvRecord(raw),
+          );
 
           if (!parsedRow.success) {
             errors++;
@@ -488,7 +517,8 @@ const questionRoutes: FastifyPluginAsync = async (fastify) => {
               answerMode: resolved.answerMode,
               options: resolved.options,
               standardAnswer: data.standardAnswer,
-              attachments: data.attachments,
+              image: null,
+              scale: data.scale,
               difficulty: data.difficulty,
               tags: data.tags,
               gradingRule: data.gradingRule,

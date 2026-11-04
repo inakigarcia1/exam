@@ -39,7 +39,8 @@ function publishedSnapshot(): QuestionSnapshot[] {
       content: "Q1",
       contentDocument: null,
       answerMode: null,
-      attachments: [],
+      image: null,
+      scale: null,
       options: [
         { id: "a", content: "A" },
         { id: "b", content: "B" },
@@ -60,7 +61,8 @@ function publishedSnapshot(): QuestionSnapshot[] {
       content: "Q2",
       contentDocument: null,
       answerMode: null,
-      attachments: [],
+      image: null,
+      scale: null,
       options: [
         { id: "d", content: "D" },
         { id: "e", content: "E" },
@@ -80,7 +82,8 @@ function publishedSnapshot(): QuestionSnapshot[] {
       content: "Q3",
       contentDocument: null,
       answerMode: null,
-      attachments: [],
+      image: null,
+      scale: null,
       options: [
         { id: "t", content: "True" },
         { id: "f", content: "False" },
@@ -100,7 +103,8 @@ function publishedSnapshot(): QuestionSnapshot[] {
       content: "Q4",
       contentDocument: null,
       answerMode: null,
-      attachments: [],
+      image: null,
+      scale: null,
       options: [],
       standardAnswer: "x",
       score: 20,
@@ -117,7 +121,8 @@ function publishedSnapshot(): QuestionSnapshot[] {
       content: "Q5",
       contentDocument: null,
       answerMode: null,
-      attachments: [],
+      image: null,
+      scale: null,
       options: [],
       standardAnswer: null,
       score: 20,
@@ -322,5 +327,22 @@ describe("materializeAttemptPresentation (#294)", () => {
     expect(result[0]!.originalQuestionId).toBe("q1");
     expect(result[0]!.order).toBe(0);
     expect(result[0]!.options.map((o) => o.id)).toEqual(["b", "c", "a"]);
+  });
+
+  it("ranking is shuffled even with shuffleOptions off, never into the correct order", () => {
+    const ranking: QuestionSnapshot = {
+      ...publishedSnapshot()[0]!,
+      type: "ranking",
+      standardAnswer: ["a", "b", "c"],
+    };
+    // 0.99 draws j = i at every step: the identity permutation.
+    const result = materializeAttemptPresentation(
+      [ranking],
+      flags(false, false),
+      sequenceRng(0.99, 0.99),
+    );
+
+    expect(result[0]!.options.map((o) => o.id)).toEqual(["b", "c", "a"]);
+    expect(ranking.options.map((o) => o.id)).toEqual(["a", "b", "c"]);
   });
 });

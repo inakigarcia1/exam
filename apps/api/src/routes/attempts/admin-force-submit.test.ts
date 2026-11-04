@@ -168,7 +168,8 @@ describe("attempt routes", () => {
                   // text_response requires a non-empty rubric at
                   // publish time (standardAnswer is optional for it).
                   rubric: "Score 0–100 by clarity and depth.",
-                  attachments: [],
+                  image: null,
+                  scale: null,
                   difficulty: 1,
                   tags: [],
                   gradingRule: {
@@ -194,7 +195,8 @@ describe("attempt routes", () => {
                     { id: "c", content: "3" },
                   ],
                   standardAnswer: "b",
-                  attachments: [],
+                  image: null,
+                  scale: null,
                   difficulty: 1,
                   tags: [],
                   gradingRule: {

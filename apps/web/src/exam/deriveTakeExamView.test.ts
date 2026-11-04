@@ -37,6 +37,9 @@ function buildSnapshot(
         type: "single_choice",
         prompt: "pick one",
         promptDocument: null,
+
+        image: null,
+        scale: null,
         answerMode: "plain",
         options: [{ id: "opt-a", content: "A", contentDocument: null }],
         inputMode: "choice",
@@ -77,6 +80,9 @@ describe("deriveTakeExamView", () => {
             type: "single_choice",
             prompt: "pick one",
             promptDocument: null,
+
+            image: null,
+            scale: null,
             answerMode: "plain",
             options: [{ id: "opt-a", content: "A", contentDocument: null }],
             inputMode: "choice",
@@ -183,6 +189,9 @@ describe("deriveTakeExamView", () => {
             type: "fill_blank",
             prompt: "blank",
             promptDocument: null,
+
+            image: null,
+            scale: null,
             answerMode: "plain",
             options: [],
             inputMode: "single_line",
@@ -195,6 +204,9 @@ describe("deriveTakeExamView", () => {
             type: "fill_blank",
             prompt: "blank2",
             promptDocument: null,
+
+            image: null,
+            scale: null,
             answerMode: "plain",
             options: [],
             inputMode: "single_line",

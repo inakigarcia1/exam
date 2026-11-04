@@ -48,7 +48,9 @@ describe("PageHeader", () => {
   });
 
   it("renders status slot when provided", () => {
-    render(<PageHeader title="Detalle del examen" status={<span>Publicado</span>} />);
+    render(
+      <PageHeader title="Detalle del examen" status={<span>Publicado</span>} />,
+    );
     expect(screen.getByText("Publicado")).toBeInTheDocument();
   });
 
@@ -133,7 +135,9 @@ describe("ConfirmDialog", () => {
         onConfirm={() => {}}
       />,
     );
-    expect(screen.getByRole("button", { name: "Eliminar" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Eliminar" }),
+    ).toBeInTheDocument();
   });
 
   it("opens dialog and shows title and description on trigger click", async () => {
@@ -164,8 +168,12 @@ describe("ConfirmDialog", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Acciones" }));
 
-    expect(screen.getByRole("button", { name: "Confirmar" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Cancelar" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Confirmar" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Cancelar" }),
+    ).toBeInTheDocument();
   });
 
   it("shows custom confirm and cancel labels", async () => {
@@ -293,15 +301,15 @@ describe("RowActions", () => {
       />,
     );
 
-    expect(screen.getByRole("group", { name: "Acciones de la fila" })).toHaveAttribute(
-      "data-slot",
-      "row-actions",
-    );
-    expect(screen.getByRole("group", { name: "Acciones de la fila" })).toHaveAttribute(
-      "data-action-target",
-      "responsive",
-    );
-    expect(screen.getByRole("group", { name: "Acciones de la fila" })).toHaveClass("gap-1");
+    expect(
+      screen.getByRole("group", { name: "Acciones de la fila" }),
+    ).toHaveAttribute("data-slot", "row-actions");
+    expect(
+      screen.getByRole("group", { name: "Acciones de la fila" }),
+    ).toHaveAttribute("data-action-target", "responsive");
+    expect(
+      screen.getByRole("group", { name: "Acciones de la fila" }),
+    ).toHaveClass("gap-1");
     expect(screen.getByRole("button", { name: "Ver" })).toBeInTheDocument();
   });
 });
@@ -327,8 +335,10 @@ describe("DataTablePagination", () => {
 
     // The count/range line is owned by the footer authority; the pagination
     // control owns navigation only (issue 601 Phase F convergence).
-    expect(screen.getByText("共 25 条，显示 1-10 条")).toBeInTheDocument();
-    expect(screen.getByText("共 25 条，显示 1-10 条")).toHaveAttribute(
+    expect(
+      screen.getByText("25 en total, se muestran 1-10"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("25 en total, se muestran 1-10")).toHaveAttribute(
       "aria-live",
       "polite",
     );
@@ -347,7 +357,7 @@ describe("DataTablePagination", () => {
       />,
     );
 
-    expect(screen.getByRole("link", { name: "第 2 页" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Página 2" })).toHaveAttribute(
       "aria-current",
       "page",
     );
@@ -368,8 +378,8 @@ describe("DataTablePagination", () => {
       />,
     );
 
-    expect(screen.getByText("共 3 条，显示 1-1 条")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "第 1 页" })).toHaveAttribute(
+    expect(screen.getByText("3 en total, se muestran 1-1")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Página 1" })).toHaveAttribute(
       "aria-current",
       "page",
     );
@@ -487,7 +497,9 @@ describe("ErrorState", () => {
 
   it("renders retry button when onRetry is provided", () => {
     render(<ErrorState message="加载失败" onRetry={() => {}} />);
-    expect(screen.getByRole("button", { name: "Reintentar" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Reintentar" }),
+    ).toBeInTheDocument();
   });
 
   it("renders without retry button when onRetry is not provided", () => {
@@ -618,7 +630,9 @@ describe("DataToolbar", () => {
       screen.getByRole("toolbar", { name: "Barra de datos" }),
     ).toBeInTheDocument();
     expect(screen.getByLabelText("关键词")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Importar" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Importar" }),
+    ).toBeInTheDocument();
     expect(screen.getByRole("toolbar")).toHaveAttribute(
       "data-toolbar-appearance",
       "quiet",
@@ -801,7 +815,9 @@ describe("DataTableShell", () => {
       </DataTableShell>,
     );
 
-    expect(screen.getByRole("button", { name: "Actualizar" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Actualizar" }),
+    ).toBeInTheDocument();
     expect(screen.getByText("第 1 页")).toBeInTheDocument();
   });
 
@@ -811,7 +827,10 @@ describe("DataTableShell", () => {
     // controls band of its own would add a full-width empty row above the
     // table (regression caught on /admin/exams).
     render(
-      <DataTableShell title="Lista de exámenes" meta={<span>共 20 场考试</span>}>
+      <DataTableShell
+        title="Lista de exámenes"
+        meta={<span>共 20 场考试</span>}
+      >
         <table aria-label="考试数据" />
       </DataTableShell>,
     );
@@ -1020,30 +1039,29 @@ describe("DataTableShell", () => {
     expect(screen.getByText("Desliza a la derecha para ver más")).toHaveClass(
       "pointer-events-none",
     );
-    expect(screen.getByText("Desliza a la derecha para ver más")).toHaveAttribute(
-      "data-scroll-direction",
-      "right",
-    );
+    expect(
+      screen.getByText("Desliza a la derecha para ver más"),
+    ).toHaveAttribute("data-scroll-direction", "right");
 
     metrics.scrollLeft = 240;
     fireEvent.scroll(region);
-    expect(screen.getByText("Desliza hacia los lados para ver más")).toHaveAttribute(
-      "data-scroll-direction",
-      "both",
-    );
+    expect(
+      screen.getByText("Desliza hacia los lados para ver más"),
+    ).toHaveAttribute("data-scroll-direction", "both");
 
     metrics.scrollLeft = 480;
     fireEvent.scroll(region);
-    expect(screen.getByText("Desliza a la izquierda para ver más")).toHaveAttribute(
-      "data-scroll-direction",
-      "left",
-    );
+    expect(
+      screen.getByText("Desliza a la izquierda para ver más"),
+    ).toHaveAttribute("data-scroll-direction", "left");
 
     // A wide viewport does NOT re-gate the hint: overflowing is a container
     // fact, not a viewport policy.
     metrics.scrollLeft = 0;
     fireEvent.scroll(region);
-    expect(screen.getByText("Desliza a la derecha para ver más")).toBeInTheDocument();
+    expect(
+      screen.getByText("Desliza a la derecha para ver más"),
+    ).toBeInTheDocument();
     expect(region).toHaveClass("overflow-x-auto");
     expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
       document.documentElement.clientWidth,
